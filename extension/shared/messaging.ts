@@ -1,4 +1,5 @@
 // Chrome Extension Message Types
+import type { Profile } from '../components/SettingsModal'
 
 export type MessageType =
   | 'INITIAL_STATE'
@@ -30,9 +31,11 @@ export interface SpawnTerminalMessage extends BaseMessage {
   type: 'SPAWN_TERMINAL';
   command?: string;
   cwd?: string;
+  workingDir?: string; // Working directory (can also come from profile)
   spawnOption?: string;
   useTmux?: boolean;
   name?: string; // Friendly name for the tab
+  profile?: Profile; // Profile settings (fontSize, fontFamily, theme, workingDir)
 }
 
 export interface CloseSessionMessage extends BaseMessage {

@@ -9,7 +9,8 @@
     "tabs",
     "sidePanel",
     "clipboardRead",
-    "clipboardWrite"
+    "clipboardWrite",
+    "notifications"
   ],
   "host_permissions": [
     "http://localhost:8129/*"

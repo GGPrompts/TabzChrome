@@ -1,5 +1,5 @@
 import type { ExtensionMessage } from '../shared/messaging'
-import { getActiveSessionCount, addActiveSession, removeActiveSession, addRecentSession, getLocal } from '../shared/storage'
+import { getLocal } from '../shared/storage'
 
 // WebSocket connection to backend
 let ws: WebSocket | null = null
@@ -45,6 +45,31 @@ function connectWebSocket() {
       } else if (message.type === 'terminals') {
         // Terminal list received on connection - restore sessions
         console.log('📋 Terminal list received:', message.data?.length, 'terminals')
+        // Update badge based on terminal count
+        const terminalCount = message.data?.length || 0
+        chrome.action.setBadgeText({ text: terminalCount > 0 ? String(terminalCount) : '' })
+        chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+
+        broadcastToClients({
+          type: 'WS_MESSAGE',
+          data: message,
+        })
+      } else if (message.type === 'terminal-spawned') {
+        // Terminal spawned - increment badge
+        console.log('📤 Terminal spawned, updating badge')
+        updateBadge()
+
+        const clientMessage: ExtensionMessage = {
+          type: 'WS_MESSAGE',
+          data: message,
+        }
+        console.log('📤 Broadcasting to clients:', JSON.stringify(clientMessage).slice(0, 200))
+        broadcastToClients(clientMessage)
+      } else if (message.type === 'terminal-closed') {
+        // Terminal closed - decrement badge
+        console.log('📤 Terminal closed, updating badge')
+        updateBadge()
+
         broadcastToClients({
           type: 'WS_MESSAGE',
           data: message,
@@ -54,9 +79,6 @@ function connectWebSocket() {
         const clientMessage: ExtensionMessage = {
           type: 'WS_MESSAGE',
           data: message,
-        }
-        if (message.type === 'terminal-spawned') {
-          console.log('📤 Broadcasting to clients:', JSON.stringify(clientMessage).slice(0, 200))
         }
         broadcastToClients(clientMessage)
       }
@@ -112,11 +134,17 @@ function broadcastToClients(message: ExtensionMessage) {
   })
 }
 
-// Update extension badge with active session count
+// Update extension badge with active terminal count
+// This queries the backend for the actual terminal count
 async function updateBadge() {
-  const count = await getActiveSessionCount()
-  chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' })
-  chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+  // Request terminal list from backend
+  if (ws?.readyState === WebSocket.OPEN) {
+    sendToWebSocket({ type: 'list-terminals' })
+    // Badge will be updated when we receive the 'terminals' response
+  } else {
+    // If not connected, clear the badge
+    chrome.action.setBadgeText({ text: '' })
+  }
 }
 
 // Message handler from extension pages
@@ -151,18 +179,19 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       // Transform extension message to backend spawn format
       const requestId = `spawn-${Date.now()}`
 
-      // Check global tmux setting
-      const { settings } = await getLocal(['settings'])
-      const globalUseTmux = settings?.globalUseTmux || false
+      // Chrome extension terminals ALWAYS use tmux for persistence
+      // This ensures terminals survive extension reloads
+      const useTmux = true
 
       sendToWebSocket({
         type: 'spawn',
         config: {
           terminalType: message.spawnOption || 'bash',
           command: message.command || '',
-          workingDir: message.cwd, // Fixed: Backend expects workingDir, not workingDirectory
-          useTmux: globalUseTmux || message.useTmux || false, // Apply global override
+          workingDir: message.workingDir || message.cwd || message.profile?.workingDir, // Support profile working dir
+          useTmux: useTmux, // Always use tmux for Chrome extension terminals
           name: message.name || message.spawnOption || 'Terminal', // Friendly name
+          profile: message.profile, // Pass profile to backend for storage
         },
         requestId,
       })
@@ -171,17 +200,11 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
         terminalType: message.spawnOption,
         name: message.name,
         command: message.command,
-        cwd: message.cwd,
-        useTmux: globalUseTmux || message.useTmux || false,
-        globalUseTmux,
+        workingDir: message.workingDir || message.profile?.workingDir,
+        useTmux: useTmux,
         requestId,
       })
-
-      // Track as active session
-      if (message.spawnOption) {
-        addActiveSession(`${message.spawnOption}-${Date.now()}`)
-        updateBadge()
-      }
+      // Badge will be updated when backend sends terminal-spawned message
       break
 
     case 'CLOSE_SESSION':
@@ -189,8 +212,7 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
         type: 'close-terminal',
         sessionName: message.sessionName,
       })
-      removeActiveSession(message.sessionName)
-      updateBadge()
+      // Badge will be updated when backend sends terminal-closed message
       break
 
     case 'CLOSE_TERMINAL':
@@ -268,10 +290,10 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Installing context menus...')
 
-  // Simple context menu: just open side panel
+  // Simple context menu: toggle side panel
   chrome.contextMenus.create({
-    id: 'open-sidepanel',
-    title: 'Open Terminal Sidebar',
+    id: 'toggle-sidepanel',
+    title: 'Toggle Terminal Sidebar',
     contexts: ['all'],
   })
 })
@@ -280,7 +302,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   console.log('Context menu clicked:', info.menuItemId)
 
-  if (info.menuItemId === 'open-sidepanel' && tab?.windowId) {
+  if (info.menuItemId === 'toggle-sidepanel' && tab?.windowId) {
     chrome.sidePanel.open({ windowId: tab.windowId })
   }
 })
@@ -319,6 +341,19 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
     } catch (err) {
       console.error('[Background] Failed to toggle sidebar:', err)
+
+      // Chrome requires user gesture for sidePanel.open()
+      // Keyboard shortcuts don't count as user gestures
+      // Show helpful notification instead
+      if (err instanceof Error && err.message.includes('user gesture')) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: 'Terminal Sidebar',
+          message: 'Please click the extension icon to open the sidebar. Chrome doesn\'t allow keyboard shortcuts to open side panels.',
+          priority: 1
+        })
+      }
     }
   }
 })

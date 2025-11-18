@@ -12,9 +12,26 @@ const pty = require('node-pty');
 const { execSync } = require('child_process');
 const EventEmitter = require('events');
 const path = require('path');
+const os = require('os');
 const { createModuleLogger } = require('./logger');
 
 const log = createModuleLogger('PTY');
+
+/**
+ * Expand tilde (~) in file paths to actual home directory
+ */
+function expandTilde(filepath) {
+  if (!filepath || typeof filepath !== 'string') {
+    return filepath;
+  }
+
+  // Expand ~ or ~/something
+  if (filepath.startsWith('~/') || filepath === '~') {
+    return filepath.replace(/^~/, os.homedir());
+  }
+
+  return filepath;
+}
 
 class PTYHandler extends EventEmitter {
   constructor() {
@@ -132,8 +149,11 @@ class PTYHandler extends EventEmitter {
       })
     };
 
-    // Validate working directory
-    const validWorkingDir = workingDir || process.env.HOME || process.cwd();
+    // Validate working directory and expand tilde
+    const expandedWorkingDir = expandTilde(workingDir);
+    const validWorkingDir = expandedWorkingDir || process.env.HOME || process.cwd();
+
+    log.debug(`Working directory: ${workingDir} -> ${validWorkingDir}`);
 
     try {
       let ptyProcess;

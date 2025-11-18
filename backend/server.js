@@ -129,10 +129,22 @@ wss.on('connection', (ws) => {
   const MAX_MALFORMED_PER_MINUTE = 10;
 
   // Send initial terminal state
+  const existingTerminals = terminalRegistry.getAllTerminals();
   ws.send(JSON.stringify({
     type: 'terminals',
-    data: terminalRegistry.getAllTerminals()
+    data: existingTerminals
   }));
+
+  // CRITICAL: Register this connection as an owner of all existing terminals
+  // This ensures reconnected clients receive output from restored terminals
+  existingTerminals.forEach(terminal => {
+    if (!terminalOwners.has(terminal.id)) {
+      terminalOwners.set(terminal.id, new Set());
+    }
+    terminalOwners.get(terminal.id).add(ws);
+    connectionTerminals.add(terminal.id);
+    log.debug(`Registered connection as owner of existing terminal: ${terminal.id.slice(-8)}`);
+  });
 
   // Send immediate memory stats to new client
   const memUsage = process.memoryUsage();

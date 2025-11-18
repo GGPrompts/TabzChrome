@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
-import { SettingsModal, useTerminalSettings } from '../components/SettingsModal'
+import { SettingsModal, useTerminalSettings, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
 import '../styles/globals.css'
@@ -14,6 +14,7 @@ interface TerminalSession {
   type: string
   active: boolean
   sessionName?: string  // Tmux session name (only for tmux-based terminals)
+  profile?: Profile     // Profile settings for this terminal
 }
 
 function SidePanelTerminal() {
@@ -21,6 +22,8 @@ function SidePanelTerminal() {
   const [currentSession, setCurrentSession] = useState<string | null>(null)
   const [wsConnected, setWsConnected] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const portRef = useRef<chrome.runtime.Port | null>(null)
   const terminalSettings = useTerminalSettings()
 
@@ -72,6 +75,46 @@ function SidePanelTerminal() {
     }
   }, [contextMenu.show])
 
+  // Load profiles from Chrome storage
+  useEffect(() => {
+    chrome.storage.local.get(['profiles'], (result) => {
+      if (result.profiles && Array.isArray(result.profiles)) {
+        setProfiles(result.profiles)
+      }
+    })
+
+    // Listen for storage changes (when settings modal updates profiles)
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.profiles) {
+        setProfiles((changes.profiles.newValue as Profile[]) || [])
+      }
+    }
+
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }, [])
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    if (!showProfileDropdown) return
+
+    const handleClick = () => {
+      setShowProfileDropdown(false)
+    }
+
+    // Add small delay to prevent immediate closing when opening
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick)
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showProfileDropdown])
+
   const handleWebSocketMessage = (data: any) => {
     console.log('[Sidepanel] handleWebSocketMessage:', data.type, data.type === 'terminal-spawned' || data.type === 'terminals' ? JSON.stringify(data).slice(0, 300) : '')
     switch (data.type) {
@@ -86,6 +129,7 @@ function SidePanelTerminal() {
             type: t.terminalType || 'bash',
             active: false,
             sessionName: t.sessionName,
+            profile: t.profile, // Restore profile settings
           })))
           // Set first terminal as active
           setCurrentSession(existingTerminals[0].id)
@@ -96,12 +140,13 @@ function SidePanelTerminal() {
         break
       case 'terminal-spawned':
         // Backend sends: { type: 'terminal-spawned', data: terminalObject, requestId }
-        // terminalObject has: { id, name, terminalType, ... }
+        // terminalObject has: { id, name, terminalType, profile, ... }
         const terminal = data.data || data
         console.log('[Sidepanel] 📥 Terminal spawned:', {
           id: terminal.id,
           name: terminal.name,
           type: terminal.terminalType,
+          profile: terminal.profile,
         })
         setSessions(prev => {
           // Check if terminal already exists (from restore)
@@ -115,6 +160,7 @@ function SidePanelTerminal() {
             type: terminal.terminalType || 'bash',
             active: false,
             sessionName: terminal.sessionName,  // Store tmux session name
+            profile: terminal.profile,          // Store profile settings
           }]
         })
         setCurrentSession(terminal.id)
@@ -141,6 +187,38 @@ function SidePanelTerminal() {
       spawnOption: 'bash',
       name: 'Bash',
     })
+  }
+
+  const handleSpawnDefaultProfile = () => {
+    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
+      const defaultProfileId = result.defaultProfile || 'default'
+      const profiles = (result.profiles as Profile[]) || []
+      const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
+
+      if (profile) {
+        sendMessage({
+          type: 'SPAWN_TERMINAL',
+          spawnOption: 'bash',
+          name: profile.name,
+          workingDir: profile.workingDir,
+          profile: profile,
+        })
+      } else {
+        // Fallback to regular bash if profile not found
+        handleSpawnTerminal()
+      }
+    })
+  }
+
+  const handleSpawnProfile = (profile: Profile) => {
+    sendMessage({
+      type: 'SPAWN_TERMINAL',
+      spawnOption: 'bash',
+      name: profile.name,
+      workingDir: profile.workingDir,
+      profile: profile,
+    })
+    setShowProfileDropdown(false)
   }
 
   const handleCloseTab = (e: React.MouseEvent, terminalId: string) => {
@@ -274,7 +352,9 @@ function SidePanelTerminal() {
               Connected
             </Badge>
           ) : (
-            <Badge variant="destructive" className="text-xs">Disconnected</Badge>
+            <Badge variant="secondary" className="text-xs bg-red-500/20 text-red-500 border-red-500/30">
+              Disconnected
+            </Badge>
           )}
 
           {/* Settings Button */}
@@ -286,15 +366,42 @@ function SidePanelTerminal() {
             <Settings className="h-4 w-4" />
           </button>
 
-          {/* New Tab Button */}
-          <button
-            onClick={handleSpawnTerminal}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded-md transition-colors font-medium text-sm"
-            title="New Tab (Bash)"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Tab</span>
-          </button>
+          {/* New Tab Dropdown */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowProfileDropdown(!showProfileDropdown)
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded-md transition-colors font-medium text-sm"
+              title="New Tab - Select Profile"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Tab</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {showProfileDropdown && profiles.length > 0 && (
+              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[200px] z-50 overflow-hidden">
+                {profiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSpawnProfile(profile)
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-sm border-b border-gray-800 last:border-b-0"
+                  >
+                    <div className="font-medium">{profile.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 truncate">
+                      {profile.workingDir}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -328,6 +435,14 @@ function SidePanelTerminal() {
                   </button>
                 </div>
               ))}
+              {/* Quick Add Button - Spawns default profile */}
+              <button
+                onClick={handleSpawnDefaultProfile}
+                className="flex items-center justify-center px-3 py-1.5 rounded-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
+                title="New tab (default profile)"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
           )}
 
@@ -358,9 +473,9 @@ function SidePanelTerminal() {
                       terminalId={session.id}
                       sessionName={session.name}
                       terminalType={session.type}
-                      fontSize={terminalSettings.fontSize}
-                      fontFamily={terminalSettings.fontFamily}
-                      theme={terminalSettings.theme}
+                      fontSize={session.profile?.fontSize || terminalSettings.fontSize}
+                      fontFamily={session.profile?.fontFamily || terminalSettings.fontFamily}
+                      theme={session.profile?.theme || terminalSettings.theme}
                       onClose={() => {
                         sendMessage({
                           type: 'CLOSE_TERMINAL',

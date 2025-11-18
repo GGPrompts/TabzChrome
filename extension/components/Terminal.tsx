@@ -180,6 +180,18 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
     // Second fit to catch cases where container wasn't ready
     setTimeout(fitTerminal, 300)
 
+    // Request output buffering for restored terminals (in case we're reconnecting)
+    // This triggers the backend to start sending output again
+    setTimeout(() => {
+      console.log('[Terminal] Requesting terminal reattachment for:', terminalId)
+      sendMessage({
+        type: 'TERMINAL_RESIZE', // Resize acts as a "wake up" signal
+        terminalId,
+        cols: xterm.cols,
+        rows: xterm.rows,
+      })
+    }, 400)
+
     // Focus terminal
     setTimeout(() => {
       xterm.focus()

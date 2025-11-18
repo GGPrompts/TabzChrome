@@ -81,7 +81,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
       } else {
         setProfiles(result.profiles as Profile[])
-        setDefaultProfile(result.defaultProfile || 'default')
+        setDefaultProfile((result.defaultProfile as string) || 'default')
       }
     })
   }, [isOpen])
@@ -195,23 +195,23 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('spawn-options')}
+            onClick={() => setActiveTab('profiles')}
             className={`
               flex items-center gap-2 px-6 py-3 font-medium transition-all relative
-              ${activeTab === 'spawn-options'
+              ${activeTab === 'profiles'
                 ? 'text-[#00ff88] bg-[#00ff88]/5'
                 : 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
               }
             `}
           >
             <TerminalIcon className="h-4 w-4" />
-            <span>Spawn Options</span>
-            {spawnOptions.length > 0 && (
+            <span>Profiles</span>
+            {profiles.length > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-xs rounded bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30">
-                {spawnOptions.length}
+                {profiles.length}
               </span>
             )}
-            {activeTab === 'spawn-options' && (
+            {activeTab === 'profiles' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#00ff88] to-[#00c8ff]" />
             )}
           </button>
@@ -329,70 +329,89 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
             </>
           ) : (
-            // Spawn Options Tab
+            // Profiles Tab
             <>
               {!isAdding ? (
                 <>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white">
-                      Spawn Options ({spawnOptions.length})
+                      Profiles ({profiles.length})
                     </h3>
                     <button
                       onClick={() => setIsAdding(true)}
                       className="px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors flex items-center gap-1"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Option
+                      Add Profile
                     </button>
                   </div>
 
-                  {spawnOptions.length === 0 ? (
+                  {/* Default Profile Selector */}
+                  <div className="mb-6 bg-black/30 border border-gray-800 rounded-lg p-4">
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Default Profile
+                    </label>
+                    <select
+                      value={defaultProfile}
+                      onChange={(e) => setDefaultProfile(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
+                    >
+                      {profiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Used when clicking the "+" button in tab bar
+                    </p>
+                  </div>
+
+                  {/* Profile List */}
+                  {profiles.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <TerminalIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                      <p className="mb-4">No spawn options yet</p>
+                      <p className="mb-4">No profiles yet</p>
                       <button
                         onClick={() => setIsAdding(true)}
                         className="px-4 py-2 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors"
                       >
-                        Add Your First Option
+                        Add Your First Profile
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {spawnOptions.map((option, index) => (
+                      {profiles.map((profile, index) => (
                         <div
-                          key={index}
+                          key={profile.id}
                           className="bg-black/30 border border-gray-800 rounded-lg p-3 hover:bg-black/40 transition-colors"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-lg">{option.icon || '💻'}</span>
-                                <span className="font-medium text-white text-sm">{option.label}</span>
-                                <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400">
-                                  {option.terminalType}
-                                </span>
+                                <span className="font-medium text-white text-sm">{profile.name}</span>
+                                {profile.id === defaultProfile && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30">
+                                    Default
+                                  </span>
+                                )}
                               </div>
-                              {option.description && (
-                                <div className="text-xs text-gray-400 mb-1">{option.description}</div>
-                              )}
-                              <div className="text-xs font-mono text-gray-300 bg-black/40 px-2 py-1 rounded border border-gray-800 truncate">
-                                {option.command || `<${option.terminalType}>`}
+                              <div className="text-xs text-gray-500 mt-1">📁 {profile.workingDir}</div>
+                              <div className="flex gap-3 mt-2 text-xs text-gray-400">
+                                <span>Font: {profile.fontSize}px {profile.fontFamily.split(',')[0].replace(/'/g, '')}</span>
+                                <span>Theme: {profile.theme}</span>
                               </div>
-                              {option.workingDir && (
-                                <div className="text-xs text-gray-500 mt-1">📁 {option.workingDir}</div>
-                              )}
                             </div>
                             <div className="flex items-center gap-1">
                               <button
-                                onClick={() => handleEditSpawnOption(index)}
+                                onClick={() => handleEditProfile(index)}
                                 className="p-1.5 hover:bg-[#00ff88]/10 rounded text-gray-400 hover:text-[#00ff88] transition-colors"
                                 title="Edit"
                               >
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => handleDeleteSpawnOption(index)}
+                                onClick={() => handleDeleteProfile(index)}
                                 className="p-1.5 hover:bg-red-500/10 rounded text-gray-400 hover:text-red-400 transition-colors"
                                 title="Delete"
                               >
@@ -406,86 +425,110 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   )}
                 </>
               ) : (
-                // Add/Edit Form
+                // Add/Edit Profile Form
                 <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
                   <h4 className="text-sm font-semibold text-white mb-3">
-                    {editingIndex !== null ? 'Edit Spawn Option' : 'New Spawn Option'}
+                    {editingIndex !== null ? 'Edit Profile' : 'New Profile'}
                   </h4>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Label *</label>
-                        <input
-                          type="text"
-                          value={formData.label}
-                          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                          placeholder="e.g., Claude Code"
-                          className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Icon</label>
-                        <input
-                          type="text"
-                          value={formData.icon}
-                          onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                          placeholder="e.g., 🤖"
-                          className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Terminal Type *</label>
-                        <input
-                          type="text"
-                          value={formData.terminalType}
-                          onChange={(e) => setFormData({ ...formData, terminalType: e.target.value })}
-                          placeholder="e.g., bash, claude-code"
-                          className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm font-mono focus:border-[#00ff88] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Command</label>
-                        <input
-                          type="text"
-                          value={formData.command}
-                          onChange={(e) => setFormData({ ...formData, command: e.target.value })}
-                          placeholder="e.g., claude --skip-permissions"
-                          className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm font-mono focus:border-[#00ff88] focus:outline-none"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-4">
+                    {/* Profile Name */}
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Description</label>
+                      <label className="block text-xs text-gray-400 mb-1">Profile Name *</label>
                       <input
                         type="text"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="e.g., Claude Code interactive session"
+                        value={formData.name}
+                        onChange={(e) => {
+                          const name = e.target.value
+                          const id = name.toLowerCase().replace(/\s+/g, '-')
+                          setFormData({ ...formData, name, id })
+                        }}
+                        placeholder="e.g., Default, Projects, Large Text"
                         className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
                       />
+                      {formData.name && (
+                        <p className="text-xs text-gray-500 mt-1">ID: {formData.id}</p>
+                      )}
                     </div>
+
+                    {/* Working Directory */}
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">Working Directory</label>
                       <input
                         type="text"
                         value={formData.workingDir}
                         onChange={(e) => setFormData({ ...formData, workingDir: e.target.value })}
-                        placeholder="e.g., ~/projects/my-app"
+                        placeholder="e.g., ~, ~/projects, ~/work"
                         className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm font-mono focus:border-[#00ff88] focus:outline-none"
                       />
                     </div>
+
+                    {/* Font Size */}
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">URL</label>
+                      <label className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                        Font Size: {formData.fontSize}px
+                      </label>
                       <input
-                        type="text"
-                        value={formData.url}
-                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        placeholder="e.g., https://github.com/user/repo"
-                        className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm font-mono focus:border-[#00ff88] focus:outline-none"
+                        type="range"
+                        min="12"
+                        max="24"
+                        step="1"
+                        value={formData.fontSize}
+                        onChange={(e) => setFormData({ ...formData, fontSize: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
                       />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>12px</span>
+                        <span>18px</span>
+                        <span>24px</span>
+                      </div>
                     </div>
+
+                    {/* Font Family */}
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Font Family</label>
+                      <select
+                        value={formData.fontFamily}
+                        onChange={(e) => setFormData({ ...formData, fontFamily: e.target.value })}
+                        className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
+                      >
+                        {FONT_FAMILIES.map((font) => (
+                          <option key={font.value} value={font.value}>
+                            {font.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Theme */}
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-2">Theme</label>
+                      <button
+                        onClick={() => setFormData({ ...formData, theme: formData.theme === 'dark' ? 'light' : 'dark' })}
+                        className={`
+                          w-full px-4 py-3 rounded-lg border transition-all flex items-center justify-between
+                          ${
+                            formData.theme === 'dark'
+                              ? 'bg-gray-900 border-gray-700 hover:border-gray-600'
+                              : 'bg-gray-100 border-gray-300 hover:border-gray-400'
+                          }
+                        `}
+                      >
+                        <span
+                          className={
+                            formData.theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }
+                        >
+                          {formData.theme === 'dark' ? 'Dark Theme' : 'Light Theme'}
+                        </span>
+                        {formData.theme === 'dark' ? (
+                          <Moon className="h-5 w-5 text-[#00ff88]" />
+                        ) : (
+                          <Sun className="h-5 w-5 text-orange-500" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Buttons */}
                     <div className="flex gap-2 pt-2">
                       <button
                         onClick={handleCancelEdit}
@@ -494,8 +537,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         Cancel
                       </button>
                       <button
-                        onClick={handleAddSpawnOption}
-                        disabled={!formData.label || !formData.terminalType}
+                        onClick={handleAddProfile}
+                        disabled={!formData.name || !formData.id}
                         className="flex-1 px-4 py-2 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {editingIndex !== null ? 'Update' : 'Add'}

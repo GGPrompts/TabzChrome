@@ -13,7 +13,24 @@
 
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
+const os = require('os');
 const ptyHandler = require('./pty-handler');
+
+/**
+ * Expand tilde (~) in file paths to actual home directory
+ */
+function expandTilde(filepath) {
+  if (!filepath || typeof filepath !== 'string') {
+    return filepath;
+  }
+
+  // Expand ~ or ~/something
+  if (filepath.startsWith('~/') || filepath === '~') {
+    return filepath.replace(/^~/, os.homedir());
+  }
+
+  return filepath;
+}
 
 class TerminalRegistry extends EventEmitter {
   constructor() {
@@ -186,6 +203,11 @@ class TerminalRegistry extends EventEmitter {
         if (config.fontSize) existingTerminal.config.fontSize = config.fontSize;
         if (config.fontFamily) existingTerminal.config.fontFamily = config.fontFamily;
 
+        // Preserve profile settings on reconnection
+        if (config.profile) {
+          existingTerminal.profile = config.profile;
+        }
+
         try {
           // Kill old PTY if it exists (reconnection scenario)
           if (existingTerminal.ptyInfo) {
@@ -212,7 +234,7 @@ class TerminalRegistry extends EventEmitter {
       }
     }
 
-    // NEW TERMINAL: Generate unique ID and name
+    // NEW TERMINAL: Generate unique ID
     const id = uuidv4();
 
     // Update name counters before generating a new name
@@ -248,10 +270,12 @@ class TerminalRegistry extends EventEmitter {
       ...config,
       id,
       name,
-      workingDir: config.workingDir || process.env.HOME,
+      workingDir: expandTilde(config.workingDir) || process.env.HOME,
       cols: config.cols || 80,
       rows: config.rows || 30
     };
+
+    console.log(`[TerminalRegistry] Working directory: ${config.workingDir} -> ${terminalConfig.workingDir}`);
 
     // Debug terminal type
     console.log(`[TerminalRegistry] Registering terminal with type: '${terminalConfig.terminalType}' (config.terminalType: '${config.terminalType}')`);
@@ -288,6 +312,7 @@ class TerminalRegistry extends EventEmitter {
       state: 'spawning',
       embedded: config.embedded || false, // Pass through embedded flag
       position: config.position || null, // Include position if provided
+      profile: config.profile || null, // Chrome extension profile settings (fontSize, fontFamily, theme, workingDir)
       config: terminalConfig, // Keep full config for reference
       // TUI tool specific fields
       commands: config.commands || [],
@@ -352,6 +377,8 @@ class TerminalRegistry extends EventEmitter {
       state: t.state,
       embedded: t.embedded,
       position: t.position, // Include position in returned data
+      sessionName: t.sessionName, // Tmux session name for persistence
+      profile: t.profile, // Chrome extension profile settings
       createdAt: t.createdAt,
       lastActivity: t.lastActivity,
       // TUI tool fields
