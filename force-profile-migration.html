@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head><title>Force Profile Migration</title></head>
+<body style="font-family: monospace; padding: 20px; background: #1a1b26; color: #c0caf5;">
+<h2>🔧 Force Profile Migration</h2>
+<p>This will clear existing profiles and re-migrate from spawn-options.json</p>
+<button onclick="migrate()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Clear & Re-migrate Profiles</button>
+<pre id="output" style="margin-top: 20px; background: #1e1f2e; padding: 15px; border-radius: 8px;"></pre>
+<script>
+async function migrate() {
+  const output = document.getElementById('output');
+
+  // Clear existing profiles
+  localStorage.removeItem('profiles-storage');
+  output.textContent += 'Cleared existing profiles\n';
+
+  // Reload spawn-options
+  const response = await fetch('/spawn-options.json');
+  const data = await response.json();
+
+  // Migrate
+  const profiles = data.spawnOptions.map((opt, index) => ({
+    id: 'profile-' + Date.now() + '-' + index,
+    name: opt.label,
+    command: opt.command,
+    terminalType: opt.terminalType,
+    workingDir: "~",
+    theme: opt.defaultTheme || "default",
+    transparency: opt.defaultTransparency || 100,
+    icon: opt.icon,
+    description: opt.description,
+    isDefault: index === 0
+  }));
+
+  localStorage.setItem('profiles-storage', JSON.stringify({ state: { profiles } }));
+
+  output.textContent += '\nMigrated ' + profiles.length + ' profiles:\n\n';
+  profiles.forEach(p => {
+    output.textContent += '  - ' + p.name + ': command="' + p.command + '"\n';
+  });
+  output.textContent += '\n✅ Done! Now refresh Terminal Tabs (http://localhost:5173)';
+}
+</script>
+</body>
+</html>

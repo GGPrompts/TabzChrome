@@ -1,0 +1,31 @@
+/* Component-specific styles for TextColorThemeDropdown */
+/* Generic dropdown styles are in GenericDropdown.css */
+
+.theme-name {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.checkmark {
+  color: #88c0d0;
+  margin-right: 4px;
+}
+
+/* Add a subtle background color indicator for each theme */
+.text-color-theme-dropdown .generic-dropdown-option::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.text-color-theme-dropdown .generic-dropdown-option {
+  position: relative;
+  font-weight: 500;
+}

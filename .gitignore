@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+backend/logs/
+logs/
+*.log.*
+
+# Launch script artifacts
+.backend.pid
+.frontend.pid
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workspace data
+workspace-data/
+.logs/
+PERSISTENCE_*.txt
+PERSISTENCE_*.md
+test-colors.sh
+xterm-js.zip

@@ -1,0 +1,14 @@
+--- a/tests/unit/hooks/usePopout.test.ts
++++ b/tests/unit/hooks/usePopout.test.ts
+@@ -903,10 +903,6 @@ describe('usePopout - Split Terminal Popout', () => {
+   describe('Single Terminal Popout (Non-Split)', () => {
+     it('should handle single terminal popout correctly', async () => {
+       const store = getStore()
+-
+-            const singleTerminal: Terminal = {
+-
+-        id: 'single-1',
++      const singleTerminal: Terminal = {
++        id: 'single-1',
+         name: 'Single Bash',
+         terminalType: 'bash',

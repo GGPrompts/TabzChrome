@@ -1,0 +1,347 @@
+{
+  "projects": [
+    {
+      "name": "Tabz Development",
+      "workingDir": "~/projects/terminal-tabs"
+    },
+    {
+      "name": "TUI Classics",
+      "workingDir": "~/projects/TUIClassics"
+    },
+    {
+      "name": "Tmuxplexer",
+      "workingDir": "~/projects/tmuxplexer"
+    }
+  ],
+  "globalDefaults": {
+    "workingDirectory": "/home/matt/projects/terminal-tabs",
+    "fontFamily": "'JetBrainsMono Nerd Font', 'JetBrainsMono NF', monospace",
+    "fontSize": 16,
+    "theme": "holographic",
+    "background": "carbon",
+    "transparency": 90,
+    "useTmux": true
+  },
+  "spawnOptions": [
+    {
+      "label": "Bash",
+      "command": "",
+      "terminalType": "bash",
+      "icon": "💻",
+      "description": "Plain bash terminal",
+      "defaultTheme": "matrix",
+      "defaultTransparency": 90
+    },
+    {
+      "label": "Claude (skip permissions)",
+      "command": "claude --dangerously-skip-permissions",
+      "terminalType": "claude-code",
+      "icon": "⚡",
+      "description": "Claude Code with no permission prompts",
+      "defaultTheme": "matrix",
+      "defaultTransparency": 100,
+      "defaultFontSize": 20,
+      "defaultFontFamily": "'JetBrains Mono', monospace",
+      "defaultBackground": "carbon"
+    },
+    {
+      "label": "TFE",
+      "command": "tfe",
+      "terminalType": "tui-tool",
+      "icon": "📁",
+      "description": "Terminal File Explorer",
+      "defaultTransparency": 95,
+      "defaultFontSize": 16,
+      "defaultFontFamily": "'Fira Code', monospace",
+      "defaultBackground": "carbon"
+    },
+    {
+      "label": "TKan",
+      "command": "go run .",
+      "terminalType": "tui-tool",
+      "icon": "💻",
+      "description": "tui tool kanban board with gh projects backend",
+      "workingDir": "~/projects/tkan"
+    },
+    {
+      "label": "GIT UI",
+      "command": "gitui",
+      "terminalType": "tui-tool",
+      "icon": "💻",
+      "description": "",
+      "defaultTheme": "dracula",
+      "defaultBackground": "amber-warmth",
+      "defaultTransparency": 95,
+      "defaultFontFamily": "Consolas, monospace"
+    },
+    {
+      "label": "Codex",
+      "command": "codex",
+      "terminalType": "codex",
+      "icon": "📚",
+      "description": "Codex AI assistant",
+      "defaultTheme": "amber",
+      "defaultTransparency": 100
+    },
+    {
+      "label": "TUI Classic Games",
+      "command": "./classics",
+      "terminalType": "tui-tool",
+      "icon": "🎮",
+      "description": "",
+      "workingDir": "~/projects/TUIClassics/bin",
+      "defaultTheme": "matrix",
+      "defaultBackground": "pure-black",
+      "defaultTransparency": 100,
+      "defaultFontFamily": "monospace",
+      "defaultFontSize": 18
+    },
+    {
+      "label": "Tmuxplexer",
+      "command": "./tmuxplexer",
+      "terminalType": "tui-tool",
+      "icon": "💻",
+      "description": "tmux manager",
+      "workingDir": "~/projects/tmuxplexer",
+      "defaultTheme": "monokai",
+      "defaultTransparency": 100,
+      "defaultFontFamily": "'Consolas', monospace",
+      "defaultFontSize": 18,
+      "defaultBackground": "dark-neutral"
+    },
+    {
+      "label": "Claude Code",
+      "command": "claude",
+      "terminalType": "claude-code",
+      "icon": "🤖",
+      "description": "Claude Code (interactive mode)",
+      "defaultTheme": "amber",
+      "defaultTransparency": 100
+    },
+    {
+      "label": "OpenCode",
+      "command": "opencode",
+      "terminalType": "opencode",
+      "icon": "💜",
+      "description": "OpenCode AI assistant",
+      "defaultTheme": "amber",
+      "defaultTransparency": 100
+    },
+    {
+      "label": "Gemini",
+      "command": "gemini",
+      "terminalType": "gemini",
+      "icon": "♊",
+      "description": "Google Gemini AI",
+      "defaultTheme": "amber",
+      "defaultTransparency": 100
+    },
+    {
+      "label": "Micro Editor",
+      "command": "micro",
+      "terminalType": "tui-tool",
+      "icon": "📝",
+      "description": "Modern terminal text editor",
+      "defaultTheme": "solarized-dark",
+      "defaultTransparency": 85,
+      "defaultFontSize": 16,
+      "defaultFontFamily": "monospace",
+      "defaultBackground": "dark-neutral"
+    },
+    {
+      "label": "Vim",
+      "command": "vim",
+      "terminalType": "bash",
+      "icon": "✏️",
+      "description": "Vim text editor",
+      "defaultTheme": "monokai",
+      "defaultTransparency": 85
+    },
+    {
+      "label": "Spotify Player",
+      "command": "export PULSE_SERVER=/mnt/wslg/PulseServer && ~/.cargo/bin/spotify_player",
+      "terminalType": "tui-tool",
+      "icon": "🎵",
+      "description": "Terminal Spotify player",
+      "defaultTheme": "dracula",
+      "defaultTransparency": 95
+    },
+    {
+      "label": "Log Navigator",
+      "command": "lnav",
+      "terminalType": "tui-tool",
+      "icon": "📜",
+      "description": "Advanced log file viewer"
+    },
+    {
+      "label": "LazyGit",
+      "command": "lazygit",
+      "terminalType": "tui-tool",
+      "icon": "🌿",
+      "description": "Terminal UI for git",
+      "defaultTheme": "github-dark",
+      "defaultTransparency": 95,
+      "defaultFontSize": 16,
+      "defaultFontFamily": "monospace",
+      "defaultBackground": "dark-neutral"
+    },
+    {
+      "label": "AIChat",
+      "command": "aichat",
+      "terminalType": "bash",
+      "icon": "💬",
+      "description": "All-in-one CLI for LLMs",
+      "defaultTheme": "amber",
+      "defaultTransparency": 100
+    },
+    {
+      "label": "Dev Logs",
+      "command": "tmux attach -t tabz:backend",
+      "terminalType": "bash",
+      "workingDir": "~/projects/terminal-tabs",
+      "icon": "📊",
+      "description": "Live backend logs with forwarded browser console output",
+      "defaultTheme": "monokai",
+      "defaultTransparency": 95,
+      "useTmux": false
+    },
+    {
+      "label": "Htop",
+      "command": "htop",
+      "terminalType": "tui-tool",
+      "icon": "📊",
+      "description": "Interactive process viewer",
+      "defaultTheme": "matrix",
+      "defaultTransparency": 95,
+      "defaultFontSize": 16,
+      "defaultFontFamily": "monospace",
+      "defaultBackground": "dark-neutral"
+    },
+    {
+      "label": "Bottom",
+      "command": "bottom",
+      "terminalType": "tui-tool",
+      "icon": "📈",
+      "description": "System monitor (bottom)",
+      "defaultTheme": "dracula",
+      "defaultTransparency": 95,
+      "defaultFontSize": 16,
+      "defaultFontFamily": "monospace",
+      "defaultBackground": "dark-neutral"
+    }
+  ],
+  "clipboardCommands": [
+    {
+      "label": "Git Status",
+      "command": "git status",
+      "description": "Show working tree status",
+      "category": "Git",
+      "icon": "📊"
+    },
+    {
+      "label": "Git Pull",
+      "command": "git pull",
+      "description": "Pull from remote",
+      "category": "Git",
+      "icon": "⬇️"
+    },
+    {
+      "label": "Git Push",
+      "command": "git push",
+      "description": "Push to remote",
+      "category": "Git",
+      "icon": "⬆️"
+    },
+    {
+      "label": "Stage All",
+      "command": "git add .",
+      "description": "Stage all changes",
+      "category": "Git",
+      "icon": "✅"
+    },
+    {
+      "label": "Commit",
+      "command": "git commit -m \"message\"",
+      "description": "Commit with message",
+      "category": "Git",
+      "icon": "💾"
+    },
+    {
+      "label": "New Branch",
+      "command": "git checkout -b feature-branch",
+      "description": "Create and switch branch",
+      "category": "Git",
+      "icon": "🌿"
+    },
+    {
+      "label": "Start Dev Server",
+      "command": "npm run dev",
+      "description": "Start development server",
+      "category": "Development",
+      "icon": "🚀"
+    },
+    {
+      "label": "Install Dependencies",
+      "command": "npm install",
+      "description": "Install node modules",
+      "category": "Development",
+      "icon": "📦"
+    },
+    {
+      "label": "Build",
+      "command": "npm run build",
+      "description": "Build for production",
+      "category": "Development",
+      "icon": "🔨"
+    },
+    {
+      "label": "Test",
+      "command": "npm test",
+      "description": "Run tests",
+      "category": "Development",
+      "icon": "🧪"
+    },
+    {
+      "label": "Clean Install",
+      "command": "rm -rf node_modules && npm install",
+      "description": "Delete node_modules and reinstall",
+      "category": "Development",
+      "icon": "🧹"
+    },
+    {
+      "label": "List Files",
+      "command": "ls -la",
+      "description": "List directory contents with details",
+      "category": "Shell",
+      "icon": "📂"
+    },
+    {
+      "label": "Create Folder",
+      "command": "mkdir new-folder",
+      "description": "Create new directory",
+      "category": "Shell",
+      "icon": "📁"
+    },
+    {
+      "label": "Find Files",
+      "command": "find . -name \"*.ts\"",
+      "description": "Find TypeScript files",
+      "category": "Shell",
+      "icon": "🔍"
+    },
+    {
+      "label": "Disk Usage",
+      "command": "du -sh *",
+      "description": "Show disk usage by directory",
+      "category": "Shell",
+      "icon": "💾"
+    },
+    {
+      "label": "Process List",
+      "command": "ps aux | grep node",
+      "description": "List Node.js processes",
+      "category": "Shell",
+      "icon": "⚙️"
+    }
+  ]
+}

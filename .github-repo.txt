@@ -1,0 +1,10 @@
+GitHub Repository: https://github.com/GGPrompts/tmux-chrome-sidebar
+
+This is now a standalone project, separate from Tabz.
+
+Architecture: Tmux-only session management (simple polling, no state libraries)
+Purpose: Chrome extension for persistent terminal sidebar
+Port: 8129 (unique from main Tabz on 8127)
+
+To clone fresh:
+git clone https://github.com/GGPrompts/tmux-chrome-sidebar.git

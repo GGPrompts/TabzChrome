@@ -1,0 +1,3225 @@
+
+> tabz@1.0.0 test
+> vitest --run --coverage
+
+
+[1m[46m RUN [49m[22m [36mv4.0.8 [39m[90m/home/matt/projects/terminal-tabs[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m tests/smoke.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts
+[22m[39m[SettingsStore] Hydration complete, workingDirectory: /home/matt
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts
+[22m[39m[SettingsStore] Hydration complete, workingDirectory: /home/matt
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould accept terminal-spawned event from same window (main)
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould clear isHidden state when popping out pane
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould clear isHidden state when popping out pane
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould clear splitLayout when popping out pane
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould clear splitLayout when popping out pane
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mBasic Spawning Flow[2m > [22m[2mshould add terminal to pendingSpawns ref immediately (synchronous)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540457-rlnbp37n6 sessionName: tt-bash-qe4
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-qe4'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540457-rlnbp37n6'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-qe4'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould assign new windowId to popped out pane
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould assign new windowId to popped out pane
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould remove pane from split container panes array
+[22m[39m[usePopout] Popping out pane Bash 1 from split split-3
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould remove pane from split container panes array
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-1
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Flow (Race Condition Prevention)[2m > [22m[2mshould add terminal to pendingSpawns ref immediately (synchronous)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540460-w6gnivtxh sessionName: tt-bash-ced
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-ced'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540460-w6gnivtxh'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-ced'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould detach from tmux session via API
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould detach from tmux session via API
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mBasic Spawning Flow[2m > [22m[2mshould create placeholder terminal in store with status=spawning
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540462-ow9f8xxyv sessionName: tt-bash-wp5
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'My Bash'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-wp5'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540462-ow9f8xxyv'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'My Bash'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-wp5'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mBasic Spawning Flow[2m > [22m[2mshould send spawn request via WebSocket with correct config
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540466-7tks0axyz sessionName: tt-tfe-8xq
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/test'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-tfe-8xq'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'tfe'[39m ],
+  startCommand: [32m'tfe'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540466-7tks0axyz'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/test'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-tfe-8xq'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'tfe'[39m ],
+    startCommand: [32m'tfe'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould open new window after timeout with correct URL
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould open new window after timeout with correct URL
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould open new window after timeout with correct URL
+[22m[39m[usePopout] Opening new window for Bash Left
+
+[90mstderr[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Single Pane from Split[2m > [22m[2mshould open new window after timeout with correct URL
+[22m[39m[usePopout] Failed to open window (popup blocked?)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Flow (Race Condition Prevention)[2m > [22m[2mshould create placeholder terminal with status=spawning
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540467-782v4av62 sessionName: tt-bash-afs
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'My Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-afs'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540467-782v4av62'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'My Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-afs'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould accept terminal-spawned event from same window (main)
+[22m[39m[useWebSocketManager] ✅ Matched terminal: terminal-1
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould convert split to single terminal when only 1 pane remains
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould convert split to single terminal when only 1 pane remains
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mBasic Spawning Flow[2m > [22m[2mshould use tmux session names when useTmux=true
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540468-xi67k61ot sessionName: tt-cc-in3
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'claude-code'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-cc-in3'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540468-xi67k61ot'[39m,
+  config: {
+    terminalType: [32m'claude-code'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-cc-in3'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould unhide the remaining pane when converting to single
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould unhide the remaining pane when converting to single
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Flow (Race Condition Prevention)[2m > [22m[2mshould prevent duplicate terminals via synchronous ref tracking
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540470-b69waf1f3 sessionName: tt-bash-57h
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 1'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-57h'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540470-b69waf1f3'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 1'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-57h'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540470-17f7h8gx9 sessionName: tt-bash-4qx
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 2'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-4qx'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540470-17f7h8gx9'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 2'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-4qx'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mBasic Spawning Flow[2m > [22m[2mshould not use tmux session names when useTmux=false
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540470-2iwyuh9ns sessionName: [90mundefined[39m
+[useTerminalSpawning] Spawning with config (useTmux: [33mfalse[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mfalse[39m,
+  sessionName: [90mundefined[39m,
+  resumable: [33mfalse[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540470-2iwyuh9ns'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mfalse[39m,
+    sessionName: [90mundefined[39m,
+    resumable: [33mfalse[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mBasic Split Creation[2m > [22m[2mshould create horizontal split when dropping on top edge
+[22m[39m[useDragDrop] Merging term-1 into term-2 (top → horizontal split)
+[useDragDrop] ✅ Created horizontal split: term-2 (bottom) + term-1 (top)
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould switch active terminal to remaining pane after popout
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould switch active terminal to remaining pane after popout
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRequestId Matching Logic[2m > [22m[2mshould match terminal-spawned by requestId (primary path)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540472-xckmaf68v sessionName: tt-bash-4u9
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-4u9'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540472-xckmaf68v'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-4u9'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Flow (Race Condition Prevention)[2m > [22m[2mshould store requestId on terminal for matching with backend response
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540472-icduth7m6 sessionName: tt-bash-tnl
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-tnl'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540472-icduth7m6'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-tnl'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould NOT convert split when more than 1 pane remains
+[22m[39m[usePopout] Popping out pane Bash 1 from split split-3
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mConvert Split to Single Terminal[2m > [22m[2mshould NOT convert split when more than 1 pane remains
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-1
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRequestId Matching Logic[2m > [22m[2mshould fallback to type+window+createdAt matching when requestId missing
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540473-b2z6qw2pv sessionName: tt-bash-uv1
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-uv1'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540473-b2z6qw2pv'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-uv1'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould open separate window for each pane
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-pane-1
+[usePopout] Pane Bash Right → window window-pane-2
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould open separate window for each pane
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstderr[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould open separate window for each pane
+[22m[39m[usePopout] Failed to open window for tt-bash-left (popup blocked?)
+[usePopout] Failed to open window for tt-bash-right (popup blocked?)
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould open separate window for each pane
+[22m[39m[usePopout] Opening 2 separate windows
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRace Condition Prevention[2m > [22m[2mshould not create duplicate terminals when spawning 2 bash terminals rapidly
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540475-k5vsxvlm6 sessionName: tt-bash-5fu
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Bash 1'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-5fu'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540475-k5vsxvlm6'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Bash 1'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-5fu'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540475-q0lq2221z sessionName: tt-bash-vry
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Bash 2'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-vry'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540475-q0lq2221z'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Bash 2'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-vry'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mBasic Split Creation[2m > [22m[2mshould create horizontal split when dropping on bottom edge
+[22m[39m[useDragDrop] Merging term-1 into term-2 (bottom → horizontal split)
+[useDragDrop] ✅ Created horizontal split: term-2 (top) + term-1 (bottom)
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould clear isHidden for all panes when popping out split
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-pane-3
+[usePopout] Pane Bash Right → window window-pane-4
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould clear isHidden for all panes when popping out split
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRace Condition Prevention[2m > [22m[2mshould handle multiple rapid spawns with unique requestIds
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540477-7aixhosby sessionName: tt-bash-uuh
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 1'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-uuh'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540477-7aixhosby'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 1'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-uuh'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRace Condition Prevention[2m > [22m[2mshould handle multiple rapid spawns with unique requestIds
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540477-xhn1x1trf sessionName: tt-bash-pah
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 2'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-pah'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540477-xhn1x1trf'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 2'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-pah'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould clear splitLayout for all panes when popping out split
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-pane-5
+[usePopout] Pane Bash Right → window window-pane-6
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould clear splitLayout for all panes when popping out split
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mRace Condition Prevention[2m > [22m[2mshould handle multiple rapid spawns with unique requestIds
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540478-cpigzs5tt sessionName: tt-bash-5eb
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 3'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-5eb'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540478-cpigzs5tt'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 3'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-5eb'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mBasic Split Creation[2m > [22m[2mshould create vertical split when dropping on left edge
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSession Name Generation[2m > [22m[2mshould use session names when useTmux=true
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540478-qtero58sz sessionName: tt-cc-dg4
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'claude-code'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-cc-dg4'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540478-qtero58sz'[39m,
+  config: {
+    terminalType: [32m'claude-code'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-cc-dg4'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould assign different windowIds to each pane
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-unique-1
+[usePopout] Pane Bash Right → window window-unique-2
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould assign different windowIds to each pane
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mBasic Split Creation[2m > [22m[2mshould create vertical split when dropping on right edge
+[22m[39m[useDragDrop] Merging term-1 into term-2 (right → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (left) + term-1 (right)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSession Name Generation[2m > [22m[2mshould not generate session names when useTmux=false
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540481-e0cs4m5jr sessionName: [90mundefined[39m
+[useTerminalSpawning] Spawning with config (useTmux: [33mfalse[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mfalse[39m,
+  sessionName: [90mundefined[39m,
+  resumable: [33mfalse[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540481-e0cs4m5jr'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mfalse[39m,
+    sessionName: [90mundefined[39m,
+    resumable: [33mfalse[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould remove split container from store after popping out
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-unique-3
+[usePopout] Pane Bash Right → window window-unique-4
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould remove split container from store after popping out
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mCommand Execution[2m > [22m[2mshould execute command via commands array (not just spawn shell)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540482-p83nzpv5i sessionName: tt-bash-1y7
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-1y7'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'echo "Hello World"'[39m ],
+  startCommand: [32m'echo "Hello World"'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540482-p83nzpv5i'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-1y7'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'echo "Hello World"'[39m ],
+    startCommand: [32m'echo "Hello World"'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mCommand Execution (Nov 7 Critical Fix)[2m > [22m[2mshould execute command via commands array (not just spawn shell)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540483-qz4b1mtre sessionName: tt-bash-1l5
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-1l5'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'echo "Hello World"'[39m ],
+  startCommand: [32m'echo "Hello World"'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540483-qz4b1mtre'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-1l5'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'echo "Hello World"'[39m ],
+    startCommand: [32m'echo "Hello World"'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould detach from all pane tmux sessions
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-unique-5
+[usePopout] Pane Bash Right → window window-unique-6
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould detach from all pane tmux sessions
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mSplit Container Structure[2m > [22m[2mshould create split with correct pane structure
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mCommand Execution[2m > [22m[2mshould handle TUI tools via toolName (not commands)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540484-1m1j54f8b sessionName: tt-lg-pt0
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'tui-tool'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-lg-pt0'[39m,
+  resumable: [33mtrue[39m,
+  toolName: [32m'lazygit'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540484-1m1j54f8b'[39m,
+  config: {
+    terminalType: [32m'tui-tool'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-lg-pt0'[39m,
+    resumable: [33mtrue[39m,
+    toolName: [32m'lazygit'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould switch to next available terminal after removing split
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-unique-7
+[usePopout] Pane Bash Right → window window-unique-8
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould switch to next available terminal after removing split
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mCommand Execution[2m > [22m[2mshould handle commands array for multiple commands
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540486-6h6bcw8oa sessionName: tt-bash-wd9
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-wd9'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'cd /tmp && ls -la'[39m ],
+  startCommand: [32m'cd /tmp && ls -la'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540486-6h6bcw8oa'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-wd9'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'cd /tmp && ls -la'[39m ],
+    startCommand: [32m'cd /tmp && ls -la'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould ignore terminal-spawned event from different window
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mSplit Container Structure[2m > [22m[2mshould order panes correctly for vertical split (left before right)
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mWorking Directory Handling[2m > [22m[2mshould use spawn option workingDir
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540487-yg2n4xllk sessionName: tt-bash-afe
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/custom'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-afe'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540487-yg2n4xllk'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/custom'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-afe'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mCommand Execution (Nov 7 Critical Fix)[2m > [22m[2mshould handle TUI tools via toolName (not commands array)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540488-ds79esyk5 sessionName: tt-lg-84u
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'tui-tool'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-lg-84u'[39m,
+  resumable: [33mtrue[39m,
+  toolName: [32m'lazygit'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540488-ds79esyk5'[39m,
+  config: {
+    terminalType: [32m'tui-tool'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-lg-84u'[39m,
+    resumable: [33mtrue[39m,
+    toolName: [32m'lazygit'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mWorking Directory Handling[2m > [22m[2mshould use workingDirOverride when provided (highest priority)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540489-0a3wz1znd sessionName: tt-bash-9j9
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/override'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-9j9'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540489-0a3wz1znd'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/override'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-9j9'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mSplit Container Structure[2m > [22m[2mshould order panes correctly for horizontal split (top before bottom)
+[22m[39m[useDragDrop] Merging term-1 into term-2 (top → horizontal split)
+[useDragDrop] ✅ Created horizontal split: term-2 (bottom) + term-1 (top)
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mMulti-Window Isolation[2m > [22m[2mshould assign terminals to current window
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540491-hnhz0qzh4 sessionName: tt-bash-p33
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-p33'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540491-hnhz0qzh4'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-p33'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mCommand Execution (Nov 7 Critical Fix)[2m > [22m[2mshould spawn shell when no command provided
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540491-slcj7j614 sessionName: tt-bash-u4v
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-u4v'[39m,
+  resumable: [33mtrue[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540491-slcj7j614'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-u4v'[39m,
+    resumable: [33mtrue[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mSplit Container Structure[2m > [22m[2mshould assign 50/50 split size to both panes
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mMulti-Window Isolation[2m > [22m[2mshould not create terminals for different window spawns
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540493-hbh8v6kfo sessionName: tt-bash-qpt
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Window 1 Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-qpt'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540493-hbh8v6kfo'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Window 1 Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-qpt'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mCommand Execution (Nov 7 Critical Fix)[2m > [22m[2mshould handle complex commands with pipes and chains
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540493-lq31cvwm4 sessionName: tt-bash-vnv
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-vnv'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'cd /tmp && ls -la | grep test'[39m ],
+  startCommand: [32m'cd /tmp && ls -la | grep test'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540493-lq31cvwm4'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-vnv'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'cd /tmp && ls -la | grep test'[39m ],
+    startCommand: [32m'cd /tmp && ls -la | grep test'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWorking Directory Handling (3-Tier Priority)[2m > [22m[2mshould use spawn option workingDir (2nd priority)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540495-wdlfvbpu1 sessionName: tt-bash-avt
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/custom'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-avt'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540495-wdlfvbpu1'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/custom'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-avt'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mPane State Management[2m > [22m[2mshould keep original terminals in store (not removed)
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWorking Directory Handling (3-Tier Priority)[2m > [22m[2mshould use workingDirOverride when provided (highest priority)
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540497-jb773n1xe sessionName: tt-bash-4md
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/override'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-4md'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540497-jb773n1xe'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/override'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-4md'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mMulti-Window Isolation[2m > [22m[2mshould not create terminals for different window spawns
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540498-ibo82ume5 sessionName: tt-bash-3gu
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Window 2 Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-3gu'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540498-ibo82ume5'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Window 2 Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-3gu'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould switch active terminal to split container
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould set activeTerminal to null when no terminals remain
+[22m[39m[usePopout] Popping out split container - opening separate window for each of 2 panes
+[usePopout] Pane Bash Left → window window-unique-9
+[usePopout] Pane Bash Right → window window-unique-10
+[usePopout] No remaining terminals
+[usePopout] Detaching from 2 tmux sessions via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPop Out Entire Split Container[2m > [22m[2mshould set activeTerminal to null when no terminals remain
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+[usePopout] ✓ Detached from tmux session: tt-bash-right
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWorking Directory Handling (3-Tier Priority)[2m > [22m[2mshould fallback to global default when no workingDir specified
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540500-1i1cgcchh sessionName: tt-bash-51g
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/global'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-51g'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540500-1i1cgcchh'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/global'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-51g'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould ignore terminal-spawned event from different window
+[22m[39m[useWebSocketManager] ⏭️ Ignoring terminal-spawned for different window
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould set focused terminal to the dragged terminal
+[22m[39m[useDragDrop] Merging term-1 into term-2 (left → vertical split)
+[useDragDrop] ✅ Created vertical split: term-2 (right) + term-1 (left)
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mMain Window State After Popout[2m > [22m[2mshould not have invisible half-tabs after popout (isHidden=false)
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mMain Window State After Popout[2m > [22m[2mshould not have invisible half-tabs after popout (isHidden=false)
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mMain Window State After Popout[2m > [22m[2mshould not have split containers with empty panes arrays
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mMain Window State After Popout[2m > [22m[2mshould not have split containers with empty panes arrays
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/useDragDrop.test.ts[2m > [22m[2museDragDrop - Split Creation[2m > [22m[2mCenter Zone Reordering (Not Splitting)[2m > [22m[2mshould reorder tabs when dropping in center zone (not split)
+[22m[39m[useDragDrop] Reordered tabs: term-1 moved from 0 to 1
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould set status to error if spawn fails
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540503-yqgqnszfc sessionName: tt-bash-ira
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-ira'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould set status to error if spawn fails
+[22m[39m[SimpleSpawnService] No WebSocket connection available
+
+[90mstderr[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould set status to error if spawn fails
+[22m[39mFailed to spawn terminal
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould become normal tab in new window (isHidden=false, single layout)
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould become normal tab in new window (isHidden=false, single layout)
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWorking Directory Handling (3-Tier Priority)[2m > [22m[2mshould use tilde ~ as final fallback
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540505-qmzcegiin sessionName: tt-bash-f5f
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'~'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-f5f'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540505-qmzcegiin'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'~'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-f5f'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould handle missing WebSocket gracefully
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540506-kx8i1212y sessionName: tt-bash-gpa
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-gpa'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould handle missing WebSocket gracefully
+[22m[39m[SimpleSpawnService] No WebSocket connection available
+
+[90mstderr[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mError Handling[2m > [22m[2mshould handle missing WebSocket gracefully
+[22m[39mFailed to spawn terminal
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould clear agentId for reconnection in new window
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould clear agentId for reconnection in new window
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply theme from spawn option
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540507-txeptuy7e sessionName: tt-bash-8ft
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'matrix'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-8ft'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540507-txeptuy7e'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'matrix'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-8ft'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mTerminal Customization[2m > [22m[2mshould apply spawn option customizations to terminal
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540507-zyfowig3v sessionName: tt-bash-f23
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'matrix'[39m,
+  transparency: [33m85[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-f23'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540507-zyfowig3v'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'matrix'[39m,
+    transparency: [33m85[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-f23'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould set status to spawning for reconnection
+[22m[39m[usePopout] Popping out pane Bash Left from split split-1
+[usePopout] Only 1 pane remaining after popout, converting to single
+[usePopout] Detaching from tmux session via API
+
+[90mstdout[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mPopped Out Pane State[2m > [22m[2mshould set status to spawning for reconnection
+[22m[39m[usePopout] ✓ Detached from tmux session: tt-bash-left
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply transparency from spawn option
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540508-w3kh9yu9o sessionName: tt-bash-pip
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m75[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-pip'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540508-w3kh9yu9o'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m75[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-pip'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mTerminal Customization[2m > [22m[2mshould apply correct background for theme
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540509-9zvo75sn7 sessionName: tt-bash-3wz
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-3wz'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540509-9zvo75sn7'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-3wz'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply font size from spawn option
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540510-i9d6hum8k sessionName: tt-bash-8kz
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-8kz'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540510-i9d6hum8k'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-8kz'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould set spawned terminal as active
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540510-o02xbg400 sessionName: tt-bash-fu9
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-fu9'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540510-o02xbg400'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-fu9'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould fallback to settings store default font size when not specified
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540512-sdluvdbgl sessionName: tt-bash-nt9
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-nt9'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540512-sdluvdbgl'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-nt9'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould not change active terminal when spawning in background
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540512-q6ikfvor3 sessionName: tt-bash-pmd
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 1'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-pmd'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540512-q6ikfvor3'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 1'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-pmd'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/integration/terminal-spawning.test.ts[2m > [22m[2mTerminal Spawning Integration[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould not change active terminal when spawning in background
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540513-tdjr3x2wd sessionName: tt-bash-adt
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 2'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-adt'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540513-tdjr3x2wd'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 2'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-adt'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply font family from spawn option
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540514-tc99vluc1 sessionName: tt-bash-v38
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-v38'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540514-tc99vluc1'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-v38'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply background gradient based on theme
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540516-bgrdkk0cz sessionName: tt-bash-2gz
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-2gz'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540516-bgrdkk0cz'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-2gz'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+ReferenceError: store is not defined
+    at /home/matt/projects/terminal-tabs/tests/unit/hooks/usePopout.test.ts:990:11
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:331:27)
+    at renderWithHooks (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould allow custom background override
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540518-nz1hq61w7 sessionName: tt-bash-laa
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-laa'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540518-nz1hq61w7'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-laa'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+ReferenceError: store is not defined
+    at /home/matt/projects/terminal-tabs/tests/unit/hooks/usePopout.test.ts:990:11
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:331:27)
+    at renderWithHooks (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/matt/projects/terminal-tabs/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+    at invokeEventListeners (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (/home/matt/projects/terminal-tabs/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mSpawn Options Application[2m > [22m[2mshould apply all customizations together
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540519-rho04ydd1 sessionName: tt-bash-lsl
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Customized Terminal'[39m,
+  workingDir: [32m'/home/projects'[39m,
+  theme: [32m'cyberpunk'[39m,
+  transparency: [33m85[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-lsl'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540519-rho04ydd1'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Customized Terminal'[39m,
+    workingDir: [32m'/home/projects'[39m,
+    theme: [32m'cyberpunk'[39m,
+    transparency: [33m85[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-lsl'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/usePopout.test.ts[2m > [22m[2musePopout - Split Terminal Popout[2m > [22m[2mEdge Cases[2m > [22m[2mshould handle popout when terminal does not exist
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWindow Assignment (Multi-Window Support)[2m > [22m[2mshould assign terminal to current window
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540521-3z6ax10ok sessionName: tt-bash-68n
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-68n'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540521-3z6ax10ok'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-68n'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWindow Assignment (Multi-Window Support)[2m > [22m[2mshould assign to main window by default
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540523-r9nt684gz sessionName: tt-bash-29a
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-29a'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540523-r9nt684gz'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-29a'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWindow Assignment (Multi-Window Support)[2m > [22m[2mshould handle multiple windows independently
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540525-hj5er7ka2 sessionName: tt-bash-tmq
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Window 1 Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-tmq'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540525-hj5er7ka2'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Window 1 Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-tmq'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWindow Assignment (Multi-Window Support)[2m > [22m[2mshould handle multiple windows independently
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540525-dn7f8eagd sessionName: tt-bash-3ca
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Window 2 Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-3ca'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540525-dn7f8eagd'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Window 2 Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-3ca'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWebSocket Communication[2m > [22m[2mshould send spawn request via WebSocket with correct structure
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540527-zi7d59ts9 sessionName: tt-tfe-cyp
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/test'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-tfe-cyp'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'tfe'[39m ],
+  startCommand: [32m'tfe'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540527-zi7d59ts9'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/test'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-tfe-cyp'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'tfe'[39m ],
+    startCommand: [32m'tfe'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWebSocket Communication[2m > [22m[2mshould include size in spawn config
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540529-xrssedzri sessionName: tt-bash-8zh
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-8zh'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540529-xrssedzri'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-8zh'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWebSocket Communication[2m > [22m[2mshould set resumable=true when useTmux=true
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540531-zfdwfc33r sessionName: tt-bash-80m
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-80m'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540531-zfdwfc33r'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-80m'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mWebSocket Communication[2m > [22m[2mshould not set resumable when useTmux=false
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540533-dkpe6rb1h sessionName: [90mundefined[39m
+[useTerminalSpawning] Spawning with config (useTmux: [33mfalse[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mfalse[39m,
+  sessionName: [90mundefined[39m,
+  resumable: [33mfalse[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540533-dkpe6rb1h'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mfalse[39m,
+    sessionName: [90mundefined[39m,
+    resumable: [33mfalse[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould set terminal status to error if WebSocket not connected
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540534-1bkq1ege3 sessionName: tt-bash-ywq
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-ywq'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould set terminal status to error if WebSocket not connected
+[22m[39m[SimpleSpawnService] No WebSocket connection available
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould set terminal status to error if WebSocket not connected
+[22m[39mFailed to spawn terminal
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould handle spawn failures gracefully
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540537-29e4npu09 sessionName: tt-bash-gnq
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-gnq'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould handle spawn failures gracefully
+[22m[39mFailed to spawn terminal
+
+ [32m✓[39m tests/integration/terminal-spawning.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould not throw on spawn errors
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540539-shsotfcww sessionName: tt-bash-mys
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-mys'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mError Handling[2m > [22m[2mshould not throw on spawn errors
+[22m[39mError spawning terminal: Error: Spawn failed
+    at [90m/home/matt/projects/terminal-tabs/[39mtests/unit/hooks/useTerminalSpawning.test.ts:772:60
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:157:11
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:753:26
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1636:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1602:10[90m)[39m
+    at runTest [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1309:12[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould set spawned terminal as active
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540547-j3uxsj9w1 sessionName: tt-bash-urx
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-urx'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540547-j3uxsj9w1'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-urx'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould change active terminal when spawning new terminal
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540548-1564p27i4 sessionName: tt-bash-gy6
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 1'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-gy6'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540548-1564p27i4'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 1'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-gy6'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mActive Terminal Management[2m > [22m[2mshould change active terminal when spawning new terminal
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540548-yn09hye5y sessionName: tt-bash-lsh
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Terminal 2'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-lsh'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540548-yn09hye5y'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Terminal 2'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-lsh'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Metadata[2m > [22m[2mshould store original command for reconnection
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540549-5egxcuujs sessionName: tt-tfe-sbw
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-tfe-sbw'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'tfe'[39m ],
+  startCommand: [32m'tfe'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540549-5egxcuujs'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-tfe-sbw'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'tfe'[39m ],
+    startCommand: [32m'tfe'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Metadata[2m > [22m[2mshould store terminal type
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540552-ci8giqlir sessionName: tt-cc-jd4
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'claude-code'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-cc-jd4'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540552-ci8giqlir'[39m,
+  config: {
+    terminalType: [32m'claude-code'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-cc-jd4'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+ [32m✓[39m tests/unit/hooks/useDragDrop.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Metadata[2m > [22m[2mshould store icon
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540553-zsj8q1aal sessionName: tt-bash-fvx
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-fvx'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540553-zsj8q1aal'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-fvx'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Metadata[2m > [22m[2mshould store createdAt timestamp
+[22m[39m[useTerminalSpawning] Created placeholder terminal with requestId: spawn-1762934540554-k53o8z6w1 sessionName: tt-bash-t4j
+[useTerminalSpawning] Spawning with config (useTmux: [33mtrue[39m ): {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  transparency: [33m100[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-t4j'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'spawn-1762934540554-k53o8z6w1'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    transparency: [33m100[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-t4j'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+ [31m❯[39m tests/unit/hooks/usePopout.test.ts [2m([22m[2m30 tests[22m[2m | [22m[31m7 failed[39m[2m)[22m[32m 90[2mms[22m[39m
+       [32m✓[39m should clear isHidden state when popping out pane[32m 14[2mms[22m[39m
+       [32m✓[39m should clear splitLayout when popping out pane[32m 2[2mms[22m[39m
+       [32m✓[39m should assign new windowId to popped out pane[32m 1[2mms[22m[39m
+       [32m✓[39m should remove pane from split container panes array[32m 2[2mms[22m[39m
+       [32m✓[39m should detach from tmux session via API[32m 4[2mms[22m[39m
+       [32m✓[39m should open new window after timeout with correct URL[32m 2[2mms[22m[39m
+       [32m✓[39m should convert split to single terminal when only 1 pane remains[32m 1[2mms[22m[39m
+       [32m✓[39m should unhide the remaining pane when converting to single[32m 1[2mms[22m[39m
+       [32m✓[39m should switch active terminal to remaining pane after popout[32m 1[2mms[22m[39m
+       [32m✓[39m should NOT convert split when more than 1 pane remains[32m 1[2mms[22m[39m
+       [32m✓[39m should open separate window for each pane[32m 2[2mms[22m[39m
+       [32m✓[39m should clear isHidden for all panes when popping out split[32m 2[2mms[22m[39m
+       [32m✓[39m should clear splitLayout for all panes when popping out split[32m 2[2mms[22m[39m
+       [32m✓[39m should assign different windowIds to each pane[32m 2[2mms[22m[39m
+       [32m✓[39m should remove split container from store after popping out[32m 2[2mms[22m[39m
+       [32m✓[39m should detach from all pane tmux sessions[32m 2[2mms[22m[39m
+[31m       [31m×[31m should switch to next available terminal after removing split[39m[32m 10[2mms[22m[39m
+       [32m✓[39m should set activeTerminal to null when no terminals remain[32m 6[2mms[22m[39m
+       [32m✓[39m should not have invisible half-tabs after popout (isHidden=false)[32m 2[2mms[22m[39m
+       [32m✓[39m should not have split containers with empty panes arrays[32m 2[2mms[22m[39m
+       [32m✓[39m should become normal tab in new window (isHidden=false, single layout)[32m 2[2mms[22m[39m
+       [32m✓[39m should clear agentId for reconnection in new window[32m 1[2mms[22m[39m
+       [32m✓[39m should set status to spawning for reconnection[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle single terminal popout correctly[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should detach from tmux for single terminal[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle popout when terminal does not exist[39m[32m 7[2mms[22m[39m
+       [32m✓[39m should handle popout when split container has no panes[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle popout with targetWindowId parameter[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should handle non-tmux terminal popout (WebSocket detach)[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle window.open failure (popup blocked)[39m[32m 2[2mms[22m[39m
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould reconnect to existing terminal session
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-existing-123 to session tt-bash-xyz
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/test'[39m,
+  theme: [32m'matrix'[39m,
+  background: [32m'matrix-depths'[39m,
+  transparency: [33m80[39m,
+  fontSize: [33m18[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-xyz'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540558-j112pwikd'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/test'[39m,
+    theme: [32m'matrix'[39m,
+    background: [32m'matrix-depths'[39m,
+    transparency: [33m80[39m,
+    fontSize: [33m18[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-xyz'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould reconnect to existing terminal session
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve terminal customizations on reconnect
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-existing-456 to session tt-tfe-abc
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/home/projects'[39m,
+  theme: [32m'cyberpunk'[39m,
+  background: [32m'cyberpunk-neon'[39m,
+  transparency: [33m90[39m,
+  fontSize: [33m20[39m,
+  fontFamily: [32m'Fira Code'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-tfe-abc'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540560-mzs6bp9dd'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/home/projects'[39m,
+    theme: [32m'cyberpunk'[39m,
+    background: [32m'cyberpunk-neon'[39m,
+    transparency: [33m90[39m,
+    fontSize: [33m20[39m,
+    fontFamily: [32m'Fira Code'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-tfe-abc'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve terminal customizations on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve windowId on reconnect
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-window-2 to session tt-bash-w2
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-w2'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540562-b5ffn9y2f'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    background: [32m'dark-neutral'[39m,
+    transparency: [33m100[39m,
+    fontSize: [33m14[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-w2'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve windowId on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve split layout on reconnect
+[22m[39m[useTerminalSpawning] 🔄 Reconnecting split container: terminal-split {
+  splitType: [32m'horizontal'[39m,
+  panes: [
+    { terminalId: [32m'terminal-left'[39m, position: [32m'left'[39m },
+    { terminalId: [32m'terminal-right'[39m, position: [32m'right'[39m }
+  ]
+}
+[useTerminalSpawning] Reconnecting terminal terminal-split to session tt-bash-split
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-split'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540563-pjlvaay60'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    background: [32m'dark-neutral'[39m,
+    transparency: [33m100[39m,
+    fontSize: [33m14[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-split'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve split layout on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve isHidden flag on reconnect
+[22m[39m[useTerminalSpawning] 🔄 Reconnecting hidden terminal (part of split): terminal-hidden
+[useTerminalSpawning] Reconnecting terminal terminal-hidden to session tt-bash-hidden
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-hidden'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540565-mxnoraei6'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    background: [32m'dark-neutral'[39m,
+    transparency: [33m100[39m,
+    fontSize: [33m14[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-hidden'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould preserve isHidden flag on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould set useTmux=true and resumable=true on reconnect
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-reconnect to session tt-bash-reconnect
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-reconnect'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540566-aj8777end'[39m,
+  config: {
+    terminalType: [32m'bash'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    background: [32m'dark-neutral'[39m,
+    transparency: [33m100[39m,
+    fontSize: [33m14[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-bash-reconnect'[39m,
+    resumable: [33mtrue[39m,
+    commands: [ [32m'bash'[39m ],
+    startCommand: [32m'bash'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould set useTmux=true and resumable=true on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle TUI tools on reconnect
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-tui to session tt-lg-tui
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'tui-tool'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-lg-tui'[39m,
+  resumable: [33mtrue[39m,
+  toolName: [32m'lazygit'[39m
+}
+[SimpleSpawnService] Sending spawn message: {
+  type: [32m'spawn'[39m,
+  requestId: [32m'reconnect-1762934540567-9taiy9w0v'[39m,
+  config: {
+    terminalType: [32m'tui-tool'[39m,
+    name: [32m'Test Terminal'[39m,
+    workingDir: [32m'/tmp'[39m,
+    theme: [32m'amber'[39m,
+    background: [32m'dark-neutral'[39m,
+    transparency: [33m100[39m,
+    fontSize: [33m14[39m,
+    fontFamily: [32m'monospace'[39m,
+    size: { width: [33m800[39m, height: [33m600[39m },
+    useTmux: [33mtrue[39m,
+    sessionName: [32m'tt-lg-tui'[39m,
+    resumable: [33mtrue[39m,
+    toolName: [32m'lazygit'[39m,
+    platform: [32m'local'[39m
+  }
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle TUI tools on reconnect
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect failure gracefully
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-fail to session tt-bash-fail
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-fail'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect failure gracefully
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect failure gracefully
+[22m[39mFailed to reconnect terminal
+
+[90mstdout[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect errors gracefully
+[22m[39m[useTerminalSpawning] Reconnecting terminal terminal-error to session tt-bash-error
+[useTerminalSpawning] Reconnecting with config: {
+  terminalType: [32m'bash'[39m,
+  name: [32m'Test Terminal'[39m,
+  workingDir: [32m'/tmp'[39m,
+  theme: [32m'amber'[39m,
+  background: [32m'dark-neutral'[39m,
+  transparency: [33m100[39m,
+  fontSize: [33m14[39m,
+  fontFamily: [32m'monospace'[39m,
+  size: { width: [33m800[39m, height: [33m600[39m },
+  useTmux: [33mtrue[39m,
+  sessionName: [32m'tt-bash-error'[39m,
+  resumable: [33mtrue[39m,
+  commands: [ [32m'bash'[39m ],
+  startCommand: [32m'bash'[39m
+}
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect errors gracefully
+[22m[39mWarning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/matt/projects/terminal-tabs/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+[90mstderr[2m | tests/unit/hooks/useTerminalSpawning.test.ts[2m > [22m[2museTerminalSpawning[2m > [22m[2mTerminal Reconnection (Persistence)[2m > [22m[2mshould handle reconnect errors gracefully
+[22m[39mError reconnecting terminal: Error: Reconnect failed
+    at [90m/home/matt/projects/terminal-tabs/[39mtests/unit/hooks/useTerminalSpawning.test.ts:1161:60
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:157:11
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:753:26
+    at [90mfile:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1636:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1602:10[90m)[39m
+    at runTest [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1309:12[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+    at runSuite [90m(file:///home/matt/projects/terminal-tabs/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1468:8[90m)[39m
+
+ [32m✓[39m tests/unit/hooks/useTerminalSpawning.test.ts [2m([22m[2m51 tests[22m[2m)[22m[32m 123[2mms[22m[39m
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould accept terminal-spawned event in correct popout window
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTerminal Spawned Event Filtering[2m > [22m[2mshould accept terminal-spawned event in correct popout window
+[22m[39m[useWebSocketManager] ✅ Matched terminal: terminal-1
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mFast-Spawning Terminals (Race Condition Prevention)[2m > [22m[2mshould NOT match terminal from different window even with same terminalType
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mFast-Spawning Terminals (Race Condition Prevention)[2m > [22m[2mshould NOT match terminal from different window even with same terminalType
+[22m[39m[useWebSocketManager] ✅ Matched terminal: terminal-1
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mPending Spawns (Synchronous Matching)[2m > [22m[2mshould respect windowId filtering even for pendingSpawns
+[22m[39m[useWebSocketManager] ⏭️ Ignoring terminal-spawned for different window
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTmux Session Reconnection[2m > [22m[2mshould only reconnect to sessions in current window
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTmux Session Reconnection[2m > [22m[2mshould only reconnect to sessions in current window
+[22m[39m[useWebSocketManager] ✅ Querying for active tmux sessions...
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mTmux Session Reconnection[2m > [22m[2mshould only reconnect to sessions in current window
+[22m[39m[useWebSocketManager] 📋 Active tmux sessions: [ [32m'tt-bash-1'[39m, [32m'tt-bash-2'[39m ]
+[useWebSocketManager] 🔄 Reconnecting to session: tt-bash-1
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mWebSocket Connection Lifecycle[2m > [22m[2mshould clear agentIds from all terminals on disconnect
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mHydration (Clearing Stale AgentIds)[2m > [22m[2mshould clear stale agentIds from localStorage on mount
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mHydration (Clearing Stale AgentIds)[2m > [22m[2mshould only clear agentIds once (not on every render)
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+ [32m✓[39m tests/integration/split-operations.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 424[2mms[22m[39m
+[90mstderr[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mNo Fallback Terminal Creation (Critical)[2m > [22m[2mshould NOT create terminal for unmatched terminal-spawned event
+[22m[39m[useWebSocketManager] ⏭️ Ignoring terminal-spawned - no matching terminal
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mDuplicate Agent Prevention[2m > [22m[2mshould not process same agent ID twice
+[22m[39m[useWebSocketManager] 🧹 Clearing stale agentIds from localStorage terminals
+
+[90mstdout[2m | tests/unit/hooks/useWebSocketManager.test.ts[2m > [22m[2museWebSocketManager - Multi-Window Filtering[2m > [22m[2mDuplicate Agent Prevention[2m > [22m[2mshould not process same agent ID twice
+[22m[39m[useWebSocketManager] ✅ Matched terminal: terminal-1
+
+ [32m✓[39m tests/unit/hooks/useWebSocketManager.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 727[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 7 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mPop Out Entire Split Container[2m > [22mshould switch to next available terminal after removing split
+[31m[1mAssertionError[22m: expected null to be 'standalone-1' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"standalone-1"
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m730:45[22m[39m
+    [90m728| [39m      [90m// Should switch to standalone terminal[39m
+    [90m729| [39m      [35mconst[39m updatedStore [33m=[39m [34mgetStore[39m()
+    [90m730| [39m      [34mexpect[39m(updatedStore[33m.[39mactiveTerminalId)[33m.[39m[34mtoBe[39m(standaloneTerminal[33m.[39mid)
+    [90m   | [39m                                            [31m^[39m
+    [90m731| [39m    })
+    [90m732| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mSingle Terminal Popout (Non-Split)[2m > [22mshould handle single terminal popout correctly
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ …(3) ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m940:30[22m[39m
+    [90m938| [39m      [90m// Verify window was opened[39m
+    [90m939| [39m      vi[33m.[39m[34madvanceTimersByTime[39m([34m600[39m)
+    [90m940| [39m      [34mexpect[39m(mockWindowOpen)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                             [31m^[39m
+    [90m941| [39m        'http://localhost:5173/?window=window-single-123&active=single…
+    [90m942| [39m        [32m'tabz-window-single-123'[39m[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mSingle Terminal Popout (Non-Split)[2m > [22mshould detach from tmux for single terminal
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ …(2) ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m978:25[22m[39m
+    [90m976| [39m      [35mawait[39m result[33m.[39mcurrent[33m.[39m[34mhandlePopOutTab[39m(singleTerminal[33m.[39mid)
+    [90m977| [39m
+    [90m978| [39m      [34mexpect[39m(mockFetch)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                        [31m^[39m
+    [90m979| [39m        [32m'/api/tmux/detach/tt-single-bash-2'[39m[33m,[39m
+    [90m980| [39m        expect[33m.[39m[34mobjectContaining[39m({ method[33m:[39m [32m'POST'[39m })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mEdge Cases[2m > [22mshould handle popout when terminal does not exist
+[31m[1mReferenceError[22m: store is not defined[39m
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m990:11[22m[39m
+    [90m988| [39m        [34musePopout[39m(
+    [90m989| [39m          [32m'main'[39m[33m,[39m
+    [90m990| [39m          store[33m.[39mterminals[33m,[39m
+    [90m   | [39m          [31m^[39m
+    [90m991| [39m          store[33m.[39mactiveTerminalId[33m,[39m
+    [90m992| [39m          [][33m,[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m331:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+[90m [2m❯[22m renderRootSync node_modules/react-dom/cjs/react-dom.development.js:[2m26473:7[22m[39m
+[90m [2m❯[22m recoverFromConcurrentError node_modules/react-dom/cjs/react-dom.development.js:[2m25889:20[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mEdge Cases[2m > [22mshould handle popout with targetWindowId parameter
+[31m[1mAssertionError[22m: expected 'main' to be 'custom-window-id' // Object.is equality[39m
+
+Expected: [32m"custom-window-id"[39m
+Received: [31m"main"[39m
+
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m1074:33[22m[39m
+    [90m1072| [39m      [35mconst[39m updatedStore [33m=[39m [34mgetStore[39m()
+    [90m1073| [39m      const updated = updatedStore.terminals.find(t => t.id === single…
+    [90m1074| [39m      [34mexpect[39m(updated[33m?.[39mwindowId)[33m.[39m[34mtoBe[39m([32m'custom-window-id'[39m)
+    [90m   | [39m                                [31m^[39m
+    [90m1075| [39m    })
+    [90m1076| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mEdge Cases[2m > [22mshould handle non-tmux terminal popout (WebSocket detach)
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ Array(1) ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m1110:27[22m[39m
+    [90m1108| [39m
+    [90m1109| [39m      [90m// Should send WebSocket detach (not fetch)[39m
+    [90m1110| [39m      [34mexpect[39m(mockWs[33m.[39msend)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                          [31m^[39m
+    [90m1111| [39m        [33mJSON[39m[33m.[39m[34mstringify[39m({
+    [90m1112| [39m          type[33m:[39m [32m'detach'[39m[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/hooks/usePopout.test.ts[2m > [22musePopout - Split Terminal Popout[2m > [22mEdge Cases[2m > [22mshould handle window.open failure (popup blocked)
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called at least once[39m
+[36m [2m❯[22m tests/unit/hooks/usePopout.test.ts:[2m1155:30[22m[39m
+    [90m1153| [39m
+    [90m1154| [39m      vi[33m.[39m[34madvanceTimersByTime[39m([34m600[39m)
+    [90m1155| [39m      [34mexpect[39m(mockWindowOpen)[33m.[39m[34mtoHaveBeenCalled[39m()
+    [90m   | [39m                             [31m^[39m
+    [90m1156| [39m      [90m// Terminal state still updated even if window fails to open[39m
+    [90m1157| [39m      [35mconst[39m updatedStore [33m=[39m [34mgetStore[39m()
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[31m7 failed[39m[22m[2m | [22m[1m[32m160 passed[39m[22m[90m (167)[39m
+[2m   Start at [22m 03:02:19
+[2m   Duration [22m 1.83s[2m (transform 750ms, setup 1.13s, collect 1.15s, tests 1.51s, environment 3.40s, prepare 226ms)[22m
+

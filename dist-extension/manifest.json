@@ -1,0 +1,73 @@
+{
+  "manifest_version": 3,
+  "name": "Terminal Tabs - Browser Edition",
+  "version": "1.0.0",
+  "description": "Full-featured terminal manager in your browser with xterm.js, tmux integration, and multi-window support",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "tabs",
+    "sidePanel",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://localhost:8129/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+9",
+        "windows": "Ctrl+Shift+9",
+        "mac": "Command+Shift+9",
+        "linux": "Ctrl+Shift+9"
+      },
+      "description": "Toggle terminal sidebar"
+    }
+  },
+  "devtools_page": "devtools/devtools.html",
+  "content_scripts": [
+    {
+      "js": [
+        "assets/content.ts-EyUj4nNR.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "resources": [
+        "spawn-options.json",
+        "assets/content.ts-EyUj4nNR.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}
