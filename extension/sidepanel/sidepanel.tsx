@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { SettingsModal, useTerminalSettings } from '../components/SettingsModal'
@@ -141,6 +141,20 @@ function SidePanelTerminal() {
       spawnOption: 'bash',
       name: 'Bash',
     })
+  }
+
+  const handleCloseTab = (e: React.MouseEvent, terminalId: string) => {
+    e.stopPropagation() // Prevent tab selection when clicking X
+    sendMessage({
+      type: 'CLOSE_TERMINAL',
+      terminalId,
+    })
+    // If closing current tab, switch to another one
+    if (terminalId === currentSession && sessions.length > 1) {
+      const currentIndex = sessions.findIndex(s => s.id === terminalId)
+      const nextSession = sessions[currentIndex === 0 ? 1 : currentIndex - 1]
+      setCurrentSession(nextSession.id)
+    }
   }
 
   // Handle right-click on tab (session-level operations)
@@ -292,20 +306,27 @@ function SidePanelTerminal() {
           {sessions.length > 0 && (
             <div className="flex gap-1 p-2 border-b bg-gradient-to-r from-[#0f0f0f]/50 to-[#1a1a1a]/50 overflow-x-auto">
               {sessions.map(session => (
-                <button
+                <div
                   key={session.id}
-                  onClick={() => setCurrentSession(session.id)}
-                  onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                   className={`
-                    px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all
+                    flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all cursor-pointer group
                     ${currentSession === session.id
                       ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
                       : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
                     }
                   `}
+                  onClick={() => setCurrentSession(session.id)}
+                  onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                 >
-                  {session.name}
-                </button>
+                  <span>{session.name}</span>
+                  <button
+                    onClick={(e) => handleCloseTab(e, session.id)}
+                    className="p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Close tab"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
