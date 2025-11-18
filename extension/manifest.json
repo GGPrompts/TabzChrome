@@ -56,7 +56,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["spawn-options.json"],
+      "resources": ["spawn-options.json", "profiles.json"],
       "matches": ["<all_urls>"]
     }
   ]

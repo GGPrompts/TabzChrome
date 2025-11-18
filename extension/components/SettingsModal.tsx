@@ -12,20 +12,28 @@ export interface TerminalSettings {
   fontFamily: string
 }
 
-export interface SpawnOption {
-  label: string
-  command: string
-  terminalType: string
-  icon?: string
-  description?: string
-  workingDir?: string
-  url?: string
+export interface Profile {
+  id: string
+  name: string
+  workingDir: string
+  fontSize: number
+  fontFamily: string
+  theme: 'dark' | 'light'
 }
 
 const DEFAULT_SETTINGS: TerminalSettings = {
   fontSize: 14,
   theme: 'dark',
   fontFamily: 'monospace',
+}
+
+const DEFAULT_PROFILE: Profile = {
+  id: '',
+  name: '',
+  workingDir: '~',
+  fontSize: 14,
+  fontFamily: 'monospace',
+  theme: 'dark',
 }
 
 const FONT_FAMILIES = [
@@ -38,29 +46,42 @@ const FONT_FAMILIES = [
 ]
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'general' | 'spawn-options'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'profiles'>('general')
   const [settings, setSettings] = useState<TerminalSettings>(DEFAULT_SETTINGS)
-  const [spawnOptions, setSpawnOptions] = useState<SpawnOption[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [defaultProfile, setDefaultProfile] = useState<string>('default')
   const [isAdding, setIsAdding] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [formData, setFormData] = useState<SpawnOption>({
-    label: '',
-    command: '',
-    terminalType: 'bash',
-    icon: '💻',
-    description: '',
-    workingDir: '',
-    url: '',
-  })
+  const [formData, setFormData] = useState<Profile>(DEFAULT_PROFILE)
 
   useEffect(() => {
-    // Load settings and spawn options from Chrome storage
-    chrome.storage.local.get(['terminalSettings', 'spawnOptions'], (result) => {
+    // Load settings and profiles from Chrome storage
+    chrome.storage.local.get(['terminalSettings', 'profiles', 'defaultProfile'], async (result) => {
       if (result.terminalSettings) {
         setSettings(result.terminalSettings as TerminalSettings)
       }
-      if (result.spawnOptions && Array.isArray(result.spawnOptions)) {
-        setSpawnOptions(result.spawnOptions as SpawnOption[])
+
+      // If no profiles exist, load defaults from profiles.json
+      if (!result.profiles || !Array.isArray(result.profiles) || result.profiles.length === 0) {
+        try {
+          const url = chrome.runtime.getURL('profiles.json')
+          const response = await fetch(url)
+          const data = await response.json()
+
+          setProfiles(data.profiles as Profile[])
+          setDefaultProfile(data.defaultProfile || 'default')
+
+          // Save default profiles to storage
+          chrome.storage.local.set({
+            profiles: data.profiles,
+            defaultProfile: data.defaultProfile || 'default'
+          })
+        } catch (error) {
+          console.error('[Settings] Failed to load default profiles:', error)
+        }
+      } else {
+        setProfiles(result.profiles as Profile[])
+        setDefaultProfile(result.defaultProfile || 'default')
       }
     })
   }, [isOpen])
@@ -68,9 +89,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleSave = () => {
     chrome.storage.local.set({
       terminalSettings: settings,
-      spawnOptions: spawnOptions,
+      profiles: profiles,
+      defaultProfile: defaultProfile,
     }, () => {
-      console.log('[Settings] Saved:', { settings, spawnOptions: spawnOptions.length })
+      console.log('[Settings] Saved:', { settings, profiles: profiles.length, defaultProfile })
       // Trigger storage change event (which useTerminalSettings listens to)
       // Force immediate update by dispatching custom event
       window.dispatchEvent(new CustomEvent('terminal-settings-changed', {
@@ -95,56 +117,47 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setSettings({ ...settings, fontFamily })
   }
 
-  // Spawn option handlers
-  const handleAddSpawnOption = () => {
-    if (!formData.label || !formData.terminalType) return
+  // Profile handlers
+  const handleAddProfile = () => {
+    if (!formData.name || !formData.id) return
 
     if (editingIndex !== null) {
       // Update existing
-      const updated = [...spawnOptions]
+      const updated = [...profiles]
       updated[editingIndex] = formData
-      setSpawnOptions(updated)
+      setProfiles(updated)
       setEditingIndex(null)
     } else {
       // Add new
-      setSpawnOptions([...spawnOptions, formData])
+      setProfiles([...profiles, formData])
     }
 
     // Reset form
-    setFormData({
-      label: '',
-      command: '',
-      terminalType: 'bash',
-      icon: '💻',
-      description: '',
-      workingDir: '',
-      url: '',
-    })
+    setFormData(DEFAULT_PROFILE)
     setIsAdding(false)
   }
 
-  const handleEditSpawnOption = (index: number) => {
-    setFormData(spawnOptions[index])
+  const handleEditProfile = (index: number) => {
+    setFormData(profiles[index])
     setEditingIndex(index)
     setIsAdding(true)
   }
 
-  const handleDeleteSpawnOption = (index: number) => {
-    setSpawnOptions(spawnOptions.filter((_, i) => i !== index))
+  const handleDeleteProfile = (index: number) => {
+    const deletedProfile = profiles[index]
+    setProfiles(profiles.filter((_, i) => i !== index))
+
+    // If deleting default profile, switch to first remaining profile
+    if (deletedProfile.id === defaultProfile && profiles.length > 1) {
+      const remainingProfiles = profiles.filter((_, i) => i !== index)
+      setDefaultProfile(remainingProfiles[0].id)
+    }
   }
 
   const handleCancelEdit = () => {
     setIsAdding(false)
     setEditingIndex(null)
-    setFormData({
-      label: '',
-      command: '',
-      terminalType: 'bash',
-      icon: '💻',
-      description: '',
-      workingDir: '',
-      url: '',
-    })
+    setFormData(DEFAULT_PROFILE)
   }
 
   if (!isOpen) return null
