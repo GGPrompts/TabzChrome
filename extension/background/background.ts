@@ -194,9 +194,9 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       break
 
     case 'CLOSE_TERMINAL':
-      // Close specific terminal by ID
+      // Close specific terminal by ID (force close - kills PTY/tmux session)
       sendToWebSocket({
-        type: 'close-terminal',
+        type: 'close', // Backend expects 'close', not 'close-terminal'
         terminalId: message.terminalId,
       })
       break
