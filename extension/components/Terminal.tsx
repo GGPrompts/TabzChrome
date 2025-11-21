@@ -13,10 +13,11 @@ interface TerminalProps {
   fontSize?: number
   fontFamily?: string
   theme?: 'dark' | 'light'
+  pasteCommand?: string | null  // Command to paste into terminal input
   onClose?: () => void
 }
 
-export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontSize = 14, fontFamily = 'monospace', theme = 'dark', onClose }: TerminalProps) {
+export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontSize = 14, fontFamily = 'monospace', theme = 'dark', pasteCommand = null, onClose }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -111,7 +112,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
       fontSize,
       fontFamily,
       theme: theme === 'dark' ? darkTheme : lightTheme,
-      scrollback: sessionName ? 0 : 10000, // No scrollbar for tmux (tmux handles scrolling)
+      scrollback: sessionName ? 0 : 10000, // No scrollback for tmux (tmux handles scrolling)
       convertEol: false,
       allowProposedApi: true,
     })
@@ -139,19 +140,35 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
     })
 
     // Enable Shift+Ctrl+C/V for copy/paste
+    // Important: Return true to allow all other keys (including tmux Ctrl+B) to pass through
     xterm.attachCustomKeyEventHandler((event) => {
-      if (event.ctrlKey && event.shiftKey && event.key === 'C' && xterm.hasSelection()) {
+      // Debug logging for Ctrl keys (can be removed after testing)
+      if (event.ctrlKey) {
+        console.log('[Terminal] Ctrl key event:', {
+          key: event.key,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+          code: event.code,
+          type: event.type
+        })
+      }
+
+      // Handle Ctrl+Shift+C (copy) - case insensitive
+      if (event.ctrlKey && event.shiftKey && (event.key === 'C' || event.key === 'c') && xterm.hasSelection()) {
         event.preventDefault()
         document.execCommand('copy')
         return false
       }
-      if (event.ctrlKey && event.shiftKey && event.key === 'V') {
+      // Handle Ctrl+Shift+V (paste) - case insensitive
+      if (event.ctrlKey && event.shiftKey && (event.key === 'V' || event.key === 'v')) {
         event.preventDefault()
         navigator.clipboard.readText().then((text) => {
           xterm.paste(text)
         })
         return false
       }
+      // Allow all other keys to pass through to terminal (including Ctrl+B for tmux)
       return true
     })
 
@@ -356,6 +373,20 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
     return () => window.removeEventListener('resize', handleResize)
   }, [terminalId])
 
+  // Handle paste command (from context menu)
+  useEffect(() => {
+    if (pasteCommand && xtermRef.current) {
+      console.log('[Terminal] 📋 Pasting command to terminal:', pasteCommand)
+
+      // Write the text to the terminal (simulating user typing)
+      // This appears in the terminal but doesn't execute until user presses Enter
+      xtermRef.current.paste(pasteCommand)
+
+      // Focus the terminal so user can see the pasted text
+      xtermRef.current.focus()
+    }
+  }, [pasteCommand, terminalId])
+
   return (
     <div className="h-full flex flex-col">
       {/* Terminal header */}
@@ -379,10 +410,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
       <div className="flex-1 relative overflow-hidden">
         <div
           ref={terminalRef}
-          className="absolute inset-0"
+          className={`absolute inset-0 ${sessionName ? 'hide-xterm-scrollbar' : ''}`}
           style={{
             padding: '8px',
-            paddingBottom: sessionName ? '20px' : '4px', // More padding for tmux status bar
+            paddingBottom: sessionName ? '35px' : '4px', // Extra padding for tmux status bar
           }}
         />
       </div>

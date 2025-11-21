@@ -269,6 +269,18 @@ wss.on('connection', (ws) => {
           broadcast({ type: 'terminal-closed', data: { id: data.terminalId } });
           break;
 
+        case 'list-terminals':
+          // List all active terminals in the registry
+          const activeTerminals = terminalRegistry.getAllTerminals();
+          // For now, return all terminals to Chrome extension (both old and new format)
+          // TODO: Eventually filter for ctt- prefix only
+          log.info(`[WS] Listing ${activeTerminals.length} active terminals`);
+          ws.send(JSON.stringify({
+            type: 'terminals',
+            data: activeTerminals
+          }));
+          break;
+
         case 'query-tmux-sessions':
           // Query for orphaned tmux sessions that can be reconnected
           log.info('Querying for orphaned tmux sessions');

@@ -235,7 +235,8 @@ class TerminalRegistry extends EventEmitter {
     }
 
     // NEW TERMINAL: Generate unique ID
-    const id = uuidv4();
+    // Add ctt- prefix for Chrome extension terminals
+    const id = config.isChrome ? `ctt-${uuidv4()}` : uuidv4();
 
     // Update name counters before generating a new name
     this.updateNameCounters();

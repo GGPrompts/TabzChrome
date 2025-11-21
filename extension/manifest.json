@@ -13,7 +13,10 @@
     "notifications"
   ],
   "host_permissions": [
-    "http://localhost:8129/*"
+    "http://localhost:8129/*",
+    "ws://localhost:8129/*",
+    "http://127.0.0.1:8129/*",
+    "ws://127.0.0.1:8129/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

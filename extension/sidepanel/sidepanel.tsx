@@ -24,6 +24,7 @@ function SidePanelTerminal() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [pasteCommand, setPasteCommand] = useState<string | null>(null)  // Command to paste from context menu
   const portRef = useRef<chrome.runtime.Port | null>(null)
   const terminalSettings = useTerminalSettings()
 
@@ -40,15 +41,23 @@ function SidePanelTerminal() {
     const port = connectToBackground('sidepanel', (message) => {
       // ✅ Handle initial state sent immediately on connection
       if (message.type === 'INITIAL_STATE') {
+        console.log('[Sidepanel] Initial state received, wsConnected:', message.wsConnected)
         setWsConnected(message.wsConnected)
       } else if (message.type === 'WS_CONNECTED') {
         setWsConnected(true)
+        // Terminal list will be requested via the wsConnected effect
       } else if (message.type === 'WS_DISCONNECTED') {
         setWsConnected(false)
       } else if (message.type === 'WS_MESSAGE') {
         handleWebSocketMessage(message.data)
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
+      } else if (message.type === 'PASTE_COMMAND') {
+        // Paste command from context menu (selected text)
+        console.log('[Sidepanel] 📋 Received paste command:', message.command)
+        setPasteCommand(message.command)
+        // Clear after a brief moment (Terminal will have received it)
+        setTimeout(() => setPasteCommand(null), 100)
       }
     })
 
@@ -96,6 +105,48 @@ function SidePanelTerminal() {
     }
   }, [])
 
+  // Load saved terminal sessions from Chrome storage on mount
+  useEffect(() => {
+    console.log('[Sidepanel] Checking Chrome storage for saved terminal sessions...')
+    chrome.storage.local.get(['terminalSessions'], (result) => {
+      console.log('[Sidepanel] Chrome storage result:', result)
+      if (result.terminalSessions && Array.isArray(result.terminalSessions)) {
+        console.log('📥 Restored terminal sessions from storage:', result.terminalSessions)
+        setSessions(result.terminalSessions)
+        // Set the first session as current if any exist
+        if (result.terminalSessions.length > 0) {
+          console.log('[Sidepanel] Setting current session to:', result.terminalSessions[0].id)
+          setCurrentSession(result.terminalSessions[0].id)
+        }
+      } else {
+        console.log('[Sidepanel] No saved terminal sessions found in Chrome storage')
+      }
+    })
+  }, [])
+
+  // Save terminal sessions to Chrome storage whenever they change
+  useEffect(() => {
+    console.log('[Sidepanel] Sessions changed:', sessions.length, 'sessions')
+    if (sessions.length > 0) {
+      chrome.storage.local.set({ terminalSessions: sessions }, () => {
+        console.log('💾 Saved terminal sessions to storage:', sessions)
+      })
+    } else {
+      // Clear storage when no sessions
+      chrome.storage.local.remove('terminalSessions', () => {
+        console.log('🗑️ Cleared terminal sessions from storage')
+      })
+    }
+  }, [sessions])
+
+  // Request terminal list when WebSocket connects
+  useEffect(() => {
+    if (wsConnected) {
+      console.log('[Sidepanel] WebSocket connected, requesting terminal list to sync with backend...')
+      sendMessage({ type: 'LIST_TERMINALS' })
+    }
+  }, [wsConnected])
+
   // Close profile dropdown when clicking outside
   useEffect(() => {
     if (!showProfileDropdown) return
@@ -119,21 +170,56 @@ function SidePanelTerminal() {
     console.log('[Sidepanel] handleWebSocketMessage:', data.type, data.type === 'terminal-spawned' || data.type === 'terminals' ? JSON.stringify(data).slice(0, 300) : '')
     switch (data.type) {
       case 'terminals':
-        // Terminal list received on connection - restore existing terminals
-        const existingTerminals = data.data || []
-        console.log('[Sidepanel] 🔄 Restoring terminals:', existingTerminals.length)
-        if (existingTerminals.length > 0) {
-          setSessions(existingTerminals.map((t: any) => ({
-            id: t.id,
-            name: t.name || t.id,
-            type: t.terminalType || 'bash',
-            active: false,
-            sessionName: t.sessionName,
-            profile: t.profile, // Restore profile settings
-          })))
-          // Set first terminal as active
-          setCurrentSession(existingTerminals[0].id)
-        }
+        // Terminal list received from backend - reconcile with stored sessions
+        const backendTerminals = data.data || []
+        console.log('[Sidepanel] 🔄 Backend terminals:', backendTerminals.length)
+
+        // Get current sessions from state (which may have been restored from Chrome storage)
+        setSessions(currentSessions => {
+          // Create a map of existing sessions by ID
+          const sessionMap = new Map(currentSessions.map(s => [s.id, s]))
+
+          // Update or add backend terminals
+          backendTerminals.forEach((t: any) => {
+            const existingSession = sessionMap.get(t.id)
+            if (existingSession) {
+              // Update existing session with backend data
+              sessionMap.set(t.id, {
+                ...existingSession,
+                sessionName: t.sessionName,
+                active: false,
+              })
+            } else {
+              // Add new terminal from backend
+              sessionMap.set(t.id, {
+                id: t.id,
+                name: t.name || t.id,
+                type: t.terminalType || 'bash',
+                active: false,
+                sessionName: t.sessionName,
+                profile: t.profile,
+              })
+            }
+          })
+
+          // Remove sessions that no longer exist in backend
+          const backendIds = new Set(backendTerminals.map((t: any) => t.id))
+          for (const [id, _] of sessionMap) {
+            if (!backendIds.has(id)) {
+              console.log(`[Sidepanel] Removing stale session: ${id}`)
+              sessionMap.delete(id)
+            }
+          }
+
+          const updatedSessions = Array.from(sessionMap.values())
+
+          // Set first terminal as active if no current session
+          if (updatedSessions.length > 0 && !currentSession) {
+            setCurrentSession(updatedSessions[0].id)
+          }
+
+          return updatedSessions
+        })
         break
       case 'session-list':
         setSessions(data.sessions || [])
@@ -476,6 +562,7 @@ function SidePanelTerminal() {
                       fontSize={session.profile?.fontSize || terminalSettings.fontSize}
                       fontFamily={session.profile?.fontFamily || terminalSettings.fontFamily}
                       theme={session.profile?.theme || terminalSettings.theme}
+                      pasteCommand={session.id === currentSession ? pasteCommand : null}
                       onClose={() => {
                         sendMessage({
                           type: 'CLOSE_TERMINAL',

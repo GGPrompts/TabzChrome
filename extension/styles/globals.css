@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Hide xterm scrollbar for tmux terminals (tmux handles scrolling) */
+.hide-xterm-scrollbar .xterm-viewport {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.hide-xterm-scrollbar .xterm-viewport::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
 /* Context Menu Styles */
 .tab-context-menu {
   background: rgba(30, 30, 30, 0.98);

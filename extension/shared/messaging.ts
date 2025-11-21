@@ -10,10 +10,12 @@ export type MessageType =
   | 'TERMINAL_INPUT'
   | 'TERMINAL_OUTPUT'
   | 'TERMINAL_RESIZE'
+  | 'LIST_TERMINALS'
   | 'REFRESH_TERMINALS'
   | 'ADD_CONTEXT_MENU'
   | 'SHOW_ERROR_SUGGESTION'
   | 'UPDATE_BADGE'
+  | 'PASTE_COMMAND'
   | 'WS_MESSAGE'
   | 'WS_CONNECTED'
   | 'WS_DISCONNECTED';
@@ -67,6 +69,10 @@ export interface TerminalResizeMessage extends BaseMessage {
   rows: number;
 }
 
+export interface ListTerminalsMessage extends BaseMessage {
+  type: 'LIST_TERMINALS';
+}
+
 export interface RefreshTerminalsMessage extends BaseMessage {
   type: 'REFRESH_TERMINALS';
 }
@@ -111,6 +117,11 @@ export interface InitialStateMessage extends BaseMessage {
   wsConnected: boolean;
 }
 
+export interface PasteCommandMessage extends BaseMessage {
+  type: 'PASTE_COMMAND';
+  command: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -120,10 +131,12 @@ export type ExtensionMessage =
   | TerminalInputMessage
   | TerminalOutputMessage
   | TerminalResizeMessage
+  | ListTerminalsMessage
   | RefreshTerminalsMessage
   | AddContextMenuMessage
   | ShowErrorSuggestionMessage
   | UpdateBadgeMessage
+  | PasteCommandMessage
   | WSMessage
   | WSConnectedMessage
   | WSDisconnectedMessage;

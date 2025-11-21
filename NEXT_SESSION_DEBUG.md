@@ -1,440 +1,422 @@
-# Debug Session - Chrome Extension Terminal Display
+# Next Session: Debug Context Menu & Terminal Persistence
 
-## Current Status (Nov 15, 2025)
+**Date**: November 21, 2025
+**Status**: Two issues need investigation
 
-### ✅ What's Working
+---
 
-1. **Backend Running Correctly**
-   - Port 8128 listening (confirmed via `lsof`)
-   - WebSocket server active
-   - Logs show: `[success] [Server] WebSocket client connected`
-   - Active WS: 1, Terminals: 0
+## 🐛 Issue 1: Context Menu Not Appearing
 
-2. **Extension Built & Loaded**
-   - All TypeScript compiles successfully
-   - Extension loads in Chrome without errors
-   - Popup displays 15 spawn options
-   - Side panel UI renders
+### Problem
+User cannot see the "Paste to Terminal" context menu when selecting text on webpages.
 
-3. **Code Integration Complete**
-   - ✅ Terminal.tsx component created (lightweight xterm.js wrapper)
-   - ✅ Background worker routes TERMINAL_INPUT, TERMINAL_OUTPUT, TERMINAL_RESIZE
-   - ✅ Message types added to messaging.ts
-   - ✅ Side panel imports Terminal component
-   - ✅ Spawn options clickable (added `value` prop to CommandItems)
+### Expected Behavior
+1. Select text on any webpage
+2. Right-click
+3. See "Paste '[selected text]' to Terminal" in context menu
 
-### ❌ What's NOT Working
+### What Was Implemented
+- **File**: `extension/background/background.ts` (lines 289-320)
+- Context menu registered with `chrome.contextMenus.create()`
+- Menu ID: `paste-to-terminal`
+- Contexts: `['selection']`
+- Title: `'Paste "%s" to Terminal'` (%s = selected text)
 
-1. **Side Panel Shows "Disconnected"**
-   - Badge displays red "Disconnected" instead of green "Connected"
-   - Backend logs show WebSocket IS connected
-   - Disconnect between backend state and UI state
+### Debugging Steps
 
-2. **Spawn Options Grayed Out (Maybe)**
-   - User reports options are grayed out
-   - We added `value` props to fix cmdk selectability
-   - May still have CSS/interaction issue
-
-3. **No Terminal Display**
-   - Clicking "Bash" doesn't spawn visible terminal
-   - Terminal component never renders
-
-## 🔍 Root Cause Hypothesis
-
-**WebSocket Connection Timing Issue:**
-- Background worker connects to backend ✅
-- Backend logs confirm connection ✅
-- BUT: Side panel doesn't receive `WS_CONNECTED` message ❌
-
-**Possible causes:**
-1. Side panel loads before background worker establishes connection
-2. Message broadcasting isn't reaching side panel
-3. Side panel message listener not set up correctly
-4. Race condition between panel open and WS handshake
-
-## 🐛 Debug Steps for Next Session
-
-### Step 1: Verify Message Flow
-
-**Check background worker console:**
-```javascript
-// Open chrome://extensions/
-// Click "Service worker" under Terminal Tabs
-// Look for:
-console.log('📤 Sending to clients:', message)
+#### 1. Check Service Worker Console
+```bash
+# In Chrome:
+# 1. Go to chrome://extensions
+# 2. Find "Terminal Tabs - Browser Edition"
+# 3. Click "Inspect views: service worker"
+# 4. Check console for:
+#    - "Setting up context menus..."
+#    - "✅ Context menus created"
 ```
 
-**Check side panel console:**
+#### 2. Verify Context Menus Were Created
 ```javascript
-// Right-click side panel → Inspect
-// Look for:
-[Sidepanel] Message received: WS_CONNECTED
+// In service worker console, run:
+chrome.contextMenus.getAll((menus) => {
+  console.log('Registered context menus:', menus);
+});
+
+// Expected output:
+// [
+//   { id: 'toggle-sidepanel', title: 'Toggle Terminal Sidebar', contexts: ['all'] },
+//   { id: 'paste-to-terminal', title: 'Paste "%s" to Terminal', contexts: ['selection'] }
+// ]
 ```
 
-### Step 2: Test Direct WebSocket State
+#### 3. Check for Errors
+```javascript
+// In service worker console, look for:
+chrome.runtime.lastError
+// Should be null/undefined if no errors
+```
 
-Add this to `sidepanel.tsx` to bypass message system:
+#### 4. Verify Permissions
+Check `extension/manifest.json`:
+```json
+{
+  "permissions": [
+    "contextMenus",  // ✅ Required for context menus
+    "storage",
+    "tabs",
+    // ...
+  ]
+}
+```
+
+#### 5. Test Context Menu Registration Timing
+The code calls `setupContextMenus()` on service worker startup (line 320).
+
+**Potential Issue**: Service worker might not be ready yet.
+
+**Fix to Try**:
+```typescript
+// In background.ts, wrap in chrome.runtime.onStartup:
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Service worker started');
+  setupContextMenus();
+});
+
+// And keep the immediate call:
+setupContextMenus();
+```
+
+#### 6. Check if Context Menu Click Handler Works
+Add logging to click handler (line 323):
+```typescript
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  console.log('🎯 Context menu clicked!', {
+    menuItemId: info.menuItemId,
+    selectionText: info.selectionText,
+    tabId: tab?.id,
+    windowId: tab?.windowId
+  });
+
+  // Rest of handler...
+});
+```
+
+### Common Causes
+
+1. **Service worker not running**
+   - Extensions can sleep/wake up
+   - Context menus need to be re-registered each wake
+
+2. **Manifest V3 limitations**
+   - Context menus may need `activeTab` permission
+   - Try adding: `"permissions": ["activeTab"]`
+
+3. **Context type mismatch**
+   - `contexts: ['selection']` only shows when text is selected
+   - Try changing to `['all']` temporarily to test
+
+4. **Extension reload didn't work**
+   - Try **removing and re-adding** the extension instead
+   - Hard reload: Disable → Re-enable
+
+### Quick Test
+```typescript
+// Simplest possible test - add to background.ts:
+chrome.contextMenus.create({
+  id: 'test-menu',
+  title: 'TEST MENU - ALWAYS VISIBLE',
+  contexts: ['all']  // Shows everywhere
+});
+
+// If this doesn't show, problem is deeper (permissions, manifest, etc.)
+```
+
+---
+
+## 🐛 Issue 2: Terminals Not Persisting
+
+### Problem
+Terminals disappear when closing and reopening the sidebar.
+
+### Expected Behavior
+1. Spawn terminal in sidebar
+2. Close sidebar (extension icon or click away)
+3. Reopen sidebar
+4. Terminal should still be there (tmux session survives)
+
+### Current Architecture
+
+**Terminal Lifecycle**:
+```
+1. User spawns terminal
+   ↓
+2. Backend creates tmux session
+   - Session name: "Bash", "Projects", etc.
+   - Terminal ID: ctt-<uuid>
+   ↓
+3. Frontend stores session in state (sessions array)
+   - NOT in Chrome storage (only profiles are stored)
+   ↓
+4. User closes sidebar
+   - Component unmounts
+   - State is lost ❌
+   - Tmux session survives ✅
+   ↓
+5. User reopens sidebar
+   - New component instance
+   - State is empty (no sessions)
+   - Tmux sessions still running but not shown
+```
+
+### Root Cause
+**Terminals are NOT persisted to Chrome storage**, only kept in React state.
+
+When the sidebar closes, React component unmounts and state is lost.
+
+### Files to Check
+
+#### 1. `extension/sidepanel/sidepanel.tsx`
+Look for Chrome storage persistence:
+```typescript
+// Check if sessions are saved to chrome.storage.local
+useEffect(() => {
+  // Should save sessions when they change
+  chrome.storage.local.set({ sessions });
+}, [sessions]);
+
+// Should load sessions on mount
+useEffect(() => {
+  chrome.storage.local.get(['sessions'], (result) => {
+    if (result.sessions) {
+      setSessions(result.sessions);
+    }
+  });
+}, []);
+```
+
+**Current Status**: Check if this exists. If not, that's the problem.
+
+#### 2. Backend Terminal Registry
+Check `backend/modules/terminal-registry.js`:
+```javascript
+// Backend should track active tmux sessions
+// When frontend reconnects, it should send terminal list
+
+// Look for WebSocket message handler:
+case 'list-terminals':
+  // Should return all active ctt-* sessions
+```
+
+#### 3. WebSocket Reconnection
+Check `extension/background/background.ts`:
+```typescript
+ws.onopen = () => {
+  console.log('✅ Background WebSocket connected');
+  // Should request terminal list here:
+  sendToWebSocket({ type: 'list-terminals' });
+};
+```
+
+### Debugging Steps
+
+#### 1. Check if Tmux Sessions Survive
+```bash
+# In terminal, after closing sidebar:
+tmux ls | grep "^ctt-"
+
+# Should show:
+# ctt-<uuid>: 1 windows (created ...)
+# Bash: 1 windows (created ...)
+```
+
+If tmux sessions exist but UI doesn't show them → persistence issue.
+If tmux sessions are gone → backend is killing them on disconnect.
+
+#### 2. Check Chrome Storage
+```javascript
+// In sidebar console (F12 on sidebar):
+chrome.storage.local.get(null, (data) => {
+  console.log('All stored data:', data);
+});
+
+// Should include:
+// - profiles: [...]
+// - sessions: [...] ← Check if this exists
+```
+
+#### 3. Check WebSocket Messages
+```javascript
+// In service worker console:
+// Look for 'terminals' message after reconnect:
+// { type: 'terminals', data: [...] }
+```
+
+### Likely Solution
+
+**Add session persistence to `sidepanel.tsx`**:
 
 ```typescript
+// Load sessions from storage on mount
 useEffect(() => {
-  // Direct check - does background worker have WS connection?
-  chrome.runtime.sendMessage({ type: 'GET_WS_STATUS' }, (response) => {
-    console.log('[Sidepanel] Direct WS status:', response)
-    setWsConnected(response?.connected || false)
+  chrome.storage.local.get(['sessions'], (result) => {
+    if (result.sessions) {
+      console.log('📥 Restored sessions from storage:', result.sessions);
+      setSessions(result.sessions);
+    }
+  });
+}, []);
+
+// Save sessions to storage when they change
+useEffect(() => {
+  if (sessions.length > 0) {
+    chrome.storage.local.set({ sessions });
+    console.log('💾 Saved sessions to storage:', sessions);
+  }
+}, [sessions]);
+```
+
+**Alternative**: Request terminal list from backend on connect:
+
+```typescript
+// In sidepanel.tsx, when WS connects:
+if (message.type === 'WS_CONNECTED') {
+  setWsConnected(true);
+
+  // Request terminal list from backend
+  sendMessage({ type: 'REFRESH_TERMINALS' });
+}
+```
+
+Then backend sends back active terminals and UI restores them.
+
+---
+
+## 🔍 Investigation Priority
+
+### Priority 1: Context Menu (Blocking)
+This is a **new feature that should work** but isn't showing up.
+
+**Quick test**:
+1. Change `contexts: ['selection']` to `contexts: ['all']`
+2. Rebuild & reload
+3. Right-click anywhere - should see menu
+4. If it shows → problem is with `'selection'` context
+5. If it doesn't → deeper issue (permissions, registration, etc.)
+
+### Priority 2: Terminal Persistence (Regression?)
+Need to determine if this **ever worked** or is a new issue.
+
+**Quick test**:
+1. Spawn terminal
+2. Check Chrome storage: `chrome.storage.local.get(['sessions'])`
+3. If sessions are stored → problem is loading
+4. If not stored → need to add persistence
+
+---
+
+## 🚀 Quick Fixes to Try First
+
+### Fix 1: Force Context Menu to Show (Debug)
+```typescript
+// In background.ts, change contexts:
+chrome.contextMenus.create({
+  id: 'paste-to-terminal',
+  title: 'Paste to Terminal (DEBUG)',
+  contexts: ['all']  // ← Changed from ['selection']
+});
+```
+
+### Fix 2: Add Session Persistence
+```typescript
+// In sidepanel.tsx, after line 27:
+const [pasteCommand, setPasteCommand] = useState<string | null>(null)
+
+// Add these effects:
+
+// Load sessions on mount
+useEffect(() => {
+  chrome.storage.local.get(['terminalSessions'], (result) => {
+    if (result.terminalSessions) {
+      console.log('📥 Restored sessions:', result.terminalSessions)
+      setSessions(result.terminalSessions)
+    }
   })
 }, [])
-```
 
-Then add to `background.ts`:
-
-```typescript
-case 'GET_WS_STATUS':
-  sendResponse({ connected: ws?.readyState === WebSocket.OPEN })
-  break
-```
-
-### Step 3: Force Reconnect on Panel Open
-
-The issue might be that side panel opens AFTER background worker connects, so it misses the initial `WS_CONNECTED` broadcast.
-
-**Fix:** Make background worker send current status when panel requests it:
-
-```typescript
-// In sidepanel.tsx - request status on mount
+// Save sessions when they change
 useEffect(() => {
-  sendMessage({ type: 'REQUEST_WS_STATUS' })
-}, [])
-
-// In background.ts - respond with current status
-case 'REQUEST_WS_STATUS':
-  broadcastToClients({
-    type: ws?.readyState === WebSocket.OPEN ? 'WS_CONNECTED' : 'WS_DISCONNECTED'
-  })
-  break
+  if (sessions.length > 0) {
+    chrome.storage.local.set({ terminalSessions: sessions })
+  }
+}, [sessions])
 ```
 
-### Step 4: Check Terminal Spawn Flow
+---
 
-If side panel shows "Connected" after above fixes, test spawn:
+## 📋 Files to Review
 
-1. Click "Bash" in popup
-2. Check background worker console for `SPAWN_TERMINAL` message
-3. Check backend logs for spawn request
-4. Check if `terminal-spawned` event is broadcast back
-5. Check if side panel receives event and creates terminal
+1. **extension/background/background.ts** (lines 289-340)
+   - Context menu registration
+   - Click handler
 
-**Expected backend log:**
-```
-[info] Spawning terminal: bash
-[info] Created tmux session: tt-bash-xxxxx
-```
+2. **extension/sidepanel/sidepanel.tsx** (lines 19-100)
+   - Session state management
+   - Chrome storage integration
 
-**Expected side panel log:**
-```
-[Sidepanel] Received WS_MESSAGE: terminal-spawned
-[Terminal] Initializing xterm for terminal: terminal-xxxxx
-```
+3. **extension/manifest.json**
+   - Permissions (contextMenus, activeTab?)
 
-## 📁 Key Files to Check
+4. **backend/modules/terminal-registry.js**
+   - Terminal list endpoint
+   - Session tracking
 
-### Extension Files
-- `extension/background/background.ts` - WebSocket handling, message routing
-- `extension/sidepanel/sidepanel.tsx` - Connection status display
-- `extension/components/Terminal.tsx` - xterm.js rendering
-- `extension/shared/messaging.ts` - Message type definitions
+---
 
-### Backend Files
-- `backend/server.js` - WebSocket server (lines 27-60)
-- `backend/.env` - PORT=8128 configuration
+## 🎯 Success Criteria
 
-## 🔧 Quick Verification Commands
+### Context Menu Working:
+- ✅ Select text on webpage
+- ✅ Right-click shows "Paste to Terminal"
+- ✅ Click menu → Sidebar opens
+- ✅ Text appears in terminal input
+
+### Terminal Persistence Working:
+- ✅ Spawn terminal
+- ✅ Close sidebar
+- ✅ Reopen sidebar
+- ✅ Terminal still visible and connected
+- ✅ Tmux session still running
+
+---
+
+## 📝 Current State
+
+**Backend**: Running on port 8129 ✅
+**Extension**: Built and deployed to Windows ✅
+**Build Output**: `dist-extension/` ✅
+
+**Context Menu Code**: Implemented ✅ (but not showing)
+**Paste Handler**: Implemented ✅
+**Terminal Persistence**: Unknown (needs investigation)
+
+---
+
+## 🛠️ Quick Start Commands
 
 ```bash
-# Check backend is running on correct port
-lsof -i :8128 | grep LISTEN
+# Rebuild extension
+npm run build:extension
 
-# Watch backend logs in real-time
-tail -f /tmp/extension-backend-clean.log
+# Copy to Windows
+rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/terminal-tabs-extension/dist-extension/
 
-# Check for WebSocket activity
-tail -f /tmp/extension-backend-clean.log | grep -E "WebSocket|connected|spawn"
+# Check tmux sessions
+tmux ls | grep "^ctt-"
 
-# Verify extension build is current
-ls -lt dist-extension/assets/*.js | head -5
+# Start backend (if not running)
+cd backend && npm start
 ```
-
-## 💡 Alternative Approaches
-
-If message broadcasting is fundamentally broken:
-
-### Option A: Use Chrome Storage for State Sync
-```typescript
-// Background worker updates storage
-chrome.storage.local.set({ wsConnected: true })
-
-// Side panel watches storage
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.wsConnected) {
-    setWsConnected(changes.wsConnected.newValue)
-  }
-})
-```
-
-### Option B: Use Port Connections Instead of Messages
-```typescript
-// Side panel creates persistent port
-const port = chrome.runtime.connect({ name: 'sidepanel' })
-port.onMessage.addListener((msg) => {
-  if (msg.type === 'WS_CONNECTED') setWsConnected(true)
-})
-
-// Background tracks ports and sends updates
-connectedPorts.forEach(port => {
-  port.postMessage({ type: 'WS_CONNECTED' })
-})
-```
-
-## 📊 Session Summary
-
-**Time spent:** ~3 hours
-**Lines changed:** ~500
-**Files modified:** 8
-**Progress:** 80% complete (backend works, frontend integration has timing issue)
-
-**Blocker:** Message passing between background worker and side panel not working reliably for WebSocket state updates.
-
-**Next action:** Add direct status polling mechanism (Step 2 above) to bypass message broadcasting issue.
 
 ---
 
-## 🚀 Success Criteria
-
-Extension is complete when:
-1. ✅ Side panel shows "Connected" badge (green) when backend is running
-2. ✅ Clicking "Bash" spawns terminal in side panel
-3. ✅ Terminal displays xterm.js with cursor
-4. ✅ Typing `ls` shows directory listing
-5. ✅ Multiple terminals work (tabs switch correctly)
-
-**We are 1-2 debug iterations away from working terminals!**
-
----
-
-## 💡 Future Enhancement Ideas
-
-### Chrome Tab Groups Integration
-
-**Idea:** Use Chrome's [Tab Groups API](https://developer.chrome.com/docs/extensions/reference/api/tabGroups) to organize terminal sessions.
-
-**Potential Features:**
-- Auto-group terminals by type (all Claude Code sessions in one group, all Bash in another)
-- Color-code groups by project/workspace
-- Collapse/expand groups of related terminals
-- Sync tab groups with terminal sessions (create group when spawning related terminals)
-
-**Use Cases:**
-```javascript
-// Example: Group all terminals from same project
-chrome.tabGroups.update(groupId, {
-  title: "Tabz Development",
-  color: "blue",
-  collapsed: false
-})
-
-// Example: Auto-collapse background terminals
-chrome.tabGroups.update(groupId, {
-  title: "Background Services",
-  color: "grey",
-  collapsed: true
-})
-```
-
-**Implementation Notes:**
-- Could integrate with spawn-options.json `projects` field
-- Would work great with multi-window support (groups per window)
-- Could replace or complement existing tab management in side panel
-
-**Priority:** Post-MVP (after terminal display is working)
-
-**Reference:** https://developer.chrome.com/docs/extensions/reference/api/tabGroups
-
----
-
-### Chrome Built-in AI APIs Integration
-
-**Idea:** Use Chrome's [Built-in AI APIs](https://developer.chrome.com/docs/extensions/ai) for intelligent terminal features.
-
-**Available APIs (on-device via Gemini Nano):**
-- **Summarizer API** - Summarize terminal output, command history
-- **Writer API** - Generate session descriptions, commit messages
-- **Prompt API** - General LLM for error explanations, command suggestions
-- **Language Detector** - Auto-detect shell type, script language
-- **Rewriter API** - Improve command suggestions, refine descriptions
-
-**Why This is Perfect for Tabz:**
-- ✅ **Privacy-first**: Runs locally (Gemini Nano) - terminal output stays on your machine
-- ✅ **Free**: No API keys or quotas needed
-- ✅ **Fast**: On-device = instant responses
-- ✅ **Offline**: Works without internet connection
-
-**Potential Features:**
-
-1. **Smart Session Naming**
-   ```javascript
-   // AI analyzes commands to generate meaningful names
-   const name = await ai.writer.write({
-     context: "npm install, npm run build, npm test",
-     task: "Generate concise session name"
-   })
-   // Result: "React Build Pipeline" (instead of "bash")
-   ```
-
-2. **Error Explanations**
-   ```javascript
-   // Click error message → Get plain English explanation
-   const help = await ai.prompt.prompt(
-     `Explain this error and suggest a fix: ${errorText}`
-   )
-   ```
-
-3. **Command History Semantic Search**
-   ```javascript
-   // Search: "when did I fix the database issue?"
-   // Finds relevant commands even with different wording
-   const results = await ai.searchHistory(query, terminalHistory)
-   ```
-
-4. **Session Summaries**
-   ```javascript
-   // "What did I do in this terminal today?"
-   const summary = await ai.summarizer.summarize(sessionHistory, {
-     type: "key-points",
-     length: "short"
-   })
-   ```
-
-5. **Natural Language to Commands**
-   ```javascript
-   // User types: "show all node processes"
-   // AI converts to: ps aux | grep node
-   const command = await ai.prompt.prompt(
-     `Convert to bash: ${naturalLanguage}`
-   )
-   ```
-
-**Implementation Notes:**
-- Some APIs require origin trial signup
-- Gemini Nano runs on-device (privacy win for terminal output)
-- Could integrate with existing auto-naming from tmux
-- Perfect complement to Tab Groups (AI-named groups!)
-
-**Priority:** Post-MVP (very exciting, but after terminals work)
-
-**Reference:** https://developer.chrome.com/docs/extensions/ai
-
----
-
-### Local LLMs via Docker Integration
-
-**Idea:** Integrate with local LLMs running in Docker containers (Ollama, LM Studio, etc.)
-
-**How It Works:**
-Most Docker LLM containers expose OpenAI-compatible REST APIs on localhost:
-
-```javascript
-// Extension connects to Docker container on localhost
-const response = await fetch('http://localhost:11434/api/generate', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    model: 'codellama',
-    prompt: 'Explain this terminal error and suggest a fix:\n' + errorText,
-    stream: false
-  })
-})
-
-const result = await response.json()
-// Display explanation to user
-```
-
-**Advantages Over Chrome's Built-in AI:**
-- ✅ **Model Choice**: Llama 3, CodeLlama, Mistral, Deepseek, Phi, etc.
-- ✅ **Specialized Models**: CodeLlama for code, Mistral for chat, Deepseek for reasoning
-- ✅ **More Powerful**: Can run larger models (7B, 13B, 70B) vs Gemini Nano
-- ✅ **Browser Independent**: Works in Chrome, Firefox, Edge, Brave, etc.
-- ✅ **Full Control**: Adjust temperature, max_tokens, system prompts
-- ✅ **Privacy**: Still 100% local (never leaves your machine)
-- ✅ **Free**: No API keys or quotas
-
-**Popular Docker LLM Options:**
-1. **Ollama** - Simple CLI, huge model library, Docker Desktop integration
-2. **LM Studio** - User-friendly GUI, model marketplace
-3. **LocalAI** - Drop-in OpenAI replacement with GPT-4 compatible API
-4. **text-generation-webui** - Advanced features, many model formats
-
-**Example Use Cases for Tabz:**
-
-1. **CodeLlama for Error Explanations**
-   ```javascript
-   // Use specialized code model
-   const help = await callLocalLLM('codellama',
-     `Explain and fix: ${errorMessage}`
-   )
-   ```
-
-2. **Deepseek for Command Generation**
-   ```javascript
-   // Natural language → Bash command
-   const cmd = await callLocalLLM('deepseek-coder',
-     `Convert to bash: find all node processes using port 3000`
-   )
-   // Returns: lsof -ti:3000 | xargs kill -9
-   ```
-
-3. **Mistral for Session Summaries**
-   ```javascript
-   // Summarize what happened in terminal
-   const summary = await callLocalLLM('mistral',
-     `Summarize this terminal session:\n${commandHistory}`
-   )
-   ```
-
-**Implementation Approach:**
-
-```typescript
-// Settings allow user to configure local LLM endpoint
-interface LLMSettings {
-  enabled: boolean
-  endpoint: string  // e.g., 'http://localhost:11434'
-  model: string     // e.g., 'codellama', 'llama3', 'mistral'
-  provider: 'ollama' | 'lm-studio' | 'localai' | 'custom'
-}
-
-// Graceful fallback chain:
-// 1. Try local Docker LLM (if configured)
-// 2. Fall back to Chrome's built-in AI (if available)
-// 3. Fall back to basic text processing (no LLM)
-```
-
-**Docker Desktop Integration:**
-- User pulls model: `docker pull ollama/ollama && docker run -p 11434:11434 ollama/ollama`
-- Extension auto-detects if endpoint is available
-- Settings UI to select model and configure endpoint
-
-**Why This is Better for Terminal Use:**
-- **CodeLlama** understands code/compiler errors better than general LLMs
-- **Larger context windows** for analyzing long terminal output
-- **Faster** (no network round-trip like cloud APIs)
-- **Works offline** for air-gapped systems
-
-**Compatibility Note:**
-- Can use **both** Chrome AI APIs and Docker LLMs
-- Chrome AI for quick on-device tasks (language detection, simple summaries)
-- Docker LLM for heavy lifting (complex error analysis, code generation)
-
-**Priority:** Post-MVP (after terminal display works)
-
-**References:**
-- Ollama: https://ollama.ai
-- Docker Desktop AI: https://www.docker.com/products/docker-desktop/
-- OpenAI API compatibility for easy integration
+**Next Session Goal**: Get context menu showing and terminal persistence working.

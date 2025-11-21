@@ -1,0 +1,37 @@
+{
+  "profiles": [
+    {
+      "id": "default",
+      "name": "Default",
+      "workingDir": "~",
+      "fontSize": 14,
+      "fontFamily": "monospace",
+      "theme": "dark"
+    },
+    {
+      "id": "projects",
+      "name": "Projects",
+      "workingDir": "~/projects",
+      "fontSize": 14,
+      "fontFamily": "monospace",
+      "theme": "dark"
+    },
+    {
+      "id": "large-text",
+      "name": "Large Text",
+      "workingDir": "~",
+      "fontSize": 20,
+      "fontFamily": "monospace",
+      "theme": "dark"
+    },
+    {
+      "id": "light-mode",
+      "name": "Light Mode",
+      "workingDir": "~",
+      "fontSize": 14,
+      "fontFamily": "monospace",
+      "theme": "light"
+    }
+  ],
+  "defaultProfile": "default"
+}

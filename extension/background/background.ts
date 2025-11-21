@@ -5,7 +5,7 @@ import { getLocal } from '../shared/storage'
 let ws: WebSocket | null = null
 let reconnectTimeout: NodeJS.Timeout | null = null
 const RECONNECT_DELAY = 5000
-const WS_URL = 'ws://localhost:8129'
+const WS_URL = 'ws://localhost:8129'  // Extension loaded from WSL path, use localhost
 
 // Track connected clients (popup, sidepanel, devtools)
 const connectedClients = new Set<chrome.runtime.Port>()
@@ -115,10 +115,17 @@ function connectWebSocket() {
 
 // Send message to WebSocket
 function sendToWebSocket(data: any) {
+  console.log('[Background] sendToWebSocket called, ws state:', ws?.readyState, 'data:', data)
   if (ws?.readyState === WebSocket.OPEN) {
+    console.log('[Background] ✅ Sending to WebSocket:', JSON.stringify(data))
     ws.send(JSON.stringify(data))
   } else {
-    console.warn('WebSocket not connected, cannot send:', data)
+    console.error('[Background] ❌ WebSocket not connected! State:', ws?.readyState, 'Cannot send:', data)
+    // Try to reconnect if not connected
+    if (!ws || ws.readyState === WebSocket.CLOSED) {
+      console.log('[Background] Attempting to reconnect WebSocket...')
+      connectWebSocket()
+    }
   }
 }
 
@@ -192,6 +199,7 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
           useTmux: useTmux, // Always use tmux for Chrome extension terminals
           name: message.name || message.spawnOption || 'Terminal', // Friendly name
           profile: message.profile, // Pass profile to backend for storage
+          isChrome: true, // Flag to indicate this is from Chrome extension (for ctt- prefix)
         },
         requestId,
       })
@@ -248,6 +256,12 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       updateBadge()
       break
 
+    case 'LIST_TERMINALS':
+      // Request terminal list from backend
+      console.log('📋 Requesting terminal list from backend')
+      sendToWebSocket({ type: 'list-terminals' })
+      break
+
     case 'REFRESH_TERMINALS':
       // Broadcast refresh message to all terminals
       console.log('🔄 Broadcasting REFRESH_TERMINALS to all clients')
@@ -286,24 +300,89 @@ chrome.runtime.onConnect.addListener((port) => {
   })
 })
 
-// Context menu registration
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Installing context menus...')
+// Context menu registration helper
+function setupContextMenus() {
+  console.log('Setting up context menus...')
 
-  // Simple context menu: toggle side panel
-  chrome.contextMenus.create({
-    id: 'toggle-sidepanel',
-    title: 'Toggle Terminal Sidebar',
-    contexts: ['all'],
+  // Remove all existing menus first (in case of reload)
+  chrome.contextMenus.removeAll(() => {
+    // Check for errors after removing
+    if (chrome.runtime.lastError) {
+      console.error('Error removing context menus:', chrome.runtime.lastError)
+    }
+
+    // Simple context menu: toggle side panel
+    chrome.contextMenus.create({
+      id: 'toggle-sidepanel',
+      title: 'Toggle Terminal Sidebar',
+      contexts: ['all'],
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating toggle-sidepanel menu:', chrome.runtime.lastError)
+      } else {
+        console.log('✅ Toggle menu created')
+      }
+    })
+
+    // Context menu for selected text - paste into terminal
+    chrome.contextMenus.create({
+      id: 'paste-to-terminal',
+      title: 'Paste "%s" to Terminal',
+      contexts: ['selection'],  // Only shows when text is selected
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating paste-to-terminal menu:', chrome.runtime.lastError)
+      } else {
+        console.log('✅ Paste menu created')
+      }
+    })
+
+    console.log('✅ Context menus setup complete')
   })
+}
+
+// Setup menus on install/update
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('Extension installed/updated')
+  setupContextMenus()
 })
 
+// Setup on service worker startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Service worker started')
+  setupContextMenus()
+})
+
+// IMPORTANT: Setup context menus after a small delay to ensure Chrome APIs are ready
+// This handles the case when the extension is reloaded in dev mode
+setTimeout(() => {
+  console.log('Delayed context menu setup (for dev reload)')
+  setupContextMenus()
+}, 100)
+
 // Context menu click handler
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('Context menu clicked:', info.menuItemId)
 
   if (info.menuItemId === 'toggle-sidepanel' && tab?.windowId) {
     chrome.sidePanel.open({ windowId: tab.windowId })
+  }
+
+  if (info.menuItemId === 'paste-to-terminal' && info.selectionText && tab?.windowId) {
+    const selectedText = info.selectionText
+    console.log('📋 Pasting to terminal:', selectedText)
+
+    // Open sidebar if not already open
+    await chrome.sidePanel.open({ windowId: tab.windowId })
+
+    // Wait a bit for sidebar to be ready
+    setTimeout(() => {
+      // Broadcast paste command to sidepanel
+      broadcastToClients({
+        type: 'PASTE_COMMAND',
+        command: selectedText,
+      })
+    }, 500)  // Increased delay for reliability
   }
 })
 
