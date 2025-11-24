@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-11-24
+
+### 🚀 Major Features
+
+#### Browser MCP Server - Claude Code Integration
+- **New MCP Server for Browser Automation** - Claude Code can now interact with your browser
+  - Get current page info (URL, title, tab ID)
+  - Get console logs (log, warn, error, info, debug)
+  - Execute JavaScript in browser tabs
+  - Files: `browser-mcp-server/` (new package)
+
+- **Dual Connection Strategy** - Works with or without Chrome debugging
+  - **CDP Mode** (recommended): Connects via Chrome DevTools Protocol for full JS execution
+  - **Extension Mode**: Falls back to extension messaging (limited by CSP)
+  - CDP bypasses Content Security Policy restrictions for unrestricted script execution
+  - Files: `browser-mcp-server/src/client.ts`
+
+- **WSL2 + Windows Chrome Support** - Seamless cross-platform operation
+  - Uses PowerShell bridge to access Chrome debugging from WSL2
+  - No port forwarding or network configuration required
+  - Works with Tailscale VPN active
+  - Files: `browser-mcp-server/src/client.ts`
+
+#### Architecture
+```
+Chrome Browser (Windows)
+       ↓ --remote-debugging-port=9222
+       ↓
+Browser MCP Server (stdio) ←→ Claude Code
+       ↓ (fallback)
+Extension Background Worker → WebSocket → Backend (WSL:8129)
+```
+
+#### Available MCP Tools
+| Tool | Description |
+|------|-------------|
+| `browser_get_page_info` | Get current URL, title, and tab ID |
+| `browser_get_console_logs` | Retrieve console output with filtering |
+| `browser_execute_script` | Execute JavaScript in browser (CDP bypasses CSP) |
+
+### 🔧 Technical Details
+
+- **MCP Server Configuration** - Project-level `.mcp.json`
+  - Registered as `browser` MCP server in Claude Code
+  - Uses stdio transport for Claude Code communication
+  - Requires backend running for extension fallback mode
+
+- **CDP Connection** - Chrome DevTools Protocol
+  - Requires Chrome started with `--remote-debugging-port=9222`
+  - Puppeteer-core for CDP communication
+  - Automatic WebSocket endpoint discovery via PowerShell (WSL2)
+
+- **Backend Routes** - REST API bridge for extension method
+  - `GET /api/browser/console-logs` - Retrieve captured console logs
+  - `POST /api/browser/execute-script` - Execute script via extension
+  - `GET /api/browser/page-info` - Get active tab info
+  - Files: `backend/routes/browser.js`, `backend/server.js`
+
+- **Extension Handlers** - WebSocket message handlers
+  - `browser-execute-script` - Execute JS via chrome.scripting API
+  - `browser-get-page-info` - Query active tab info
+  - `browser-console-log` - Forward console logs to backend
+  - Files: `extension/background/background.ts`
+
+### 📝 Documentation
+- **MCP_TOOLS.md** - Quick reference for browser MCP tools
+  - Tool descriptions and trigger phrases
+  - Parameter documentation
+  - Code examples for common operations
+  - Troubleshooting guide
+
+### 🐛 Known Limitations
+- Extension method blocked by strict CSP (use CDP mode instead)
+- CDP mode requires Chrome started with debugging flag
+- Console log capture requires page interaction after extension load
+
+---
+
 ## [1.0.1] - 2025-11-18
 
 ### 🚀 Major Features

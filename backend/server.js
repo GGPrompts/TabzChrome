@@ -24,6 +24,7 @@ const ptyHandler = require('./modules/pty-handler');
 // Removed terminal-recovery.js - was causing duplicate terminals and conflicts
 const apiRouter = require('./routes/api');
 const filesRouter = require('./routes/files');
+const browserRouter = require('./routes/browser');
 // const workspaceRouter = require('./routes/workspace'); // Archived - workspace-manager removed
 
 // Initialize services
@@ -40,6 +41,7 @@ app.use(express.json());
 // API Routes
 app.use('/api', apiRouter);
 app.use('/api/files', filesRouter);
+app.use('/api/browser', browserRouter);
 // app.use('/api/workspace', workspaceRouter); // Archived - workspace-manager removed
 
 // TUI Tools endpoints
@@ -353,6 +355,41 @@ wss.on('connection', (ws) => {
           }
           break;
 
+        // ============================================
+        // BROWSER MCP - WebSocket message handlers
+        // ============================================
+
+        case 'browser-console-log':
+          // Receive console log from Chrome extension
+          if (data.entry) {
+            browserRouter.addConsoleLog(data.entry);
+          }
+          break;
+
+        case 'browser-script-result':
+          // Receive script execution result from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              result: data.result,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-page-info':
+          // Receive page info from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              url: data.url,
+              title: data.title,
+              tabId: data.tabId,
+              favIconUrl: data.favIconUrl,
+              error: data.error
+            });
+          }
+          break;
+
       }
     } catch (error) {
       console.error('WebSocket message error:', error);
@@ -445,6 +482,9 @@ function broadcast(message) {
     }
   });
 }
+
+// Make broadcast available to routes (for browser MCP)
+app.set('broadcast', broadcast);
 
 // Terminal output streaming - remove any existing listeners first
 terminalRegistry.removeAllListeners('output');

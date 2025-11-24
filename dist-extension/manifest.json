@@ -12,16 +12,22 @@
     "clipboardWrite",
     "notifications",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "alarms"
   ],
+  "omnibox": {
+    "keyword": "term"
+  },
   "host_permissions": [
+    "<all_urls>",
     "http://localhost:8129/*",
     "ws://localhost:8129/*",
     "http://127.0.0.1:8129/*",
     "ws://127.0.0.1:8129/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval'; child-src 'self';"
   },
   "background": {
     "service_worker": "service-worker-loader.js",
@@ -100,7 +106,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.ts-EyUj4nNR.js"
+        "assets/content.ts-il-RFtiP.js"
       ],
       "matches": [
         "<all_urls>"
@@ -120,7 +126,7 @@
       "resources": [
         "spawn-options.json",
         "profiles.json",
-        "assets/content.ts-EyUj4nNR.js"
+        "assets/content.ts-il-RFtiP.js"
       ],
       "use_dynamic_url": false
     }

@@ -1,14 +1,232 @@
-import type { ExtensionMessage } from '../shared/messaging'
+import type { ExtensionMessage, ConsoleLogEntry, ConsoleLogLevel } from '../shared/messaging'
 import { getLocal } from '../shared/storage'
 
 // WebSocket connection to backend
 let ws: WebSocket | null = null
-let reconnectTimeout: NodeJS.Timeout | null = null
-const RECONNECT_DELAY = 5000
+let wsReconnectAttempts = 0
+const MAX_RECONNECT_ATTEMPTS = 10
 const WS_URL = 'ws://localhost:8129'  // Extension loaded from WSL path, use localhost
+
+// Alarm names
+const ALARM_WS_RECONNECT = 'ws-reconnect'
+const ALARM_SESSION_HEALTH = 'session-health'
 
 // Track connected clients (popup, sidepanel, devtools)
 const connectedClients = new Set<chrome.runtime.Port>()
+
+// ============================================
+// BROWSER MCP - Console Log Storage
+// ============================================
+const MAX_CONSOLE_LOGS = 1000
+const consoleLogs: ConsoleLogEntry[] = []
+
+function addConsoleLog(entry: ConsoleLogEntry) {
+  consoleLogs.push(entry)
+  // Keep buffer size limited (circular buffer)
+  if (consoleLogs.length > MAX_CONSOLE_LOGS) {
+    consoleLogs.shift()
+  }
+  // Forward to backend via WebSocket for MCP server access
+  if (ws?.readyState === WebSocket.OPEN) {
+    sendToWebSocket({
+      type: 'browser-console-log',
+      entry
+    })
+  }
+}
+
+function getConsoleLogs(options: {
+  level?: ConsoleLogLevel | 'all'
+  limit?: number
+  since?: number
+  tabId?: number
+}): ConsoleLogEntry[] {
+  let filtered = [...consoleLogs]
+
+  // Filter by level
+  if (options.level && options.level !== 'all') {
+    filtered = filtered.filter(log => log.level === options.level)
+  }
+
+  // Filter by timestamp
+  if (options.since) {
+    filtered = filtered.filter(log => log.timestamp >= options.since!)
+  }
+
+  // Filter by tab
+  if (options.tabId) {
+    filtered = filtered.filter(log => log.tabId === options.tabId)
+  }
+
+  // Apply limit (from most recent)
+  const limit = options.limit || 100
+  return filtered.slice(-limit)
+}
+
+// ============================================
+// BROWSER MCP - Request handlers
+// ============================================
+
+// Handle script execution request from backend (MCP server)
+async function handleBrowserExecuteScript(message: { requestId: string; code: string; tabId?: number; allFrames?: boolean }) {
+  try {
+    // Get target tab
+    const targetTabId = message.tabId || (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id
+    if (!targetTabId) {
+      sendToWebSocket({
+        type: 'browser-script-result',
+        requestId: message.requestId,
+        success: false,
+        error: 'No active tab found'
+      })
+      return
+    }
+
+    // Execute predefined operations without eval (CSP-safe)
+    // For arbitrary code, we use a set of safe predefined functions
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId, allFrames: message.allFrames || false },
+      func: (code: string) => {
+        try {
+          // Predefined safe operations that don't require eval
+          // These cover common use cases for browser automation
+
+          // Get all links
+          if (code === 'document.links' || code.includes('document.links')) {
+            const links = [...document.links].map(a => ({
+              text: a.textContent?.trim() || '',
+              href: a.href
+            }))
+            return { success: true, result: links }
+          }
+
+          // Get page title
+          if (code === 'document.title') {
+            return { success: true, result: document.title }
+          }
+
+          // Get page HTML (truncated)
+          if (code.includes('outerHTML') || code.includes('innerHTML')) {
+            return { success: true, result: document.documentElement.outerHTML.slice(0, 10000) }
+          }
+
+          // Get all images
+          if (code.includes('document.images')) {
+            const images = [...document.images].map(img => ({
+              src: img.src,
+              alt: img.alt
+            }))
+            return { success: true, result: images }
+          }
+
+          // Get text content
+          if (code.includes('textContent') || code.includes('innerText')) {
+            return { success: true, result: document.body.innerText.slice(0, 10000) }
+          }
+
+          // Query selector - extract selector from code
+          const selectorMatch = code.match(/querySelector\(['"]([^'"]+)['"]\)/)
+          if (selectorMatch) {
+            const el = document.querySelector(selectorMatch[1])
+            if (el) {
+              return { success: true, result: {
+                tagName: el.tagName,
+                text: el.textContent?.trim(),
+                html: el.outerHTML.slice(0, 1000)
+              }}
+            }
+            return { success: false, error: `Element not found: ${selectorMatch[1]}` }
+          }
+
+          // Query selector all
+          const selectorAllMatch = code.match(/querySelectorAll\(['"]([^'"]+)['"]\)/)
+          if (selectorAllMatch) {
+            const els = document.querySelectorAll(selectorAllMatch[1])
+            const results = [...els].slice(0, 100).map(el => ({
+              tagName: el.tagName,
+              text: el.textContent?.trim()
+            }))
+            return { success: true, result: results }
+          }
+
+          // localStorage
+          if (code.includes('localStorage')) {
+            const storage: Record<string, string> = {}
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i)
+              if (key) storage[key] = localStorage.getItem(key) || ''
+            }
+            return { success: true, result: storage }
+          }
+
+          // For any other code, return an error explaining the limitation
+          return {
+            success: false,
+            error: 'Arbitrary code execution blocked by CSP. Use predefined operations: document.links, document.title, document.images, querySelector("selector"), querySelectorAll("selector"), localStorage, textContent, outerHTML'
+          }
+        } catch (e) {
+          return { success: false, error: (e as Error).message }
+        }
+      },
+      args: [message.code]
+    })
+
+    const result = results[0]?.result as { success: boolean; result?: unknown; error?: string } | undefined
+    sendToWebSocket({
+      type: 'browser-script-result',
+      requestId: message.requestId,
+      success: result?.success || false,
+      result: result?.result,
+      error: result?.error
+    })
+  } catch (err) {
+    sendToWebSocket({
+      type: 'browser-script-result',
+      requestId: message.requestId,
+      success: false,
+      error: (err as Error).message
+    })
+  }
+}
+
+// Handle page info request from backend (MCP server)
+async function handleBrowserGetPageInfo(message: { requestId: string; tabId?: number }) {
+  try {
+    const tabs = message.tabId
+      ? [await chrome.tabs.get(message.tabId)]
+      : await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = tabs[0]
+
+    if (tab) {
+      sendToWebSocket({
+        type: 'browser-page-info',
+        requestId: message.requestId,
+        url: tab.url || '',
+        title: tab.title || '',
+        tabId: tab.id || -1,
+        favIconUrl: tab.favIconUrl
+      })
+    } else {
+      sendToWebSocket({
+        type: 'browser-page-info',
+        requestId: message.requestId,
+        url: '',
+        title: '',
+        tabId: -1,
+        error: 'No active tab found'
+      })
+    }
+  } catch (err) {
+    sendToWebSocket({
+      type: 'browser-page-info',
+      requestId: message.requestId,
+      url: '',
+      title: '',
+      tabId: -1,
+      error: (err as Error).message
+    })
+  }
+}
 
 // Initialize background service worker
 console.log('Terminal Tabs background service worker starting...')
@@ -25,6 +243,8 @@ function connectWebSocket() {
 
   ws.onopen = () => {
     console.log('✅ Background WebSocket connected')
+    wsReconnectAttempts = 0 // Reset reconnect counter on successful connection
+    chrome.alarms.clear(ALARM_WS_RECONNECT) // Clear any pending reconnect alarm
     updateBadge()
     broadcastToClients({ type: 'WS_CONNECTED' })
   }
@@ -90,6 +310,18 @@ function connectWebSocket() {
             chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
           }
         })
+      }
+      // ============================================
+      // BROWSER MCP - Handle requests from backend
+      // ============================================
+      else if (message.type === 'browser-execute-script') {
+        // Execute script in browser tab (request from MCP server via backend)
+        console.log('🔧 Browser MCP: execute-script request', message.requestId)
+        handleBrowserExecuteScript(message)
+      } else if (message.type === 'browser-get-page-info') {
+        // Get page info (request from MCP server via backend)
+        console.log('🔧 Browser MCP: get-page-info request', message.requestId)
+        handleBrowserGetPageInfo(message)
       } else {
         // Broadcast other messages as WS_MESSAGE
         const clientMessage: ExtensionMessage = {
@@ -123,9 +355,8 @@ function connectWebSocket() {
     ws = null
     broadcastToClients({ type: 'WS_DISCONNECTED' })
 
-    // Attempt reconnection
-    if (reconnectTimeout) clearTimeout(reconnectTimeout)
-    reconnectTimeout = setTimeout(connectWebSocket, RECONNECT_DELAY)
+    // Schedule reconnection using alarms (survives service worker idle)
+    scheduleReconnect()
   }
 }
 
@@ -169,6 +400,207 @@ async function updateBadge() {
     chrome.action.setBadgeText({ text: '' })
   }
 }
+
+// ============================================
+// ALARMS API - WebSocket Reliability
+// ============================================
+
+// Schedule WebSocket reconnection with exponential backoff
+function scheduleReconnect() {
+  if (wsReconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.log('🛑 Max reconnect attempts reached, stopping auto-reconnect')
+    return
+  }
+
+  // Exponential backoff: 0.5s, 1s, 2s, 4s, 8s, ... up to 30s
+  const delaySeconds = Math.min(30, Math.pow(2, wsReconnectAttempts) * 0.5)
+  wsReconnectAttempts++
+
+  console.log(`⏰ Scheduling WebSocket reconnect in ${delaySeconds}s (attempt ${wsReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
+
+  // Use alarms API - survives service worker going idle
+  chrome.alarms.create(ALARM_WS_RECONNECT, {
+    delayInMinutes: delaySeconds / 60
+  })
+}
+
+// Initialize periodic health check alarm
+async function initializeAlarms() {
+  // Clear any existing alarms first
+  await chrome.alarms.clear(ALARM_SESSION_HEALTH)
+
+  // Create session health check alarm (every 5 minutes)
+  chrome.alarms.create(ALARM_SESSION_HEALTH, {
+    delayInMinutes: 1, // First check after 1 minute
+    periodInMinutes: 5 // Then every 5 minutes
+  })
+
+  console.log('⏰ Session health check alarm initialized (every 5 minutes)')
+}
+
+// Alarm event handler
+chrome.alarms.onAlarm.addListener((alarm) => {
+  console.log('⏰ Alarm fired:', alarm.name)
+
+  if (alarm.name === ALARM_WS_RECONNECT) {
+    console.log('⏰ WebSocket reconnect alarm triggered')
+    connectWebSocket()
+  } else if (alarm.name === ALARM_SESSION_HEALTH) {
+    console.log('⏰ Session health check alarm triggered')
+    // Request terminal list to verify sessions are still alive
+    if (ws?.readyState === WebSocket.OPEN) {
+      sendToWebSocket({ type: 'list-terminals' })
+    } else {
+      console.log('⚠️ WebSocket not connected during health check, attempting reconnect')
+      connectWebSocket()
+    }
+  }
+})
+
+// ============================================
+// OMNIBOX API - Address Bar Commands
+// ============================================
+
+// Set default suggestion when user types "term "
+chrome.omnibox.setDefaultSuggestion({
+  description: 'Run command in terminal: <match>%s</match> (or type "profile:name", "new", "help")'
+})
+
+// Provide suggestions as user types
+chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
+  const suggestions: chrome.omnibox.SuggestResult[] = []
+  const lowerText = text.toLowerCase().trim()
+
+  // Profile suggestions
+  if (lowerText.startsWith('profile:') || lowerText === 'p' || lowerText === 'pr') {
+    try {
+      const result = await chrome.storage.local.get(['profiles'])
+      const profiles = (result.profiles || []) as Array<{ id: string; name: string; workingDir?: string }>
+      for (const profile of profiles) {
+        suggestions.push({
+          content: `profile:${profile.id}`,
+          description: `<match>Profile:</match> ${profile.name} <dim>(${profile.workingDir || '~'})</dim>`
+        })
+      }
+    } catch (err) {
+      console.error('Failed to get profiles for omnibox:', err)
+    }
+  }
+
+  // Built-in commands
+  if ('new'.startsWith(lowerText) || lowerText === '') {
+    suggestions.push({
+      content: 'new',
+      description: '<match>new</match> - Open new terminal with default profile'
+    })
+  }
+
+  if ('help'.startsWith(lowerText)) {
+    suggestions.push({
+      content: 'help',
+      description: '<match>help</match> - Show available commands'
+    })
+  }
+
+  // Common commands suggestions
+  const commonCommands = [
+    { cmd: 'git status', desc: 'Check git repository status' },
+    { cmd: 'git pull', desc: 'Pull latest changes' },
+    { cmd: 'npm install', desc: 'Install npm dependencies' },
+    { cmd: 'npm run dev', desc: 'Start development server' },
+    { cmd: 'docker ps', desc: 'List running containers' },
+  ]
+
+  for (const { cmd, desc } of commonCommands) {
+    if (cmd.toLowerCase().includes(lowerText) && lowerText.length > 1) {
+      suggestions.push({
+        content: cmd,
+        description: `<match>${cmd}</match> <dim>- ${desc}</dim>`
+      })
+    }
+  }
+
+  suggest(suggestions.slice(0, 5)) // Max 5 suggestions
+})
+
+// Handle command execution when user presses Enter
+chrome.omnibox.onInputEntered.addListener(async (text, disposition) => {
+  console.log('🔍 Omnibox command:', text, 'disposition:', disposition)
+
+  const lowerText = text.toLowerCase().trim()
+
+  // Get current window for opening sidebar
+  const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+  const currentWindow = windows.find(w => w.focused) || windows[0]
+
+  // Open sidebar first
+  if (currentWindow?.id) {
+    try {
+      await chrome.sidePanel.open({ windowId: currentWindow.id })
+    } catch (err) {
+      console.error('Failed to open sidebar from omnibox:', err)
+    }
+  }
+
+  // Handle special commands
+  if (lowerText === 'new') {
+    // Spawn new terminal with default profile
+    broadcastToClients({ type: 'KEYBOARD_NEW_TAB' })
+    return
+  }
+
+  if (lowerText === 'help') {
+    // Show help notification
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: 'Terminal Tabs - Omnibox Commands',
+      message: 'Commands: "new" (new tab), "profile:name" (spawn profile), or type any bash command to run it.',
+      priority: 1
+    })
+    return
+  }
+
+  // Handle profile:name
+  if (lowerText.startsWith('profile:')) {
+    const profileId = text.substring(8).trim()
+    try {
+      const result = await chrome.storage.local.get(['profiles'])
+      const profiles = (result.profiles || []) as Array<{ id: string; name: string; workingDir?: string }>
+      const profile = profiles.find((p) => p.id === profileId || p.name.toLowerCase() === profileId.toLowerCase())
+
+      if (profile) {
+        // Small delay to let sidebar open
+        setTimeout(() => {
+          broadcastToClients({
+            type: 'OMNIBOX_SPAWN_PROFILE',
+            profile: profile
+          } as any)
+        }, 300)
+      } else {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: 'Profile Not Found',
+          message: `No profile found with name or ID: ${profileId}`,
+          priority: 1
+        })
+      }
+    } catch (err) {
+      console.error('Failed to spawn profile from omnibox:', err)
+    }
+    return
+  }
+
+  // Otherwise, treat as a command to run in a new terminal
+  // Small delay to let sidebar open
+  setTimeout(() => {
+    broadcastToClients({
+      type: 'OMNIBOX_RUN_COMMAND',
+      command: text
+    } as any)
+  }, 300)
+})
 
 // Message handler from extension pages
 chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, sendResponse) => {
@@ -292,6 +724,107 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       broadcastToClients({ type: 'REFRESH_TERMINALS' })
       break
 
+    // ============================================
+    // BROWSER MCP - Console Log Handling
+    // ============================================
+    case 'CONSOLE_LOG':
+      // Store console log from content script
+      const logEntry = {
+        ...message.entry,
+        tabId: sender.tab?.id || -1 // Fill in actual tab ID
+      }
+      addConsoleLog(logEntry)
+      break
+
+    case 'GET_CONSOLE_LOGS':
+      // Return console logs (called by MCP server via backend)
+      const logs = getConsoleLogs({
+        level: message.level,
+        limit: message.limit,
+        since: message.since,
+        tabId: message.tabId
+      })
+      sendResponse({
+        type: 'CONSOLE_LOGS_RESPONSE',
+        logs,
+        total: consoleLogs.length
+      })
+      return true // Keep channel open for async response
+
+    case 'BROWSER_EXECUTE_SCRIPT':
+      // Execute script in browser tab
+      try {
+        const targetTabId = message.tabId || (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id
+        if (!targetTabId) {
+          sendResponse({ type: 'BROWSER_SCRIPT_RESULT', success: false, error: 'No active tab found' })
+          return true
+        }
+
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: targetTabId, allFrames: message.allFrames || false },
+          func: (code: string) => {
+            try {
+              // eslint-disable-next-line no-eval
+              return { success: true, result: eval(code) }
+            } catch (e) {
+              return { success: false, error: (e as Error).message }
+            }
+          },
+          args: [message.code]
+        })
+
+        const result = results[0]?.result as { success: boolean; result?: unknown; error?: string } | undefined
+        sendResponse({
+          type: 'BROWSER_SCRIPT_RESULT',
+          success: result?.success || false,
+          result: result?.result,
+          error: result?.error
+        })
+      } catch (err) {
+        sendResponse({
+          type: 'BROWSER_SCRIPT_RESULT',
+          success: false,
+          error: (err as Error).message
+        })
+      }
+      return true // Keep channel open for async response
+
+    case 'BROWSER_GET_PAGE_INFO':
+      // Get info about current page
+      try {
+        const tabs = message.tabId
+          ? [await chrome.tabs.get(message.tabId)]
+          : await chrome.tabs.query({ active: true, currentWindow: true })
+        const tab = tabs[0]
+
+        if (tab) {
+          sendResponse({
+            type: 'BROWSER_PAGE_INFO',
+            url: tab.url || '',
+            title: tab.title || '',
+            tabId: tab.id || -1,
+            favIconUrl: tab.favIconUrl
+          })
+        } else {
+          sendResponse({
+            type: 'BROWSER_PAGE_INFO',
+            url: '',
+            title: '',
+            tabId: -1,
+            error: 'No active tab found'
+          })
+        }
+      } catch (err) {
+        sendResponse({
+          type: 'BROWSER_PAGE_INFO',
+          url: '',
+          title: '',
+          tabId: -1,
+          error: (err as Error).message
+        })
+      }
+      return true // Keep channel open for async response
+
     default:
       // Forward other messages to WebSocket
       sendToWebSocket(message)
@@ -369,12 +902,14 @@ function setupContextMenus() {
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Extension installed/updated')
   setupContextMenus()
+  initializeAlarms()
 })
 
 // Setup on service worker startup
 chrome.runtime.onStartup.addListener(() => {
   console.log('Service worker started')
   setupContextMenus()
+  initializeAlarms()
 })
 
 // IMPORTANT: Setup context menus after a small delay to ensure Chrome APIs are ready

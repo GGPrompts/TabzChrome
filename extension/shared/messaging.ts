@@ -23,7 +23,19 @@ export type MessageType =
   | 'KEYBOARD_CLOSE_TAB'
   | 'KEYBOARD_NEXT_TAB'
   | 'KEYBOARD_PREV_TAB'
-  | 'KEYBOARD_SWITCH_TAB';
+  | 'KEYBOARD_SWITCH_TAB'
+  | 'OMNIBOX_SPAWN_PROFILE'
+  | 'OMNIBOX_RUN_COMMAND'
+  // Browser MCP - Console capture
+  | 'CONSOLE_LOG'
+  | 'GET_CONSOLE_LOGS'
+  | 'CONSOLE_LOGS_RESPONSE'
+  // Browser MCP - Script execution
+  | 'BROWSER_EXECUTE_SCRIPT'
+  | 'BROWSER_SCRIPT_RESULT'
+  // Browser MCP - Page info
+  | 'BROWSER_GET_PAGE_INFO'
+  | 'BROWSER_PAGE_INFO';
 
 export interface BaseMessage {
   type: MessageType;
@@ -148,6 +160,76 @@ export interface KeyboardSwitchTabMessage extends BaseMessage {
   tabIndex: number;
 }
 
+export interface OmniboxSpawnProfileMessage extends BaseMessage {
+  type: 'OMNIBOX_SPAWN_PROFILE';
+  profile: Profile;
+}
+
+export interface OmniboxRunCommandMessage extends BaseMessage {
+  type: 'OMNIBOX_RUN_COMMAND';
+  command: string;
+}
+
+// Browser MCP - Console log entry
+export type ConsoleLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
+
+export interface ConsoleLogEntry {
+  level: ConsoleLogLevel;
+  message: string;
+  timestamp: number;
+  url: string;
+  tabId: number;
+  stack?: string;
+}
+
+export interface ConsoleLogMessage extends BaseMessage {
+  type: 'CONSOLE_LOG';
+  entry: ConsoleLogEntry;
+}
+
+export interface GetConsoleLogsMessage extends BaseMessage {
+  type: 'GET_CONSOLE_LOGS';
+  level?: ConsoleLogLevel | 'all';
+  limit?: number;
+  since?: number;
+  tabId?: number;
+}
+
+export interface ConsoleLogsResponseMessage extends BaseMessage {
+  type: 'CONSOLE_LOGS_RESPONSE';
+  logs: ConsoleLogEntry[];
+  total: number;
+}
+
+// Browser MCP - Script execution
+export interface BrowserExecuteScriptMessage extends BaseMessage {
+  type: 'BROWSER_EXECUTE_SCRIPT';
+  code: string;
+  tabId?: number;
+  allFrames?: boolean;
+}
+
+export interface BrowserScriptResultMessage extends BaseMessage {
+  type: 'BROWSER_SCRIPT_RESULT';
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+// Browser MCP - Page info
+export interface BrowserGetPageInfoMessage extends BaseMessage {
+  type: 'BROWSER_GET_PAGE_INFO';
+  tabId?: number;
+}
+
+export interface BrowserPageInfoMessage extends BaseMessage {
+  type: 'BROWSER_PAGE_INFO';
+  url: string;
+  title: string;
+  tabId: number;
+  favIconUrl?: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -170,7 +252,17 @@ export type ExtensionMessage =
   | KeyboardCloseTabMessage
   | KeyboardNextTabMessage
   | KeyboardPrevTabMessage
-  | KeyboardSwitchTabMessage;
+  | KeyboardSwitchTabMessage
+  | OmniboxSpawnProfileMessage
+  | OmniboxRunCommandMessage
+  // Browser MCP messages
+  | ConsoleLogMessage
+  | GetConsoleLogsMessage
+  | ConsoleLogsResponseMessage
+  | BrowserExecuteScriptMessage
+  | BrowserScriptResultMessage
+  | BrowserGetPageInfoMessage
+  | BrowserPageInfoMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {

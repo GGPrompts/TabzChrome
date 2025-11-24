@@ -91,6 +91,14 @@ function SidePanelTerminal() {
         // Alt+1-9 - switch to specific tab
         console.log('[Sidepanel] ⌨️ Switch to tab:', message.tabIndex)
         handleKeyboardSwitchTab(message.tabIndex)
+      } else if (message.type === 'OMNIBOX_SPAWN_PROFILE') {
+        // Omnibox: spawn terminal with specific profile
+        console.log('[Sidepanel] 🔍 Omnibox spawn profile:', message.profile.name)
+        handleOmniboxSpawnProfile(message.profile)
+      } else if (message.type === 'OMNIBOX_RUN_COMMAND') {
+        // Omnibox: spawn terminal and run command
+        console.log('[Sidepanel] 🔍 Omnibox run command:', message.command)
+        handleOmniboxRunCommand(message.command)
       }
     })
 
@@ -425,6 +433,38 @@ function SidePanelTerminal() {
     if (tabIndex >= 0 && tabIndex < allSessions.length) {
       setCurrentSession(allSessions[tabIndex].id)
     }
+  }
+
+  // Omnibox handler: spawn terminal with specific profile
+  const handleOmniboxSpawnProfile = (profile: Profile) => {
+    sendMessage({
+      type: 'SPAWN_TERMINAL',
+      spawnOption: 'bash',
+      name: profile.name,
+      workingDir: profile.workingDir,
+      profile: profile,
+    })
+  }
+
+  // Omnibox handler: spawn terminal and run command
+  const handleOmniboxRunCommand = (command: string) => {
+    // Get default profile settings
+    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
+      const defaultProfileId = result.defaultProfile || 'default'
+      const profiles = (result.profiles as Profile[]) || []
+      const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
+
+      // Spawn terminal with the command
+      // The command will be typed into the terminal after spawn
+      sendMessage({
+        type: 'SPAWN_TERMINAL',
+        spawnOption: 'bash',
+        name: command.split(' ')[0], // Use first word as tab name (e.g., "git", "npm")
+        command: command, // Pass command to execute
+        workingDir: profile?.workingDir,
+        profile: profile,
+      })
+    })
   }
 
   // Handle right-click on tab (session-level operations)
