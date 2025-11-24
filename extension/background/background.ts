@@ -55,9 +55,8 @@ function connectWebSocket() {
           data: message,
         })
       } else if (message.type === 'terminal-spawned') {
-        // Terminal spawned - increment badge
-        console.log('📤 Terminal spawned, updating badge')
-        updateBadge()
+        // Terminal spawned - broadcast first so sidepanel can focus it
+        console.log('📤 Terminal spawned, broadcasting to clients')
 
         const clientMessage: ExtensionMessage = {
           type: 'WS_MESSAGE',
@@ -65,14 +64,31 @@ function connectWebSocket() {
         }
         console.log('📤 Broadcasting to clients:', JSON.stringify(clientMessage).slice(0, 200))
         broadcastToClients(clientMessage)
+
+        // Update badge count without requesting full terminal list
+        // (requesting list would trigger reconciliation and reset focus)
+        chrome.action.getBadgeText({}, (text) => {
+          const count = text ? parseInt(text) : 0
+          chrome.action.setBadgeText({ text: String(count + 1) })
+          chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+        })
       } else if (message.type === 'terminal-closed') {
-        // Terminal closed - decrement badge
-        console.log('📤 Terminal closed, updating badge')
-        updateBadge()
+        // Terminal closed - broadcast first
+        console.log('📤 Terminal closed, broadcasting to clients')
 
         broadcastToClients({
           type: 'WS_MESSAGE',
           data: message,
+        })
+
+        // Update badge count without requesting full terminal list
+        chrome.action.getBadgeText({}, (text) => {
+          const count = text ? parseInt(text) : 0
+          const newCount = Math.max(0, count - 1)
+          chrome.action.setBadgeText({ text: newCount > 0 ? String(newCount) : '' })
+          if (newCount > 0) {
+            chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+          }
         })
       } else {
         // Broadcast other messages as WS_MESSAGE
@@ -190,6 +206,13 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       // This ensures terminals survive extension reloads
       const useTmux = true
 
+      console.log('[Background] SPAWN_TERMINAL received:', {
+        spawnOption: message.spawnOption,
+        name: message.name,
+        command: message.command,
+        workingDir: message.workingDir
+      })
+
       sendToWebSocket({
         type: 'spawn',
         config: {
@@ -204,12 +227,13 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
         requestId,
       })
 
-      console.log('📤 Spawning terminal:', {
-        terminalType: message.spawnOption,
+      console.log('📤 Sending to backend:', {
+        terminalType: message.spawnOption || 'bash',
         name: message.name,
-        command: message.command,
+        command: message.command || '(no command)',
         workingDir: message.workingDir || message.profile?.workingDir,
         useTmux: useTmux,
+        isChrome: true,
         requestId,
       })
       // Badge will be updated when backend sends terminal-spawned message
@@ -364,11 +388,14 @@ setTimeout(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('Context menu clicked:', info.menuItemId)
 
-  if (info.menuItemId === 'toggle-sidepanel' && tab?.windowId) {
+  const menuId = info.menuItemId as string
+
+  if (menuId === 'toggle-sidepanel' && tab?.windowId) {
     chrome.sidePanel.open({ windowId: tab.windowId })
+    return
   }
 
-  if (info.menuItemId === 'paste-to-terminal' && info.selectionText && tab?.windowId) {
+  if (menuId === 'paste-to-terminal' && info.selectionText && tab?.windowId) {
     const selectedText = info.selectionText
     console.log('📋 Pasting to terminal:', selectedText)
 

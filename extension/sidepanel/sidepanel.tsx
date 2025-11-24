@@ -213,9 +213,11 @@ function SidePanelTerminal() {
 
           const updatedSessions = Array.from(sessionMap.values())
 
-          // Set first terminal as active if no current session
-          if (updatedSessions.length > 0 && !currentSession) {
-            setCurrentSession(updatedSessions[0].id)
+          // Preserve currentSession if it exists in updatedSessions, otherwise set to first
+          if (updatedSessions.length > 0) {
+            if (!currentSession || !updatedSessions.find(s => s.id === currentSession)) {
+              setCurrentSession(updatedSessions[0].id)
+            }
           }
 
           return updatedSessions

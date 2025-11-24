@@ -352,6 +352,7 @@ wss.on('connection', (ws) => {
             log.debug(`Updated terminal ${data.terminalId.slice(-8)} embedded status to ${data.embedded}`);
           }
           break;
+
       }
     } catch (error) {
       console.error('WebSocket message error:', error);
