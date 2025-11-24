@@ -206,7 +206,9 @@ class PTYHandler extends EventEmitter {
           log.debug(`Finished cleaning up old PTYs for session ${sessionName}`);
         } else {
           // NEW SESSION: Generate unique name and create
-          const baseName = requestedSession || name || 'term';
+          // For Chrome extension terminals (ctt- prefix), use the terminal ID as session name
+          // This makes them easy to identify and cleanup
+          const baseName = id.startsWith('ctt-') ? id : (requestedSession || name || 'term');
           sessionName = this.generateUniqueSessionName(baseName);
           log.info(`✨ Creating new tmux session: ${sessionName}`);
 

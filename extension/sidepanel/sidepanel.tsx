@@ -28,6 +28,19 @@ function SidePanelTerminal() {
   const portRef = useRef<chrome.runtime.Port | null>(null)
   const terminalSettings = useTerminalSettings()
 
+  // Refs for keyboard shortcut handlers (to access current state from callbacks)
+  const sessionsRef = useRef<TerminalSession[]>([])
+  const currentSessionRef = useRef<string | null>(null)
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    sessionsRef.current = sessions
+  }, [sessions])
+
+  useEffect(() => {
+    currentSessionRef.current = currentSession
+  }, [currentSession])
+
   // Tab context menu state (for session management)
   const [contextMenu, setContextMenu] = useState<{
     show: boolean
@@ -53,11 +66,31 @@ function SidePanelTerminal() {
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
       } else if (message.type === 'PASTE_COMMAND') {
-        // Paste command from context menu (selected text)
+        // Paste command from context menu or keyboard shortcut (selected text)
         console.log('[Sidepanel] 📋 Received paste command:', message.command)
         setPasteCommand(message.command)
         // Clear after a brief moment (Terminal will have received it)
         setTimeout(() => setPasteCommand(null), 100)
+      } else if (message.type === 'KEYBOARD_NEW_TAB') {
+        // Alt+T - spawn new tab with default profile
+        console.log('[Sidepanel] ⌨️ New tab shortcut')
+        handleKeyboardNewTab()
+      } else if (message.type === 'KEYBOARD_CLOSE_TAB') {
+        // Alt+W - close current tab
+        console.log('[Sidepanel] ⌨️ Close tab shortcut')
+        handleKeyboardCloseTab()
+      } else if (message.type === 'KEYBOARD_NEXT_TAB') {
+        // Next tab
+        console.log('[Sidepanel] ⌨️ Next tab shortcut')
+        handleKeyboardNextTab()
+      } else if (message.type === 'KEYBOARD_PREV_TAB') {
+        // Previous tab
+        console.log('[Sidepanel] ⌨️ Prev tab shortcut')
+        handleKeyboardPrevTab()
+      } else if (message.type === 'KEYBOARD_SWITCH_TAB') {
+        // Alt+1-9 - switch to specific tab
+        console.log('[Sidepanel] ⌨️ Switch to tab:', message.tabIndex)
+        handleKeyboardSwitchTab(message.tabIndex)
       }
     })
 
@@ -320,6 +353,77 @@ function SidePanelTerminal() {
       const currentIndex = sessions.findIndex(s => s.id === terminalId)
       const nextSession = sessions[currentIndex === 0 ? 1 : currentIndex - 1]
       setCurrentSession(nextSession.id)
+    }
+  }
+
+  // Keyboard shortcut handlers (use refs to access current state from callbacks)
+  const handleKeyboardNewTab = () => {
+    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
+      const defaultProfileId = result.defaultProfile || 'default'
+      const profiles = (result.profiles as Profile[]) || []
+      const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
+
+      if (profile) {
+        sendMessage({
+          type: 'SPAWN_TERMINAL',
+          spawnOption: 'bash',
+          name: profile.name,
+          workingDir: profile.workingDir,
+          profile: profile,
+        })
+      } else {
+        // Fallback to regular bash
+        sendMessage({
+          type: 'SPAWN_TERMINAL',
+          spawnOption: 'bash',
+          name: 'Bash',
+        })
+      }
+    })
+  }
+
+  const handleKeyboardCloseTab = () => {
+    const current = currentSessionRef.current
+    const allSessions = sessionsRef.current
+    if (!current || allSessions.length === 0) return
+
+    sendMessage({
+      type: 'CLOSE_TERMINAL',
+      terminalId: current,
+    })
+
+    // Switch to another tab
+    if (allSessions.length > 1) {
+      const currentIndex = allSessions.findIndex(s => s.id === current)
+      const nextSession = allSessions[currentIndex === 0 ? 1 : currentIndex - 1]
+      setCurrentSession(nextSession.id)
+    }
+  }
+
+  const handleKeyboardNextTab = () => {
+    const current = currentSessionRef.current
+    const allSessions = sessionsRef.current
+    if (!current || allSessions.length <= 1) return
+
+    const currentIndex = allSessions.findIndex(s => s.id === current)
+    const nextIndex = (currentIndex + 1) % allSessions.length
+    setCurrentSession(allSessions[nextIndex].id)
+  }
+
+  const handleKeyboardPrevTab = () => {
+    const current = currentSessionRef.current
+    const allSessions = sessionsRef.current
+    if (!current || allSessions.length <= 1) return
+
+    const currentIndex = allSessions.findIndex(s => s.id === current)
+    const prevIndex = currentIndex === 0 ? allSessions.length - 1 : currentIndex - 1
+    setCurrentSession(allSessions[prevIndex].id)
+  }
+
+  const handleKeyboardSwitchTab = (tabIndex: number) => {
+    const allSessions = sessionsRef.current
+    if (tabIndex >= 0 && tabIndex < allSessions.length) {
+      setCurrentSession(allSessions[tabIndex].id)
     }
   }
 

@@ -18,7 +18,12 @@ export type MessageType =
   | 'PASTE_COMMAND'
   | 'WS_MESSAGE'
   | 'WS_CONNECTED'
-  | 'WS_DISCONNECTED';
+  | 'WS_DISCONNECTED'
+  | 'KEYBOARD_NEW_TAB'
+  | 'KEYBOARD_CLOSE_TAB'
+  | 'KEYBOARD_NEXT_TAB'
+  | 'KEYBOARD_PREV_TAB'
+  | 'KEYBOARD_SWITCH_TAB';
 
 export interface BaseMessage {
   type: MessageType;
@@ -122,6 +127,27 @@ export interface PasteCommandMessage extends BaseMessage {
   command: string;
 }
 
+export interface KeyboardNewTabMessage extends BaseMessage {
+  type: 'KEYBOARD_NEW_TAB';
+}
+
+export interface KeyboardCloseTabMessage extends BaseMessage {
+  type: 'KEYBOARD_CLOSE_TAB';
+}
+
+export interface KeyboardNextTabMessage extends BaseMessage {
+  type: 'KEYBOARD_NEXT_TAB';
+}
+
+export interface KeyboardPrevTabMessage extends BaseMessage {
+  type: 'KEYBOARD_PREV_TAB';
+}
+
+export interface KeyboardSwitchTabMessage extends BaseMessage {
+  type: 'KEYBOARD_SWITCH_TAB';
+  tabIndex: number;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -139,11 +165,24 @@ export type ExtensionMessage =
   | PasteCommandMessage
   | WSMessage
   | WSConnectedMessage
-  | WSDisconnectedMessage;
+  | WSDisconnectedMessage
+  | KeyboardNewTabMessage
+  | KeyboardCloseTabMessage
+  | KeyboardNextTabMessage
+  | KeyboardPrevTabMessage
+  | KeyboardSwitchTabMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {
-  return chrome.runtime.sendMessage(message);
+  return chrome.runtime.sendMessage(message).catch((error) => {
+    // Handle "Receiving end does not exist" errors gracefully
+    if (error.message?.includes('Receiving end does not exist')) {
+      console.warn('[Messaging] Background worker not ready, message dropped:', message.type)
+    } else {
+      console.error('[Messaging] Error sending message:', error, message)
+    }
+    return null // Return null instead of propagating error
+  });
 }
 
 // Helper function to listen to messages (one-time messaging)

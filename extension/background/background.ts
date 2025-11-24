@@ -431,26 +431,21 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('⌨️ Keyboard command:', command)
 
+  // Get current window for sidebar operations
+  const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+  const currentWindow = windows.find(w => w.focused) || windows[0]
+
+  // Handle toggle-sidebar
   if (command === 'toggle-sidebar') {
     try {
-      // Get the current window
-      const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
-      const currentWindow = windows.find(w => w.focused) || windows[0]
-
       if (currentWindow?.id) {
         console.log('[Background] Toggling sidebar in window:', currentWindow.id)
-        // Chrome's sidePanel API doesn't have a toggle, so we just open it
-        // If it's already open, clicking Alt+S again will focus it
         await chrome.sidePanel.open({ windowId: currentWindow.id })
       } else {
         console.error('[Background] No normal browser window found')
       }
     } catch (err) {
       console.error('[Background] Failed to toggle sidebar:', err)
-
-      // Chrome requires user gesture for sidePanel.open()
-      // Keyboard shortcuts don't count as user gestures
-      // Show helpful notification instead
       if (err instanceof Error && err.message.includes('user gesture')) {
         chrome.notifications.create({
           type: 'basic',
@@ -461,6 +456,86 @@ chrome.commands.onCommand.addListener(async (command) => {
         })
       }
     }
+    return
+  }
+
+  // Handle new-tab
+  if (command === 'new-tab') {
+    console.log('[Background] New tab shortcut triggered')
+    broadcastToClients({ type: 'KEYBOARD_NEW_TAB' })
+    return
+  }
+
+  // Handle close-tab
+  if (command === 'close-tab') {
+    console.log('[Background] Close tab shortcut triggered')
+    broadcastToClients({ type: 'KEYBOARD_CLOSE_TAB' })
+    return
+  }
+
+  // Handle next-tab
+  if (command === 'next-tab') {
+    console.log('[Background] Next tab shortcut triggered')
+    broadcastToClients({ type: 'KEYBOARD_NEXT_TAB' })
+    return
+  }
+
+  // Handle prev-tab
+  if (command === 'prev-tab') {
+    console.log('[Background] Prev tab shortcut triggered')
+    broadcastToClients({ type: 'KEYBOARD_PREV_TAB' })
+    return
+  }
+
+  // Handle tab-1 through tab-9
+  const tabMatch = command.match(/^tab-(\d)$/)
+  if (tabMatch) {
+    const tabIndex = parseInt(tabMatch[1]) - 1 // Convert to 0-based index
+    console.log('[Background] Switch to tab shortcut:', tabIndex)
+    broadcastToClients({ type: 'KEYBOARD_SWITCH_TAB', tabIndex })
+    return
+  }
+
+  // Handle paste-selection - get selected text from active tab
+  if (command === 'paste-selection') {
+    console.log('[Background] Paste selection shortcut triggered')
+    try {
+      // Get the active tab
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+      if (activeTab?.id) {
+        // Execute script to get selected text
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          func: () => window.getSelection()?.toString() || ''
+        })
+
+        const selectedText = results[0]?.result
+        if (selectedText) {
+          console.log('[Background] 📋 Pasting selection to terminal:', selectedText.substring(0, 50) + '...')
+
+          // Open sidebar if not already open
+          if (currentWindow?.id) {
+            try {
+              await chrome.sidePanel.open({ windowId: currentWindow.id })
+            } catch (e) {
+              // Sidebar might already be open, that's fine
+            }
+          }
+
+          // Send to sidepanel
+          broadcastToClients({
+            type: 'PASTE_COMMAND',
+            command: selectedText,
+          })
+        } else {
+          console.log('[Background] No text selected')
+        }
+      }
+    } catch (err) {
+      console.error('[Background] Failed to get selection:', err)
+    }
+    return
   }
 })
 

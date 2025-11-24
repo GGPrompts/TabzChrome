@@ -10,7 +10,9 @@
     "sidePanel",
     "clipboardRead",
     "clipboardWrite",
-    "notifications"
+    "notifications",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "http://localhost:8129/*",
@@ -44,6 +46,54 @@
         "linux": "Ctrl+Shift+9"
       },
       "description": "Toggle terminal sidebar"
+    },
+    "new-tab": {
+      "suggested_key": {
+        "default": "Alt+T"
+      },
+      "description": "New terminal tab (default profile)"
+    },
+    "close-tab": {
+      "suggested_key": {
+        "default": "Alt+W"
+      },
+      "description": "Close current terminal tab"
+    },
+    "paste-selection": {
+      "description": "Paste selected text to terminal"
+    },
+    "next-tab": {
+      "description": "Switch to next terminal tab"
+    },
+    "prev-tab": {
+      "description": "Switch to previous terminal tab"
+    },
+    "tab-1": {
+      "description": "Switch to terminal tab 1"
+    },
+    "tab-2": {
+      "description": "Switch to terminal tab 2"
+    },
+    "tab-3": {
+      "description": "Switch to terminal tab 3"
+    },
+    "tab-4": {
+      "description": "Switch to terminal tab 4"
+    },
+    "tab-5": {
+      "description": "Switch to terminal tab 5"
+    },
+    "tab-6": {
+      "description": "Switch to terminal tab 6"
+    },
+    "tab-7": {
+      "description": "Switch to terminal tab 7"
+    },
+    "tab-8": {
+      "description": "Switch to terminal tab 8"
+    },
+    "tab-9": {
+      "description": "Switch to terminal tab 9"
     }
   },
   "devtools_page": "devtools/devtools.html",

@@ -413,7 +413,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', fontS
           className={`absolute inset-0 ${sessionName ? 'hide-xterm-scrollbar' : ''}`}
           style={{
             padding: '8px',
-            paddingBottom: sessionName ? '35px' : '4px', // Extra padding for tmux status bar
+            paddingBottom: '8px', // Consistent padding - tmux status bar now fully visible
           }}
         />
       </div>
