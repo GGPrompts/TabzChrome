@@ -279,6 +279,63 @@ Located at `extension/manifest.json`:
 
 ---
 
+## 🌐 Browser MCP Integration
+
+TabzChrome includes a **Browser MCP Server** that enables Claude Code to programmatically control the browser.
+
+### Available Tools
+
+**11 MCP tools** for browser automation (see [MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md)):
+- `browser_open_url` - Open allowed URLs (GitHub, GitLab, Vercel, localhost)
+- `browser_get_page_info` - Get current page URL and title
+- `browser_screenshot` - Capture screenshots to disk
+- `browser_download_image` - Download images from pages
+- `browser_list_tabs` - List all open tabs
+- `browser_switch_tab` - Switch to specific tab
+- `browser_click` - Click elements by CSS selector
+- `browser_fill` - Fill form inputs
+- `browser_get_element` - Inspect element HTML/CSS
+- `browser_execute_script` - Run JavaScript in page
+- `browser_get_console_logs` - View browser console output
+
+### Interactive Command: `/ttmcp`
+
+Type `/ttmcp` in Claude Code for an **interactive menu-driven interface** to all MCP tools:
+
+1. **Select category** (Navigation, Interaction, Inspection, Capture)
+2. **Select tool** (e.g., "Fill Form Field")
+3. **Provide parameters** (selector, value, etc.)
+4. **Execute and verify** (screenshot, results)
+5. **Chain commands** (run another action)
+
+**Perfect for:**
+- Controlling AI tools (Sora, DALL-E) - fill prompts, click generate, download results
+- Testing Vercel deployments
+- Opening GitHub PRs/issues during development
+- Browser automation without writing code
+
+**Example Workflow:**
+```
+/ttmcp → Interaction → Fill Form → textarea → "your prompt" → Execute ✅
+```
+
+See [.claude/commands/ttmcp.md](.claude/commands/ttmcp.md) for complete documentation.
+
+### Omnibox URL Navigation
+
+The extension supports opening URLs from Chrome's omnibox (address bar):
+
+**Usage:** `term <url>`
+
+**Examples:**
+- `term github.com/user/repo` - Open GitHub repository
+- `term localhost:3000` - Open dev server
+- `term my-app.vercel.app` - Open Vercel deployment
+
+See [OMNIBOX_FEATURES.md](OMNIBOX_FEATURES.md) for complete documentation.
+
+---
+
 ## 🐛 Known Issues
 
 1. **WSL Connection** - If loading from WSL path, must use `localhost` not `127.0.0.1`
@@ -296,6 +353,12 @@ Located at `extension/manifest.json`:
 - **[LESSONS_LEARNED.md](LESSONS_LEARNED.md)** - Technical insights, common pitfalls, prevention strategies
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history, bug fixes, feature additions
 - **[PLAN.md](PLAN.md)** - Refactoring roadmap, technical debt, future improvements
+- **[OMNIBOX_FEATURES.md](OMNIBOX_FEATURES.md)** - Chrome omnibox URL navigation feature
+
+### Browser MCP Documentation
+
+- **[browser-mcp-server/MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md)** - Complete reference for all Browser MCP tools
+- **[.claude/commands/ttmcp.md](.claude/commands/ttmcp.md)** - Interactive Browser MCP command runner
 
 ### Organized Documentation (docs/ folder)
 

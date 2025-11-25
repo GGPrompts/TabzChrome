@@ -16,6 +16,7 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `browser_click` | "click", "press button", "click element" | Click an element on the page |
 | `browser_fill` | "fill", "type", "enter text", "fill form" | Fill an input field with text |
 | `browser_get_element` | "inspect element", "get styles", "element info", "css debug" | Get element HTML, styles, bounds for CSS debugging/recreation |
+| `browser_open_url` | "open URL", "navigate to", "open GitHub", "open localhost" | Open allowed URLs (GitHub, GitLab, Vercel, localhost) in browser tabs |
 
 ---
 
@@ -331,6 +332,63 @@ Array of tabs with:
 
 ---
 
+## browser_open_url
+
+**Purpose:** Open a URL in the browser (supports allowed domains only).
+
+**Trigger phrases:**
+- "Open GitHub repo"
+- "Navigate to localhost"
+- "Open my Vercel app"
+- "Go to that URL"
+
+**Parameters:**
+- `url` (required): URL to open (must be from allowed domains)
+- `newTab` (optional, default: true): Open in new tab or replace current tab
+- `background` (optional, default: false): Open in background or foreground
+
+**Allowed Domains:**
+- `github.com` (any repository, PR, issue, etc.)
+- `gitlab.com` (any project, MR, issue, etc.)
+- `*.vercel.app` (Vercel preview and production deployments)
+- `*.vercel.com` (Vercel alternative domain)
+- `localhost` (any port)
+- `127.0.0.1` (any port)
+
+**Returns:**
+- `success`: Whether the URL was opened
+- `url`: The normalized URL that was opened
+
+**Examples:**
+```javascript
+// Open GitHub repo
+{ url: "github.com/user/repo" }
+
+// Open in background tab
+{ url: "github.com/user/repo/pull/123", newTab: true, background: true }
+
+// Open localhost dev server
+{ url: "localhost:3000" }
+
+// Open Vercel app
+{ url: "my-app-abc123.vercel.app" }
+
+// Replace current tab
+{ url: "gitlab.com/project", newTab: false }
+```
+
+**Use Cases:**
+- Navigate to documentation while coding
+- Open pull requests/issues during git operations
+- Test deployed apps on Vercel
+- Quick access to development servers
+- Automated browser navigation for AI tool interaction (e.g., Sora, DALL-E)
+
+**Security:**
+Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary websites, file:// URLs, or chrome:// pages.
+
+---
+
 ## Architecture
 
 ```
@@ -375,6 +433,40 @@ Array of tabs with:
 - Port proxy (`netsh`) forwards `0.0.0.0:9222` → `127.0.0.1:9222`
 - MCP server runs via `run-windows.sh` which uses Windows `node.exe`
 - WSL2's localhost is isolated from Windows localhost
+
+## Interactive Command Runner: `/ttmcp`
+
+The `/ttmcp` slash command provides an interactive menu-driven interface to all Browser MCP tools.
+
+**Usage:**
+```bash
+/ttmcp
+```
+
+**Features:**
+- Interactive tool selection via `AskUserQuestion`
+- Guided parameter prompts
+- Real-time execution and results
+- Screenshot verification
+- Option to chain multiple commands
+
+**Example Workflow:**
+1. Type `/ttmcp` in Claude Code
+2. Select category: "Interaction"
+3. Select tool: "Fill Form Field"
+4. Provide selector: "textarea"
+5. Provide value: "Your text here"
+6. Claude executes and shows results
+7. Option to run another command
+
+**Location:** `.claude/commands/ttmcp.md`
+
+**Perfect for:**
+- First-time users exploring MCP tools
+- Complex multi-step browser automation
+- Testing and debugging MCP functionality
+- Controlling AI tools (Sora, DALL-E, etc.)
+- Quick access without remembering exact tool names
 
 ## Requirements
 
