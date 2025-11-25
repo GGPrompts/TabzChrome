@@ -1,10 +1,8 @@
 {
   "mcpServers": {
     "browser": {
-      "command": "node",
-      "args": [
-        "/home/matt/projects/TabzChrome-simplified/browser-mcp-server/dist/index.js"
-      ],
+      "command": "/home/matt/projects/TabzChrome-simplified/browser-mcp-server/run-windows.sh",
+      "args": [],
       "env": {
         "BACKEND_URL": "http://localhost:8129"
       }

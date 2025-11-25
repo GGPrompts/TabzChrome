@@ -398,25 +398,158 @@ Manage reading list from terminal:
 
 ---
 
+## 🤖 Chrome Built-in AI APIs (NEW - 2024/2025)
+
+Chrome is introducing on-device AI capabilities via Gemini Nano. These APIs are **only available for extensions** on Windows, macOS, and Linux.
+
+### 15. **Prompt API** ⭐⭐⭐⭐⭐
+**APIs**: `chrome.aiOriginTrial.languageModel` (experimental)
+**Effort**: Medium
+**Status**: Extensions-only, Origin Trial
+
+General-purpose LLM interactions using on-device Gemini Nano:
+
+**Features**:
+- Natural language command suggestions
+- Error message explanation
+- Code snippet generation
+- Context-aware help
+
+**Example**:
+```javascript
+// Explain terminal error to user
+const session = await chrome.aiOriginTrial.languageModel.create();
+const explanation = await session.prompt(
+  `Explain this terminal error in simple terms: ${errorOutput}`
+);
+showNotification(explanation);
+```
+
+**Use Cases**:
+- "Explain this error" button next to failed commands
+- AI-powered command autocomplete
+- Natural language to bash translation ("delete all node_modules" → `find . -name node_modules -type d -exec rm -rf {} +`)
+
+---
+
+### 16. **Summarizer API** ⭐⭐⭐⭐
+**APIs**: `chrome.aiOriginTrial.summarizer`
+**Effort**: Low
+**Status**: Available in Chrome stable
+
+Condense long terminal output:
+
+**Features**:
+- Summarize build logs
+- Extract key errors from verbose output
+- Create digest of long-running command output
+
+**Example**:
+```javascript
+// Summarize npm install output
+const summarizer = await chrome.aiOriginTrial.summarizer.create();
+const summary = await summarizer.summarize(terminalOutput);
+// "Installed 234 packages. 2 vulnerabilities found (1 moderate, 1 high)."
+```
+
+**Use Cases**:
+- One-click "Summarize output" for build logs
+- Auto-summarize when output exceeds threshold
+- Summary notifications for background tasks
+
+---
+
+### 17. **Translator API** ⭐⭐⭐
+**APIs**: `chrome.aiOriginTrial.translator`
+**Effort**: Low
+**Status**: Chrome 138+
+
+On-device translation for international users:
+
+**Features**:
+- Translate error messages to user's language
+- Translate documentation snippets
+- Multi-language terminal output
+
+**Example**:
+```javascript
+// Translate Chinese error message to English
+const translator = await chrome.aiOriginTrial.translator.create({
+  sourceLanguage: 'zh',
+  targetLanguage: 'en'
+});
+const translated = await translator.translate(chineseError);
+```
+
+---
+
+### 18. **Writer & Rewriter APIs** ⭐⭐
+**APIs**: `chrome.aiOriginTrial.writer`, `chrome.aiOriginTrial.rewriter`
+**Effort**: Medium
+**Status**: Origin Trial
+
+Content creation and improvement:
+
+**Features**:
+- Generate commit messages from diff
+- Rewrite verbose commands to be more concise
+- Generate documentation from command history
+
+**Example**:
+```javascript
+// Generate commit message from staged changes
+const writer = await chrome.aiOriginTrial.writer.create();
+const commitMsg = await writer.write(
+  `Generate a concise commit message for these changes: ${gitDiff}`
+);
+```
+
+---
+
+### AI API Availability Matrix
+
+| API | Status | Chrome Version | Platform |
+|-----|--------|----------------|----------|
+| Prompt API | Origin Trial | 128+ | Win/Mac/Linux |
+| Summarizer | Stable | 131+ | Win/Mac/Linux |
+| Translator | Stable | 138+ | Win/Mac/Linux |
+| Writer | Origin Trial | 131+ | Win/Mac/Linux |
+| Rewriter | Origin Trial | 131+ | Win/Mac/Linux |
+| Language Detector | Stable | 131+ | Win/Mac/Linux |
+
+**Requirements**:
+- Gemini Nano must be downloaded (~1.5GB, automatic)
+- Device needs sufficient RAM/storage
+- Some APIs require origin trial registration
+
+**Documentation**: https://developer.chrome.com/docs/ai/built-in
+
+---
+
 ## 📋 Implementation Priorities
 
-### Phase 1: Quick Wins (1-2 weeks)
-1. Tab-aware terminals (extract URL, domain, GitHub repos)
-2. Omnibox integration (type commands in address bar)
-3. Downloads integration (wget/curl downloads)
-4. Bookmarks as quick commands
+### Phase 1: Quick Wins (This Week) ✅
+1. ✅ Keyboard shortcuts (Alt+T, Alt+W, tab switching)
+2. 🔄 Omnibox integration (type commands in address bar)
+3. 🔄 Alarms API for WebSocket reliability
 
-### Phase 2: Core Enhancements (2-4 weeks)
-5. Sessions & workspace restoration
-6. DevTools panel integration
-7. History-based autocomplete
-8. Tab groups integration
+### Phase 2: Core Enhancements (Next 2 Weeks)
+4. Tab-aware terminals (extract URL, domain, GitHub repos)
+5. Downloads integration (wget/curl downloads)
+6. Sessions & workspace restoration
+7. Display shortcuts in Settings modal
 
-### Phase 3: Advanced Features (4-8 weeks)
-9. Scheduled tasks with alarms
-10. Identity & OAuth integration
-11. Page scripting from terminal
-12. Multi-window management
+### Phase 3: Medium-Term Features
+8. DevTools panel improvements
+9. History-based autocomplete
+10. Tab groups integration
+11. Bookmarks as quick commands
+
+### Phase 4: Advanced/Experimental
+12. Built-in AI APIs (when stable)
+13. Identity & OAuth integration
+14. Page scripting from terminal
+15. Multi-window management
 
 ---
 

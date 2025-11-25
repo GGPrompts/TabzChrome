@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2025-11-24
+
+### 🚀 Major Features
+
+#### Browser MCP Server - Extended Automation Tools
+Six new tools added to enable comprehensive browser automation via Claude Code:
+
+| Tool | Description |
+|------|-------------|
+| `browser_screenshot` | Capture screenshots to ~/ai-images/ (viewport, full page, or element) |
+| `browser_download_image` | Download images by CSS selector or direct URL |
+| `browser_list_tabs` | List all open browser tabs with URLs and titles |
+| `browser_switch_tab` | Switch to a specific tab by ID |
+| `browser_click` | Click elements by CSS selector |
+| `browser_fill` | Fill input fields with text |
+
+#### Screenshot & Image Capture
+- **Full Page Screenshots** - Capture entire scrollable pages with `fullPage: true`
+- **Element Screenshots** - Target specific elements with CSS selectors
+- **Auto-save to ~/ai-images/** - Screenshots saved with timestamps, viewable via Read tool
+- **Image Download** - Extract images from `<img>` tags or CSS background-image
+- Files: `browser-mcp-server/src/tools/screenshot.ts`, `browser-mcp-server/src/client.ts`
+
+#### Tab Management
+- **List All Tabs** - Get tabId, URL, title, and active status for all open tabs
+- **Switch Tabs** - Bring specific tabs to focus by ID
+- **Filters chrome:// pages** - Only shows actual web pages
+- Files: `browser-mcp-server/src/tools/tabs.ts`
+
+#### DOM Interaction
+- **Click Elements** - Click buttons, links, checkboxes by CSS selector
+- **Fill Forms** - Type text into input fields and textareas
+- **Wait for Elements** - Automatically waits up to 5 seconds for elements to appear
+- **Clear Before Fill** - Clears existing input value before typing
+- Files: `browser-mcp-server/src/tools/interaction.ts`
+
+### 🔧 Technical Details
+
+- **All new tools use CDP** - Chrome DevTools Protocol via puppeteer-core
+- **WSL2 Compatible** - PowerShell bridge for Windows Chrome access from WSL
+- **Type-safe Implementation** - Full TypeScript with Zod schemas
+- **Comprehensive Error Messages** - Actionable troubleshooting guidance
+
+### Architecture (CDP Tools)
+```
+Chrome Browser (Windows with --remote-debugging-port=9222)
+       ↓
+   CDP / WebSocket
+       ↓
+Browser MCP Server (puppeteer-core)
+       ↓
+   Claude Code
+```
+
+### 📝 Documentation
+- **MCP_TOOLS.md** - Updated with all 9 tools, examples, and troubleshooting
+- Added architecture diagram for CDP-based tools
+- Added requirements for Chrome debugging port
+
+### 🐛 Known Limitations
+- CDP tools require Chrome started with `--remote-debugging-port=9222`
+- Screenshots/clicks only work on main frame (no iframe support yet)
+- Tab IDs are session-specific indices, not persistent Chrome tab IDs
+
+---
+
 ## [1.1.0] - 2025-11-24
 
 ### 🚀 Major Features
