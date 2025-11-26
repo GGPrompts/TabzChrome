@@ -1,6 +1,6 @@
 # Chrome Extension API Feature Possibilities
 
-**Date**: November 21, 2025
+**Date**: November 21, 2025 (Updated: November 25, 2025)
 **Purpose**: Explore unique features enabled by Chrome Extension APIs for TabzChrome
 
 ---
@@ -9,16 +9,22 @@
 
 This document explores the unique capabilities that Chrome Extension APIs unlock for TabzChrome. Unlike a standard web app, being a Chrome extension gives us access to powerful browser APIs that can create truly innovative terminal experiences.
 
-**Current Permissions**: storage, contextMenus, tabs, sidePanel, clipboardRead, clipboardWrite, notifications
-**Available (not yet used)**: devtools, scripting, downloads, bookmarks, history, sessions, omnibox, alarms, tabGroups, identity, webNavigation
+**Current Permissions**: storage, contextMenus, tabs, sidePanel, clipboardRead, clipboardWrite, notifications, omnibox
+**Available (not yet used)**: devtools, scripting, downloads, bookmarks, history, sessions, alarms, tabGroups, identity, webNavigation
+
+### Implementation Status Legend
+- ✅ = Fully implemented
+- 🔄 = Partially implemented (via Browser MCP or extension)
+- ⬚ = Not started
 
 ---
 
 ## 🌟 High-Impact Features (Quick Wins)
 
-### 1. **Tab-Aware Terminals** ⭐⭐⭐⭐⭐
+### 1. **Tab-Aware Terminals** ⭐⭐⭐⭐⭐ 🔄
 **APIs**: `tabs`, `webNavigation`, `sidePanel`
 **Effort**: Medium
+**Status**: 🔄 Partial - Browser MCP has `browser_get_page_info`, `browser_list_tabs`, `browser_switch_tab`, `browser_open_url`
 
 Spawn terminals that know about the current browser tab:
 
@@ -48,9 +54,10 @@ chrome.tabs.query({ active: true }, (tabs) => {
 
 ---
 
-### 2. **Omnibox Integration** ⭐⭐⭐⭐
+### 2. **Omnibox Integration** ⭐⭐⭐⭐ ✅
 **APIs**: `omnibox`
 **Effort**: Low
+**Status**: ✅ Implemented - `term <url>` opens URLs. See [OMNIBOX_FEATURES.md](../../OMNIBOX_FEATURES.md)
 
 Type commands directly in Chrome's address bar:
 
@@ -80,9 +87,10 @@ chrome.omnibox.onInputEntered.addListener((text) => {
 
 ---
 
-### 3. **Sessions & Workspace Restoration** ⭐⭐⭐⭐⭐
+### 3. **Sessions & Workspace Restoration** ⭐⭐⭐⭐⭐ 🔄
 **APIs**: `sessions`, `storage`, `tabs`, `windows`
 **Effort**: Medium
+**Status**: 🔄 Partial - Chrome storage persistence for terminal sessions exists (survives sidebar close/reopen)
 
 Restore terminal sessions when Chrome restarts:
 
@@ -118,9 +126,10 @@ const workspace = {
 
 ---
 
-### 4. **DevTools Integration** ⭐⭐⭐⭐
+### 4. **DevTools Integration** ⭐⭐⭐⭐ ⬚
 **APIs**: `devtools.panels`, `devtools.inspectedWindow`, `devtools.network`
 **Effort**: Medium-High
+**Status**: ⬚ Not started
 
 Add terminal as a DevTools panel:
 
@@ -159,9 +168,10 @@ chrome.devtools.network.onRequestFinished.addListener((request) => {
 
 ---
 
-### 5. **Downloads Integration** ⭐⭐⭐
+### 5. **Downloads Integration** ⭐⭐⭐ ⬚
 **APIs**: `downloads`
 **Effort**: Low
+**Status**: ⬚ Not started
 
 Download files from terminal commands:
 
@@ -197,9 +207,10 @@ chrome.downloads.download({
 
 ## 🚀 Medium-Impact Features
 
-### 6. **Bookmarks as Quick Commands** ⭐⭐⭐
+### 6. **Bookmarks as Quick Commands** ⭐⭐⭐ ⬚
 **APIs**: `bookmarks`
 **Effort**: Low
+**Status**: ⬚ Not started
 
 Use Chrome bookmarks to save common terminal commands:
 
@@ -222,9 +233,10 @@ chrome.bookmarks.search({ title: 'Terminal Commands' }, (results) => {
 
 ---
 
-### 7. **History-Based Autocomplete** ⭐⭐⭐
+### 7. **History-Based Autocomplete** ⭐⭐⭐ ⬚
 **APIs**: `history`, `storage`
 **Effort**: Medium
+**Status**: ⬚ Not started
 
 Use Chrome history to suggest commands:
 
@@ -247,9 +259,10 @@ chrome.tabs.query({ active: true }, (tabs) => {
 
 ---
 
-### 8. **Scheduled Tasks with Alarms** ⭐⭐⭐
+### 8. **Scheduled Tasks with Alarms** ⭐⭐⭐ ⬚
 **APIs**: `alarms`
 **Effort**: Low
+**Status**: ⬚ Not started
 
 Cron-like scheduled commands:
 
@@ -276,9 +289,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 ---
 
-### 9. **Tab Groups Integration** ⭐⭐⭐
+### 9. **Tab Groups Integration** ⭐⭐⭐ ⬚
 **APIs**: `tabGroups`, `tabs`
 **Effort**: Low
+**Status**: ⬚ Not started
 
 Organize terminals by Chrome tab groups:
 
@@ -304,9 +318,10 @@ chrome.tabGroups.query({}, (groups) => {
 
 ---
 
-### 10. **Identity & OAuth Integration** ⭐⭐
+### 10. **Identity & OAuth Integration** ⭐⭐ ⬚
 **APIs**: `identity`
 **Effort**: High
+**Status**: ⬚ Not started
 
 Authenticate with cloud services from terminal:
 
@@ -333,9 +348,10 @@ chrome.identity.launchWebAuthFlow({
 
 ## 💡 Advanced/Future Features
 
-### 11. **Page Scripting from Terminal** ⭐⭐⭐⭐
+### 11. **Page Scripting from Terminal** ⭐⭐⭐⭐ ✅
 **APIs**: `scripting`, `tabs`
 **Effort**: Medium
+**Status**: ✅ Implemented - Browser MCP has `browser_execute_script`, `browser_click`, `browser_fill`, `browser_get_element`
 
 Execute JavaScript on current page from terminal:
 
@@ -357,9 +373,10 @@ chrome.scripting.executeScript({
 
 ---
 
-### 12. **Multi-Window Terminal Management** ⭐⭐⭐
+### 12. **Multi-Window Terminal Management** ⭐⭐⭐ ⬚
 **APIs**: `windows`, `sessions`
 **Effort**: Medium
+**Status**: ⬚ Not started
 
 Manage terminals across multiple Chrome windows:
 
@@ -371,9 +388,10 @@ Manage terminals across multiple Chrome windows:
 
 ---
 
-### 13. **Screenshot & Page Capture Commands** ⭐⭐
+### 13. **Screenshot & Page Capture Commands** ⭐⭐ ✅
 **APIs**: `tabs.captureVisibleTab`, `pageCapture`
 **Effort**: Low
+**Status**: ✅ Implemented - Browser MCP has `browser_screenshot`, `browser_download_image`
 
 Capture screenshots from terminal:
 
@@ -385,9 +403,10 @@ Capture screenshots from terminal:
 
 ---
 
-### 14. **Reading List Integration** ⭐
+### 14. **Reading List Integration** ⭐ ⬚
 **APIs**: `readingList`
 **Effort**: Low
+**Status**: ⬚ Not started
 
 Manage reading list from terminal:
 
@@ -402,10 +421,11 @@ Manage reading list from terminal:
 
 Chrome is introducing on-device AI capabilities via Gemini Nano. These APIs are **only available for extensions** on Windows, macOS, and Linux.
 
-### 15. **Prompt API** ⭐⭐⭐⭐⭐
+### 15. **Prompt API** ⭐⭐⭐⭐⭐ ⬚
 **APIs**: `chrome.aiOriginTrial.languageModel` (experimental)
 **Effort**: Medium
-**Status**: Extensions-only, Origin Trial
+**Chrome Status**: Extensions-only, Origin Trial
+**Implementation Status**: ⬚ Not started
 
 General-purpose LLM interactions using on-device Gemini Nano:
 
@@ -432,10 +452,11 @@ showNotification(explanation);
 
 ---
 
-### 16. **Summarizer API** ⭐⭐⭐⭐
+### 16. **Summarizer API** ⭐⭐⭐⭐ ⬚
 **APIs**: `chrome.aiOriginTrial.summarizer`
 **Effort**: Low
-**Status**: Available in Chrome stable
+**Chrome Status**: Available in Chrome stable
+**Implementation Status**: ⬚ Not started
 
 Condense long terminal output:
 
@@ -459,10 +480,11 @@ const summary = await summarizer.summarize(terminalOutput);
 
 ---
 
-### 17. **Translator API** ⭐⭐⭐
+### 17. **Translator API** ⭐⭐⭐ ⬚
 **APIs**: `chrome.aiOriginTrial.translator`
 **Effort**: Low
-**Status**: Chrome 138+
+**Chrome Status**: Chrome 138+
+**Implementation Status**: ⬚ Not started
 
 On-device translation for international users:
 
@@ -483,10 +505,11 @@ const translated = await translator.translate(chineseError);
 
 ---
 
-### 18. **Writer & Rewriter APIs** ⭐⭐
+### 18. **Writer & Rewriter APIs** ⭐⭐ ⬚
 **APIs**: `chrome.aiOriginTrial.writer`, `chrome.aiOriginTrial.rewriter`
 **Effort**: Medium
-**Status**: Origin Trial
+**Chrome Status**: Origin Trial
+**Implementation Status**: ⬚ Not started
 
 Content creation and improvement:
 
@@ -528,28 +551,30 @@ const commitMsg = await writer.write(
 
 ## 📋 Implementation Priorities
 
-### Phase 1: Quick Wins (This Week) ✅
-1. ✅ Keyboard shortcuts (Alt+T, Alt+W, tab switching)
-2. 🔄 Omnibox integration (type commands in address bar)
-3. 🔄 Alarms API for WebSocket reliability
+### Phase 1: Quick Wins ✅ COMPLETE
+1. ✅ Keyboard shortcuts (Ctrl+Shift+9 to open sidebar)
+2. ✅ Omnibox integration (`term <url>` opens URLs)
+3. ✅ Context menus (Toggle Terminal Sidebar, Paste to Terminal)
+4. ✅ Page scripting via Browser MCP (`browser_execute_script`, `browser_click`, `browser_fill`)
+5. ✅ Screenshots via Browser MCP (`browser_screenshot`, `browser_download_image`)
+6. ✅ Tab management via Browser MCP (`browser_list_tabs`, `browser_switch_tab`, `browser_rename_tab`)
 
-### Phase 2: Core Enhancements (Next 2 Weeks)
-4. Tab-aware terminals (extract URL, domain, GitHub repos)
-5. Downloads integration (wget/curl downloads)
-6. Sessions & workspace restoration
-7. Display shortcuts in Settings modal
+### Phase 2: Core Enhancements (In Progress) 🔄
+7. 🔄 Tab-aware terminals - Partial (Browser MCP has page info, need GitHub clone integration)
+8. 🔄 Sessions & workspace restoration - Partial (Chrome storage persistence exists)
+9. ⬚ Downloads integration (wget/curl → Chrome downloads)
+10. ⬚ Alarms API for WebSocket reliability
 
 ### Phase 3: Medium-Term Features
-8. DevTools panel improvements
-9. History-based autocomplete
-10. Tab groups integration
-11. Bookmarks as quick commands
+11. ⬚ DevTools panel (terminal in F12)
+12. ⬚ History-based autocomplete
+13. ⬚ Tab groups integration
+14. ⬚ Bookmarks as quick commands
 
 ### Phase 4: Advanced/Experimental
-12. Built-in AI APIs (when stable)
-13. Identity & OAuth integration
-14. Page scripting from terminal
-15. Multi-window management
+15. ⬚ Built-in AI APIs (Prompt, Summarizer, etc.)
+16. ⬚ Identity & OAuth integration
+17. ⬚ Multi-window management
 
 ---
 
@@ -619,46 +644,47 @@ const commitMsg = await writer.write(
 
 ## 🚦 Feasibility Matrix
 
-| Feature | Impact | Effort | Dependencies | Priority |
-|---------|--------|--------|--------------|----------|
-| Tab-aware terminals | ⭐⭐⭐⭐⭐ | Medium | tabs, webNavigation | P0 |
-| Omnibox integration | ⭐⭐⭐⭐ | Low | omnibox | P0 |
-| Sessions restoration | ⭐⭐⭐⭐⭐ | Medium | sessions, storage | P1 |
-| DevTools panel | ⭐⭐⭐⭐ | High | devtools | P1 |
-| Downloads integration | ⭐⭐⭐ | Low | downloads | P1 |
-| Bookmarks commands | ⭐⭐⭐ | Low | bookmarks | P2 |
-| History autocomplete | ⭐⭐⭐ | Medium | history | P2 |
-| Alarms/scheduling | ⭐⭐⭐ | Low | alarms | P2 |
-| Tab groups | ⭐⭐⭐ | Low | tabGroups | P2 |
-| OAuth integration | ⭐⭐ | High | identity | P3 |
-| Page scripting | ⭐⭐⭐⭐ | Medium | scripting | P3 |
-| Multi-window mgmt | ⭐⭐⭐ | Medium | windows, sessions | P3 |
-| Screenshots | ⭐⭐ | Low | tabs | P4 |
-| Reading list | ⭐ | Low | readingList | P4 |
+| Feature | Impact | Effort | Dependencies | Priority | Status |
+|---------|--------|--------|--------------|----------|--------|
+| Tab-aware terminals | ⭐⭐⭐⭐⭐ | Medium | tabs, webNavigation | P0 | 🔄 Partial |
+| Omnibox integration | ⭐⭐⭐⭐ | Low | omnibox | P0 | ✅ Done |
+| Sessions restoration | ⭐⭐⭐⭐⭐ | Medium | sessions, storage | P1 | 🔄 Partial |
+| DevTools panel | ⭐⭐⭐⭐ | High | devtools | P1 | ⬚ |
+| Downloads integration | ⭐⭐⭐ | Low | downloads | P1 | ⬚ |
+| Bookmarks commands | ⭐⭐⭐ | Low | bookmarks | P2 | ⬚ |
+| History autocomplete | ⭐⭐⭐ | Medium | history | P2 | ⬚ |
+| Alarms/scheduling | ⭐⭐⭐ | Low | alarms | P2 | ⬚ |
+| Tab groups | ⭐⭐⭐ | Low | tabGroups | P2 | ⬚ |
+| OAuth integration | ⭐⭐ | High | identity | P3 | ⬚ |
+| Page scripting | ⭐⭐⭐⭐ | Medium | scripting | P3 | ✅ Done |
+| Multi-window mgmt | ⭐⭐⭐ | Medium | windows, sessions | P3 | ⬚ |
+| Screenshots | ⭐⭐ | Low | tabs | P4 | ✅ Done |
+| Reading list | ⭐ | Low | readingList | P4 | ⬚ |
 
 ---
 
 ## 🎯 Recommended Next Steps
 
-1. **Immediate (This Week)**:
-   - Add `tabs` and `webNavigation` permissions
-   - Implement tab-aware terminal spawning
-   - Add "Clone this repo" context menu for GitHub
+### Already Completed ✅
+- ✅ Omnibox integration (`term <url>`)
+- ✅ Page scripting (Browser MCP tools)
+- ✅ Screenshots & image download (Browser MCP tools)
+- ✅ Tab management (list, switch, rename)
+- ✅ Basic session persistence (Chrome storage)
 
-2. **Short-term (Next 2 Weeks)**:
-   - Add `omnibox` permission and keyword registration
-   - Implement address bar command launching
-   - Add `downloads` integration for wget/curl
+### Next Up (High Value, Low Effort)
+1. **Downloads Integration** - Add `downloads` permission, trigger Chrome downloads from MCP
+2. **Alarms API** - WebSocket keepalive, scheduled health checks
+3. **GitHub Clone Integration** - Detect GitHub repo from current tab → "Clone this repo" context menu
 
-3. **Medium-term (Next Month)**:
-   - Implement sessions API for workspace restoration
-   - Create DevTools panel for terminal
-   - Add tab groups integration
+### Medium-term
+4. **Tab Groups Integration** - Organize terminals by Chrome tab groups
+5. **DevTools Panel** - Terminal inside F12, network requests as curl
+6. **Full Workspace Restoration** - Save/restore complete terminal layouts
 
-4. **Long-term (Next Quarter)**:
-   - OAuth/Identity integration for cloud CLIs
-   - Advanced scripting capabilities
-   - Multi-window synchronization
+### Experimental
+7. **Chrome AI APIs** - Summarize build logs, explain errors (when stable)
+8. **OAuth Integration** - GitHub CLI auth via Chrome
 
 ---
 
