@@ -13,10 +13,13 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `browser_download_image` | "download image", "save image", "get picture" | Download images from pages to local disk |
 | `browser_list_tabs` | "list tabs", "what tabs", "open tabs", "show tabs" | List all open browser tabs |
 | `browser_switch_tab` | "switch tab", "go to tab", "change tab" | Switch to a specific tab |
+| `browser_rename_tab` | "rename tab", "name tab", "label tab" | Assign a custom name to a tab |
 | `browser_click` | "click", "press button", "click element" | Click an element on the page |
 | `browser_fill` | "fill", "type", "enter text", "fill form" | Fill an input field with text |
 | `browser_get_element` | "inspect element", "get styles", "element info", "css debug" | Get element HTML, styles, bounds for CSS debugging/recreation |
 | `browser_open_url` | "open URL", "navigate to", "open GitHub", "open localhost" | Open allowed URLs (GitHub, GitLab, Vercel, localhost) in browser tabs |
+
+> **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `browser_list_tabs`.
 
 ---
 
@@ -195,7 +198,8 @@ JSON.stringify(localStorage)
 Array of tabs with:
 - `tabId`: Numeric ID for use with other tools
 - `url`: Full URL of the tab
-- `title`: Page title
+- `title`: Page title (or custom name if set)
+- `customName`: User-assigned name (if set via `browser_rename_tab`)
 - `active`: Whether this tab is currently focused
 
 ---
@@ -214,6 +218,42 @@ Array of tabs with:
 
 **Returns:**
 - `success`: Whether the switch was successful
+
+---
+
+## browser_rename_tab
+
+**Purpose:** Assign a custom name to a browser tab.
+
+**Trigger phrases:**
+- "Rename tab 0 to My App"
+- "Name this tab"
+- "Label the GitHub tab"
+
+**Parameters:**
+- `tabId` (required): The tab ID to rename (from browser_list_tabs)
+- `name` (required): Custom name for the tab. Empty string clears the custom name.
+
+**Returns:**
+- `success`: Whether the rename was successful
+
+**Notes:**
+- Custom names are stored by URL, so they persist even if tab order changes
+- Names are session-based and reset when the MCP server restarts
+- Custom names appear in `browser_list_tabs` output for easier identification
+- Does NOT change Chrome's visual tab bar (only affects MCP tool output)
+
+**Examples:**
+```javascript
+// Name a tab
+{ tabId: 0, name: "GitHub Trending" }
+
+// Name dev server
+{ tabId: 1, name: "My App (localhost)" }
+
+// Clear custom name
+{ tabId: 0, name: "" }
+```
 
 ---
 

@@ -155,15 +155,38 @@ async function getCdpBrowser(): Promise<typeof cdpBrowser> {
 }
 
 /**
+ * Get filtered non-chrome pages from CDP browser
+ */
+async function getNonChromePages(): Promise<import('puppeteer-core').Page[] | null> {
+  const browser = await getCdpBrowser();
+  if (!browser) return null;
+
+  const pages = await browser.pages();
+  return pages.filter(p =>
+    !p.url().startsWith('chrome://') && !p.url().startsWith('chrome-extension://')
+  );
+}
+
+/**
+ * Get a specific page by tabId (index in non-chrome pages array)
+ */
+async function getPageByTabId(tabId?: number): Promise<import('puppeteer-core').Page | null> {
+  const pages = await getNonChromePages();
+  if (!pages || pages.length === 0) return null;
+
+  if (tabId !== undefined && tabId >= 0 && tabId < pages.length) {
+    return pages[tabId];
+  }
+  // Default to first page if no tabId specified
+  return pages[0];
+}
+
+/**
  * Execute script via CDP (bypasses CSP)
  */
-async function executeScriptViaCdp(code: string): Promise<ScriptResult | null> {
+async function executeScriptViaCdp(code: string, tabId?: number): Promise<ScriptResult | null> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) return null;
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(tabId);
 
     if (!page) {
       return { success: false, error: 'No active page found' };
@@ -187,22 +210,22 @@ async function executeScriptViaCdp(code: string): Promise<ScriptResult | null> {
 /**
  * Get page info via CDP
  */
-async function getPageInfoViaCdp(): Promise<PageInfo | null> {
+async function getPageInfoViaCdp(tabId?: number): Promise<PageInfo | null> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) return null;
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(tabId);
 
     if (!page) {
       return { url: '', title: '', tabId: -1, error: 'No active page' };
     }
 
+    // Find the index of this page in the non-chrome pages list
+    const pages = await getNonChromePages();
+    const pageIndex = pages?.findIndex(p => p === page) ?? -1;
+
     return {
       url: page.url(),
       title: await page.title(),
-      tabId: -1 // CDP doesn't have tab IDs
+      tabId: pageIndex
     };
   } catch {
     return null;
@@ -253,7 +276,7 @@ export async function executeScript(
   }
 ): Promise<ScriptResult> {
   // Try CDP first (bypasses CSP)
-  const cdpResult = await executeScriptViaCdp(options.code);
+  const cdpResult = await executeScriptViaCdp(options.code, options.tabId);
   if (cdpResult !== null) {
     return cdpResult;
   }
@@ -283,12 +306,10 @@ export async function getPageInfo(
   backendUrl: string,
   tabId?: number
 ): Promise<PageInfo> {
-  // Try CDP first (if no specific tabId requested)
-  if (!tabId) {
-    const cdpResult = await getPageInfoViaCdp();
-    if (cdpResult !== null) {
-      return cdpResult;
-    }
+  // Try CDP first
+  const cdpResult = await getPageInfoViaCdp(tabId);
+  if (cdpResult !== null) {
+    return cdpResult;
   }
 
   // Fall back to extension method
@@ -351,18 +372,13 @@ export async function takeScreenshot(options: {
   selector?: string;
   fullPage?: boolean;
   outputPath?: string;
+  tabId?: number;
 }): Promise<ScreenshotResult> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
-    }
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(options.tabId);
 
     if (!page) {
-      return { success: false, error: 'No active page found' };
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
     // Clean up old screenshots before taking new one
@@ -422,18 +438,13 @@ export async function downloadImage(options: {
   selector?: string;
   url?: string;
   outputPath?: string;
+  tabId?: number;
 }): Promise<DownloadImageResult> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
-    }
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(options.tabId);
 
     if (!page) {
-      return { success: false, error: 'No active page found' };
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
     let imageUrl = options.url;
@@ -523,36 +534,71 @@ export interface TabInfo {
   tabId: number;
   url: string;
   title: string;
+  customName?: string;  // User-assigned name (stored by URL)
   active: boolean;
 }
 
 /**
+ * Storage for custom tab names (keyed by URL)
+ * This is session-based - names persist while MCP server is running
+ */
+const customTabNames: Map<string, string> = new Map();
+
+/**
+ * Rename a tab (assign a custom name)
+ * The name is stored by URL so it persists even if tab order changes
+ */
+export async function renameTab(tabId: number, name: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const pages = await getNonChromePages();
+    if (!pages) {
+      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
+    }
+
+    if (tabId < 0 || tabId >= pages.length) {
+      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 0-${pages.length - 1}` };
+    }
+
+    const url = pages[tabId].url();
+
+    if (name.trim() === '') {
+      // Empty name clears the custom name
+      customTabNames.delete(url);
+    } else {
+      customTabNames.set(url, name.trim());
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
  * List all open browser tabs via CDP
+ * Note: tabId is the index in the filtered (non-chrome) pages array.
+ * Use this tabId with other functions like executeScript, clickElement, etc.
  */
 export async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
+    const pages = await getNonChromePages();
+    if (!pages) {
       return { tabs: [], error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
-    const pages = await browser.pages();
     const tabs: TabInfo[] = [];
 
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const url = page.url();
-
-      // Skip chrome:// pages
-      if (url.startsWith('chrome://') || url.startsWith('chrome-extension://')) {
-        continue;
-      }
+      const customName = customTabNames.get(url);
 
       tabs.push({
         tabId: i,
         url: url,
         title: await page.title(),
-        active: i === 0 // First non-chrome page is considered active
+        customName: customName,
+        active: i === 0 // Note: CDP doesn't expose which tab is truly "active" in Chrome
       });
     }
 
@@ -567,23 +613,16 @@ export async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
  */
 export async function switchTab(tabId: number): Promise<{ success: boolean; error?: string }> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
+    const pages = await getNonChromePages();
+    if (!pages) {
       return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
-    const pages = await browser.pages();
-
-    // Filter out chrome:// pages
-    const nonChromePaths = pages.filter(p =>
-      !p.url().startsWith('chrome://') && !p.url().startsWith('chrome-extension://')
-    );
-
-    if (tabId < 0 || tabId >= nonChromePaths.length) {
-      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 0-${nonChromePaths.length - 1}` };
+    if (tabId < 0 || tabId >= pages.length) {
+      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 0-${pages.length - 1}` };
     }
 
-    await nonChromePaths[tabId].bringToFront();
+    await pages[tabId].bringToFront();
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -593,18 +632,12 @@ export async function switchTab(tabId: number): Promise<{ success: boolean; erro
 /**
  * Click an element via CDP
  */
-export async function clickElement(selector: string): Promise<{ success: boolean; error?: string }> {
+export async function clickElement(selector: string, tabId?: number): Promise<{ success: boolean; error?: string }> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
-    }
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(tabId);
 
     if (!page) {
-      return { success: false, error: 'No active page found' };
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
     // Wait for element and click
@@ -620,18 +653,12 @@ export async function clickElement(selector: string): Promise<{ success: boolean
 /**
  * Fill an input field via CDP
  */
-export async function fillInput(selector: string, value: string): Promise<{ success: boolean; error?: string }> {
+export async function fillInput(selector: string, value: string, tabId?: number): Promise<{ success: boolean; error?: string }> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
-    }
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(tabId);
 
     if (!page) {
-      return { success: false, error: 'No active page found' };
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
     // Wait for element, clear it, and type
@@ -686,19 +713,14 @@ export async function getElementInfo(
   options: {
     includeStyles?: boolean;
     styleProperties?: string[];
+    tabId?: number;
   } = {}
 ): Promise<ElementInfo> {
   try {
-    const browser = await getCdpBrowser();
-    if (!browser) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
-    }
-
-    const pages = await browser.pages();
-    const page = pages.find(p => !p.url().startsWith('chrome://')) || pages[0];
+    const page = await getPageByTabId(options.tabId);
 
     if (!page) {
-      return { success: false, error: 'No active page found' };
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
     // Default style properties to extract (most useful for recreation)

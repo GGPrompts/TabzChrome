@@ -13,15 +13,16 @@ Browser MCP Tools:
  6. Console Logs   - View browser console output
  7. List Tabs      - Show all open tabs
  8. Switch Tab     - Focus a different tab
- 9. Open URL       - Navigate (GitHub/Vercel/localhost)
-10. Inspect Element - Get HTML/CSS for debugging
-11. Download Image - Save image from page
+ 9. Rename Tab     - Assign custom name to tab
+10. Open URL       - Navigate (GitHub/Vercel/localhost)
+11. Inspect Element - Get HTML/CSS for debugging
+12. Download Image - Save image from page
 ───────────────────────────────────────
 ```
 
-Use AskUserQuestion with a single question asking which tool (1-11). Use these options:
+Use AskUserQuestion with a single question asking which tool (1-12). Use these options:
 - "Quick actions (1-4)"
-- "Advanced (5-11)"
+- "Advanced (5-12)"
 
 The user will type the number via "Other".
 
@@ -31,17 +32,18 @@ Based on the number entered, prompt for required parameters:
 
 | Tool | Required Params | Optional |
 |------|-----------------|----------|
-| 1. Page Info | (none) | - |
-| 2. Screenshot | (none) | selector, fullPage |
-| 3. Click | selector | - |
-| 4. Fill | selector, value | - |
-| 5. Execute JS | code | - |
-| 6. Console Logs | (none) | level (error/warn/all) |
+| 1. Page Info | (none) | tabId |
+| 2. Screenshot | (none) | selector, fullPage, tabId |
+| 3. Click | selector | tabId |
+| 4. Fill | selector, value | tabId |
+| 5. Execute JS | code | tabId |
+| 6. Console Logs | (none) | level (error/warn/all), tabId |
 | 7. List Tabs | (none) | - |
 | 8. Switch Tab | tabId | - |
-| 9. Open URL | url | newTab, background |
-| 10. Inspect Element | selector | includeStyles |
-| 11. Download Image | selector OR url | - |
+| 9. Rename Tab | tabId, name | - |
+| 10. Open URL | url | newTab, background |
+| 11. Inspect Element | selector | includeStyles, tabId |
+| 12. Download Image | selector OR url | tabId |
 
 For tools with required params, use AskUserQuestion with example options + "Other" for custom input.
 
@@ -59,9 +61,10 @@ Execute the corresponding MCP tool:
 - 6 → `mcp__browser__browser_get_console_logs`
 - 7 → `mcp__browser__browser_list_tabs`
 - 8 → `mcp__browser__browser_switch_tab`
-- 9 → `mcp__browser__browser_open_url`
-- 10 → `mcp__browser__browser_get_element`
-- 11 → `mcp__browser__browser_download_image`
+- 9 → `mcp__browser__browser_rename_tab`
+- 10 → `mcp__browser__browser_open_url`
+- 11 → `mcp__browser__browser_get_element`
+- 12 → `mcp__browser__browser_download_image`
 
 ## After Execution
 

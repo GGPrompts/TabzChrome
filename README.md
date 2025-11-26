@@ -312,9 +312,12 @@ TabzChrome includes a **Browser MCP Server** that lets Claude Code control your 
 | `browser_get_console_logs` | View browser console output |
 | `browser_list_tabs` | Show all open tabs |
 | `browser_switch_tab` | Focus a different tab |
+| `browser_rename_tab` | Assign custom name to a tab |
 | `browser_open_url` | Navigate to allowed URLs |
 | `browser_get_element` | Inspect element HTML/CSS |
 | `browser_download_image` | Save image from page |
+
+> **Note:** Most tools support a `tabId` parameter to target specific tabs.
 
 ### Quick Start: `/ttmcp` Command
 
@@ -330,7 +333,7 @@ Browser MCP Tools:
  5. Execute JS     - Run JavaScript in browser
  ...
 ───────────────────────────────────────
-Enter number (1-11):
+Enter number (1-12):
 ```
 
 ### Use Cases
