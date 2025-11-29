@@ -244,6 +244,9 @@ function detectPackageCommands() {
             border-radius: 4px;
             cursor: pointer;
             z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none;
           `
           btn.onclick = () => {
             chrome.runtime.sendMessage({
@@ -255,6 +258,16 @@ function detectPackageCommands() {
           if (block.parentElement) {
             block.parentElement.style.position = 'relative'
             block.parentElement.appendChild(btn)
+
+            // Show button on hover
+            block.parentElement.addEventListener('mouseenter', () => {
+              btn.style.opacity = '1'
+              btn.style.pointerEvents = 'auto'
+            })
+            block.parentElement.addEventListener('mouseleave', () => {
+              btn.style.opacity = '0'
+              btn.style.pointerEvents = 'none'
+            })
           }
         }
         break

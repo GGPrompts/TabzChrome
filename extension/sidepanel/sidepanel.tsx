@@ -255,12 +255,23 @@ function SidePanelTerminal() {
 
           const updatedSessions = Array.from(sessionMap.values())
 
-          // Preserve currentSession if it exists in updatedSessions, otherwise set to first
-          if (updatedSessions.length > 0) {
-            if (!currentSession || !updatedSessions.find(s => s.id === currentSession)) {
-              setCurrentSession(updatedSessions[0].id)
+          // 🔧 FIX: Only reset current session if it was removed from backend
+          // Don't reset just because currentSession state hasn't synced yet
+          setCurrentSession(prevCurrent => {
+            // If no sessions, clear current
+            if (updatedSessions.length === 0) {
+              return null
             }
-          }
+
+            // If current session still exists in updated list, keep it
+            if (prevCurrent && updatedSessions.find(s => s.id === prevCurrent)) {
+              return prevCurrent
+            }
+
+            // Only now fall back to first session (when current was truly removed)
+            console.log('[Sidepanel] ⚠️ Current session removed, switching to first')
+            return updatedSessions[0].id
+          })
 
           return updatedSessions
         })
