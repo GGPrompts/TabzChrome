@@ -22,8 +22,8 @@ type ListTabsInput = z.infer<typeof ListTabsSchema>;
 const SwitchTabSchema = z.object({
   tabId: z.number()
     .int()
-    .min(0)
-    .describe("The tab ID to switch to. Get available IDs from browser_list_tabs.")
+    .min(1)
+    .describe("The tab ID to switch to (1-based). Get available IDs from browser_list_tabs.")
 }).strict();
 
 type SwitchTabInput = z.infer<typeof SwitchTabSchema>;
@@ -32,8 +32,8 @@ type SwitchTabInput = z.infer<typeof SwitchTabSchema>;
 const RenameTabSchema = z.object({
   tabId: z.number()
     .int()
-    .min(0)
-    .describe("The tab ID to rename. Get available IDs from browser_list_tabs."),
+    .min(1)
+    .describe("The tab ID to rename (1-based). Get available IDs from browser_list_tabs."),
   name: z.string()
     .describe("The custom name to assign to this tab. Empty string clears the custom name.")
 }).strict();
@@ -57,16 +57,17 @@ Args:
 
 Returns:
   Array of tabs with:
-  - tabId: Numeric ID for use with other tools
+  - tabId: Numeric ID (1-based) for use with other tools
   - url: Full URL of the tab
   - title: Page title
-  - active: Whether this tab is currently focused
+  - customName: User-assigned name (if set)
 
 Examples:
   - List all tabs: (no args needed)
   - Get JSON format: response_format="json"
 
 Use browser_switch_tab with the tabId to switch to a specific tab.
+Tab IDs start at 1 (not 0) for clarity.
 
 Error Handling:
   - "CDP not available": Chrome not running with --remote-debugging-port=9222
@@ -98,9 +99,8 @@ Only chrome:// or extension pages are present.`;
           } else {
             const lines: string[] = [`# Browser Tabs (${result.tabs.length} open)`, ""];
             for (const tab of result.tabs) {
-              const activeMarker = tab.active ? " (active)" : "";
               const displayName = tab.customName || tab.title || "(no title)";
-              lines.push(`## Tab ${tab.tabId}${activeMarker}`);
+              lines.push(`## Tab ${tab.tabId}`);
               lines.push(`**Title:** ${displayName}`);
               if (tab.customName) {
                 lines.push(`**Original Title:** ${tab.title || "(no title)"}`);
@@ -108,7 +108,7 @@ Only chrome:// or extension pages are present.`;
               lines.push(`**URL:** ${tab.url}`);
               lines.push("");
             }
-            lines.push("Use `browser_switch_tab` with tabId to switch tabs.");
+            lines.push("Use `browser_switch_tab` with tabId (1-based) to switch tabs.");
             lines.push("Use `browser_rename_tab` to assign custom names.");
             resultText = lines.join("\n");
           }
@@ -138,15 +138,15 @@ Brings the specified tab to the front/focus. Use browser_list_tabs first
 to get available tab IDs.
 
 Args:
-  - tabId (required): The numeric tab ID to switch to
+  - tabId (required): The numeric tab ID to switch to (1-based)
 
 Returns:
   - success: Whether the switch was successful
   - error: Error message if failed
 
 Examples:
-  - Switch to first tab: tabId=0
-  - Switch to third tab: tabId=2
+  - Switch to first tab: tabId=1
+  - Switch to third tab: tabId=3
 
 After switching, use browser_get_page_info to confirm the current page.
 
@@ -199,7 +199,7 @@ Names are stored by URL, so they persist even if tab order changes.
 Names are session-based and reset when the MCP server restarts.
 
 Args:
-  - tabId (required): The tab ID to rename (from browser_list_tabs)
+  - tabId (required): The tab ID to rename (1-based, from browser_list_tabs)
   - name (required): Custom name for the tab. Empty string clears the custom name.
 
 Returns:
@@ -207,9 +207,9 @@ Returns:
   - error: Error message if failed
 
 Examples:
-  - Name a tab: tabId=0, name="GitHub Trending"
-  - Name dev server: tabId=1, name="My App (localhost)"
-  - Clear custom name: tabId=0, name=""
+  - Name a tab: tabId=1, name="GitHub Trending"
+  - Name dev server: tabId=2, name="My App (localhost)"
+  - Clear custom name: tabId=1, name=""
 
 After renaming, use browser_list_tabs to see the updated names.
 

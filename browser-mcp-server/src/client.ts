@@ -174,8 +174,9 @@ async function getPageByTabId(tabId?: number): Promise<import('puppeteer-core').
   const pages = await getNonChromePages();
   if (!pages || pages.length === 0) return null;
 
-  if (tabId !== undefined && tabId >= 0 && tabId < pages.length) {
-    return pages[tabId];
+  // Tab IDs are 1-based for user clarity, convert to 0-based index
+  if (tabId !== undefined && tabId >= 1 && tabId <= pages.length) {
+    return pages[tabId - 1];
   }
   // Default to first page if no tabId specified
   return pages[0];
@@ -225,7 +226,7 @@ async function getPageInfoViaCdp(tabId?: number): Promise<PageInfo | null> {
     return {
       url: page.url(),
       title: await page.title(),
-      tabId: pageIndex
+      tabId: pageIndex >= 0 ? pageIndex + 1 : -1 // 1-based for user clarity
     };
   } catch {
     return null;
@@ -555,11 +556,12 @@ export async function renameTab(tabId: number, name: string): Promise<{ success:
       return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
-    if (tabId < 0 || tabId >= pages.length) {
-      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 0-${pages.length - 1}` };
+    // Tab IDs are 1-based for user clarity
+    if (tabId < 1 || tabId > pages.length) {
+      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 1-${pages.length}` };
     }
 
-    const url = pages[tabId].url();
+    const url = pages[tabId - 1].url(); // Convert to 0-based index
 
     if (name.trim() === '') {
       // Empty name clears the custom name
@@ -594,11 +596,11 @@ export async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
       const customName = customTabNames.get(url);
 
       tabs.push({
-        tabId: i,
+        tabId: i + 1, // 1-based for user clarity (Tab 1, Tab 2, etc.)
         url: url,
         title: await page.title(),
         customName: customName,
-        active: i === 0 // Note: CDP doesn't expose which tab is truly "active" in Chrome
+        active: false // CDP can't reliably detect active tab - removed misleading marker
       });
     }
 
@@ -618,11 +620,12 @@ export async function switchTab(tabId: number): Promise<{ success: boolean; erro
       return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
     }
 
-    if (tabId < 0 || tabId >= pages.length) {
-      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 0-${pages.length - 1}` };
+    // Tab IDs are 1-based for user clarity
+    if (tabId < 1 || tabId > pages.length) {
+      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 1-${pages.length}` };
     }
 
-    await pages[tabId].bringToFront();
+    await pages[tabId - 1].bringToFront(); // Convert to 0-based index
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
