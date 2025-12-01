@@ -16,6 +16,20 @@ const ALLOWED_URL_PATTERNS = [
   /^https?:\/\/127\.0\.0\.1(:\d+)?(\/.*)?$/i,
   /^https?:\/\/[\w-]+\.vercel\.app(\/.*)?$/i,  // Vercel preview/production (e.g., my-app-abc123.vercel.app)
   /^https?:\/\/[\w.-]+\.vercel\.com(\/.*)?$/i, // Vercel alternative domain
+  // Image/Video Generation AI
+  /^https?:\/\/(www\.)?bing\.com\/images\/create(\/.*)?$/i,  // Bing Image Creator
+  /^https?:\/\/(sora\.)?chatgpt\.com(\/.*)?$/i,              // ChatGPT + Sora
+  /^https?:\/\/(www\.)?ideogram\.ai(\/.*)?$/i,               // Ideogram
+  /^https?:\/\/(app\.)?leonardo\.ai(\/.*)?$/i,               // Leonardo.ai
+  /^https?:\/\/(www\.)?tensor\.art(\/.*)?$/i,                // Tensor.Art
+  /^https?:\/\/(www\.)?playground\.com(\/.*)?$/i,            // Playground
+  /^https?:\/\/(www\.)?lexica\.art(\/.*)?$/i,                // Lexica
+  // AI Chat/Search
+  /^https?:\/\/(www\.)?claude\.ai(\/.*)?$/i,                 // Claude.ai
+  /^https?:\/\/(www\.)?perplexity\.ai(\/.*)?$/i,             // Perplexity
+  /^https?:\/\/(chat\.)?deepseek\.com(\/.*)?$/i,             // DeepSeek
+  /^https?:\/\/(www\.)?phind\.com(\/.*)?$/i,                 // Phind
+  /^https?:\/\/(www\.)?you\.com(\/.*)?$/i,                   // You.com
 ];
 
 /**
@@ -73,15 +87,14 @@ export function registerOmniboxTools(server: McpServer): void {
     `Open a URL in the browser (supports allowed domains only).
 
 Opens URLs from whitelisted domains in a new or current browser tab.
-Useful for opening GitHub repositories, GitLab projects, Vercel deployments, or localhost development servers.
+Useful for opening GitHub repositories, GitLab projects, Vercel deployments, AI tools, or localhost development servers.
 
 **Allowed Domains:**
-- github.com (any repository, PR, issue, etc.)
-- gitlab.com (any project, MR, issue, etc.)
-- *.vercel.app (Vercel preview and production deployments)
-- *.vercel.com (Vercel alternative domain)
-- localhost (any port)
-- 127.0.0.1 (any port)
+- github.com, gitlab.com
+- *.vercel.app, *.vercel.com
+- localhost, 127.0.0.1
+- Image AI: bing.com/images/create, chatgpt.com, sora.chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
+- Chat AI: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com
 
 Args:
   - url (required): URL to open (can omit https:// for allowed domains)
@@ -124,12 +137,11 @@ Security:
 **Provided URL:** ${params.url}
 
 **Allowed domains:**
-- github.com
-- gitlab.com
-- *.vercel.app
-- *.vercel.com
-- localhost
-- 127.0.0.1
+- github.com, gitlab.com
+- *.vercel.app, *.vercel.com
+- localhost, 127.0.0.1
+- Image AI: bing.com/images/create, chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
+- Chat AI: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com
 
 Please provide a URL from one of the allowed domains.`
             }],
