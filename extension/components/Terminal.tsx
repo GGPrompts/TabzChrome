@@ -135,7 +135,13 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Open terminal
     xterm.open(terminalRef.current)
-    console.log('[Terminal] xterm opened successfully')
+    console.log('[Terminal] xterm opened successfully', {
+      terminalId,
+      requestedFontSize: fontSize,
+      requestedFontFamily: fontFamily,
+      actualFontSize: xterm.options.fontSize,
+      actualFontFamily: xterm.options.fontFamily,
+    })
 
     // Handle terminal input - send to background worker
     xterm.onData((data) => {

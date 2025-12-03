@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
-import { SettingsModal, useTerminalSettings, type Profile } from '../components/SettingsModal'
+import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
 import '../styles/globals.css'
@@ -26,8 +26,11 @@ function SidePanelTerminal() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [pasteCommand, setPasteCommand] = useState<string | null>(null)  // Command to paste from context menu
+  const [globalWorkingDir, setGlobalWorkingDir] = useState<string>('~')  // Global working dir for profiles without one
+  const [recentDirs, setRecentDirs] = useState<string[]>(['~', '~/projects'])  // Recent directories
+  const [showDirDropdown, setShowDirDropdown] = useState(false)
+  const [customDirInput, setCustomDirInput] = useState('')
   const portRef = useRef<chrome.runtime.Port | null>(null)
-  const terminalSettings = useTerminalSettings()
 
   // Refs for keyboard shortcut handlers (to access current state from callbacks)
   const sessionsRef = useRef<TerminalSession[]>([])
@@ -126,11 +129,29 @@ function SidePanelTerminal() {
     }
   }, [contextMenu.show])
 
-  // Load profiles from Chrome storage
+  // Load profiles from Chrome storage (or initialize from profiles.json if not present)
   useEffect(() => {
-    chrome.storage.local.get(['profiles'], (result) => {
-      if (result.profiles && Array.isArray(result.profiles)) {
+    chrome.storage.local.get(['profiles', 'defaultProfile'], async (result) => {
+      if (result.profiles && Array.isArray(result.profiles) && result.profiles.length > 0) {
         setProfiles(result.profiles)
+      } else {
+        // Initialize profiles from profiles.json on first load
+        try {
+          const url = chrome.runtime.getURL('profiles.json')
+          const response = await fetch(url)
+          const data = await response.json()
+
+          console.log('[Sidepanel] Initializing default profiles from profiles.json')
+          setProfiles(data.profiles as Profile[])
+
+          // Save to storage so they persist
+          chrome.storage.local.set({
+            profiles: data.profiles,
+            defaultProfile: data.defaultProfile || 'default'
+          })
+        } catch (error) {
+          console.error('[Sidepanel] Failed to load default profiles:', error)
+        }
       }
     })
 
@@ -146,6 +167,50 @@ function SidePanelTerminal() {
       chrome.storage.onChanged.removeListener(handleStorageChange)
     }
   }, [])
+
+  // Load global working directory and recent dirs from Chrome storage
+  useEffect(() => {
+    chrome.storage.local.get(['globalWorkingDir', 'recentDirs'], (result) => {
+      if (result.globalWorkingDir && typeof result.globalWorkingDir === 'string') {
+        setGlobalWorkingDir(result.globalWorkingDir)
+      }
+      if (result.recentDirs && Array.isArray(result.recentDirs)) {
+        setRecentDirs(result.recentDirs as string[])
+      }
+    })
+  }, [])
+
+  // Save global working directory when it changes
+  useEffect(() => {
+    chrome.storage.local.set({ globalWorkingDir })
+  }, [globalWorkingDir])
+
+  // Save recent dirs when they change
+  useEffect(() => {
+    chrome.storage.local.set({ recentDirs })
+  }, [recentDirs])
+
+  // Helper to add a directory to recent list
+  const addToRecentDirs = (dir: string) => {
+    if (!dir || dir === '~') return // Don't add empty or home
+    setRecentDirs(prev => {
+      const filtered = prev.filter(d => d !== dir)
+      return [dir, ...filtered].slice(0, 10) // Keep last 10
+    })
+  }
+
+  // Close dir dropdown when clicking outside
+  useEffect(() => {
+    if (!showDirDropdown) return
+    const handleClick = () => setShowDirDropdown(false)
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick)
+    }, 100)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showDirDropdown])
 
   // Load saved terminal sessions from Chrome storage on mount
   useEffect(() => {
@@ -338,13 +403,16 @@ function SidePanelTerminal() {
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
+        const effectiveWorkingDir = profile.workingDir || globalWorkingDir
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
           name: profile.name,
-          workingDir: profile.workingDir,
-          profile: profile,
+          workingDir: effectiveWorkingDir,
+          command: profile.command,
+          profile: { ...profile, workingDir: effectiveWorkingDir },
         })
+        addToRecentDirs(effectiveWorkingDir)
       } else {
         // Fallback to regular bash if profile not found
         handleSpawnTerminal()
@@ -353,13 +421,16 @@ function SidePanelTerminal() {
   }
 
   const handleSpawnProfile = (profile: Profile) => {
+    const effectiveWorkingDir = profile.workingDir || globalWorkingDir
     sendMessage({
       type: 'SPAWN_TERMINAL',
       spawnOption: 'bash',
       name: profile.name,
-      workingDir: profile.workingDir,
-      profile: profile,
+      workingDir: effectiveWorkingDir,
+      command: profile.command,
+      profile: { ...profile, workingDir: effectiveWorkingDir },
     })
+    addToRecentDirs(effectiveWorkingDir)
     setShowProfileDropdown(false)
   }
 
@@ -385,19 +456,23 @@ function SidePanelTerminal() {
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
+        const effectiveWorkingDir = profile.workingDir || globalWorkingDir
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
           name: profile.name,
-          workingDir: profile.workingDir,
-          profile: profile,
+          workingDir: effectiveWorkingDir,
+          command: profile.command,
+          profile: { ...profile, workingDir: effectiveWorkingDir },
         })
+        addToRecentDirs(effectiveWorkingDir)
       } else {
         // Fallback to regular bash
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
           name: 'Bash',
+          workingDir: globalWorkingDir,
         })
       }
     })
@@ -450,13 +525,16 @@ function SidePanelTerminal() {
 
   // Omnibox handler: spawn terminal with specific profile
   const handleOmniboxSpawnProfile = (profile: Profile) => {
+    const effectiveWorkingDir = profile.workingDir || globalWorkingDir
     sendMessage({
       type: 'SPAWN_TERMINAL',
       spawnOption: 'bash',
       name: profile.name,
-      workingDir: profile.workingDir,
-      profile: profile,
+      workingDir: effectiveWorkingDir,
+      command: profile.command,
+      profile: { ...profile, workingDir: effectiveWorkingDir },
     })
+    addToRecentDirs(effectiveWorkingDir)
   }
 
   // Omnibox handler: spawn terminal and run command
@@ -467,6 +545,7 @@ function SidePanelTerminal() {
       const profiles = (result.profiles as Profile[]) || []
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
+      const effectiveWorkingDir = profile?.workingDir || globalWorkingDir
       // Spawn terminal with the command
       // The command will be typed into the terminal after spawn
       sendMessage({
@@ -474,9 +553,10 @@ function SidePanelTerminal() {
         spawnOption: 'bash',
         name: command.split(' ')[0], // Use first word as tab name (e.g., "git", "npm")
         command: command, // Pass command to execute
-        workingDir: profile?.workingDir,
-        profile: profile,
+        workingDir: effectiveWorkingDir,
+        profile: profile ? { ...profile, workingDir: effectiveWorkingDir } : undefined,
       })
+      addToRecentDirs(effectiveWorkingDir)
     })
   }
 
@@ -616,51 +696,91 @@ function SidePanelTerminal() {
             </Badge>
           )}
 
-          {/* Settings Button */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
-            title="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-
-          {/* New Tab Dropdown */}
+          {/* Working Directory Dropdown */}
           <div className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                setShowProfileDropdown(!showProfileDropdown)
+                setShowDirDropdown(!showDirDropdown)
+                setCustomDirInput('')
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded-md transition-colors font-medium text-sm"
-              title="New Tab - Select Profile"
+              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88] max-w-[140px]"
+              title={`Working Directory: ${globalWorkingDir}`}
             >
-              <Plus className="h-4 w-4" />
-              <span>New Tab</span>
-              <ChevronDown className="h-3 w-3" />
+              <FolderOpen className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs truncate">{globalWorkingDir}</span>
+              <ChevronDown className="h-3 w-3 flex-shrink-0" />
             </button>
 
-            {/* Profile Dropdown Menu */}
-            {showProfileDropdown && profiles.length > 0 && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[200px] z-50 overflow-hidden">
-                {profiles.map((profile) => (
-                  <button
-                    key={profile.id}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSpawnProfile(profile)
+            {showDirDropdown && (
+              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[220px] z-50 overflow-hidden">
+                {/* Custom input */}
+                <div className="p-2 border-b border-gray-800">
+                  <input
+                    type="text"
+                    value={customDirInput}
+                    onChange={(e) => setCustomDirInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customDirInput.trim()) {
+                        setGlobalWorkingDir(customDirInput.trim())
+                        addToRecentDirs(customDirInput.trim())
+                        setShowDirDropdown(false)
+                        setCustomDirInput('')
+                      }
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-sm border-b border-gray-800 last:border-b-0"
-                  >
-                    <div className="font-medium">{profile.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5 truncate">
-                      {profile.workingDir}
+                    placeholder="Type path and press Enter"
+                    className="w-full px-2 py-1.5 bg-black/50 border border-gray-700 rounded text-white text-xs font-mono focus:border-[#00ff88] focus:outline-none"
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                  />
+                </div>
+                {/* Recent directories */}
+                <div className="max-h-[200px] overflow-y-auto">
+                  {recentDirs.map((dir) => (
+                    <div
+                      key={dir}
+                      className={`flex items-center justify-between px-3 py-2 hover:bg-[#00ff88]/10 transition-colors text-xs font-mono border-b border-gray-800 last:border-b-0 group ${
+                        dir === globalWorkingDir ? 'text-[#00ff88] bg-[#00ff88]/5' : 'text-gray-300'
+                      }`}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setGlobalWorkingDir(dir)
+                          setShowDirDropdown(false)
+                        }}
+                        className="flex-1 text-left truncate"
+                      >
+                        {dir}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setRecentDirs(prev => prev.filter(d => d !== dir))
+                          if (globalWorkingDir === dir) {
+                            setGlobalWorkingDir('~')
+                          }
+                        }}
+                        className="ml-2 p-0.5 rounded hover:bg-red-500/20 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove from list"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
+
+          {/* Settings Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
+            title="Profiles"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -694,14 +814,47 @@ function SidePanelTerminal() {
                   </button>
                 </div>
               ))}
-              {/* Quick Add Button - Spawns default profile */}
-              <button
-                onClick={handleSpawnDefaultProfile}
-                className="flex items-center justify-center px-3 py-1.5 rounded-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
-                title="New tab (default profile)"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              {/* Quick Add Button with Profile Dropdown */}
+              <div className="relative flex">
+                <button
+                  onClick={handleSpawnDefaultProfile}
+                  className="flex items-center justify-center px-2 py-1.5 rounded-l-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
+                  title="New tab (default profile)"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowProfileDropdown(!showProfileDropdown)
+                  }}
+                  className="flex items-center justify-center px-1 py-1.5 rounded-r-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border-l border-gray-700"
+                  title="Select profile"
+                >
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {/* Profile Dropdown Menu */}
+                {showProfileDropdown && profiles.length > 0 && (
+                  <div className="absolute left-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[180px] z-50 overflow-hidden">
+                    {profiles.map((profile) => (
+                      <button
+                        key={profile.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSpawnProfile(profile)
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
+                      >
+                        <div className="font-medium">{profile.name}</div>
+                        {profile.command && (
+                          <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -715,7 +868,7 @@ function SidePanelTerminal() {
                     <p className="text-lg font-medium mb-2">No active terminals</p>
                     <p className="text-sm mb-4">Spawn a terminal to get started</p>
                     <button
-                      onClick={handleSpawnTerminal}
+                      onClick={handleSpawnDefaultProfile}
                       className="px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00c8ff] text-black rounded-md hover:opacity-90 transition-opacity font-medium"
                     >
                       <Plus className="inline-block h-4 w-4 mr-2" />
@@ -748,7 +901,16 @@ function SidePanelTerminal() {
               </div>
             ) : (
               <div className="h-full">
-                {sessions.map(session => (
+                {sessions.map(session => {
+                  // Debug: log what profile settings are being passed
+                  console.log('[Sidepanel] Rendering terminal:', session.id, {
+                    profileExists: !!session.profile,
+                    profile: session.profile,
+                    resolvedFontSize: session.profile?.fontSize || 14,
+                    resolvedFontFamily: session.profile?.fontFamily || 'monospace',
+                    resolvedTheme: session.profile?.theme || 'dark',
+                  })
+                  return (
                   <div
                     key={session.id}
                     className="h-full"
@@ -760,9 +922,9 @@ function SidePanelTerminal() {
                       terminalType={session.type}
                       workingDir={session.workingDir || session.profile?.workingDir}
                       tmuxSession={session.sessionName}
-                      fontSize={session.profile?.fontSize || terminalSettings.fontSize}
-                      fontFamily={session.profile?.fontFamily || terminalSettings.fontFamily}
-                      theme={session.profile?.theme || terminalSettings.theme}
+                      fontSize={session.profile?.fontSize || 14}
+                      fontFamily={session.profile?.fontFamily || 'monospace'}
+                      theme={session.profile?.theme || 'dark'}
                       pasteCommand={session.id === currentSession ? pasteCommand : null}
                       onClose={() => {
                         sendMessage({
@@ -772,7 +934,8 @@ function SidePanelTerminal() {
                       }}
                     />
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

@@ -4,11 +4,11 @@
 
 A **simple, Windows Terminal-style Chrome extension** for managing bash terminals in your browser sidebar. Built with React, TypeScript, and xterm.js.
 
-**Version**: 2.0.0 (Simplified)
+**Version**: 2.1.0 (Profiles + Working Directory)
 **Status**: In Development - Windows Terminal Simplification ✨
 **Architecture**: Chrome Extension (Side Panel) + WebSocket backend
-**Philosophy**: Windows Terminal simplicity - just bash with profiles
-**Last Updated**: November 18, 2025
+**Philosophy**: Windows Terminal simplicity - bash with profiles and smart directory inheritance
+**Last Updated**: December 3, 2025
 
 ---
 
@@ -21,7 +21,7 @@ extension/
 │   └── sidepanel.tsx           # Main sidebar UI - Windows Terminal style
 ├── components/
 │   ├── Terminal.tsx            # xterm.js terminal component
-│   └── SettingsModal.tsx       # Settings (General + Profiles tabs)
+│   └── SettingsModal.tsx       # Profiles management (add/edit/delete)
 ├── background/
 │   └── background.ts           # Service worker (WebSocket + shortcuts)
 ├── shared/
@@ -78,11 +78,12 @@ backend/
 ## 🎨 Core Principles
 
 1. **Windows Terminal Simplicity** - Just bash terminals with profiles
-2. **Profiles Over Complexity** - Working directory + appearance settings, nothing more
-3. **Chrome Native** - Side panel API (Manifest V3), no external dependencies
-4. **Smart Persistence** - Terminal sessions and profiles saved in Chrome storage
-5. **Hybrid State** - Chrome storage for UI state + tmux for process persistence
-6. **Easy to Deploy** - Extension (load unpacked) + Backend (Node.js server)
+2. **Profiles Over Complexity** - Appearance + optional command, working directory inherits from header
+3. **Smart Directory Inheritance** - Global working directory in header, profiles inherit if empty
+4. **Chrome Native** - Side panel API (Manifest V3), no external dependencies
+5. **Smart Persistence** - Terminal sessions, profiles, and recent directories saved in Chrome storage
+6. **Hybrid State** - Chrome storage for UI state + tmux for process persistence
+7. **Easy to Deploy** - Extension (load unpacked) + Backend (Node.js server)
 
 ---
 
@@ -155,20 +156,23 @@ npm run build:extension && rsync -av --delete dist-extension/ /mnt/c/Users/marci
 
 ## 🚀 Key Features
 
-✅ **Windows Terminal-Style UI** - Clean header with "New Tab" dropdown
+✅ **Windows Terminal-Style UI** - Clean header with working directory selector
 ✅ **Profiles System** - Define terminal profiles with:
-  - Working directory (where terminal starts)
+  - Starting command (optional) - runs when terminal spawns (e.g., `lazygit`, `htop`)
+  - Working directory (optional) - leave empty to inherit from header
   - Font size (12-24px)
   - Font family (6 options: monospace, JetBrains Mono, Fira Code, etc.)
   - Theme (dark/light)
+✅ **Global Working Directory** - Dropdown in header sets default directory:
+  - Profiles without explicit workingDir inherit from this
+  - Recent directories remembered (with remove option)
+  - Enables one "lazygit" profile for all projects - just change header dir
 ✅ **Terminal Session Persistence** - Terminals survive sidebar close/reopen
 ✅ **Paste to Terminal** - Right-click selected text → "Paste to Terminal"
-✅ **Quick Spawn** - "+" button in tab bar spawns default profile
-✅ **Profile Dropdown** - "New Tab" dropdown to select any profile
-✅ **Settings Modal** - Two tabs:
-  - General: Global font size, font family, theme
-  - Profiles: Add/edit/delete profiles, set default
-✅ **Live Settings Updates** - Changes apply immediately, no extension reload
+✅ **Split + Button** - Windows Terminal-style in tab bar:
+  - Click + to spawn default profile
+  - Click ▼ to select any profile
+✅ **Settings Modal** - Profiles management (add/edit/delete, set default)
 ✅ **Tab Close Buttons** - Hover-to-show X buttons (Windows Terminal style)
 ✅ **Full Terminal Emulation** - xterm.js with copy/paste support
 ✅ **WebSocket Communication** - Real-time I/O via background worker
@@ -186,46 +190,74 @@ npm run build:extension && rsync -av --delete dist-extension/ /mnt/c/Users/marci
 - Keyboard shortcut (Ctrl+Shift+9)
 - Context menu → "Toggle Terminal Sidebar"
 - Context menu → "Paste to Terminal" (for selected text)
-- Windows Terminal-style header (clean, minimal)
+- Windows Terminal-style header with working directory selector
 - Tab close buttons (hover-to-show X)
-- Settings modal - General tab (font size, font family, theme)
-- Settings modal - Profiles tab (add/edit/delete profiles)
-- Live settings updates (no extension reload needed)
+- Settings modal - Profiles only (simplified, removed redundant General tab)
+- Profile settings: name, workingDir (optional), command (optional), font, theme
+- Global working directory in header (profiles inherit if their workingDir empty)
+- Recent directories list with persistence and remove option
 - Terminal spawning (bash only with ctt- prefix)
 - Terminal I/O (keyboard input, output display)
+- Starting command execution (profile.command runs on spawn)
 - WebSocket auto-reconnect
 - Copy/paste in terminals (Ctrl+Shift+C/V)
 - Session tabs (switch between multiple terminals)
 - Terminal session persistence (Chrome storage + tmux)
-- Profiles infrastructure (types, default profiles.json, storage)
-- "+" button in tab bar - Spawns default profile
-- "New Tab" dropdown - Select profile from list
-- Profile spawn logic - Passes profile settings to backend
+- Split + button in tab bar (+ spawns default, ▼ shows profile dropdown)
+- Profile spawn logic - Passes profile settings + inherited workingDir to backend
 
 ### 🎯 Vision
-Windows Terminal simplicity - just bash terminals with configurable profiles (working dir + appearance)
+Windows Terminal simplicity - bash terminals with profiles that can inherit working directory from header, enabling tool profiles (lazygit, htop) that work across all projects
 
 ---
 
 
-### Settings Modal
+### Profiles Modal
 
-Click the ⚙️ icon in the sidebar header to open settings.
+Click the ⚙️ icon in the sidebar header to manage profiles.
 
-**Font Size** (12-24px)
-- Adjust terminal font size with slider
-- See live preview before saving
-- ⚠️ **Note:** Font size changes require extension reload to fully take effect
+**Profile Settings:**
+- **Name** - Display name for the profile
+- **Working Directory** (optional) - Leave empty to inherit from header
+- **Starting Command** (optional) - Command to run when terminal spawns (e.g., `lazygit`, `npm run dev`)
+- **Font Size** (12-24px) - Per-profile font size
+- **Font Family** - Monospace, JetBrains Mono, Fira Code, Consolas, etc.
+- **Theme** - Dark or Light
 
-**Theme Toggle** (Dark/Light)
-- **Dark** (default): Black background (#0a0a0a) + green text (#00ff88)
-- **Light**: White background (#ffffff) + dark text (#24292e)
-- Changes apply immediately
+**Default Profile:**
+- Set which profile spawns when clicking the + button
+- Dropdown at top of profiles list
 
-**Settings Persistence:**
+**Working Directory Inheritance:**
+Profiles with empty workingDir inherit from the global working directory in the header. This enables:
+- One "lazygit" profile that works for any project
+- One "htop" profile, one "npm run dev" profile, etc.
+- Just change the header directory to switch projects
+
+**Profile Persistence:**
 - Stored in Chrome storage (local)
-- Survives browser restart
-- Applies to all terminals
+- Survives browser restart and extension updates
+
+
+### Working Directory Selector
+
+The folder icon in the header opens the working directory dropdown.
+
+**Features:**
+- **Current Directory** - Shows currently selected directory
+- **Custom Input** - Type any path and press Enter
+- **Recent Directories** - Last 10 directories used (persisted)
+- **Remove from List** - Hover over item and click X to remove typos
+
+**Path Format:**
+- `~` expands to home directory
+- `~/projects` → `/home/username/projects`
+- Paths are expanded by the backend
+
+**Inheritance:**
+- Profiles with empty workingDir use the header directory
+- Profiles with explicit workingDir ignore the header
+- Recent directories auto-populated when spawning terminals
 
 
 ### Keyboard Shortcuts

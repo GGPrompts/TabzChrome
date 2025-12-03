@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2025-12-03
+
+### 🚀 Major Features
+
+#### Global Working Directory with Profile Inheritance
+- **Working Directory Selector** - New dropdown in header (folder icon) to set global working directory
+- **Profile Inheritance** - Profiles with empty workingDir inherit from header
+- **Recent Directories** - Last 10 directories remembered with persistence
+- **Remove from List** - Hover and click X to remove typos from recent dirs
+- **Use Case** - One "lazygit" profile works for any project, just change header dir
+
+#### Profile Starting Commands
+- **Command Field** - Profiles can now have an optional starting command
+- **Auto-Execute** - Command runs automatically when terminal spawns
+- **Examples** - `lazygit`, `htop`, `npm run dev`, `vim .`
+
+#### Simplified Settings
+- **Removed General Tab** - Was redundant since all settings are per-profile
+- **Profiles Only** - Settings modal now just manages profiles
+- **Clearer UX** - No confusion about global vs profile settings
+
+#### Windows Terminal-Style Split Button
+- **Split + Button** - In tab bar, like Windows Terminal
+- **Click +** - Spawns terminal with default profile
+- **Click ▼** - Opens dropdown to select any profile
+- **Removed** - "New Tab" dropdown from header (cleaner)
+
+### 🔧 Technical Details
+
+- Profiles now have optional `command` field (string)
+- Profiles with empty `workingDir` inherit from `globalWorkingDir` state
+- `globalWorkingDir` and `recentDirs` persisted in Chrome storage
+- Spawn functions updated: `handleSpawnProfile`, `handleSpawnDefaultProfile`, etc.
+- Files changed: `sidepanel.tsx`, `SettingsModal.tsx`
+
+### 🐛 Bug Fixes
+
+- **Initial terminal uses default profile** - Fixed: was spawning basic bash without profile settings
+- **Profiles not loaded on first install** - Fixed: now auto-loads from profiles.json
+- **Settings modal state persists** - Fixed: modal now resets to list view when opened
+
+---
+
 ## [1.2.0] - 2025-11-24
 
 ### 🚀 Major Features
