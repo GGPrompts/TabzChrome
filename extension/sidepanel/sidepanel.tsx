@@ -27,6 +27,7 @@ function SidePanelTerminal() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [profileDropdownLeft, setProfileDropdownLeft] = useState<number | null>(null)
   const profileBtnRef = useRef<HTMLDivElement>(null)
+  const [showEmptyStateDropdown, setShowEmptyStateDropdown] = useState(false)
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
   const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
   const [pasteCommand, setPasteCommand] = useState<string | null>(null)  // Command to paste from context menu
@@ -299,6 +300,24 @@ function SidePanelTerminal() {
     }
   }, [showProfileDropdown])
 
+  // Close empty state dropdown when clicking outside
+  useEffect(() => {
+    if (!showEmptyStateDropdown) return
+
+    const handleClick = () => {
+      setShowEmptyStateDropdown(false)
+    }
+
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick)
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showEmptyStateDropdown])
+
   const handleWebSocketMessage = (data: any) => {
     console.log('[Sidepanel] handleWebSocketMessage:', data.type, data.type === 'terminal-spawned' || data.type === 'terminals' ? JSON.stringify(data).slice(0, 300) : '')
     switch (data.type) {
@@ -403,11 +422,18 @@ function SidePanelTerminal() {
         const closedTerminalId = data.data?.id || data.terminalId || data.id
         console.log('[Sidepanel] 🗑️ Terminal closed:', closedTerminalId)
         setSessions(prev => {
+          const closedIndex = prev.findIndex(s => s.id === closedTerminalId)
           const updated = prev.filter(s => s.id !== closedTerminalId)
-          // If closed terminal was active, switch to first remaining terminal
-          if (currentSession === closedTerminalId) {
-            setCurrentSession(updated[0]?.id || null)
-          }
+
+          // If closed terminal was active, switch to adjacent terminal
+          setCurrentSession(prevCurrent => {
+            if (prevCurrent !== closedTerminalId) return prevCurrent
+            if (updated.length === 0) return null
+            // Prefer the terminal that was after the closed one, else the one before
+            const newIndex = Math.min(closedIndex, updated.length - 1)
+            return updated[newIndex]?.id || null
+          })
+
           return updated
         })
         break
@@ -458,6 +484,7 @@ function SidePanelTerminal() {
     })
     addToRecentDirs(effectiveWorkingDir)
     setShowProfileDropdown(false)
+    setShowEmptyStateDropdown(false)
   }
 
   const handleCloseTab = (e: React.MouseEvent, terminalId: string) => {
@@ -1049,13 +1076,55 @@ function SidePanelTerminal() {
                   <>
                     <p className="text-lg font-medium mb-2">No active terminals</p>
                     <p className="text-sm mb-4">Spawn a terminal to get started</p>
-                    <button
-                      onClick={handleSpawnDefaultProfile}
-                      className="px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00c8ff] text-black rounded-md hover:opacity-90 transition-opacity font-medium"
-                    >
-                      <Plus className="inline-block h-4 w-4 mr-2" />
-                      New Terminal
-                    </button>
+                    <div className="relative flex">
+                      <button
+                        onClick={handleSpawnDefaultProfile}
+                        className="px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00c8ff] text-black rounded-l-md hover:opacity-90 transition-opacity font-medium flex items-center"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Terminal
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowEmptyStateDropdown(!showEmptyStateDropdown)
+                        }}
+                        className="px-2 py-2 bg-gradient-to-r from-[#00c8ff] to-[#00a8ff] text-black rounded-r-md hover:opacity-90 transition-opacity font-medium border-l border-black/20"
+                        title="Select profile"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                      {/* Profile Dropdown */}
+                      {showEmptyStateDropdown && profiles.length > 0 && (
+                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[180px] z-50 overflow-hidden">
+                          {profiles.map((profile) => {
+                            const truncatedDir = profile.workingDir
+                              ? './' + profile.workingDir.split('/').filter(Boolean).pop()
+                              : null
+                            return (
+                              <button
+                                key={profile.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSpawnProfile(profile)
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
+                              >
+                                <div className="font-medium flex items-center gap-2">
+                                  <span>{profile.name}</span>
+                                  {truncatedDir && (
+                                    <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
+                                  )}
+                                </div>
+                                {profile.command && (
+                                  <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>

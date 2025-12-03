@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Type, Moon, Sun, Terminal as TerminalIcon, Plus, Edit, Trash2 } from 'lucide-react'
+import { X, Type, Moon, Sun, Terminal as TerminalIcon, Plus, Edit, Trash2, GripVertical } from 'lucide-react'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -41,6 +41,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [formData, setFormData] = useState<Profile>(DEFAULT_PROFILE)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null)
 
   // Reset form state when modal opens
   useEffect(() => {
@@ -148,6 +151,63 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setFormData(DEFAULT_PROFILE)
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+
+    // Determine if cursor is in top or bottom half of the element
+    const rect = e.currentTarget.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    const position = e.clientY < midpoint ? 'above' : 'below'
+
+    setDragOverIndex(index)
+    setDropPosition(position)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+    setDropPosition(null)
+  }
+
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) {
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      setDropPosition(null)
+      return
+    }
+
+    const newProfiles = [...profiles]
+    const [draggedProfile] = newProfiles.splice(draggedIndex, 1)
+
+    // Calculate the actual insert index based on drop position
+    let insertIndex = index
+    if (dropPosition === 'below') {
+      insertIndex = index + 1
+    }
+    // Adjust for the removed item if it was before the insert point
+    if (draggedIndex < insertIndex) {
+      insertIndex -= 1
+    }
+
+    newProfiles.splice(insertIndex, 0, draggedProfile)
+    setProfiles(newProfiles)
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+    setDropPosition(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+    setDropPosition(null)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -227,9 +287,34 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {profiles.map((profile, index) => (
                     <div
                       key={profile.id}
-                      className="bg-black/30 border border-gray-800 rounded-lg p-3 hover:bg-black/40 transition-colors"
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={() => handleDrop(index)}
+                      onDragEnd={handleDragEnd}
+                      className={`
+                        relative bg-black/30 border rounded-lg p-3 transition-all
+                        ${draggedIndex === index ? 'opacity-50 border-[#00ff88]' : 'border-gray-800'}
+                        ${draggedIndex === null ? 'hover:bg-black/40' : ''}
+                      `}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      {/* Drop indicator line - above */}
+                      {dragOverIndex === index && dropPosition === 'above' && (
+                        <div className="absolute -top-[5px] left-0 right-0 h-[2px] bg-[#00ff88] rounded-full shadow-[0_0_6px_#00ff88]" />
+                      )}
+                      {/* Drop indicator line - below */}
+                      {dragOverIndex === index && dropPosition === 'below' && (
+                        <div className="absolute -bottom-[5px] left-0 right-0 h-[2px] bg-[#00ff88] rounded-full shadow-[0_0_6px_#00ff88]" />
+                      )}
+                      <div className="flex items-start gap-2">
+                        {/* Drag Handle */}
+                        <div
+                          className="flex-shrink-0 pt-0.5 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 transition-colors"
+                          title="Drag to reorder"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-white text-sm">{profile.name}</span>
@@ -239,7 +324,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">📁 {profile.workingDir}</div>
+                          <div className="text-xs text-gray-500 mt-1">📁 {profile.workingDir || '(inherit from header)'}</div>
                           {profile.command && (
                             <div className="text-xs text-gray-500 mt-1 font-mono">▶ {profile.command}</div>
                           )}
