@@ -93,7 +93,8 @@ class PTYHandler extends EventEmitter {
       workingDir = process.env.HOME || process.cwd(),
       cols = this.defaultCols,
       rows = this.defaultRows,
-      env = {}
+      env = {},
+      profile = null
     } = terminalConfig;
 
     log.info(`Creating PTY: ${name} (${terminalType})`, {
@@ -123,6 +124,12 @@ class PTYHandler extends EventEmitter {
     delete filteredEnv.ALACRITTY_SOCKET;  // Alacritty
     delete filteredEnv.KITTY_WINDOW_ID;  // Kitty
 
+    // Determine terminal background for lipgloss/charm apps
+    // COLORFGBG format: "foreground;background" (ANSI color indices)
+    // Light theme: "0;15" (black on white), Dark theme: "15;0" (white on black)
+    const isLightTheme = profile?.theme === 'light';
+    const colorFgBg = isLightTheme ? '0;15' : '15;0';
+
     const enhancedEnv = {
       ...filteredEnv,
       ...env,
@@ -142,6 +149,8 @@ class PTYHandler extends EventEmitter {
       CLAUDE_CODE_AUTO_CONNECT_IDE: 'false',
       // Enable mouse support for applications like MC
       COLORTERM: 'truecolor',
+      // Tell lipgloss/charm apps about terminal background color
+      COLORFGBG: colorFgBg,
       // Additional settings for TUI tools
       ...(isTUITool && {
         NCURSES_NO_UTF8_ACS: '1', // Force UTF-8 box drawing characters

@@ -25,6 +25,10 @@ function SidePanelTerminal() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [profileDropdownLeft, setProfileDropdownLeft] = useState<number | null>(null)
+  const profileBtnRef = useRef<HTMLDivElement>(null)
+  const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
+  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
   const [pasteCommand, setPasteCommand] = useState<string | null>(null)  // Command to paste from context menu
   const [globalWorkingDir, setGlobalWorkingDir] = useState<string>('~')  // Global working dir for profiles without one
   const [recentDirs, setRecentDirs] = useState<string[]>(['~', '~/projects'])  // Recent directories
@@ -448,6 +452,56 @@ function SidePanelTerminal() {
     }
   }
 
+  // Tab drag-and-drop reordering
+  const handleTabDragStart = (e: React.DragEvent, tabId: string) => {
+    setDraggedTabId(tabId)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', tabId)
+  }
+
+  const handleTabDragOver = (e: React.DragEvent, tabId: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedTabId && tabId !== draggedTabId) {
+      setDragOverTabId(tabId)
+    }
+  }
+
+  const handleTabDragLeave = () => {
+    setDragOverTabId(null)
+  }
+
+  const handleTabDrop = (e: React.DragEvent, targetTabId: string) => {
+    e.preventDefault()
+    if (!draggedTabId || draggedTabId === targetTabId) {
+      setDraggedTabId(null)
+      setDragOverTabId(null)
+      return
+    }
+
+    // Reorder sessions
+    const draggedIndex = sessions.findIndex(s => s.id === draggedTabId)
+    const targetIndex = sessions.findIndex(s => s.id === targetTabId)
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const newSessions = [...sessions]
+      const [draggedSession] = newSessions.splice(draggedIndex, 1)
+      newSessions.splice(targetIndex, 0, draggedSession)
+      setSessions(newSessions)
+
+      // Persist new order to Chrome storage
+      chrome.storage.local.set({ terminalSessions: newSessions })
+    }
+
+    setDraggedTabId(null)
+    setDragOverTabId(null)
+  }
+
+  const handleTabDragEnd = () => {
+    setDraggedTabId(null)
+    setDragOverTabId(null)
+  }
+
   // Keyboard shortcut handlers (use refs to access current state from callbacks)
   const handleKeyboardNewTab = () => {
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
@@ -704,7 +758,7 @@ function SidePanelTerminal() {
                 setShowDirDropdown(!showDirDropdown)
                 setCustomDirInput('')
               }}
-              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88] max-w-[140px]"
+              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88] max-w-[220px]"
               title={`Working Directory: ${globalWorkingDir}`}
             >
               <FolderOpen className="h-4 w-4 flex-shrink-0" />
@@ -790,54 +844,111 @@ function SidePanelTerminal() {
         <div className="h-full flex flex-col">
           {/* Session Tabs */}
           {sessions.length > 0 && (
-            <div className="flex gap-1 p-2 border-b bg-gradient-to-r from-[#0f0f0f]/50 to-[#1a1a1a]/50 overflow-x-auto">
-              {sessions.map(session => (
-                <div
-                  key={session.id}
-                  className={`
-                    flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all cursor-pointer group
-                    ${currentSession === session.id
-                      ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
-                      : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
-                    }
-                  `}
-                  onClick={() => setCurrentSession(session.id)}
-                  onContextMenu={(e) => handleTabContextMenu(e, session.id)}
-                >
-                  <span>{session.name}</span>
-                  <button
-                    onClick={(e) => handleCloseTab(e, session.id)}
-                    className="p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Close tab"
+            <div className="relative border-b bg-gradient-to-r from-[#0f0f0f]/50 to-[#1a1a1a]/50">
+              <div className="flex gap-1 p-2 overflow-x-auto">
+                {sessions.map(session => (
+                  <div
+                    key={session.id}
+                    draggable
+                    onDragStart={(e) => handleTabDragStart(e, session.id)}
+                    onDragOver={(e) => handleTabDragOver(e, session.id)}
+                    onDragLeave={handleTabDragLeave}
+                    onDrop={(e) => handleTabDrop(e, session.id)}
+                    onDragEnd={handleTabDragEnd}
+                    className={`
+                      flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all cursor-pointer group
+                      ${currentSession === session.id
+                        ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
+                        : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
+                      }
+                      ${draggedTabId === session.id ? 'opacity-50' : ''}
+                      ${dragOverTabId === session.id ? 'border-l-2 border-l-[#00ff88]' : ''}
+                    `}
+                    onClick={() => setCurrentSession(session.id)}
+                    onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <span>{session.name}</span>
+                    <button
+                      onClick={(e) => handleCloseTab(e, session.id)}
+                      className="p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Close tab"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {/* End drop zone - for dropping tab at the end */}
+                {draggedTabId && (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      setDragOverTabId('__end__')
+                    }}
+                    onDragLeave={handleTabDragLeave}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      if (!draggedTabId) return
+
+                      const draggedIndex = sessions.findIndex(s => s.id === draggedTabId)
+                      if (draggedIndex !== -1 && draggedIndex !== sessions.length - 1) {
+                        const newSessions = [...sessions]
+                        const [draggedSession] = newSessions.splice(draggedIndex, 1)
+                        newSessions.push(draggedSession)
+                        setSessions(newSessions)
+                        chrome.storage.local.set({ terminalSessions: newSessions })
+                      }
+
+                      setDraggedTabId(null)
+                      setDragOverTabId(null)
+                    }}
+                    className={`
+                      flex items-center justify-center px-2 py-1.5 rounded-md transition-all
+                      ${dragOverTabId === '__end__' ? 'bg-[#00ff88]/20 border-2 border-dashed border-[#00ff88]' : 'bg-white/5 border-2 border-dashed border-gray-600'}
+                    `}
+                  >
+                    <span className="text-xs text-gray-500">Drop here</span>
+                  </div>
+                )}
+                {/* Quick Add Button with Profile Dropdown */}
+                <div className="relative flex" ref={profileBtnRef}>
+                  <button
+                    onClick={handleSpawnDefaultProfile}
+                    className="flex items-center justify-center px-2 py-1.5 rounded-l-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
+                    title="New tab (default profile)"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // Calculate button position for dropdown alignment
+                      if (profileBtnRef.current) {
+                        const rect = profileBtnRef.current.getBoundingClientRect()
+                        setProfileDropdownLeft(rect.left)
+                      }
+                      setShowProfileDropdown(!showProfileDropdown)
+                    }}
+                    className="flex items-center justify-center px-1 py-1.5 rounded-r-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border-l border-gray-700"
+                    title="Select profile"
+                  >
+                    <ChevronDown className="h-3 w-3" />
                   </button>
                 </div>
-              ))}
-              {/* Quick Add Button with Profile Dropdown */}
-              <div className="relative flex">
-                <button
-                  onClick={handleSpawnDefaultProfile}
-                  className="flex items-center justify-center px-2 py-1.5 rounded-l-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
-                  title="New tab (default profile)"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowProfileDropdown(!showProfileDropdown)
-                  }}
-                  className="flex items-center justify-center px-1 py-1.5 rounded-r-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border-l border-gray-700"
-                  title="Select profile"
-                >
-                  <ChevronDown className="h-3 w-3" />
-                </button>
+              </div>
 
-                {/* Profile Dropdown Menu */}
-                {showProfileDropdown && profiles.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[180px] z-50 overflow-hidden">
-                    {profiles.map((profile) => (
+              {/* Profile Dropdown Menu - Outside overflow container */}
+              {showProfileDropdown && profiles.length > 0 && (
+                <div
+                  className="absolute top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[180px] z-50 overflow-hidden"
+                  style={{ left: profileDropdownLeft !== null ? `${profileDropdownLeft}px` : undefined }}
+                >
+                  {profiles.map((profile) => {
+                    // Get truncated working dir (just folder name with ./ prefix)
+                    const truncatedDir = profile.workingDir
+                      ? './' + profile.workingDir.split('/').filter(Boolean).pop()
+                      : null
+                    return (
                       <button
                         key={profile.id}
                         onClick={(e) => {
@@ -846,15 +957,20 @@ function SidePanelTerminal() {
                         }}
                         className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
                       >
-                        <div className="font-medium">{profile.name}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          <span>{profile.name}</span>
+                          {truncatedDir && (
+                            <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
+                          )}
+                        </div>
                         {profile.command && (
                           <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
                         )}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 

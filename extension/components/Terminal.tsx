@@ -92,26 +92,28 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       brightWhite: '#ffffff',
     }
 
+    // Light theme with inverted ANSI colors for TUI app compatibility
+    // black/white are swapped so TUI apps using "black" backgrounds get light colors
     const lightTheme = {
-      background: '#ffffff',
+      background: '#f5f5f5',
       foreground: '#24292e',
       cursor: '#24292e',
-      black: '#24292e',
-      red: '#d73a49',
-      green: '#22863a',
-      yellow: '#b08800',
-      blue: '#0366d6',
-      magenta: '#6f42c1',
-      cyan: '#1b7c83',
-      white: '#6a737d',
-      brightBlack: '#959da5',
-      brightRed: '#cb2431',
-      brightGreen: '#22863a',
-      brightYellow: '#b08800',
-      brightBlue: '#0366d6',
-      brightMagenta: '#6f42c1',
-      brightCyan: '#1b7c83',
-      brightWhite: '#24292e',
+      black: '#f5f5f5',       // Light (was dark) - TUI "black" backgrounds become light
+      red: '#c41a16',
+      green: '#007400',
+      yellow: '#826b28',
+      blue: '#0451a5',
+      magenta: '#bc05bc',
+      cyan: '#0598bc',
+      white: '#24292e',       // Dark (was light) - TUI "white" text becomes dark
+      brightBlack: '#d4d4d4', // Light gray
+      brightRed: '#cd3131',
+      brightGreen: '#14ce14',
+      brightYellow: '#b5ba00',
+      brightBlue: '#0451a5',
+      brightMagenta: '#bc05bc',
+      brightCyan: '#0598bc',
+      brightWhite: '#1f1f1f', // Dark
     }
 
     const xterm = new XTerm({
@@ -320,26 +322,27 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       brightWhite: '#ffffff',
     }
 
+    // Light theme with inverted ANSI colors for TUI app compatibility
     const lightTheme = {
-      background: '#ffffff',
+      background: '#f5f5f5',
       foreground: '#24292e',
       cursor: '#24292e',
-      black: '#24292e',
-      red: '#d73a49',
-      green: '#22863a',
-      yellow: '#b08800',
-      blue: '#0366d6',
-      magenta: '#6f42c1',
-      cyan: '#1b7c83',
-      white: '#6a737d',
-      brightBlack: '#959da5',
-      brightRed: '#cb2431',
-      brightGreen: '#22863a',
-      brightYellow: '#b08800',
-      brightBlue: '#0366d6',
-      brightMagenta: '#6f42c1',
-      brightCyan: '#1b7c83',
-      brightWhite: '#24292e',
+      black: '#f5f5f5',
+      red: '#c41a16',
+      green: '#007400',
+      yellow: '#826b28',
+      blue: '#0451a5',
+      magenta: '#bc05bc',
+      cyan: '#0598bc',
+      white: '#24292e',
+      brightBlack: '#d4d4d4',
+      brightRed: '#cd3131',
+      brightGreen: '#14ce14',
+      brightYellow: '#b5ba00',
+      brightBlue: '#0451a5',
+      brightMagenta: '#bc05bc',
+      brightCyan: '#0598bc',
+      brightWhite: '#1f1f1f',
     }
 
     // Update font size
