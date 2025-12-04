@@ -36,6 +36,7 @@ function SidePanelTerminal() {
   const [showDirDropdown, setShowDirDropdown] = useState(false)
   const [customDirInput, setCustomDirInput] = useState('')
   const [isDark, setIsDark] = useState(true)  // Global dark/light mode toggle
+  const [connectionCount, setConnectionCount] = useState(1)  // Track backend connections (for multi-window warning)
 
   // Chat input state (paste workaround)
   const [chatInputText, setChatInputText] = useState('')
@@ -344,6 +345,11 @@ function SidePanelTerminal() {
         // Filter to only ctt- prefixed terminals (Chrome extension terminals)
         const backendTerminals = (data.data || []).filter((t: any) => t.id && t.id.startsWith('ctt-'))
         console.log('[Sidepanel] 🔄 Backend terminals (ctt- only):', backendTerminals.length)
+
+        // Track connection count for multi-window warning
+        if (data.connectionCount !== undefined) {
+          setConnectionCount(data.connectionCount)
+        }
 
         // Get current sessions from state (which may have been restored from Chrome storage)
         setSessions(currentSessions => {
@@ -971,6 +977,14 @@ function SidePanelTerminal() {
           </button>
         </div>
       </div>
+
+      {/* Multi-window warning banner */}
+      {connectionCount > 1 && (
+        <div className="px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-xs flex items-center gap-2">
+          <span className="font-medium">⚠️ Tabz open in {connectionCount} browser windows</span>
+          <span className="text-amber-500/60">— terminals may show duplicate output</span>
+        </div>
+      )}
 
       {/* Content Area */}
       <div className="flex-1 relative overflow-hidden">

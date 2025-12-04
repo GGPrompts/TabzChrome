@@ -150,6 +150,8 @@ class PTYHandler extends EventEmitter {
       CLAUDE_CODE_AUTO_CONNECT_IDE: 'false',
       // Enable mouse support for applications like MC
       COLORTERM: 'truecolor',
+      // Force color output in Node.js apps (chalk, colors, etc.)
+      FORCE_COLOR: '1',
       // Tell lipgloss/charm apps about terminal background color
       COLORFGBG: colorFgBg,
       // Additional settings for TUI tools
@@ -225,7 +227,7 @@ class PTYHandler extends EventEmitter {
           try {
             // Use custom tmux config for optimal terminal experience
             // Pass critical environment variables with -e flag so they're available in the session
-            const tmuxCmd = `tmux -f "${this.tmuxConfigPath}" new-session -d -s "${sessionName}" -c "${validWorkingDir}" -x ${cols} -y ${rows} -e "COLORFGBG=${colorFgBg}" -e "COLORTERM=truecolor"`;
+            const tmuxCmd = `tmux -f "${this.tmuxConfigPath}" new-session -d -s "${sessionName}" -c "${validWorkingDir}" -x ${cols} -y ${rows} -e "COLORFGBG=${colorFgBg}" -e "COLORTERM=truecolor" -e "FORCE_COLOR=1"`;
             log.debug(`Using tmux config: ${this.tmuxConfigPath}`);
             log.debug(`Creating tmux session with COLORFGBG=${colorFgBg}`);
             execSync(tmuxCmd, {

@@ -457,9 +457,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     value={formData.fontFamily}
                     onChange={(e) => setFormData({ ...formData, fontFamily: e.target.value })}
                     className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
+                    style={{ fontFamily: formData.fontFamily }}
                   >
                     {FONT_FAMILIES.map((font) => (
-                      <option key={font.value} value={font.value}>
+                      <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
                         {font.label}
                       </option>
                     ))}

@@ -68,7 +68,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#ff6ac1',       // Tool names - hot pink
         cyan: '#6bcf7f',          // Headers - teal
         white: '#e0e0e0',
-        brightBlack: '#c9a66b',   // Metadata/timestamps - soft gold
+        brightBlack: '#e07020',   // Orange - works on both dark bg and light blockquotes
         brightRed: '#ff5c7c',
         brightGreen: '#7dff94',
         brightYellow: '#ffeb3b',
@@ -93,7 +93,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#a626a4',
         cyan: '#0598bc',
         white: '#1a1a2e',
-        brightBlack: '#6b7280',
+        brightBlack: '#4a5568',   // Darker gray for light bg readability
         brightRed: '#e01b1b',
         brightGreen: '#008a00',
         brightYellow: '#8f6d00',
@@ -123,7 +123,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#ff79c6',
         cyan: '#8be9fd',
         white: '#f8f8f2',
-        brightBlack: '#bd93f9',   // Dracula purple for metadata
+        brightBlack: '#cc7030',   // Orange - works on both dark bg and light blockquotes
         brightRed: '#ff6e6e',
         brightGreen: '#69ff94',
         brightYellow: '#ffffa5',
@@ -148,7 +148,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#c850a0',
         cyan: '#00a8a8',
         white: '#282a36',
-        brightBlack: '#9b6ddb',
+        brightBlack: '#7c4dbd',   // Darker purple for light bg
         brightRed: '#e84343',
         brightGreen: '#00c07a',
         brightYellow: '#b58f00',
@@ -178,7 +178,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#c6a0f6',
         cyan: '#91d7e3',
         white: '#cad3f5',
-        brightBlack: '#c9b8e0',   // Soft lavender for metadata
+        brightBlack: '#d08040',   // Orange - works on both dark bg and light blockquotes
         brightRed: '#ee99a0',
         brightGreen: '#b8e8a3',
         brightYellow: '#f5e0ac',
@@ -203,7 +203,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#9333ea',
         cyan: '#0891b2',
         white: '#1e2030',
-        brightBlack: '#7c3aed',
+        brightBlack: '#5b21b6',   // Darker purple for light bg
         brightRed: '#dc2626',
         brightGreen: '#10b981',
         brightYellow: '#ca8a04',
@@ -233,7 +233,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#ff00ff',
         cyan: '#00ffff',
         white: '#f0f0ff',
-        brightBlack: '#ffa640',   // Neon orange for high visibility
+        brightBlack: '#ff8c00',   // Bright orange - fits neon theme, works on both bgs
         brightRed: '#ff4488',
         brightGreen: '#44ffaa',
         brightYellow: '#ffff44',
@@ -258,7 +258,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#c026d3',
         cyan: '#0891b2',
         white: '#1a0033',
-        brightBlack: '#ea580c',
+        brightBlack: '#c2410c',   // Darker orange for light bg
         brightRed: '#ec4899',
         brightGreen: '#10b981',
         brightYellow: '#f59e0b',
@@ -288,7 +288,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#f472b6',
         cyan: '#22d3ee',
         white: '#ffb86c',
-        brightBlack: '#d4a574',   // Light amber/tan for metadata
+        brightBlack: '#e88030',   // Orange - fits amber theme, works on both bgs
         brightRed: '#ff8c5a',
         brightGreen: '#bef264',
         brightYellow: '#fef08a',
@@ -313,7 +313,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#be185d',
         cyan: '#0e7490',
         white: '#78350f',
-        brightBlack: '#92400e',
+        brightBlack: '#78350f',   // Darker brown for light bg
         brightRed: '#ea580c',
         brightGreen: '#65a30d',
         brightYellow: '#ca8a04',
@@ -343,7 +343,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#c0c0c0',
         cyan: '#00ff00',          // Green accent
         white: '#d0d0d0',
-        brightBlack: '#7dff94',   // Bright green for metadata
+        brightBlack: '#d09030',   // Orange-gold - works on both dark bg and light blockquotes
         brightRed: '#ff8c8c',
         brightGreen: '#33ff33',
         brightYellow: '#e8e8e8',
@@ -368,7 +368,7 @@ export const themes: Record<string, Theme> = {
         magenta: '#71717a',
         cyan: '#15803d',
         white: '#166534',
-        brightBlack: '#22c55e',
+        brightBlack: '#166534',   // Darker green for light bg
         brightRed: '#ef4444',
         brightGreen: '#16a34a',
         brightYellow: '#374151',

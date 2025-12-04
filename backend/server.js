@@ -331,10 +331,11 @@ wss.on('connection', (ws) => {
           // List all active terminals in the registry, filtered to ctt- prefix only
           const allTerminals = terminalRegistry.getAllTerminals();
           const chromeTerminals = allTerminals.filter(t => t.id && t.id.startsWith('ctt-'));
-          log.info(`[WS] Listing ${chromeTerminals.length} Chrome terminals (${allTerminals.length} total)`);
+          log.info(`[WS] Listing ${chromeTerminals.length} Chrome terminals (${allTerminals.length} total), ${activeConnections.size} connections`);
           ws.send(JSON.stringify({
             type: 'terminals',
-            data: chromeTerminals
+            data: chromeTerminals,
+            connectionCount: activeConnections.size
           }));
           break;
 

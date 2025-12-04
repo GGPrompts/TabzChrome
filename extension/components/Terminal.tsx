@@ -133,7 +133,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
             rows,
           })
         }
-      }, 200)  // 200ms debounce (from terminal-tabs pattern)
+      }, 1000)  // 1000ms debounce - longer to avoid interrupting tmux split drag
     }
 
     // Fit terminal to container with dimension verification

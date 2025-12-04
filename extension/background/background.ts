@@ -233,9 +233,26 @@ console.log('Terminal Tabs background service worker starting...')
 
 // WebSocket connection management
 function connectWebSocket() {
+  // Already connected
   if (ws?.readyState === WebSocket.OPEN) {
     console.log('WebSocket already connected')
     return
+  }
+
+  // Already connecting - don't create duplicate connection
+  if (ws?.readyState === WebSocket.CONNECTING) {
+    console.log('WebSocket already connecting, waiting...')
+    return
+  }
+
+  // Close any existing connection in CLOSING state before creating new one
+  if (ws) {
+    try {
+      ws.close()
+    } catch (e) {
+      // Ignore errors when closing
+    }
+    ws = null
   }
 
   console.log('Connecting to backend WebSocket:', WS_URL)
@@ -993,16 +1010,17 @@ function setupContextMenus() {
       console.error('Error removing context menus:', chrome.runtime.lastError)
     }
 
-    // Simple context menu: toggle side panel
+    // Simple context menu: open side panel
+    // Note: Chrome sidePanel API only has open(), no close() or toggle()
     chrome.contextMenus.create({
-      id: 'toggle-sidepanel',
-      title: 'Toggle Terminal Sidebar',
+      id: 'open-sidepanel',
+      title: 'Open Terminal Sidebar',
       contexts: ['all'],
     }, () => {
       if (chrome.runtime.lastError) {
-        console.error('Error creating toggle-sidepanel menu:', chrome.runtime.lastError)
+        console.error('Error creating open-sidepanel menu:', chrome.runtime.lastError)
       } else {
-        console.log('✅ Toggle menu created')
+        console.log('✅ Open sidebar menu created')
       }
     })
 
@@ -1050,26 +1068,55 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   const menuId = info.menuItemId as string
 
-  if (menuId === 'toggle-sidepanel' && tab?.windowId) {
-    chrome.sidePanel.open({ windowId: tab.windowId })
+  // Helper to get a valid window ID (tab.windowId can be -1 on chrome:// pages)
+  const getValidWindowId = async (): Promise<number | undefined> => {
+    if (tab?.windowId && tab.windowId > 0) {
+      return tab.windowId
+    }
+    // Fallback: get focused window
+    const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+    const targetWindow = windows.find(w => w.focused) || windows[0]
+    return targetWindow?.id
+  }
+
+  // Handle both old 'toggle-sidepanel' and new 'open-sidepanel' menu IDs
+  // (old ID may be cached in Chrome until full restart)
+  if (menuId === 'open-sidepanel' || menuId === 'toggle-sidepanel') {
+    try {
+      const windowId = await getValidWindowId()
+      if (windowId) {
+        await chrome.sidePanel.open({ windowId })
+      }
+      // Silently ignore if no window - not an error worth logging
+    } catch (err) {
+      // Silently ignore - sidebar might already be open, or other benign issues
+      console.debug('[Background] Sidebar open attempt:', err)
+    }
     return
   }
 
-  if (menuId === 'paste-to-terminal' && info.selectionText && tab?.windowId) {
+  if (menuId === 'paste-to-terminal' && info.selectionText) {
     const selectedText = info.selectionText
     console.log('📋 Pasting to terminal:', selectedText)
 
-    // Open sidebar if not already open
-    await chrome.sidePanel.open({ windowId: tab.windowId })
+    try {
+      const windowId = await getValidWindowId()
+      if (windowId) {
+        // Open sidebar if not already open
+        await chrome.sidePanel.open({ windowId })
 
-    // Wait a bit for sidebar to be ready
-    setTimeout(() => {
-      // Broadcast paste command to sidepanel
-      broadcastToClients({
-        type: 'PASTE_COMMAND',
-        command: selectedText,
-      })
-    }, 500)  // Increased delay for reliability
+        // Wait a bit for sidebar to be ready
+        setTimeout(() => {
+          // Broadcast paste command to sidepanel
+          broadcastToClients({
+            type: 'PASTE_COMMAND',
+            command: selectedText,
+          })
+        }, 500)  // Increased delay for reliability
+      }
+    } catch (err) {
+      console.error('[Background] Failed to open sidebar for paste:', err)
+    }
   }
 })
 

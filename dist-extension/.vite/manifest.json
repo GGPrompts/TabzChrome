@@ -10,7 +10,7 @@
     "name": "modulepreload-polyfill"
   },
   "background/background.ts": {
-    "file": "assets/background.ts-DIbASFw0.js",
+    "file": "assets/background.ts-U_uDopyt.js",
     "name": "background.ts",
     "src": "background/background.ts",
     "isEntry": true
@@ -31,7 +31,7 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-CX0SVWHW.js",
+    "file": "assets/sidepanel.html-CH9CL8fZ.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
@@ -39,7 +39,7 @@
       "_modulepreload-polyfill-B5Qt9EMX.js"
     ],
     "css": [
-      "assets/sidepanel-8iWPMVVb.css"
+      "assets/sidepanel-DYktW3_f.css"
     ]
   }
 }
