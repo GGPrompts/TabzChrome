@@ -255,8 +255,14 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }, 150)
 
     // ResizeObserver to fit when container size changes
+    // CRITICAL: Debounce to prevent xterm.js buffer corruption during rapid resizes
+    // (e.g., moving browser to vertical monitor triggers many resize events)
+    const resizeObserverTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null }
     const resizeObserver = new ResizeObserver(() => {
-      fitTerminal()
+      if (resizeObserverTimeoutRef.current) clearTimeout(resizeObserverTimeoutRef.current)
+      resizeObserverTimeoutRef.current = setTimeout(() => {
+        fitTerminal()
+      }, 150)  // 150ms debounce - prevents buffer corruption on rapid resize
     })
 
     if (terminalRef.current) {
@@ -264,12 +270,14 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
 
     // Cleanup
-    // Store resize observer ref for cleanup
+    // Store refs for cleanup
     const currentResizeObserver = resizeObserver
+    const currentTimeoutRef = resizeObserverTimeoutRef
 
     // Cleanup resize observer when effect re-runs (but NOT xterm - that's handled separately)
     return () => {
       currentResizeObserver.disconnect()
+      if (currentTimeoutRef.current) clearTimeout(currentTimeoutRef.current)
     }
   }, [terminalId, isActive, isInitialized]) // Re-run when isActive changes to allow deferred init
 
