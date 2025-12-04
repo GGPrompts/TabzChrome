@@ -219,6 +219,10 @@ Array of tabs with:
 **Returns:**
 - `success`: Whether the switch was successful
 
+**Important:** After switching, all subsequent tool calls (screenshot, click, fill, etc.) will automatically target that tab without needing to pass `tabId`. This enables workflows like:
+1. `browser_switch_tab(tabId: 2)`
+2. `browser_screenshot()` ← automatically captures tab 2
+
 ---
 
 ## browser_rename_tab
@@ -552,7 +556,7 @@ See [WSL2_SETUP.md](WSL2_SETUP.md) for full setup instructions.
 | Tools not showing | Restart Claude Code after updating `.mcp.json` |
 | "No active page found" | Open a webpage (not chrome:// pages) |
 | "Element not found" | Check selector matches an element on the page |
-| Screenshots wrong location | Use WSL path: `/mnt/c/Users/marci/ai-images/screenshot-xxx.png` |
+| Screenshots wrong location | Fixed! Paths auto-convert to WSL format (`/mnt/c/...`) |
 | Browser window shrinking | Fixed - was caused by broken CDP connection |
 
 ### Quick Diagnostics

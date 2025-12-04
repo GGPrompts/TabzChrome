@@ -62,7 +62,7 @@ export const themes: Record<string, Theme> = {
         selectionBackground: 'rgba(255, 255, 255, 0.25)',
         black: '#1a1a1a',
         red: '#ff4757',           // Errors - bright, attention-grabbing
-        green: '#5af78e',         // Success - vibrant green
+        green: '#3cb371',         // Success - medium sea green (readable as diff background)
         yellow: '#ffd93d',        // Warnings - warm yellow
         blue: '#57c7ff',          // Paths/links - sky blue
         magenta: '#ff6ac1',       // Tool names - hot pink
@@ -70,7 +70,7 @@ export const themes: Record<string, Theme> = {
         white: '#e0e0e0',
         brightBlack: '#e07020',   // Orange - works on both dark bg and light blockquotes
         brightRed: '#ff5c7c',
-        brightGreen: '#7dff94',
+        brightGreen: '#50c878',   // Emerald - softer for diff backgrounds
         brightYellow: '#ffeb3b',
         brightBlue: '#82dbff',
         brightMagenta: '#ff8fd7',

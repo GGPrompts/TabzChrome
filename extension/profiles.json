@@ -3,7 +3,7 @@
     {
       "id": "default",
       "name": "Default",
-      "workingDir": "~",
+      "workingDir": "",
       "fontSize": 14,
       "fontFamily": "monospace",
       "themeName": "high-contrast"
@@ -19,7 +19,7 @@
     {
       "id": "large-text",
       "name": "Large Text",
-      "workingDir": "~",
+      "workingDir": "",
       "fontSize": 20,
       "fontFamily": "monospace",
       "themeName": "ocean"
@@ -27,7 +27,7 @@
     {
       "id": "dracula",
       "name": "Dracula",
-      "workingDir": "~",
+      "workingDir": "",
       "fontSize": 14,
       "fontFamily": "monospace",
       "themeName": "dracula"

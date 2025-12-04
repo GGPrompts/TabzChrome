@@ -483,13 +483,19 @@ function SidePanelTerminal() {
   }
 
   const handleSpawnDefaultProfile = () => {
+    // Capture current globalWorkingDir to avoid stale closure in async callback
+    const currentGlobalWorkingDir = globalWorkingDir
+
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
       const defaultProfileId = result.defaultProfile || 'default'
       const profiles = (result.profiles as Profile[]) || []
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
-        const effectiveWorkingDir = profile.workingDir || globalWorkingDir
+        // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+        const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
+          ? profile.workingDir
+          : currentGlobalWorkingDir
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
@@ -501,13 +507,21 @@ function SidePanelTerminal() {
         addToRecentDirs(effectiveWorkingDir)
       } else {
         // Fallback to regular bash if profile not found
-        handleSpawnTerminal()
+        sendMessage({
+          type: 'SPAWN_TERMINAL',
+          spawnOption: 'bash',
+          name: 'Bash',
+          workingDir: currentGlobalWorkingDir,
+        })
       }
     })
   }
 
   const handleSpawnProfile = (profile: Profile) => {
-    const effectiveWorkingDir = profile.workingDir || globalWorkingDir
+    // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+    const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
+      ? profile.workingDir
+      : globalWorkingDir
     sendMessage({
       type: 'SPAWN_TERMINAL',
       spawnOption: 'bash',
@@ -631,13 +645,19 @@ function SidePanelTerminal() {
 
   // Keyboard shortcut handlers (use refs to access current state from callbacks)
   const handleKeyboardNewTab = () => {
+    // Capture current globalWorkingDir to avoid stale closure in async callback
+    const currentGlobalWorkingDir = globalWorkingDir
+
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
       const defaultProfileId = result.defaultProfile || 'default'
       const profiles = (result.profiles as Profile[]) || []
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
-        const effectiveWorkingDir = profile.workingDir || globalWorkingDir
+        // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+        const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
+          ? profile.workingDir
+          : currentGlobalWorkingDir
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
@@ -653,7 +673,7 @@ function SidePanelTerminal() {
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
           name: 'Bash',
-          workingDir: globalWorkingDir,
+          workingDir: currentGlobalWorkingDir,
         })
       }
     })
@@ -706,7 +726,10 @@ function SidePanelTerminal() {
 
   // Omnibox handler: spawn terminal with specific profile
   const handleOmniboxSpawnProfile = (profile: Profile) => {
-    const effectiveWorkingDir = profile.workingDir || globalWorkingDir
+    // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+    const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
+      ? profile.workingDir
+      : globalWorkingDir
     sendMessage({
       type: 'SPAWN_TERMINAL',
       spawnOption: 'bash',
@@ -720,13 +743,19 @@ function SidePanelTerminal() {
 
   // Omnibox handler: spawn terminal and run command
   const handleOmniboxRunCommand = (command: string) => {
+    // Capture current globalWorkingDir to avoid stale closure in async callback
+    const currentGlobalWorkingDir = globalWorkingDir
+
     // Get default profile settings
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
       const defaultProfileId = result.defaultProfile || 'default'
       const profiles = (result.profiles as Profile[]) || []
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
-      const effectiveWorkingDir = profile?.workingDir || globalWorkingDir
+      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+      const effectiveWorkingDir = (profile?.workingDir && profile.workingDir !== '~')
+        ? profile.workingDir
+        : currentGlobalWorkingDir
       // Spawn terminal with the command
       // The command will be typed into the terminal after spawn
       sendMessage({
