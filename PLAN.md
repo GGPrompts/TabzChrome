@@ -29,30 +29,28 @@
 - [x] Add "Requirements" section to README.md
 - [x] Add troubleshooting for common setup issues
 
-### 1.2 Codebase Cleanup Audit
+### 1.2 Codebase Cleanup Audit ✅
 
 **Goal**: Remove outdated docs, scripts, and personal paths before sharing.
 
 **Documentation cleanup:**
-- [ ] Audit `docs/` folder - remove internal-only planning docs
-- [ ] Audit `docs/archived/` - decide what to keep vs delete
-- [ ] Audit `docs/bugs/` - remove resolved investigation notes
-- [ ] Remove outdated references to old project names
-- [ ] Update any remaining personal paths (`~/projects/...`)
+- [x] Audit `docs/` folder - kept for reference (archived/, bugs/, planning/, etc.)
+- [x] Audit `docs/archived/` - kept for historical reference
+- [x] README.md updated - removed Commands Panel references, updated to profiles
 
 **Config cleanup:**
-- [ ] Review `spawn-options.json` - remove personal paths, make generic
-- [ ] Review `public/spawn-options.json` - same
-- [ ] Check for hardcoded localhost assumptions
+- [x] Review `spawn-options.json` - removed personal paths, made generic
+- [x] Review `public/spawn-options.json` - same
+- [x] Fixed hardcoded `/home/matt` path in Terminal.tsx
 
 **Scripts cleanup:**
-- [ ] Audit `scripts/` folder for unused/outdated scripts
-- [ ] Remove development-only utilities not needed by users
+- [x] Removed `scripts/` folder (outdated dev utilities referencing old port/session names)
+- [x] Removed root shell scripts (start.sh, stop.sh, start-tmux.sh, test-claude-colors.sh)
+  - These were for the web app version, not needed for Chrome extension
 
 **Dead code:**
-- [ ] Search for TODO/FIXME comments
-- [ ] Check for unused npm dependencies
-- [ ] Remove code for deleted features (Commands Panel references, etc.)
+- [x] Searched for TODO/FIXME comments - remaining are minor (toast notifications, options page)
+- [x] Commands Panel references removed from README.md
 
 ### 1.3 Test Suite (Partial ✅)
 

@@ -31,19 +31,11 @@ A **standalone Chrome extension** that puts a tmux session manager in your brows
 - **Connection Status** - WebSocket indicator
 - **Terminal I/O** - Full xterm.js emulation with real-time communication
 
-### 📋 Quick Commands Panel
-- **Built-in commands** - Git, npm, shell commands ready to go
-- **Custom commands** - Add your own with category organization
-- **Two types**: Spawn terminal or copy to clipboard
-- **Category editor** - Organize commands however you want
-- **Persistent storage** - Custom commands saved in Chrome
-- **Coming soon:** Search/filter + working directory field
-
 ### 🎨 User Experience
 - **Always visible** - Sidebar persists across all tabs
 - **Never moves** - No window positioning, no Z-index battles
 - **Multi-monitor friendly** - Drag Chrome to any screen
-- **Panel switching** - Terminals stay alive when viewing Commands
+- **Session persistence** - Terminals survive sidebar close/reopen
 - **Clean UI** - Green/cyan color scheme
 - **Keyboard shortcut** - Ctrl+Shift+9 to open (customizable)
 - **Context menu** - Right-click → "Open Terminal Sidebar"
@@ -57,10 +49,9 @@ A **standalone Chrome extension** that puts a tmux session manager in your brows
 ```
 ┌─────────────────────────────────────┐
 │  Chrome Extension (React)           │
-│  - Poll /api/tmux/sessions          │ ← Every 2 seconds
-│  - Session list sidebar             │
-│  - Single terminal viewer           │
-│  - Commands panel                   │
+│  - Profile-based terminal spawning  │
+│  - Session tabs sidebar             │
+│  - xterm.js terminal viewer         │
 └────────────┬────────────────────────┘
              │ REST API + WebSocket
 ┌────────────▼────────────────────────┐
@@ -178,25 +169,23 @@ set PORT=8129 && npm start
 - Appears in session list for later reattach
 
 **Spawn New Session:**
-- Click + button in header
-- Or use Commands panel
+- Click + button in header for default profile
+- Click dropdown arrow to select a profile
 
-### Custom Commands
+### Profiles
 
-**Open Command Editor:**
-- Click "Commands" tab
-- Click ⚙️ settings icon
+**Manage Profiles:**
+- Click ⚙️ settings icon in header
+- Add, edit, or delete profiles
 
-**Add Command:**
-- Fill in label, category, command, description
-- Choose type: "Spawn Terminal" or "Copy to Clipboard"
-- Select category from dropdown or create new
-- Click "Add"
+**Profile Settings:**
+- Name, optional working directory
+- Font size (12-24px)
+- Font family and theme
 
-**Use Command:**
-- Switch to "Commands" tab
-- Click category to expand
-- Click command to spawn terminal or copy
+**Working Directory Inheritance:**
+- Profiles with empty workingDir inherit from header selector
+- Enables one "lazygit" profile that works for any project
 
 ---
 
@@ -206,15 +195,10 @@ set PORT=8129 && npm start
 - **Backend**: 8129 (configured in `backend/.env`)
 - **WebSocket**: `ws://localhost:8129`
 
-### Custom Commands
+### Profiles
 - Stored in Chrome storage (local)
 - Persist across browser sessions
-- Organized by category
-- Edit/delete anytime
-
-### Session Polling
-- Default: 2 seconds
-- Configurable in code (`useTmuxSessions.ts`)
+- Default profiles from `profiles.json`
 
 ---
 
@@ -229,8 +213,7 @@ set PORT=8129 && npm start
 │   ├── devtools/             # DevTools panel
 │   ├── components/           # React components
 │   │   ├── Terminal.tsx      # xterm.js wrapper
-│   │   ├── QuickCommandsPanel.tsx
-│   │   └── CommandEditorModal.tsx
+│   │   └── SettingsModal.tsx # Profiles management
 │   ├── hooks/                # React hooks
 │   ├── shared/               # Utilities
 │   └── manifest.json         # Extension config
@@ -446,13 +429,10 @@ Focus on tmux sessions as the mental model:
 ## 🚧 Roadmap
 
 Future enhancements under consideration:
-- [ ] Migrate to tmux-only polling architecture (from current event-based)
-- [ ] Session grouping/favorites
-- [ ] Keyboard shortcuts (Ctrl+Shift+T, etc.)
-- [ ] Dark mode toggle
-- [ ] Export/import custom commands
-- [ ] Session templates
-- [ ] Integration with Claude Code session management
+- [ ] Keyboard shortcuts (Alt+T for spawn, Alt+W for close)
+- [ ] Export/import profiles
+- [ ] Tab context menu (rename, close others)
+- [ ] Chrome Web Store publication
 
 ---
 

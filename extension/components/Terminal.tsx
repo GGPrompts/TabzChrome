@@ -506,10 +506,8 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       return
     }
 
-    // Expand ~ to /home/<user> (backend runs in Linux)
-    const expandedDir = workingDir.startsWith('~')
-      ? workingDir.replace('~', '/home/matt')  // TODO: Could make this configurable
-      : workingDir
+    // Pass the path as-is - backend handles ~ expansion
+    const expandedDir = workingDir
 
     const checkStatus = async () => {
       try {
