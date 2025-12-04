@@ -385,9 +385,39 @@ Enter number (1-12):
 
 ### Requirements
 
-1. **Chrome with remote debugging**: Launch with `--remote-debugging-port=9222`
-2. **Backend running**: `cd backend && npm start`
-3. **Extension loaded**: For console log forwarding
+1. **Backend running**: `cd backend && npm start`
+2. **Extension loaded**: For console log forwarding
+3. **Chrome with remote debugging** (see setup below)
+
+### Chrome Debug Setup (WSL2)
+
+WSL2 can't reach Windows `localhost` directly, so we need a port proxy:
+
+**One-time setup (run as Administrator in CMD):**
+```cmd
+netsh interface portproxy add v4tov4 listenport=9222 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1
+```
+
+**Start Chrome with debugging:**
+```cmd
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:\Temp\chrome-debug
+```
+
+Or create a batch script (e.g., `C:\Users\YourName\Scripts\Chrome-Debug.bat`):
+```batch
+@echo off
+taskkill /F /IM chrome.exe 2>nul
+timeout /t 2 /nobreak >nul
+start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" ^
+    --remote-debugging-port=9222 ^
+    --user-data-dir=C:\Temp\chrome-debug ^
+    --no-first-run
+```
+
+**Security note:** The `0.0.0.0` binding exposes port 9222 to your local network. This is fine behind a home router. For untrusted networks, use Tailscale or remove the port proxy when not in use:
+```cmd
+netsh interface portproxy delete v4tov4 listenport=9222 listenaddress=0.0.0.0
+```
 
 See [browser-mcp-server/MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md) for full documentation.
 
