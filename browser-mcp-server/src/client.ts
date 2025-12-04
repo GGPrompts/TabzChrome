@@ -16,6 +16,43 @@ import type { ConsoleLogsResponse, ScriptResult, PageInfo, ConsoleLogLevel } fro
 const SCREENSHOT_MAX_AGE_HOURS = 24;
 const SCREENSHOT_MAX_FILES = 50;
 
+// Track current tab after switching (for screenshot/other operations)
+let currentTabId: number = 1;
+
+/**
+ * Detect if running in WSL
+ */
+function isRunningInWSL(): boolean {
+  if (process.platform !== 'linux') return false;
+  if (process.env.WSL_DISTRO_NAME) return true;
+
+  // Fallback: check /proc/version for Microsoft
+  try {
+    const procVersion = fs.readFileSync('/proc/version', 'utf8');
+    return procVersion.toLowerCase().includes('microsoft');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Convert Windows path to WSL path if running in WSL
+ * e.g., "C:\Users\marci\ai-images\..." -> "/mnt/c/Users/marci/..."
+ */
+function convertPathForWSL(windowsPath: string): string {
+  if (!isRunningInWSL()) return windowsPath;
+
+  // Check if it's a Windows-style path (C:\, D:\, etc.)
+  const winDriveMatch = windowsPath.match(/^([A-Za-z]):\\(.*)$/);
+  if (winDriveMatch) {
+    const driveLetter = winDriveMatch[1].toLowerCase();
+    const restOfPath = winDriveMatch[2].replace(/\\/g, '/');
+    return `/mnt/${driveLetter}/${restOfPath}`;
+  }
+
+  return windowsPath;
+}
+
 /**
  * Clean up old screenshots from ai-images directory
  * - Deletes files older than SCREENSHOT_MAX_AGE_HOURS
@@ -169,16 +206,20 @@ async function getNonChromePages(): Promise<import('puppeteer-core').Page[] | nu
 
 /**
  * Get a specific page by tabId (index in non-chrome pages array)
+ * If no tabId specified, uses currentTabId (set by switchTab)
  */
 async function getPageByTabId(tabId?: number): Promise<import('puppeteer-core').Page | null> {
   const pages = await getNonChromePages();
   if (!pages || pages.length === 0) return null;
 
+  // Use provided tabId, or fall back to currentTabId (set by switchTab)
+  const effectiveTabId = tabId ?? currentTabId;
+
   // Tab IDs are 1-based for user clarity, convert to 0-based index
-  if (tabId !== undefined && tabId >= 1 && tabId <= pages.length) {
-    return pages[tabId - 1];
+  if (effectiveTabId >= 1 && effectiveTabId <= pages.length) {
+    return pages[effectiveTabId - 1];
   }
-  // Default to first page if no tabId specified
+  // Default to first page if tabId is out of range
   return pages[0];
 }
 
@@ -417,7 +458,9 @@ export async function takeScreenshot(options: {
       });
     }
 
-    return { success: true, filePath: outputPath };
+    // Convert path for WSL compatibility (Windows paths -> /mnt/c/...)
+    const returnPath = convertPathForWSL(outputPath);
+    return { success: true, filePath: returnPath };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
@@ -522,7 +565,9 @@ export async function downloadImage(options: {
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(outputPath, buffer);
 
-    return { success: true, filePath: outputPath };
+    // Convert path for WSL compatibility (Windows paths -> /mnt/c/...)
+    const returnPath = convertPathForWSL(outputPath);
+    return { success: true, filePath: returnPath };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
@@ -612,6 +657,7 @@ export async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
 
 /**
  * Switch to a specific tab via CDP
+ * Also updates currentTabId so subsequent operations target this tab
  */
 export async function switchTab(tabId: number): Promise<{ success: boolean; error?: string }> {
   try {
@@ -626,6 +672,10 @@ export async function switchTab(tabId: number): Promise<{ success: boolean; erro
     }
 
     await pages[tabId - 1].bringToFront(); // Convert to 0-based index
+
+    // Track current tab for subsequent operations (screenshot, click, etc.)
+    currentTabId = tabId;
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
