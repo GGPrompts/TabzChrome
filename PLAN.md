@@ -1,427 +1,148 @@
-# PLAN.md - Chrome Extension Roadmap
+# PLAN.md - TabzChrome Roadmap
 
-## ⚠️ IMPORTANT: PROJECT IDENTITY CLARIFICATION
-
-**What This Project Actually Is:**
-This is **TabzChrome** - a full-featured Chrome extension port of Tabz with:
-- Tab-based terminal interface
-- Zustand state management + localStorage
-- Settings modal, spawn options editor
-- Complete Tabz feature set in browser sidebar
-
-**What This Project Was Originally Planned To Be:**
-A lightweight tmux-polling sidebar (see `~/projects/TabzChrome/IMPLEMENTATION_PLAN.md`):
-- Simple session list (not tabs)
-- Poll tmux every 2s for sessions
-- No state management (tmux is truth)
-- Single terminal viewer
-- 40% less code
-
-**What Happened:**
-Development started on Tabz `feat/chrome-extension` branch instead of fresh repo. This inherited all Tabz architecture (tabs, Zustand, localStorage). You built a great Chrome extension - just not the originally planned one!
-
-**See Full Analysis:**
-- `COMPARISON_PLANNED_VS_ACTUAL.md` - Detailed comparison
-- `~/projects/TabzChrome/IMPLEMENTATION_PLAN.md` - Original vision
-- `~/projects/TabzChrome/README.md` - Planned features
-
-**Decision Point:**
-Test current implementation to see if you prefer:
-1. **Keep as-is** - Full Tabz experience in sidebar (what you have now)
-2. **Refactor toward original** - Simplify to tmux-polling session list
-3. **Both** - Keep this as TabzChrome, build original vision separately
-
-**Next Session:** Test the extension, decide which direction to take.
+**Last Updated**: December 4, 2025
+**Current Version**: 2.2.0
+**Status**: Preparing for Public Release
 
 ---
 
-## 🎯 RECOMMENDED PATH: HYBRID ARCHITECTURE
+## Phase 1: Getting Ready to Share
 
-**Core Principle:** "Works great without tmux, unlocks superpowers with tmux"
+### 1.1 System Requirements Documentation
 
-### Why Hybrid?
-- **Don't limit users** - Not everyone has/wants tmux
-- **Unlock power features** - TUI apps (TFE, tmuxplexer), resurrect/continuum for power users
-- **Best of both worlds** - Simple terminals OR polling-based session management
-- **Use existing badge** - "Use Tmux" toggle already exists in UI
+**Goal**: Clear documentation so users know if TabzChrome will work for them.
 
-### Two Modes
+**Required:**
+- [ ] Document minimum requirements in README.md:
+  - Chrome browser (Manifest V3 compatible)
+  - WSL2 or native Linux for backend
+  - Node.js (document minimum version)
+  - tmux (for terminal persistence)
 
-**Standard Mode (No Tmux):**
-- Simple terminal tabs (normal PTY processes)
-- Basic persistence (Chrome storage)
-- "Close" button kills terminal
-- Works out of the box, no dependencies
-- Perfect for most users
+**Optional dependencies:**
+- [ ] Nerd Fonts (for icons in terminal)
+- [ ] TUI apps referenced in default profiles (lazygit, htop, etc.)
 
-**Tmux Mode (Tmux Available):**
-- Poll `tmux ls | grep "^ctt-"` every 2 seconds
-- Auto-restore tabs from tmux sessions
-- "Close" button detaches (session stays alive)
-- Resurrect/continuum integration
-- Perfect for power users with TUI apps
+**Tasks:**
+- [ ] Test minimum Node.js version
+- [ ] Verify Chrome version requirements
+- [ ] Add "Requirements" section to README.md
+- [ ] Add troubleshooting for common setup issues
 
-### Implementation Notes
+### 1.2 Codebase Cleanup Audit
 
-```typescript
-// Auto-detect tmux on extension load
-const tmuxAvailable = await fetch('/api/tmux/check')
-  .then(res => res.json())
-  .then(data => data.tmuxAvailable);
+**Goal**: Remove outdated docs, scripts, and personal paths before sharing.
 
-if (tmuxAvailable) {
-  // Show badge: "🚀 Tmux Mode"
-  // Enable polling (useTmuxPolling hook)
-  // Sessions survive browser restarts
-} else {
-  // Show badge: "Standard Mode"
-  // Use event-based tabs
-  // Store tabs in Chrome storage
-}
-```
+**Documentation cleanup:**
+- [ ] Audit `docs/` folder - remove internal-only planning docs
+- [ ] Audit `docs/archived/` - decide what to keep vs delete
+- [ ] Audit `docs/bugs/` - remove resolved investigation notes
+- [ ] Remove outdated references to old project names
+- [ ] Update any remaining personal paths (`~/projects/...`)
 
-### Benefits
+**Config cleanup:**
+- [ ] Review `spawn-options.json` - remove personal paths, make generic
+- [ ] Review `public/spawn-options.json` - same
+- [ ] Check for hardcoded localhost assumptions
 
-**For Non-Tmux Users:**
-- ✅ Works immediately, no setup
-- ✅ No tmux learning curve
-- ✅ All Chrome extension features
-- ✅ Simple mental model (tabs = terminals)
+**Scripts cleanup:**
+- [ ] Audit `scripts/` folder for unused/outdated scripts
+- [ ] Remove development-only utilities not needed by users
 
-**For Tmux Users (Power Users):**
-- 🚀 Auto-detects tmux availability
-- 🚀 Polling architecture (no state sync bugs)
-- 🚀 TUI apps (TFE, tmuxplexer) work perfectly
-- 🚀 Spawn from anywhere (CLI, tmuxplexer, extension)
-- 🚀 True persistence with resurrect/continuum
+**Dead code:**
+- [ ] Search for TODO/FIXME comments
+- [ ] Check for unused npm dependencies
+- [ ] Remove code for deleted features (Commands Panel references, etc.)
 
-**For Everyone:**
-- ✅ Same extension for both use cases
-- ✅ Upgrade path (install tmux → get superpowers)
-- ✅ No forced dependencies
-- ✅ Not limiting anyone
+### 1.3 Test Suite
 
-### State Management Answer
+**Goal**: Ensure tests run and catch regressions, especially xterm.js issues.
 
-**Standard Mode:** Minimal React state (current active tab, UI state)
-**Tmux Mode:** None! Polling means tmux is the only source of truth
+**Current state:**
+- Tests exist in `tests/` (inherited from web app)
+- May have web-app-specific tests that don't apply to Chrome extension
 
-### Next Steps
-1. Test current extension with "Use Tmux" toggle
-2. Add `/api/tmux/check` endpoint
-3. Implement mode detection on load
-4. Add polling hook for tmux mode
-5. Update UI badge to show current mode
-6. Document both modes in README
+**Tasks:**
+- [ ] Run existing test suite - see what passes/fails
+- [ ] Remove/update tests for features that don't exist in Chrome extension
+- [ ] Add Chrome extension-specific tests:
+  - [ ] Extension loads successfully
+  - [ ] Sidebar opens
+  - [ ] Terminal spawns with profile
+  - [ ] WebSocket connection established
+  - [ ] Settings persistence (Chrome storage)
+- [ ] Add xterm.js regression tests:
+  - [ ] Terminal resize handling
+  - [ ] Copy/paste functionality
+  - [ ] Reconnection behavior
+- [ ] Document how to run tests in README
 
----
+### 1.4 README.md Polish
 
-## 🚨 CURRENT STATUS - READ FIRST
+**Goal**: User-friendly documentation for new users.
 
-**Status**: ✅ **v1.0.1 COMPLETE** - All Planned Features Shipped
-
-**Date**: November 18, 2025
-**Version**: v1.0.1
-**Branch**: `feat/chrome-extension`
-
-### What's Working 🎉
-- ✅ Chrome side panel integration (sidebar persists across tabs)
-- ✅ Terminal persistence (survive extension reloads)
-- ✅ Tmux integration (sessions survive, auto-restore on reload)
-- ✅ Session restoration (`ctt-` prefix for easy cleanup)
-- ✅ Settings Modal (General + Spawn Options tabs)
-- ✅ Spawn options editor (add/edit/delete in UI)
-- ✅ Font family support (6 options)
-- ✅ Immediate settings updates (no reload needed)
-- ✅ Commands panel (spawn + clipboard commands)
-- ✅ Tab names show labels (not IDs)
-- ✅ Terminal auto-fit on spawn
-- ✅ Global "Use Tmux" toggle
-
-### Recent Completions (v1.0.1 - Nov 18, 2025) 🎉
-- ✅ Spawn options editing in Settings UI
-- ✅ Font family dropdown (JetBrains Mono, Fira Code, etc.)
-- ✅ Global "Use Tmux" toggle in header
-- ✅ Session persistence and restoration
-- ✅ Terminal IDs with `ctt-` prefix
-- ✅ Settings apply immediately (no reload)
-- ✅ Terminal auto-fit with ResizeObserver
-- ✅ Tab names display friendly labels
-- ✅ Font family updates instantly
-
-**For completed features, see [CHANGELOG.md](CHANGELOG.md)**
+- [ ] Clear "Getting Started" section
+- [ ] Screenshots of the extension in action
+- [ ] Feature overview
+- [ ] Installation instructions (load unpacked)
+- [ ] Backend setup instructions
+- [ ] Troubleshooting section
+- [ ] Contributing guidelines (if accepting PRs)
 
 ---
 
-## 🎯 Future Work (Optional)
+## Phase 2: Future Enhancements (Post-Release)
 
-**Priority:** Low (Nice-to-have enhancements)
-**Estimated Time:** 4-6 hours total
-
-### 1. Keyboard Shortcuts (⌨️)
-
-**Goal:** Add browser-safe keyboard shortcuts for common operations
-
-**Shortcuts to Add:**
+### Keyboard Shortcuts
 - `Alt+T` - Open spawn menu
 - `Alt+W` - Close active tab
-- `Alt+1-9` - Jump to tab 1-9
-- `Alt+Tab` - Next tab
-- `Alt+Shift+Tab` - Previous tab
+- `Alt+1-9` - Jump to tab
+- Blocked: Can't override Ctrl+T/W (browser reserved)
 
-**Why Alt instead of Ctrl?**
-- Ctrl+T, Ctrl+W = Browser tab management (can't override)
-- Alt modifier is safe and doesn't conflict
+### Import/Export Profiles
+- Export profiles to JSON for backup/sharing
+- Import profiles from file
 
-**Implementation:**
-```typescript
-// Create: extension/hooks/useKeyboardShortcuts.ts
-// Similar to web app's keyboard shortcuts
-// Use chrome.commands API for global shortcuts
-```
-
-**Estimated Time:** 2 hours
-
----
-
-### 2. Import/Export Spawn Options
-
-**Goal:** Share spawn options across extension installations
-
-**Features:**
-- Export button in Settings → Spawn Options
-- Downloads JSON file with all spawn options
-- Import button loads JSON and merges with existing
-- Useful for:
-  - Backup before extension reinstall
-  - Sharing configs between machines
-  - Resetting to defaults (import spawn-options.json)
-
-**Implementation:**
-```typescript
-// Add to extension/components/SettingsModal.tsx
-const handleExport = () => {
-  const json = JSON.stringify(spawnOptions, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'spawn-options.json'
-  a.click()
-}
-
-const handleImport = (file: File) => {
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const imported = JSON.parse(e.target?.result as string)
-    setSpawnOptions([...spawnOptions, ...imported])
-  }
-  reader.readAsText(file)
-}
-```
-
-**Estimated Time:** 1 hour
-
----
-
-### 3. Tab Context Menu
-
-**Goal:** Right-click menu on tabs for quick actions
-
-**Menu Options:**
-- Rename tab (manual text input)
-- Refresh terminal (refit)
-- Close tab
-- (Optional) Close other tabs
-- (Optional) Close tabs to right
-
-**Implementation:**
-```typescript
-// Create: extension/components/TabContextMenu.tsx
-// Triggered by onContextMenu on tab elements
-// Position near cursor, glassmorphic design
-```
-
-**Estimated Time:** 1-2 hours
-
----
-
-### 4. Working Directory Persistence
-
-**Goal:** Remember last used working directory per spawn option
-
-**Features:**
-- Commands panel remembers last working dir input
-- Persists in Chrome storage
-- Pre-fills on next spawn
-- Per-spawn-option or global (user choice)
-
-**Implementation:**
-```typescript
-// Update: extension/components/QuickCommandsPanel.tsx
-// Store in chrome.storage.local:
-{
-  lastWorkingDirs: {
-    'bash': '/home/matt/projects',
-    'claude-code': '/home/matt/projects/my-app'
-  }
-}
-```
-
-**Estimated Time:** 30 minutes
-
----
-
-## 📋 Non-Goals (Out of Scope)
-
-These features exist in the web app but are intentionally excluded from the Chrome extension:
-
-### ❌ Split Terminals
-- **Reason:** Chrome side panel is narrow, splits would be cramped
-- **Alternative:** Use tmux splits within a single terminal
-- **Use web app if you need splits**
-
-### ❌ Multi-Window Support
-- **Reason:** Chrome extension has one sidebar per window (by design)
-- **Alternative:** Open multiple Chrome windows if needed
-
-### ❌ Background Gradients & Transparency
-- **Reason:** Adds complexity, chrome extension should be simple
-- **Alternative:** Use web app for aesthetic customization
-
-### ❌ Per-Terminal Customization
-- **Reason:** Settings apply globally (simpler UX)
-- **Alternative:** Use spawn options if you need per-terminal fonts
-
-### ❌ Project Management
-- **Reason:** Chrome extension doesn't have project dropdown (yet)
-- **Alternative:** Use working directory override in Commands panel
-
-### ❌ Tab Drag-and-Drop Reordering
-- **Reason:** Chrome side panel is narrow, drag targets would be tiny
-- **Alternative:** Spawn terminals in desired order
-
----
-
-## 🔧 Technical Debt (If Time Permits)
-
-### Code Quality
-- ✅ Settings already modular (General + Spawn Options tabs)
-- ✅ Terminal component clean (uses ResizeObserver)
-- ⏭️ Add JSDoc comments to components
-- ⏭️ Extract clipboard commands to constants file
-
-### Testing
-- ⏭️ Add basic smoke tests (extension loads, sidebar opens)
-- ⏭️ Test spawn options CRUD (add/edit/delete)
-- ⏭️ Test settings persistence across reloads
-
-### Performance
-- ✅ Settings apply immediately (no reload)
-- ✅ Terminal auto-fit on spawn
-- ✅ ResizeObserver for auto-fit on resize
-
----
-
-## 📚 Documentation Updates Needed
-
-### CLAUDE.md
-- ✅ Document `ctt-` terminal ID prefix
-- ✅ Updated spawn options approach (JSON fallback + Chrome storage)
-- ⏭️ Add troubleshooting section (common issues)
-
-### README.md
-- ⏭️ Update with v1.0.1 features (spawn options editor, font family)
-- ⏭️ Add screenshots of Settings modal tabs
-- ⏭️ Document tmux session restoration
-
-### LESSONS_LEARNED.md
-- ⏭️ Add lesson on Chrome storage vs JSON approach
-- ⏭️ Document ResizeObserver pattern for terminals
-- ⏭️ Document settings update flow (useEffect dependencies)
-
----
-
-## 🚀 Release Checklist (v1.0.2)
-
-When ready for next release:
-
-- [ ] Run full test pass (manual testing)
-- [ ] Update version in `manifest.json`
-- [ ] Update CHANGELOG.md with new version
-- [ ] Build extension: `npm run build:extension`
-- [ ] Copy to Windows: `rsync` command
-- [ ] Test in Chrome (load unpacked)
-- [ ] Commit and tag: `git tag v1.0.2`
-- [ ] Push to GitHub: `git push origin feat/chrome-extension --tags`
-
----
-
-## 📊 Metrics
-
-| Metric | Value |
-|--------|-------|
-| Extension Size | ~600KB (built) |
-| Dependencies | Shared with web app |
-| Load Time | <1s |
-| Terminal Types | 18 (from spawn-options.json) |
-| Clipboard Commands | 16 (hardcoded) |
-| Settings Options | 3 (font size, font family, theme) |
-| Spawn Options Capacity | Unlimited (Chrome storage) |
-
----
-
-## 🔍 Future Considerations
-
-### Chrome Manifest V3 Compliance
-- ✅ Already using Manifest V3
-- ✅ Service worker instead of background page
-- ✅ Chrome storage API instead of localStorage
-- ✅ Chrome runtime messaging
+### Tab Context Menu
+- Right-click tab for: Rename, Close, Close Others
 
 ### Chrome Web Store Publication
-If publishing to Chrome Web Store:
-- Add privacy policy (no data collected)
-- Add detailed description + screenshots
-- Set up OAuth if needed (not required for this extension)
-- Test on multiple Chrome versions
-
-### Firefox Port
-To port to Firefox:
-- Replace `chrome.*` with `browser.*` (Firefox API)
-- Update manifest.json format (minor differences)
-- Test side panel API (may need fallback)
+- Privacy policy
+- Screenshots and description
+- Version management
 
 ---
 
-**Last Updated**: November 18, 2025
-**Maintained By**: Claude Code (with human oversight)
-**Repository**: https://github.com/GGPrompts/terminal-tabs-extension
+## Non-Goals
+
+These are intentionally excluded from the Chrome extension:
+
+- **Split terminals** - Sidebar is narrow, use tmux splits instead
+- **Multi-window support** - Chrome has one sidebar per window by design
+- **Background gradients** - Keep it simple
+- **Tab drag-and-drop** - Narrow sidebar makes this awkward
 
 ---
 
-## 📊 Quick Reference: Two Projects
+## Technical Notes
 
-| Aspect | **terminal-tabs-extension** (Current) | **TabzChrome** (Original Plan) |
-|--------|---------------------------------------|-------------------------------|
-| **Location** | `~/projects/terminal-tabs-extension` | `~/projects/TabzChrome` |
-| **Repo** | `Tabz` (branch: feat/chrome-extension) | `TabzChrome` |
-| **Architecture** | Full Tabz (tabs, Zustand, localStorage) | Tmux-polling (session list) |
-| **UI Pattern** | Tab bar with multiple terminals | Session list + single viewer |
-| **State** | Zustand + localStorage + Chrome storage | Poll tmux only |
-| **Complexity** | Full feature set | 40% less code |
-| **Port** | 8127 | 8129 |
-| **Status** | ✅ Built and working | 📋 Planning docs only |
+### Terminal ID Prefixes
+- `ctt-` prefix for all Chrome extension terminals
+- Enables easy cleanup: `tmux ls | grep "^ctt-"`
+- Distinguishes from web app terminals (`tt-`)
 
-**Test Tomorrow:**
-1. Use the current extension during work
-2. Pay attention to:
-   - Do you like having multiple terminal tabs?
-   - Is state management helpful or overkill?
-   - Would a simple session list be better?
-3. Decide which approach to keep/pursue
+### State Management
+- Chrome storage for UI state (profiles, settings, recent dirs)
+- tmux for terminal persistence (processes survive backend restart)
+- WebSocket for real-time terminal I/O
 
-**Files to Reference:**
-- `COMPARISON_PLANNED_VS_ACTUAL.md` - Full analysis
-- `~/projects/TabzChrome/IMPLEMENTATION_PLAN.md` - Original vision details
-- `~/projects/TabzChrome/README.md` - Planned UX
+### Ports
+- Backend: 8129 (WebSocket + REST API)
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+For historical planning documents and completed work, see [docs/archive/](docs/archive/).

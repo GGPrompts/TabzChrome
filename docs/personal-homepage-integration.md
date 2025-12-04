@@ -328,9 +328,9 @@ personal-homepage/
 ## Related Files
 
 - Personal Homepage: `~/projects/personal-homepage/`
-- TabzChrome Backend: `~/projects/TabzChrome-simplified/backend/`
-- MCP Server: `~/projects/TabzChrome-simplified/browser-mcp-server/`
-- Extension: `~/projects/TabzChrome-simplified/extension/`
+- TabzChrome Backend: `~/projects/TabzChrome/backend/`
+- MCP Server: `~/projects/TabzChrome/browser-mcp-server/`
+- Extension: `~/projects/TabzChrome/extension/`
 
 ---
 

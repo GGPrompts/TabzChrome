@@ -79,7 +79,7 @@ The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`
 {
   "mcpServers": {
     "browser": {
-      "command": "/home/matt/projects/TabzChrome-simplified/browser-mcp-server/run-windows.sh",
+      "command": "/home/matt/projects/TabzChrome/browser-mcp-server/run-windows.sh",
       "args": [],
       "env": {
         "BACKEND_URL": "http://localhost:8129"
@@ -155,7 +155,7 @@ When you make changes to the source code:
 
 ```bash
 # Rebuild
-cd /home/matt/projects/TabzChrome-simplified/browser-mcp-server
+cd /home/matt/projects/TabzChrome/browser-mcp-server
 npm run build
 
 # Restart Claude Code to pick up changes

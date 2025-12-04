@@ -10,7 +10,7 @@ const profileToAdd = {
   name: "Dev Logs",
   command: "lnav logs/backend.log logs/frontend.log",
   terminalType: "bash",
-  workingDir: "~/projects/terminal-tabs/terminal-tabs",
+  workingDir: "~/projects/Tabz",
   theme: "monokai",
   transparency: 95,
   icon: "🔍",

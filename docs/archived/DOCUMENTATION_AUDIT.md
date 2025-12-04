@@ -62,7 +62,7 @@
 ## 🎯 Proposed Directory Structure
 
 ```
-TabzChrome-simplified/
+TabzChrome/
 ├── CLAUDE.md                    # Core: AI instructions
 ├── README.md                    # Core: User documentation
 ├── LESSONS_LEARNED.md           # Core: Bug insights

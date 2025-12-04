@@ -579,7 +579,7 @@ export function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
                         type="text"
                         value={projectFormData.workingDir}
                         onChange={(e) => setProjectFormData({ ...projectFormData, workingDir: e.target.value })}
-                        placeholder="e.g., ~/projects/terminal-tabs"
+                        placeholder="e.g., ~/projects/Tabz"
                         style={{ width: '100%', marginTop: '0.25rem' }}
                       />
                     </label>

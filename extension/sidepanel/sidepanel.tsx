@@ -891,7 +891,7 @@ function SidePanelTerminal() {
               variant="secondary"
               className="text-xs bg-red-500/20 text-red-500 border-red-500/30 cursor-pointer hover:bg-red-500/30 transition-colors"
               onClick={async () => {
-                await navigator.clipboard.writeText('cd ~/projects/TabzChrome-simplified/backend && npm start')
+                await navigator.clipboard.writeText('cd ~/projects/TabzChrome/backend && npm start')
                 // Brief visual feedback - badge text changes temporarily
                 const badge = document.querySelector('[data-disconnected-badge]') as HTMLElement
                 if (badge) {
@@ -1216,7 +1216,7 @@ function SidePanelTerminal() {
                     <p className="text-sm mb-4 text-center px-4">Start the backend server to use terminals</p>
                     <button
                       onClick={async () => {
-                        await navigator.clipboard.writeText('cd ~/projects/TabzChrome-simplified/backend && npm start')
+                        await navigator.clipboard.writeText('cd ~/projects/TabzChrome/backend && npm start')
                         // Visual feedback
                         const btn = document.querySelector('[data-copy-start-btn]') as HTMLElement
                         if (btn) {

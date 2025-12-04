@@ -132,9 +132,9 @@ interface BrowserMCPConfig {
 ## Related Files
 
 - Templates: `/home/matt/projects/portfolio-style-guides/app/templates/`
-- Current MCP server: `/home/matt/projects/TabzChrome-simplified/browser-mcp-server/`
-- MCP Tools docs: `/home/matt/projects/TabzChrome-simplified/browser-mcp-server/MCP_TOOLS.md`
-- Chrome API possibilities: `/home/matt/projects/TabzChrome-simplified/docs/planning/CHROME_API_FEATURE_POSSIBILITIES.md`
+- Current MCP server: `/home/matt/projects/TabzChrome/browser-mcp-server/`
+- MCP Tools docs: `/home/matt/projects/TabzChrome/browser-mcp-server/MCP_TOOLS.md`
+- Chrome API possibilities: `/home/matt/projects/TabzChrome/docs/planning/CHROME_API_FEATURE_POSSIBILITIES.md`
 
 ## Advanced: Theme Config Capture for Template Customization
 

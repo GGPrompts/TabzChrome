@@ -135,21 +135,25 @@ backend/
 npm run build:extension
 ```
 
-**Copy to Windows (for Chrome on Windows):**
-```bash
-# From WSL, copy built extension to Windows desktop
-rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/TabzChrome-simplified/dist-extension/
-```
-
 **Load/Reload in Chrome:**
 1. Navigate to `chrome://extensions`
 2. Enable "Developer mode" (top-right toggle)
-3. First time: Click "Load unpacked" → Select `C:\Users\marci\Desktop\TabzChrome-simplified\dist-extension`
+3. First time: Click "Load unpacked" → Select:
+   ```
+   C:\Users\marci\Desktop\TabzChrome\dist-extension
+   ```
 4. After rebuilding: Click the 🔄 **Reload** button on the extension card
 
-**Quick rebuild and deploy workflow:**
+**Development workflow:**
 ```bash
-npm run build:extension && rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/TabzChrome-simplified/dist-extension/
+# Build and copy to Windows (recommended - more stable than WSL path)
+npm run build:extension && rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/TabzChrome/dist-extension/
+# Then click Reload in chrome://extensions
+```
+
+**Alternative (may be flaky):** Load directly from WSL path:
+```
+\\wsl.localhost\Ubuntu\home\matt\projects\TabzChrome\dist-extension
 ```
 
 ---

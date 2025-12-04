@@ -2,7 +2,7 @@
   "projects": [
     {
       "name": "Tabz Development",
-      "workingDir": "~/projects/terminal-tabs"
+      "workingDir": "~/projects/Tabz"
     },
     {
       "name": "TUI Classics",
@@ -198,7 +198,7 @@
       "label": "Dev Logs",
       "command": "tmux attach -t tabz:backend",
       "terminalType": "bash",
-      "workingDir": "~/projects/terminal-tabs",
+      "workingDir": "~/projects/Tabz",
       "icon": "📊",
       "description": "Live backend logs with forwarded browser console output",
       "defaultTheme": "monokai",
