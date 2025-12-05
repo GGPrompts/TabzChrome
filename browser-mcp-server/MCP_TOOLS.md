@@ -392,12 +392,19 @@ Array of tabs with:
 - `background` (optional, default: false): Open in background or foreground
 
 **Allowed Domains:**
-- `github.com` (any repository, PR, issue, etc.)
-- `gitlab.com` (any project, MR, issue, etc.)
-- `*.vercel.app` (Vercel preview and production deployments)
-- `*.vercel.com` (Vercel alternative domain)
-- `localhost` (any port)
-- `127.0.0.1` (any port)
+
+| Category | Domains |
+|----------|---------|
+| Code hosting | github.com, gitlab.com, bitbucket.org |
+| Local dev | localhost, 127.0.0.1 (any port) |
+| Deployments | *.vercel.app, *.netlify.app, *.railway.app, *.onrender.com, *.pages.dev, *.fly.dev |
+| Dev docs | developer.mozilla.org, devdocs.io, docs.github.com, stackoverflow.com, *.stackexchange.com |
+| Packages | npmjs.com, pypi.org, crates.io, pkg.go.dev |
+| Playgrounds | codepen.io, jsfiddle.net |
+| AI Image | bing.com/images/create, chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art |
+| AI Chat | claude.ai, perplexity.ai, deepseek.com, phind.com, you.com, gemini.google.com, copilot.microsoft.com |
+| AI/ML | huggingface.co, replicate.com, openrouter.ai |
+| Design | figma.com, dribbble.com, unsplash.com, iconify.design |
 
 **Returns:**
 - `success`: Whether the URL was opened

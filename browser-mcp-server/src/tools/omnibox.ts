@@ -10,12 +10,35 @@ import { getCdpBrowser } from "../client.js";
 
 // Allowed URL patterns (same as in extension background.ts) - path is optional
 const ALLOWED_URL_PATTERNS = [
+  // Code Hosting
   /^https?:\/\/(www\.)?github\.com(\/.*)?$/i,
   /^https?:\/\/(www\.)?gitlab\.com(\/.*)?$/i,
+  /^https?:\/\/(www\.)?bitbucket\.org(\/.*)?$/i,             // Bitbucket
+  // Local Development
   /^https?:\/\/localhost(:\d+)?(\/.*)?$/i,
   /^https?:\/\/127\.0\.0\.1(:\d+)?(\/.*)?$/i,
-  /^https?:\/\/[\w-]+\.vercel\.app(\/.*)?$/i,  // Vercel preview/production (e.g., my-app-abc123.vercel.app)
-  /^https?:\/\/[\w.-]+\.vercel\.com(\/.*)?$/i, // Vercel alternative domain
+  // Deployment Platforms
+  /^https?:\/\/[\w-]+\.vercel\.app(\/.*)?$/i,                // Vercel preview/production
+  /^https?:\/\/[\w.-]+\.vercel\.com(\/.*)?$/i,               // Vercel alternative domain
+  /^https?:\/\/[\w-]+\.netlify\.app(\/.*)?$/i,               // Netlify
+  /^https?:\/\/[\w-]+\.railway\.app(\/.*)?$/i,               // Railway
+  /^https?:\/\/[\w-]+\.onrender\.com(\/.*)?$/i,              // Render
+  /^https?:\/\/[\w-]+\.pages\.dev(\/.*)?$/i,                 // Cloudflare Pages
+  /^https?:\/\/[\w-]+\.fly\.dev(\/.*)?$/i,                   // Fly.io
+  // Developer Docs & References
+  /^https?:\/\/developer\.mozilla\.org(\/.*)?$/i,            // MDN Web Docs
+  /^https?:\/\/(www\.)?devdocs\.io(\/.*)?$/i,                // DevDocs
+  /^https?:\/\/docs\.github\.com(\/.*)?$/i,                  // GitHub Docs
+  /^https?:\/\/(www\.)?stackoverflow\.com(\/.*)?$/i,         // Stack Overflow
+  /^https?:\/\/[\w-]+\.stackexchange\.com(\/.*)?$/i,         // Stack Exchange sites
+  // Package Registries
+  /^https?:\/\/(www\.)?npmjs\.com(\/.*)?$/i,                 // npm
+  /^https?:\/\/(www\.)?pypi\.org(\/.*)?$/i,                  // PyPI
+  /^https?:\/\/(www\.)?crates\.io(\/.*)?$/i,                 // Rust crates
+  /^https?:\/\/pkg\.go\.dev(\/.*)?$/i,                       // Go packages
+  // Frontend Playgrounds (no terminal access)
+  /^https?:\/\/(www\.)?codepen\.io(\/.*)?$/i,                // CodePen
+  /^https?:\/\/(www\.)?jsfiddle\.net(\/.*)?$/i,              // JSFiddle
   // Image/Video Generation AI
   /^https?:\/\/(www\.)?bing\.com\/images\/create(\/.*)?$/i,  // Bing Image Creator
   /^https?:\/\/(sora\.)?chatgpt\.com(\/.*)?$/i,              // ChatGPT + Sora
@@ -30,6 +53,17 @@ const ALLOWED_URL_PATTERNS = [
   /^https?:\/\/(chat\.)?deepseek\.com(\/.*)?$/i,             // DeepSeek
   /^https?:\/\/(www\.)?phind\.com(\/.*)?$/i,                 // Phind
   /^https?:\/\/(www\.)?you\.com(\/.*)?$/i,                   // You.com
+  /^https?:\/\/(www\.)?gemini\.google\.com(\/.*)?$/i,        // Google Gemini
+  /^https?:\/\/(www\.)?copilot\.microsoft\.com(\/.*)?$/i,    // Microsoft Copilot
+  // AI/ML Platforms
+  /^https?:\/\/(www\.)?huggingface\.co(\/.*)?$/i,            // Hugging Face
+  /^https?:\/\/(www\.)?replicate\.com(\/.*)?$/i,             // Replicate
+  /^https?:\/\/(www\.)?openrouter\.ai(\/.*)?$/i,             // OpenRouter
+  // Design & Assets
+  /^https?:\/\/(www\.)?figma\.com(\/.*)?$/i,                 // Figma
+  /^https?:\/\/(www\.)?dribbble\.com(\/.*)?$/i,              // Dribbble
+  /^https?:\/\/(www\.)?unsplash\.com(\/.*)?$/i,              // Unsplash
+  /^https?:\/\/(www\.)?iconify\.design(\/.*)?$/i,            // Iconify
 ];
 
 /**
@@ -40,12 +74,33 @@ function isAllowedUrl(url: string): { allowed: boolean; normalizedUrl?: string }
 
   // Add https:// if no protocol specified
   if (!normalized.match(/^https?:\/\//i)) {
-    // Check if it looks like a domain (with or without www.)
-    if (normalized.match(/^(www\.)?(github\.com|gitlab\.com|localhost|127\.0\.0\.1)/i)) {
-      normalized = `https://${normalized}`;
-    }
-    // Check for Vercel domains (e.g., my-app.vercel.app)
-    else if (normalized.match(/^[\w-]+\.vercel\.(app|com)/i)) {
+    // Known domains that can have https:// auto-added
+    const knownDomains = [
+      // Code hosting
+      /^(www\.)?(github\.com|gitlab\.com|bitbucket\.org)/i,
+      // Local
+      /^(localhost|127\.0\.0\.1)/i,
+      // Deployment platforms (*.vercel.app, *.netlify.app, etc.)
+      /^[\w-]+\.(vercel\.app|vercel\.com|netlify\.app|railway\.app|onrender\.com|pages\.dev|fly\.dev)/i,
+      // Developer docs
+      /^(developer\.mozilla\.org|devdocs\.io|docs\.github\.com|stackoverflow\.com)/i,
+      /^[\w-]+\.stackexchange\.com/i,
+      // Package registries
+      /^(www\.)?(npmjs\.com|pypi\.org|crates\.io|pkg\.go\.dev)/i,
+      // Playgrounds
+      /^(www\.)?(codepen\.io|jsfiddle\.net)/i,
+      // AI Image
+      /^(www\.)?(bing\.com|chatgpt\.com|sora\.chatgpt\.com|ideogram\.ai|leonardo\.ai|tensor\.art|playground\.com|lexica\.art)/i,
+      // AI Chat
+      /^(www\.)?(claude\.ai|perplexity\.ai|deepseek\.com|chat\.deepseek\.com|phind\.com|you\.com|gemini\.google\.com|copilot\.microsoft\.com)/i,
+      // AI/ML platforms
+      /^(www\.)?(huggingface\.co|replicate\.com|openrouter\.ai)/i,
+      // Design
+      /^(www\.)?(figma\.com|dribbble\.com|unsplash\.com|iconify\.design)/i,
+    ];
+
+    const matchesKnown = knownDomains.some(pattern => pattern.test(normalized));
+    if (matchesKnown) {
       normalized = `https://${normalized}`;
     } else {
       return { allowed: false };
@@ -90,11 +145,16 @@ Opens URLs from whitelisted domains in a new or current browser tab.
 Useful for opening GitHub repositories, GitLab projects, Vercel deployments, AI tools, or localhost development servers.
 
 **Allowed Domains:**
-- github.com, gitlab.com
-- *.vercel.app, *.vercel.com
-- localhost, 127.0.0.1
-- Image AI: bing.com/images/create, chatgpt.com, sora.chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
-- Chat AI: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com
+- Code hosting: github.com, gitlab.com, bitbucket.org
+- Local: localhost, 127.0.0.1
+- Deployments: *.vercel.app, *.netlify.app, *.railway.app, *.onrender.com, *.pages.dev, *.fly.dev
+- Dev docs: developer.mozilla.org, devdocs.io, docs.github.com, stackoverflow.com, *.stackexchange.com
+- Packages: npmjs.com, pypi.org, crates.io, pkg.go.dev
+- Playgrounds: codepen.io, jsfiddle.net
+- AI Image: bing.com/images/create, chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
+- AI Chat: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com, gemini.google.com, copilot.microsoft.com
+- AI/ML: huggingface.co, replicate.com, openrouter.ai
+- Design: figma.com, dribbble.com, unsplash.com, iconify.design
 
 Args:
   - url (required): URL to open (can omit https:// for allowed domains)
@@ -137,11 +197,16 @@ Security:
 **Provided URL:** ${params.url}
 
 **Allowed domains:**
-- github.com, gitlab.com
-- *.vercel.app, *.vercel.com
-- localhost, 127.0.0.1
-- Image AI: bing.com/images/create, chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
-- Chat AI: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com
+- Code hosting: github.com, gitlab.com, bitbucket.org
+- Local: localhost, 127.0.0.1
+- Deployments: *.vercel.app, *.netlify.app, *.railway.app, *.onrender.com, *.pages.dev, *.fly.dev
+- Dev docs: developer.mozilla.org, devdocs.io, docs.github.com, stackoverflow.com
+- Packages: npmjs.com, pypi.org, crates.io, pkg.go.dev
+- Playgrounds: codepen.io, jsfiddle.net
+- AI Image: bing.com/images/create, chatgpt.com, ideogram.ai, leonardo.ai, tensor.art, playground.com, lexica.art
+- AI Chat: claude.ai, perplexity.ai, deepseek.com, phind.com, you.com, gemini.google.com, copilot.microsoft.com
+- AI/ML: huggingface.co, replicate.com, openrouter.ai
+- Design: figma.com, dribbble.com, unsplash.com, iconify.design
 
 Please provide a URL from one of the allowed domains.`
             }],

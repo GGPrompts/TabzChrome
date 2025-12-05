@@ -870,8 +870,12 @@ function SidePanelTerminal() {
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a]">
         {/* Left: Title */}
         <div className="flex items-center gap-2">
-          <TerminalIcon className="h-5 w-5 text-[#00ff88]" />
-          <h1 className="text-sm font-semibold text-white">Terminal Tabs</h1>
+          <img
+            src="/icons/tabz-logo-light.png"
+            alt="Tabz"
+            className="h-8"
+          />
+          <h1 className="text-sm font-semibold text-white">Tabz</h1>
           {sessions.length > 0 && (
             <Badge variant="secondary" className="text-xs bg-[#00ff88]/20 text-[#00ff88] border-[#00ff88]/30">
               {sessions.length}
