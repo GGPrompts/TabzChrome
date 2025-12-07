@@ -42,12 +42,33 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Initialization guard - filter device queries during first 1000ms (from terminal-tabs pattern)
   const isInitializingRef = useRef(true)
 
+  // Resize lock - prevents concurrent resize operations that can corrupt xterm.js buffer
+  // The isWrapped error occurs when resize() is called while data is being written
+  const isResizingRef = useRef(false)
+  const resizeLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Output tracking - delay resize during active output to prevent tmux status bar corruption
+  // When tmux is outputting content, resizing can corrupt scroll regions and cause the status bar to disappear
+  const lastOutputTimeRef = useRef(0)
+  const OUTPUT_QUIET_PERIOD = 200 // ms to wait after output before allowing resize
+
   // Resize trick to force complete redraw (used for theme/font changes and manual refresh)
+  // CRITICAL: Uses resize lock and try/catch to prevent buffer corruption
   const triggerResizeTrick = () => {
-    if (xtermRef.current && fitAddonRef.current) {
-      const currentCols = xtermRef.current.cols
-      const currentRows = xtermRef.current.rows
-      console.log('[Terminal] Triggering resize trick for:', terminalId)
+    if (!xtermRef.current || !fitAddonRef.current) return
+
+    // Skip if already resizing
+    if (isResizingRef.current) {
+      console.log('[Terminal] Skipping resize trick - resize already in progress')
+      return
+    }
+
+    const currentCols = xtermRef.current.cols
+    const currentRows = xtermRef.current.rows
+    console.log('[Terminal] Triggering resize trick for:', terminalId)
+
+    try {
+      isResizingRef.current = true
 
       // Step 1: Resize down by 1 column
       xtermRef.current.resize(currentCols - 1, currentRows)
@@ -61,16 +82,24 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       // Step 2: Wait then resize back to original size
       setTimeout(() => {
         if (xtermRef.current) {
-          xtermRef.current.resize(currentCols, currentRows)
-          sendMessage({
-            type: 'TERMINAL_RESIZE',
-            terminalId,
-            cols: currentCols,
-            rows: currentRows,
-          })
-          console.log('[Terminal] Resize trick completed')
+          try {
+            xtermRef.current.resize(currentCols, currentRows)
+            sendMessage({
+              type: 'TERMINAL_RESIZE',
+              terminalId,
+              cols: currentCols,
+              rows: currentRows,
+            })
+            console.log('[Terminal] Resize trick completed')
+          } catch (e) {
+            console.warn('[Terminal] Resize trick step 2 failed:', e)
+          }
         }
+        isResizingRef.current = false
       }, 100)
+    } catch (e) {
+      console.warn('[Terminal] Resize trick step 1 failed:', e)
+      isResizingRef.current = false
     }
   }
 
@@ -93,6 +122,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       scrollback: sessionName ? 0 : 10000, // No scrollback for tmux (tmux handles scrolling)
       convertEol: false,
       allowProposedApi: true,
+      // CRITICAL: Ensure minimum contrast for readability
+      // Fixes white/light text on bright green/red backgrounds in diffs
+      // 4.5 = WCAG AA standard, 7 = AAA (we use 4.5 as good balance)
+      minimumContrastRatio: 4.5,
     })
 
     const fitAddon = new FitAddon()
@@ -136,19 +169,56 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       }, 1000)  // 1000ms debounce - longer to avoid interrupting tmux split drag
     }
 
-    // Fit terminal to container with dimension verification
+    // Fit terminal to container with dimension verification and resize lock
+    // CRITICAL: Wraps fit() in try/catch and uses resize lock to prevent buffer corruption
+    // The isWrapped error occurs when resize() is called during active write operations
     const fitTerminal = () => {
       if (!fitAddonRef.current || !terminalRef.current || !xtermRef.current) return
 
       const containerWidth = terminalRef.current.offsetWidth
       const containerHeight = terminalRef.current.offsetHeight
 
-      if (containerWidth > 0 && containerHeight > 0) {
+      if (containerWidth <= 0 || containerHeight <= 0) {
+        console.log('[Terminal] Skipping fit - container has 0 dimensions')
+        return
+      }
+
+      // Skip if already resizing (prevents buffer corruption)
+      if (isResizingRef.current) {
+        console.log('[Terminal] Skipping fit - resize already in progress')
+        return
+      }
+
+      // Skip if output happened recently - prevents tmux status bar corruption
+      // Resizing during active output can corrupt scroll regions
+      const timeSinceOutput = Date.now() - lastOutputTimeRef.current
+      if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+        console.log('[Terminal] Deferring fit - output in progress, will retry')
+        // Schedule retry after quiet period
+        setTimeout(fitTerminal, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+        return
+      }
+
+      try {
+        isResizingRef.current = true
+
+        // Clear any pending resize lock timeout
+        if (resizeLockTimeoutRef.current) {
+          clearTimeout(resizeLockTimeoutRef.current)
+        }
+
         fitAddonRef.current.fit()
+
         // Debounced send to backend - wait for dimensions to stabilize
         debouncedSendResize()
-      } else {
-        console.log('[Terminal] Skipping fit - container has 0 dimensions')
+
+        // Release lock after a short delay to allow buffer to stabilize
+        resizeLockTimeoutRef.current = setTimeout(() => {
+          isResizingRef.current = false
+        }, 50)
+      } catch (e) {
+        console.warn('[Terminal] Fit failed (buffer may be mid-update):', e)
+        isResizingRef.current = false
       }
     }
 
@@ -310,7 +380,17 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         setIsConnected(message.wsConnected)
       } else if (message.type === 'TERMINAL_OUTPUT' && message.terminalId === terminalId) {
         if (xtermRef.current && message.data) {
-          xtermRef.current.write(message.data)
+          // Track output timing to prevent resize during active output
+          // This prevents tmux status bar corruption when scroll regions are being updated
+          lastOutputTimeRef.current = Date.now()
+
+          // Wrap write in try/catch - buffer corruption can cause isWrapped errors during resize
+          try {
+            xtermRef.current.write(message.data)
+          } catch (e) {
+            // Buffer may be in inconsistent state during resize - log but don't crash
+            console.warn('[Terminal] Write failed (likely resize in progress):', e)
+          }
         } else {
           console.warn('[Terminal] ⚠️ Cannot write - xterm:', !!xtermRef.current, 'data:', !!message.data)
         }
@@ -331,56 +411,18 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Post-reconnection refresh sequence (from terminal-tabs pattern)
     // Wait for initialization guard (1000ms) + buffer before forcing redraw
-    // Use the "resize trick" to force tmux to redraw: resize to cols-1, then back to cols
+    // Uses triggerResizeTrick which has proper resize lock and try/catch protection
     setTimeout(() => {
-      if (xtermRef.current && fitAddonRef.current) {
+      if (xtermRef.current && fitAddonRef.current && !isResizingRef.current) {
         console.log('[Terminal] Post-reconnection refresh for:', terminalId)
+        triggerResizeTrick()
 
-        // Step 1: Fit terminal to container
-        try {
-          fitAddonRef.current.fit()
-        } catch (e) {
-          console.warn('[Terminal] Fit failed:', e)
-        }
-
-        const cols = xtermRef.current.cols
-        const rows = xtermRef.current.rows
-
-        // Step 2: RESIZE TRICK - Force tmux to redraw by resizing
-        // First resize to cols-1 to trigger redraw
-        console.log('[Terminal] Resize trick step 1: shrink to', cols - 1, 'x', rows)
-        xtermRef.current.resize(cols - 1, rows)
-        sendMessage({
-          type: 'TERMINAL_RESIZE',
-          terminalId,
-          cols: cols - 1,
-          rows,
-        })
-
-        // Step 3: After a short delay, resize back to original
+        // Focus terminal after resize trick completes
         setTimeout(() => {
           if (xtermRef.current) {
-            console.log('[Terminal] Resize trick step 2: restore to', cols, 'x', rows)
-            xtermRef.current.resize(cols, rows)
-            prevDimensionsRef.current = { cols, rows }
-            sendMessage({
-              type: 'TERMINAL_RESIZE',
-              terminalId,
-              cols,
-              rows,
-            })
-
-            // Step 4: Force full screen redraw
-            try {
-              xtermRef.current.refresh(0, xtermRef.current.rows - 1)
-            } catch (e) {
-              console.warn('[Terminal] Refresh failed:', e)
-            }
-
-            // Step 5: Focus terminal
             xtermRef.current.focus()
           }
-        }, 100)  // Short delay between resize steps
+        }, 150)
       }
     }, 1200)  // Wait 1000ms (initialization guard) + 200ms buffer
 
@@ -424,65 +466,131 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Force complete redraw after font/theme changes
     // Font changes require clearing renderer cache (canvas caches glyphs)
+    // Uses resize lock and try/catch to prevent buffer corruption
     setTimeout(() => {
       if (!xtermRef.current || !fitAddonRef.current) return
 
-      if (fontChanged) {
-        // Clear screen to force renderer to redraw with new font
-        xtermRef.current.clear()
-        // Restore scroll position
-        xtermRef.current.scrollToLine(currentScrollPos)
+      // Skip if already resizing
+      if (isResizingRef.current) {
+        console.log('[Terminal] Skipping settings redraw - resize in progress')
+        return
       }
 
-      // Full refresh
-      xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+      try {
+        isResizingRef.current = true
 
-      // Refit terminal
-      fitAddonRef.current.fit()
+        if (fontChanged) {
+          // Clear screen to force renderer to redraw with new font
+          xtermRef.current.clear()
+          // Restore scroll position
+          xtermRef.current.scrollToLine(currentScrollPos)
+        }
 
-      // Send new dimensions to backend PTY (only if changed)
-      const cols = xtermRef.current.cols
-      const rows = xtermRef.current.rows
-      if (cols !== prevDimensionsRef.current.cols || rows !== prevDimensionsRef.current.rows) {
-        prevDimensionsRef.current = { cols, rows }
-        sendMessage({
-          type: 'TERMINAL_RESIZE',
-          terminalId,
-          cols,
-          rows,
-        })
+        // Full refresh
+        xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+
+        // Refit terminal
+        fitAddonRef.current.fit()
+
+        // Send new dimensions to backend PTY (only if changed)
+        const cols = xtermRef.current.cols
+        const rows = xtermRef.current.rows
+        if (cols !== prevDimensionsRef.current.cols || rows !== prevDimensionsRef.current.rows) {
+          prevDimensionsRef.current = { cols, rows }
+          sendMessage({
+            type: 'TERMINAL_RESIZE',
+            terminalId,
+            cols,
+            rows,
+          })
+        }
+
+        console.log('[Terminal] Settings updated - fontSize:', fontSize, 'fontFamily:', fontFamily, 'theme:', themeName, 'isDark:', isDark)
+
+        // Release resize lock after buffer stabilizes
+        setTimeout(() => {
+          isResizingRef.current = false
+        }, 50)
+      } catch (e) {
+        console.warn('[Terminal] Settings redraw failed:', e)
+        isResizingRef.current = false
       }
-
-      console.log('[Terminal] Settings updated - fontSize:', fontSize, 'fontFamily:', fontFamily, 'theme:', themeName, 'isDark:', isDark)
     }, 100)
   }, [fontSize, fontFamily, themeName, isDark, terminalId])
 
-  // Handle window resize - only send if dimensions actually changed (from terminal-tabs pattern)
+  // Handle window resize - debounced to prevent buffer corruption during rapid resize
+  // CRITICAL: Chrome sidebar resize triggers many events rapidly - must debounce!
   useEffect(() => {
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null
+
     const handleResize = () => {
-      if (fitAddonRef.current && xtermRef.current) {
-        fitAddonRef.current.fit()
+      // Debounce the resize to prevent isWrapped buffer corruption
+      if (resizeTimeout) clearTimeout(resizeTimeout)
 
-        const cols = xtermRef.current.cols
-        const rows = xtermRef.current.rows
+      resizeTimeout = setTimeout(() => {
+        if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
 
-        // Only send if dimensions actually changed
-        if (cols === prevDimensionsRef.current.cols && rows === prevDimensionsRef.current.rows) {
+        const containerWidth = terminalRef.current.offsetWidth
+        const containerHeight = terminalRef.current.offsetHeight
+
+        // Skip if container has 0 dimensions (can happen during Chrome sidebar animations)
+        if (containerWidth <= 0 || containerHeight <= 0) {
+          console.log('[Terminal] Skipping window resize - container has 0 dimensions')
           return
         }
 
-        prevDimensionsRef.current = { cols, rows }
-        sendMessage({
-          type: 'TERMINAL_RESIZE',
-          terminalId,
-          cols,
-          rows,
-        })
-      }
+        // Skip if already resizing
+        if (isResizingRef.current) {
+          console.log('[Terminal] Skipping window resize - resize already in progress')
+          return
+        }
+
+        // Skip if output happened recently - prevents tmux status bar corruption
+        const timeSinceOutput = Date.now() - lastOutputTimeRef.current
+        if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+          console.log('[Terminal] Deferring window resize - output in progress')
+          // Retry after quiet period
+          if (resizeTimeout) clearTimeout(resizeTimeout)
+          resizeTimeout = setTimeout(handleResize, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+          return
+        }
+
+        try {
+          isResizingRef.current = true
+          fitAddonRef.current.fit()
+
+          const cols = xtermRef.current.cols
+          const rows = xtermRef.current.rows
+
+          // Release resize lock after buffer stabilizes
+          setTimeout(() => {
+            isResizingRef.current = false
+          }, 50)
+
+          // Only send if dimensions actually changed
+          if (cols === prevDimensionsRef.current.cols && rows === prevDimensionsRef.current.rows) {
+            return
+          }
+
+          prevDimensionsRef.current = { cols, rows }
+          sendMessage({
+            type: 'TERMINAL_RESIZE',
+            terminalId,
+            cols,
+            rows,
+          })
+        } catch (e) {
+          console.warn('[Terminal] Window resize fit failed:', e)
+          isResizingRef.current = false
+        }
+      }, 150) // 150ms debounce - matches ResizeObserver debounce
     }
 
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+    }
   }, [terminalId])
 
   // Handle paste command (from context menu)
