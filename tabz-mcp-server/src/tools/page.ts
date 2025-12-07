@@ -9,7 +9,7 @@ import { z } from "zod";
 import { getPageInfo } from "../client.js";
 import { ResponseFormat } from "../types.js";
 
-// Input schema for browser_get_page_info
+// Input schema for tabz_get_page_info
 const GetPageInfoSchema = z.object({
   tabId: z.number()
     .int()
@@ -27,7 +27,7 @@ type GetPageInfoInput = z.infer<typeof GetPageInfoSchema>;
  */
 export function registerPageTools(server: McpServer, backendUrl: string): void {
   server.tool(
-    "browser_get_page_info",
+    "tabz_get_page_info",
     `Get information about the current browser page.
 
 Returns the URL, title, tab ID, and favicon of the active browser tab.

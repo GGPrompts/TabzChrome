@@ -13,7 +13,13 @@
     "notifications",
     "scripting",
     "activeTab",
-    "alarms"
+    "alarms",
+    "debugger",
+    "downloads",
+    "webRequest",
+    "cookies",
+    "history",
+    "bookmarks"
   ],
   "omnibox": {
     "keyword": "term"

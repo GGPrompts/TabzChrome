@@ -723,7 +723,12 @@ server.listen(PORT, async () => {
   // Initialize note persistence service
 
   // Recover existing ctt- tmux sessions on startup
+  // Use a Set to track sessions being recovered to prevent duplicates
+  const recoveringSessionsSet = new Set();
+
   if (process.env.CLEANUP_ON_START !== 'true') {
+    // Delay recovery to 2500ms to ensure frontend terminals have finished initializing
+    // (Frontend has 1000ms init guard + 1000ms resize debounce + buffer)
     setTimeout(async () => {
       try {
         const { execSync } = require('child_process');
@@ -733,32 +738,53 @@ server.listen(PORT, async () => {
         if (sessions.length > 0) {
           log.info(`🔄 Recovering ${sessions.length} ctt- sessions...`);
           for (const sessionName of sessions) {
-            // Check if already registered
+            // Check if already registered in terminal registry
             const existing = terminalRegistry.getAllTerminals().find(t => t.sessionName === sessionName || t.id === sessionName);
             if (existing) {
-              log.debug(`Session ${sessionName} already registered`);
+              log.debug(`Session ${sessionName} already registered in terminal registry`);
               continue;
             }
+
+            // Check if already being recovered (prevents race conditions)
+            if (recoveringSessionsSet.has(sessionName)) {
+              log.debug(`Session ${sessionName} already being recovered`);
+              continue;
+            }
+
+            // Check if PTY already exists for this session (another guard against duplicates)
+            const existingPty = ptyHandler.getProcessBySession(sessionName);
+            if (existingPty) {
+              log.debug(`Session ${sessionName} already has a PTY attached`);
+              continue;
+            }
+
+            recoveringSessionsSet.add(sessionName);
 
             // Use short ID for display name (first 8 chars after ctt-)
             const shortId = sessionName.replace('ctt-', '').substring(0, 8);
             const displayName = `Bash (${shortId})`;
 
-            // Register the terminal with useTmux - registerTerminal creates PTY internally
-            await terminalRegistry.registerTerminal({
-              name: displayName,
-              sessionName: sessionName,  // Existing tmux session to reconnect to
-              terminalType: 'bash',
-              isChrome: true,
-              useTmux: true,  // Enable tmux reconnection
-            });
+            try {
+              // Register the terminal with useTmux - registerTerminal creates PTY internally
+              await terminalRegistry.registerTerminal({
+                name: displayName,
+                sessionName: sessionName,  // Existing tmux session to reconnect to
+                terminalType: 'bash',
+                isChrome: true,
+                useTmux: true,  // Enable tmux reconnection
+              });
 
-            log.success(`✅ Recovered: ${sessionName}`);
+              log.success(`✅ Recovered: ${sessionName}`);
+            } catch (regError) {
+              log.warn(`Failed to recover ${sessionName}:`, regError.message);
+            } finally {
+              recoveringSessionsSet.delete(sessionName);
+            }
           }
         }
       } catch (error) {
         log.warn('Recovery check failed (tmux not running?):', error.message);
       }
-    }, 1000);
+    }, 2500);
   }
 });

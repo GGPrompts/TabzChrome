@@ -9,7 +9,7 @@ import { z } from "zod";
 import { getConsoleLogs } from "../client.js";
 import { ResponseFormat, type ConsoleLogEntry } from "../types.js";
 
-// Input schema for browser_get_console_logs
+// Input schema for tabz_get_console_logs
 const GetConsoleLogsSchema = z.object({
   level: z.enum(["all", "log", "info", "warn", "error", "debug"])
     .default("all")
@@ -131,7 +131,7 @@ function truncateMessage(msg: string, maxLen: number): string {
  */
 export function registerConsoleTools(server: McpServer, backendUrl: string): void {
   server.tool(
-    "browser_get_console_logs",
+    "tabz_get_console_logs",
     `Get console logs from the browser (log, warn, error, info, debug).
 
 This tool retrieves console output from web pages open in Chrome. Useful for:

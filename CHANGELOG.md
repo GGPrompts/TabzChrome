@@ -105,20 +105,20 @@ Six new tools added to enable comprehensive browser automation via Claude Code:
 - **Element Screenshots** - Target specific elements with CSS selectors
 - **Auto-save to ~/ai-images/** - Screenshots saved with timestamps, viewable via Read tool
 - **Image Download** - Extract images from `<img>` tags or CSS background-image
-- Files: `browser-mcp-server/src/tools/screenshot.ts`, `browser-mcp-server/src/client.ts`
+- Files: `tabz-mcp-server/src/tools/screenshot.ts`, `tabz-mcp-server/src/client.ts`
 
 #### Tab Management
 - **List All Tabs** - Get tabId, URL, title, and active status for all open tabs
 - **Switch Tabs** - Bring specific tabs to focus by ID
 - **Filters chrome:// pages** - Only shows actual web pages
-- Files: `browser-mcp-server/src/tools/tabs.ts`
+- Files: `tabz-mcp-server/src/tools/tabs.ts`
 
 #### DOM Interaction
 - **Click Elements** - Click buttons, links, checkboxes by CSS selector
 - **Fill Forms** - Type text into input fields and textareas
 - **Wait for Elements** - Automatically waits up to 5 seconds for elements to appear
 - **Clear Before Fill** - Clears existing input value before typing
-- Files: `browser-mcp-server/src/tools/interaction.ts`
+- Files: `tabz-mcp-server/src/tools/interaction.ts`
 
 ### 🔧 Technical Details
 
@@ -159,19 +159,19 @@ Browser MCP Server (puppeteer-core)
   - Get current page info (URL, title, tab ID)
   - Get console logs (log, warn, error, info, debug)
   - Execute JavaScript in browser tabs
-  - Files: `browser-mcp-server/` (new package)
+  - Files: `tabz-mcp-server/` (new package)
 
 - **Dual Connection Strategy** - Works with or without Chrome debugging
   - **CDP Mode** (recommended): Connects via Chrome DevTools Protocol for full JS execution
   - **Extension Mode**: Falls back to extension messaging (limited by CSP)
   - CDP bypasses Content Security Policy restrictions for unrestricted script execution
-  - Files: `browser-mcp-server/src/client.ts`
+  - Files: `tabz-mcp-server/src/client.ts`
 
 - **WSL2 + Windows Chrome Support** - Seamless cross-platform operation
   - Uses PowerShell bridge to access Chrome debugging from WSL2
   - No port forwarding or network configuration required
   - Works with Tailscale VPN active
-  - Files: `browser-mcp-server/src/client.ts`
+  - Files: `tabz-mcp-server/src/client.ts`
 
 #### Architecture
 ```

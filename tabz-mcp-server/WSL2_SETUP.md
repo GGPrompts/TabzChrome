@@ -1,6 +1,21 @@
-# Browser MCP Server - WSL2 Setup Guide
+# Browser MCP Server - Platform Setup Guide
 
-This guide explains how to set up the Browser MCP Server when running Claude Code in WSL2 with Chrome on Windows.
+This guide explains how to set up the Browser MCP Server on different platforms.
+
+## Quick Start by Platform
+
+| Platform | Launch Script | Notes |
+|----------|---------------|-------|
+| **WSL2** (Windows host) | `run-wsl.sh` | Uses Windows node.exe for CDP access |
+| **Native Linux** | `run.sh` | Uses native node |
+| **macOS** | `run.sh` | Uses native node |
+| **Auto-detect** | `run-auto.sh` | Detects platform automatically |
+
+---
+
+## WSL2 Setup (Windows Host)
+
+This section explains how to set up when running Claude Code in WSL2 with Chrome on Windows.
 
 ## The Problem
 
@@ -46,14 +61,14 @@ Create a desktop shortcut pointing to this batch file with Chrome's icon.
 
 ### 2. Configure MCP Server
 
-The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`.
+The project includes several launch scripts. For WSL2, use `run-wsl.sh` which runs via Windows `node.exe`.
 
 **Project `.mcp.json`:**
 ```json
 {
   "mcpServers": {
     "browser": {
-      "command": "/path/to/TabzChrome/browser-mcp-server/run-windows.sh",
+      "command": "/path/to/TabzChrome/tabz-mcp-server/run-wsl.sh",
       "args": [],
       "env": {
         "BACKEND_URL": "http://localhost:8129"
@@ -64,6 +79,21 @@ The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`
 ```
 
 > Replace `/path/to/TabzChrome` with your actual clone location.
+
+**Or use auto-detection (recommended):**
+```json
+{
+  "mcpServers": {
+    "browser": {
+      "command": "/path/to/TabzChrome/tabz-mcp-server/run-auto.sh",
+      "args": [],
+      "env": {
+        "BACKEND_URL": "http://localhost:8129"
+      }
+    }
+  }
+}
+```
 
 ### 3. Start Everything
 
@@ -100,7 +130,7 @@ Should return Chrome version info (Browser, Protocol-Version, etc.).
 │           │                           ▼                                   │
 │  ┌─────────────────────────────────────────────┐                         │
 │  │  MCP Server (Windows node.exe)              │                         │
-│  │  - Runs via run-windows.sh                  │                         │
+│  │  - Runs via run-wsl.sh                      │                         │
 │  │  - Direct access to Chrome CDP              │                         │
 │  │  - No port proxy needed!                    │                         │
 │  └─────────────────────────────────────────────┘                         │
@@ -132,7 +162,7 @@ When you make changes to the source code:
 
 ```bash
 # Rebuild (from your TabzChrome clone)
-cd browser-mcp-server
+cd tabz-mcp-server
 npm run build
 
 # Restart Claude Code to pick up changes
@@ -187,12 +217,65 @@ To view in Claude Code from WSL, use the WSL-converted path:
 
 This was caused by broken CDP connection. When CDP isn't working, puppeteer may try to create a new browser instance with default viewport. With proper CDP setup, this doesn't happen.
 
+---
+
+## Native Linux / macOS Setup
+
+Setup is simpler on native Linux/macOS since there's no network isolation between Node.js and Chrome.
+
+### 1. Start Chrome with Debugging
+
+**Linux:**
+```bash
+google-chrome --remote-debugging-port=9222
+# Or for Chromium:
+chromium-browser --remote-debugging-port=9222
+```
+
+**macOS:**
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+```
+
+### 2. Configure MCP Server
+
+**Project `.mcp.json`:**
+```json
+{
+  "mcpServers": {
+    "browser": {
+      "command": "/path/to/TabzChrome/tabz-mcp-server/run.sh",
+      "args": [],
+      "env": {
+        "BACKEND_URL": "http://localhost:8129"
+      }
+    }
+  }
+}
+```
+
+Or use `run-auto.sh` which auto-detects your platform.
+
+### 3. Verify Setup
+
+```bash
+# Check Chrome CDP is available
+curl http://localhost:9222/json/version
+
+# Check backend is running
+curl http://localhost:8129/api/health
+```
+
+---
+
 ## Files Reference
 
 | File | Purpose |
 |------|---------|
 | `.mcp.json` | Project MCP server config |
-| `run-windows.sh` | Wrapper to run via Windows node.exe |
+| `run.sh` | Native Linux/macOS launcher |
+| `run-wsl.sh` | WSL2 launcher (uses Windows node.exe) |
+| `run-auto.sh` | Auto-detect platform and use correct launcher |
 | `Chrome-Debug.bat` | Chrome startup script (you create this) |
 | `~/ai-images/` | Screenshot output directory |
 | `dist/` | Built MCP server code |

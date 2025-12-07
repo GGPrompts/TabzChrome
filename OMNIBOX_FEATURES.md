@@ -84,26 +84,26 @@ As you type, the omnibox provides intelligent suggestions:
 
 ## MCP Tool for Claude
 
-### `browser_open_url`
+### `tabz_open_url`
 
 Claude can now programmatically open allowed URLs via the Browser MCP server.
 
 **Usage in Claude Code:**
 ```typescript
 // Open GitHub repo
-mcp__browser__browser_open_url({
+mcp__tabz__tabz_open_url({
   url: "github.com/user/repo"
 })
 
 // Open in background tab
-mcp__browser__browser_open_url({
+mcp__tabz__tabz_open_url({
   url: "github.com/user/repo/pull/123",
   newTab: true,
   background: true
 })
 
 // Open localhost dev server
-mcp__browser__browser_open_url({
+mcp__tabz__tabz_open_url({
   url: "localhost:3000"
 })
 ```
@@ -140,11 +140,11 @@ This prevents malicious URLs from being opened and ensures the omnibox is only u
 
 To add more allowed domains, edit:
 1. **Extension:** `extension/background/background.ts` - Update `ALLOWED_URL_PATTERNS`
-2. **MCP Server:** `browser-mcp-server/src/tools/omnibox.ts` - Update `ALLOWED_URL_PATTERNS`
+2. **MCP Server:** `tabz-mcp-server/src/tools/omnibox.ts` - Update `ALLOWED_URL_PATTERNS`
 3. Rebuild both:
    ```bash
    npm run build:extension
-   cd browser-mcp-server && npm run build
+   cd tabz-mcp-server && npm run build
    ```
 
 ## How It Works
@@ -164,12 +164,12 @@ To add more allowed domains, edit:
    - Updated `chrome.omnibox.onInputChanged` to suggest URLs
    - Updated `chrome.omnibox.onInputEntered` to handle URLs and dispositions
 
-2. **browser-mcp-server/src/tools/omnibox.ts** (NEW)
-   - New MCP tool: `browser_open_url`
+2. **tabz-mcp-server/src/tools/omnibox.ts** (NEW)
+   - New MCP tool: `tabz_open_url`
    - URL validation (same whitelist as extension)
    - Opens URLs via Chrome DevTools Protocol (CDP)
 
-3. **browser-mcp-server/src/index.ts**
+3. **tabz-mcp-server/src/index.ts**
    - Registered `registerOmniboxTools(server)`
 
 ### Chrome Extension Manifest
@@ -200,18 +200,18 @@ No manifest changes were needed!
 
 ```typescript
 // Test 1: Open GitHub repo
-const result = await mcp__browser__browser_open_url({
+const result = await mcp__tabz__tabz_open_url({
   url: "github.com/anthropics/claude-code"
 })
 
 // Test 2: Try forbidden domain (should fail)
-const result = await mcp__browser__browser_open_url({
+const result = await mcp__tabz__tabz_open_url({
   url: "https://google.com"
 })
 // Expected: Error - "URL not allowed"
 
 // Test 3: Open localhost
-const result = await mcp__browser__browser_open_url({
+const result = await mcp__tabz__tabz_open_url({
   url: "localhost:8129"
 })
 ```

@@ -371,24 +371,24 @@ Located at `extension/manifest.json`:
 
 ---
 
-## 🌐 Browser MCP Integration
+## 🌐 Tabz MCP Integration
 
-TabzChrome includes a **Browser MCP Server** that enables Claude Code to programmatically control the browser.
+TabzChrome includes a **Tabz MCP Server** that enables Claude Code to programmatically control the browser.
 
 ### Available Tools
 
-**11 MCP tools** for browser automation (see [MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md)):
-- `browser_open_url` - Open allowed URLs (GitHub, GitLab, Vercel, localhost)
-- `browser_get_page_info` - Get current page URL and title
-- `browser_screenshot` - Capture screenshots to disk
-- `browser_download_image` - Download images from pages
-- `browser_list_tabs` - List all open tabs
-- `browser_switch_tab` - Switch to specific tab
-- `browser_click` - Click elements by CSS selector
-- `browser_fill` - Fill form inputs
-- `browser_get_element` - Inspect element HTML/CSS
-- `browser_execute_script` - Run JavaScript in page
-- `browser_get_console_logs` - View browser console output
+**11 MCP tools** for browser automation (see [MCP_TOOLS.md](tabz-mcp-server/MCP_TOOLS.md)):
+- `tabz_open_url` - Open allowed URLs (GitHub, GitLab, Vercel, localhost)
+- `tabz_get_page_info` - Get current page URL and title
+- `tabz_screenshot` - Capture screenshots to disk
+- `tabz_download_image` - Download images from pages
+- `tabz_list_tabs` - List all open tabs
+- `tabz_switch_tab` - Switch to specific tab
+- `tabz_click` - Click elements by CSS selector
+- `tabz_fill` - Fill form inputs
+- `tabz_get_element` - Inspect element HTML/CSS
+- `tabz_execute_script` - Run JavaScript in page
+- `tabz_get_console_logs` - View browser console output
 
 ### Interactive Command: `/ttmcp`
 
@@ -447,10 +447,10 @@ See [OMNIBOX_FEATURES.md](OMNIBOX_FEATURES.md) for complete documentation.
 - **[PLAN.md](PLAN.md)** - Refactoring roadmap, technical debt, future improvements
 - **[OMNIBOX_FEATURES.md](OMNIBOX_FEATURES.md)** - Chrome omnibox URL navigation feature
 
-### Browser MCP Documentation
+### Tabz MCP Documentation
 
-- **[browser-mcp-server/MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md)** - Complete reference for all Browser MCP tools
-- **[.claude/commands/ttmcp.md](.claude/commands/ttmcp.md)** - Interactive Browser MCP command runner
+- **[tabz-mcp-server/MCP_TOOLS.md](tabz-mcp-server/MCP_TOOLS.md)** - Complete reference for all Tabz MCP tools
+- **[.claude/commands/ttmcp.md](.claude/commands/ttmcp.md)** - Interactive Tabz MCP command runner
 
 ### Organized Documentation (docs/ folder)
 

@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { clickElement, fillInput } from "../client.js";
 
-// Input schema for browser_click
+// Input schema for tabz_click
 const ClickSchema = z.object({
   selector: z.string()
     .min(1, "Selector is required")
@@ -17,7 +17,7 @@ const ClickSchema = z.object({
 
 type ClickInput = z.infer<typeof ClickSchema>;
 
-// Input schema for browser_fill
+// Input schema for tabz_fill
 const FillSchema = z.object({
   selector: z.string()
     .min(1, "Selector is required")
@@ -34,7 +34,7 @@ type FillInput = z.infer<typeof FillSchema>;
 export function registerInteractionTools(server: McpServer): void {
   // Click tool
   server.tool(
-    "browser_click",
+    "tabz_click",
     `Click an element on the page.
 
 Waits for the element to appear (up to 5 seconds) then clicks it.
@@ -66,8 +66,8 @@ Error Handling:
   - "Element not found": Selector doesn't match any element within 5 seconds
   - "CDP not available": Chrome not running with --remote-debugging-port=9222
 
-After clicking, use browser_get_page_info to check if page changed,
-or browser_execute_script to verify the result.`,
+After clicking, use tabz_get_page_info to check if page changed,
+or tabz_execute_script to verify the result.`,
     ClickSchema.shape,
     async (params: ClickInput) => {
       try {
@@ -80,9 +80,9 @@ or browser_execute_script to verify the result.`,
 Clicked element: \`${params.selector}\`
 
 The click action was performed. Use these tools to verify the result:
-- \`browser_get_page_info\` - Check if page navigated
-- \`browser_execute_script\` - Check DOM changes
-- \`browser_screenshot\` - Capture current state`;
+- \`tabz_get_page_info\` - Check if page navigated
+- \`tabz_execute_script\` - Check DOM changes
+- \`tabz_screenshot\` - Capture current state`;
         } else {
           resultText = `## Click Failed
 
@@ -90,7 +90,7 @@ The click action was performed. Use these tools to verify the result:
 **Error:** ${result.error}
 
 Troubleshooting:
-- Use browser_execute_script to find elements: \`document.querySelector('${params.selector}')\`
+- Use tabz_execute_script to find elements: \`document.querySelector('${params.selector}')\`
 - Try a more specific selector
 - Element may be in an iframe (not yet supported)
 - Element may be hidden or not clickable`;
@@ -114,7 +114,7 @@ Troubleshooting:
 
   // Fill tool
   server.tool(
-    "browser_fill",
+    "tabz_fill",
     `Fill an input field with text.
 
 Waits for the element to appear (up to 5 seconds), clears any existing value,
@@ -147,8 +147,8 @@ Error Handling:
   - "CDP not available": Chrome not running with --remote-debugging-port=9222
 
 After filling, you may want to:
-- Click a submit button: browser_click with selector="button[type='submit']"
-- Verify the value: browser_execute_script with code="document.querySelector('${"{selector}"}').value"`,
+- Click a submit button: tabz_click with selector="button[type='submit']"
+- Verify the value: tabz_execute_script with code="document.querySelector('${"{selector}"}').value"`,
     FillSchema.shape,
     async (params: FillInput) => {
       try {
@@ -167,8 +167,8 @@ After filling, you may want to:
 **Value:** "${displayValue}"
 
 The field was filled. Common next steps:
-- Submit form: \`browser_click\` with selector="button[type='submit']"
-- Verify value: \`browser_execute_script\` to check field value
+- Submit form: \`tabz_click\` with selector="button[type='submit']"
+- Verify value: \`tabz_execute_script\` to check field value
 - Fill another field: Call this tool again with a different selector`;
         } else {
           resultText = `## Fill Failed
@@ -177,7 +177,7 @@ The field was filled. Common next steps:
 **Error:** ${result.error}
 
 Troubleshooting:
-- Use browser_execute_script to find inputs: \`document.querySelectorAll('input')\`
+- Use tabz_execute_script to find inputs: \`document.querySelectorAll('input')\`
 - Try a more specific selector
 - Ensure the element is an input, textarea, or contenteditable element
 - Element may be in an iframe (not yet supported)`;

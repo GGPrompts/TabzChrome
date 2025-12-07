@@ -16,7 +16,7 @@ A Chrome extension that puts bash terminals in your browser's sidebar. Browse th
 - **Profiles** - Save terminal configurations (working directory, startup command, font, theme)
 - **Persistent sessions** - Terminals survive sidebar close/reopen (powered by tmux)
 - **Smart directory inheritance** - Set a global working directory, profiles inherit it
-- **Browser MCP tools** - Let Claude Code control your browser (screenshots, clicks, form filling)
+- **Tabz MCP tools** - Let Claude Code control your browser (screenshots, clicks, form filling)
 
 ---
 
@@ -127,7 +127,7 @@ Clicking the element queues the command to the sidebar chat input.
 
 ---
 
-## Browser MCP Integration
+## Tabz MCP Integration
 
 Tabz includes an **MCP server** that lets Claude Code control your browser:
 
@@ -157,7 +157,7 @@ Type `/ttmcp` in Claude Code for a menu-driven interface to all browser tools.
    {
      "mcpServers": {
        "browser": {
-         "command": "/path/to/TabzChrome/browser-mcp-server/run-windows.sh",
+         "command": "/path/to/TabzChrome/tabz-mcp-server/run-auto.sh",
          "args": [],
          "env": { "BACKEND_URL": "http://localhost:8129" }
        }
@@ -165,7 +165,7 @@ Type `/ttmcp` in Claude Code for a menu-driven interface to all browser tools.
    }
    ```
 
-See [browser-mcp-server/MCP_TOOLS.md](browser-mcp-server/MCP_TOOLS.md) for full documentation.
+See [tabz-mcp-server/MCP_TOOLS.md](tabz-mcp-server/MCP_TOOLS.md) for full documentation.
 
 ---
 
@@ -202,7 +202,7 @@ TabzChrome/
 ├── backend/             # Node.js server
 │   ├── server.js        # Express + WebSocket
 │   └── modules/         # PTY, terminal registry
-├── browser-mcp-server/  # MCP server for Claude Code
+├── tabz-mcp-server/  # MCP server for Claude Code
 └── dist-extension/      # Built extension (load this)
 ```
 

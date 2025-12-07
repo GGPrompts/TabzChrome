@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "browser": {
-      "command": "/home/matt/projects/TabzChrome/browser-mcp-server/run-windows.sh",
+    "tabz": {
+      "command": "/home/matt/projects/TabzChrome/tabz-mcp-server/run-auto.sh",
       "args": [],
       "env": {
         "BACKEND_URL": "http://localhost:8129"

@@ -30,7 +30,7 @@ export function getCurrentTabId(): number {
 
 /**
  * Set the current tab ID that Claude is targeting
- * Used by browser_open_url when opening/switching tabs
+ * Used by tabz_open_url when opening/switching tabs
  */
 export function setCurrentTabId(tabId: number): void {
   currentTabId = tabId;

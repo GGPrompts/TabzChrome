@@ -1,4 +1,4 @@
-# Browser MCP Tools Reference
+# Tabz MCP Tools Reference
 
 Quick reference for the browser MCP tools available to Claude Code.
 
@@ -6,24 +6,24 @@ Quick reference for the browser MCP tools available to Claude Code.
 
 | Tool | Trigger Words | Description |
 |------|---------------|-------------|
-| `browser_get_page_info` | "what page", "current tab", "what site", "looking at", "URL" | Get the current page's URL, title, and tab ID |
-| `browser_get_console_logs` | "console logs", "errors", "warnings", "debug", "browser logs" | Retrieve console output from browser tabs |
-| `browser_execute_script` | "run script", "execute", "DOM", "get element", "page data" | Execute JavaScript in the browser tab |
-| `browser_screenshot` | "screenshot", "capture page", "take picture", "save screen" | Capture screenshots to local disk |
-| `browser_download_image` | "download image", "save image", "get picture" | Download images from pages to local disk |
-| `browser_list_tabs` | "list tabs", "what tabs", "open tabs", "show tabs" | List all open browser tabs |
-| `browser_switch_tab` | "switch tab", "go to tab", "change tab" | Switch to a specific tab |
-| `browser_rename_tab` | "rename tab", "name tab", "label tab" | Assign a custom name to a tab |
-| `browser_click` | "click", "press button", "click element" | Click an element on the page |
-| `browser_fill` | "fill", "type", "enter text", "fill form" | Fill an input field with text |
-| `browser_get_element` | "inspect element", "get styles", "element info", "css debug" | Get element HTML, styles, bounds for CSS debugging/recreation |
-| `browser_open_url` | "open URL", "navigate to", "open GitHub", "open localhost" | Open allowed URLs (GitHub, GitLab, Vercel, localhost) in browser tabs |
+| `tabz_get_page_info` | "what page", "current tab", "what site", "looking at", "URL" | Get the current page's URL, title, and tab ID |
+| `tabz_get_console_logs` | "console logs", "errors", "warnings", "debug", "browser logs" | Retrieve console output from browser tabs |
+| `tabz_execute_script` | "run script", "execute", "DOM", "get element", "page data" | Execute JavaScript in the browser tab |
+| `tabz_screenshot` | "screenshot", "capture page", "take picture", "save screen" | Capture screenshots to local disk |
+| `tabz_download_image` | "download image", "save image", "get picture" | Download images from pages to local disk |
+| `tabz_list_tabs` | "list tabs", "what tabs", "open tabs", "show tabs" | List all open browser tabs |
+| `tabz_switch_tab` | "switch tab", "go to tab", "change tab" | Switch to a specific tab |
+| `tabz_rename_tab` | "rename tab", "name tab", "label tab" | Assign a custom name to a tab |
+| `tabz_click` | "click", "press button", "click element" | Click an element on the page |
+| `tabz_fill` | "fill", "type", "enter text", "fill form" | Fill an input field with text |
+| `tabz_get_element` | "inspect element", "get styles", "element info", "css debug" | Get element HTML, styles, bounds for CSS debugging/recreation |
+| `tabz_open_url` | "open URL", "navigate to", "open GitHub", "open localhost" | Open allowed URLs (GitHub, GitLab, Vercel, localhost) in browser tabs |
 
-> **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `browser_list_tabs`.
+> **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
 ---
 
-## browser_get_page_info
+## tabz_get_page_info
 
 **Purpose:** Get information about the current browser page.
 
@@ -45,7 +45,7 @@ Quick reference for the browser MCP tools available to Claude Code.
 
 ---
 
-## browser_get_console_logs
+## tabz_get_console_logs
 
 **Purpose:** Get console output (log, warn, error, info, debug) from browser tabs.
 
@@ -69,7 +69,7 @@ Quick reference for the browser MCP tools available to Claude Code.
 
 ---
 
-## browser_execute_script
+## tabz_execute_script
 
 **Purpose:** Execute JavaScript code in the browser tab.
 
@@ -114,7 +114,7 @@ JSON.stringify(localStorage)
 
 ---
 
-## browser_screenshot
+## tabz_screenshot
 
 **Purpose:** Capture a screenshot of the browser page and save to local disk.
 
@@ -150,7 +150,7 @@ JSON.stringify(localStorage)
 
 ---
 
-## browser_download_image
+## tabz_download_image
 
 **Purpose:** Download an image from the browser page and save to local disk.
 
@@ -182,7 +182,7 @@ JSON.stringify(localStorage)
 
 ---
 
-## browser_list_tabs
+## tabz_list_tabs
 
 **Purpose:** List all open browser tabs.
 
@@ -199,12 +199,12 @@ Array of tabs with:
 - `tabId`: Numeric ID for use with other tools
 - `url`: Full URL of the tab
 - `title`: Page title (or custom name if set)
-- `customName`: User-assigned name (if set via `browser_rename_tab`)
+- `customName`: User-assigned name (if set via `tabz_rename_tab`)
 - `active`: Whether this tab is currently focused
 
 ---
 
-## browser_switch_tab
+## tabz_switch_tab
 
 **Purpose:** Switch to a specific browser tab.
 
@@ -214,18 +214,18 @@ Array of tabs with:
 - "Change to that tab"
 
 **Parameters:**
-- `tabId` (required): The numeric tab ID to switch to (from browser_list_tabs)
+- `tabId` (required): The numeric tab ID to switch to (from tabz_list_tabs)
 
 **Returns:**
 - `success`: Whether the switch was successful
 
 **Important:** After switching, all subsequent tool calls (screenshot, click, fill, etc.) will automatically target that tab without needing to pass `tabId`. This enables workflows like:
-1. `browser_switch_tab(tabId: 2)`
-2. `browser_screenshot()` ← automatically captures tab 2
+1. `tabz_switch_tab(tabId: 2)`
+2. `tabz_screenshot()` ← automatically captures tab 2
 
 ---
 
-## browser_rename_tab
+## tabz_rename_tab
 
 **Purpose:** Assign a custom name to a browser tab.
 
@@ -235,7 +235,7 @@ Array of tabs with:
 - "Label the GitHub tab"
 
 **Parameters:**
-- `tabId` (required): The tab ID to rename (from browser_list_tabs)
+- `tabId` (required): The tab ID to rename (from tabz_list_tabs)
 - `name` (required): Custom name for the tab. Empty string clears the custom name.
 
 **Returns:**
@@ -244,7 +244,7 @@ Array of tabs with:
 **Notes:**
 - Custom names are stored by URL, so they persist even if tab order changes
 - Names are session-based and reset when the MCP server restarts
-- Custom names appear in `browser_list_tabs` output for easier identification
+- Custom names appear in `tabz_list_tabs` output for easier identification
 - Does NOT change Chrome's visual tab bar (only affects MCP tool output)
 
 **Examples:**
@@ -261,7 +261,7 @@ Array of tabs with:
 
 ---
 
-## browser_click
+## tabz_click
 
 **Purpose:** Click an element on the page.
 
@@ -286,7 +286,7 @@ Array of tabs with:
 
 ---
 
-## browser_fill
+## tabz_fill
 
 **Purpose:** Fill an input field with text.
 
@@ -312,7 +312,7 @@ Array of tabs with:
 
 ---
 
-## browser_get_element
+## tabz_get_element
 
 **Purpose:** Get detailed information about a DOM element for CSS debugging or recreation.
 
@@ -376,7 +376,7 @@ Array of tabs with:
 
 ---
 
-## browser_open_url
+## tabz_open_url
 
 **Purpose:** Open a URL in the browser (supports allowed domains only).
 
@@ -445,15 +445,15 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         EXTENSION-BASED TOOLS                        │
-│         (browser_get_page_info, browser_get_console_logs,           │
-│                      browser_execute_script)                         │
+│         (tabz_get_page_info, tabz_get_console_logs,           │
+│                      tabz_execute_script)                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  Chrome Browser (Windows)                                            │
 │         ↓ console.log, etc.                                          │
 │  Content Script → Background Worker → WebSocket → Backend (WSL:8129) │
 │                                                          ↓           │
-│                                              Browser MCP Server      │
+│                                              Tabz MCP Server      │
 │                                              (Windows node.exe)      │
 │                                                          ↓           │
 │                                                    Claude Code       │
@@ -462,12 +462,12 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           CDP-BASED TOOLS                            │
-│    (browser_screenshot, browser_click, browser_fill, browser_*_tab, │
-│              browser_download_image, browser_get_element)            │
+│    (tabz_screenshot, tabz_click, tabz_fill, tabz_*_tab, │
+│              tabz_download_image, tabz_get_element)            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  WINDOWS:                                                            │
-│  Chrome (127.0.0.1:9222) ◀─── Browser MCP Server                    │
+│  Chrome (127.0.0.1:9222) ◀─── Tabz MCP Server                    │
 │         ↑                      (Windows node.exe)                    │
 │     CDP / WebSocket                   ↑                              │
 │     (localhost only)                  │ stdio                        │
@@ -479,13 +479,13 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 
 **Key insights:**
 - Chrome binds to `127.0.0.1:9222` only (localhost - secure!)
-- MCP server runs via `run-windows.sh` using Windows `node.exe`
+- MCP server runs via `run-wsl.sh` (WSL2) or `run.sh` (native) using appropriate node
 - Windows node.exe can access `localhost:9222` directly (no port proxy needed)
 - Claude Code communicates with MCP server via stdio
 
 ## Interactive Command Runner: `/ttmcp`
 
-The `/ttmcp` slash command provides an interactive menu-driven interface to all Browser MCP tools.
+The `/ttmcp` slash command provides an interactive menu-driven interface to all Tabz MCP tools.
 
 **Usage:**
 ```bash
@@ -523,16 +523,20 @@ The `/ttmcp` slash command provides an interactive menu-driven interface to all 
 2. **Backend running:** `cd backend && npm start` (in WSL2)
 3. **Chrome extension loaded:** Reload at `chrome://extensions` (for console logs)
 
-## WSL2 Setup (Quick Reference)
+## Platform Setup (Quick Reference)
 
-The project uses `run-windows.sh` which executes via Windows `node.exe`:
+| Platform | Script | Notes |
+|----------|--------|-------|
+| WSL2 | `run-wsl.sh` | Uses Windows node.exe for CDP |
+| Native Linux/macOS | `run.sh` | Uses native node |
+| Auto-detect | `run-auto.sh` | Recommended - detects platform |
 
 **Project `.mcp.json`:**
 ```json
 {
   "mcpServers": {
     "browser": {
-      "command": "/path/to/TabzChrome/browser-mcp-server/run-windows.sh",
+      "command": "/path/to/TabzChrome/tabz-mcp-server/run-auto.sh",
       "args": [],
       "env": { "BACKEND_URL": "http://localhost:8129" }
     }
@@ -540,7 +544,7 @@ The project uses `run-windows.sh` which executes via Windows `node.exe`:
 }
 ```
 
-See [WSL2_SETUP.md](WSL2_SETUP.md) for full setup instructions.
+See [WSL2_SETUP.md](WSL2_SETUP.md) for full platform-specific setup instructions.
 
 ## Troubleshooting
 

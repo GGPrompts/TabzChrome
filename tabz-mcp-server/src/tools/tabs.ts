@@ -9,7 +9,7 @@ import { z } from "zod";
 import { listTabs, switchTab, renameTab, getCurrentTabId } from "../client.js";
 import { ResponseFormat } from "../types.js";
 
-// Input schema for browser_list_tabs
+// Input schema for tabz_list_tabs
 const ListTabsSchema = z.object({
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
@@ -18,22 +18,22 @@ const ListTabsSchema = z.object({
 
 type ListTabsInput = z.infer<typeof ListTabsSchema>;
 
-// Input schema for browser_switch_tab
+// Input schema for tabz_switch_tab
 const SwitchTabSchema = z.object({
   tabId: z.number()
     .int()
     .min(1)
-    .describe("The tab ID to switch to (1-based). Get available IDs from browser_list_tabs.")
+    .describe("The tab ID to switch to (1-based). Get available IDs from tabz_list_tabs.")
 }).strict();
 
 type SwitchTabInput = z.infer<typeof SwitchTabSchema>;
 
-// Input schema for browser_rename_tab
+// Input schema for tabz_rename_tab
 const RenameTabSchema = z.object({
   tabId: z.number()
     .int()
     .min(1)
-    .describe("The tab ID to rename (1-based). Get available IDs from browser_list_tabs."),
+    .describe("The tab ID to rename (1-based). Get available IDs from tabz_list_tabs."),
   name: z.string()
     .describe("The custom name to assign to this tab. Empty string clears the custom name.")
 }).strict();
@@ -46,7 +46,7 @@ type RenameTabInput = z.infer<typeof RenameTabSchema>;
 export function registerTabTools(server: McpServer): void {
   // List tabs tool
   server.tool(
-    "browser_list_tabs",
+    "tabz_list_tabs",
     `List all open browser tabs.
 
 Returns information about all non-chrome:// tabs currently open in the browser.
@@ -70,10 +70,10 @@ Examples:
   - List all tabs: (no args needed)
   - Get JSON format: response_format="json"
 
-Use browser_switch_tab with the tabId to switch to a specific tab.
+Use tabz_switch_tab with the tabId to switch to a specific tab.
 Tab IDs start at 1 (not 0) for clarity.
 
-IMPORTANT: Tab IDs can shift if tabs are closed! Use browser_rename_tab to assign
+IMPORTANT: Tab IDs can shift if tabs are closed! Use tabz_rename_tab to assign
 stable custom names before working with multiple tabs.
 
 Error Handling:
@@ -126,8 +126,8 @@ Only chrome:// or extension pages are present.`;
               lines.push("");
             }
             lines.push("---");
-            lines.push("- Use `browser_switch_tab` with tabId (1-based) to switch tabs.");
-            lines.push("- Use `browser_rename_tab` to assign custom names for easy identification.");
+            lines.push("- Use `tabz_switch_tab` with tabId (1-based) to switch tabs.");
+            lines.push("- Use `tabz_rename_tab` to assign custom names for easy identification.");
             lines.push("- **Tip:** Rename tabs before switching to avoid confusion if tab order changes.");
             resultText = lines.join("\n");
           }
@@ -150,13 +150,13 @@ Only chrome:// or extension pages are present.`;
 
   // Switch tab tool
   server.tool(
-    "browser_switch_tab",
+    "tabz_switch_tab",
     `Switch to a specific browser tab.
 
 Brings the specified tab to the front/focus and sets it as Claude's current target
 for subsequent operations (screenshots, clicks, fills, etc.).
 
-Use browser_list_tabs first to get available tab IDs. The "← CURRENT" marker shows
+Use tabz_list_tabs first to get available tab IDs. The "← CURRENT" marker shows
 which tab Claude is currently targeting.
 
 Args:
@@ -170,14 +170,14 @@ Examples:
   - Switch to first tab: tabId=1
   - Switch to third tab: tabId=3
 
-After switching, use browser_get_page_info to confirm the current page.
+After switching, use tabz_get_page_info to confirm the current page.
 
-BEST PRACTICE: Before switching between multiple tabs, use browser_rename_tab to
+BEST PRACTICE: Before switching between multiple tabs, use tabz_rename_tab to
 assign custom names (e.g., "GitHub PR", "Dev Server", "Docs"). Custom names are
 stored by URL and won't be affected if tab order changes.
 
 Error Handling:
-  - "Invalid tab ID": tabId doesn't exist (use browser_list_tabs to see valid IDs)
+  - "Invalid tab ID": tabId doesn't exist (use tabz_list_tabs to see valid IDs)
   - "CDP not available": Chrome not running with --remote-debugging-port=9222`,
     SwitchTabSchema.shape,
     async (params: SwitchTabInput) => {
@@ -192,13 +192,13 @@ Successfully switched to tab ${params.tabId}. This tab is now Claude's current t
 
 All subsequent operations (screenshot, click, fill, etc.) will target this tab by default.
 
-Use \`browser_get_page_info\` to see the current page details, or \`browser_list_tabs\` to see all tabs with the "← CURRENT" marker.`;
+Use \`tabz_get_page_info\` to see the current page details, or \`tabz_list_tabs\` to see all tabs with the "← CURRENT" marker.`;
         } else {
           resultText = `## Tab Switch Failed
 
 **Error:** ${result.error}
 
-Use \`browser_list_tabs\` to see available tab IDs and which one is currently targeted.`;
+Use \`tabz_list_tabs\` to see available tab IDs and which one is currently targeted.`;
         }
 
         return {
@@ -219,7 +219,7 @@ Use \`browser_list_tabs\` to see available tab IDs and which one is currently ta
 
   // Rename tab tool
   server.tool(
-    "browser_rename_tab",
+    "tabz_rename_tab",
     `Assign a custom name to a browser tab.
 
 Custom names make it easier to identify tabs when working with multiple pages.
@@ -232,7 +232,7 @@ RECOMMENDED: When working with multiple tabs, rename them first! This provides:
 3. Better communication with the user about which tab you're working on
 
 Args:
-  - tabId (required): The tab ID to rename (1-based, from browser_list_tabs)
+  - tabId (required): The tab ID to rename (1-based, from tabz_list_tabs)
   - name (required): Custom name for the tab. Empty string clears the custom name.
 
 Returns:
@@ -245,7 +245,7 @@ Examples:
   - Name AI tool: tabId=3, name="ChatGPT"
   - Clear custom name: tabId=1, name=""
 
-After renaming, use browser_list_tabs to see the updated names.
+After renaming, use tabz_list_tabs to see the updated names.
 
 Error Handling:
   - "Invalid tab ID": tabId doesn't exist
@@ -262,20 +262,20 @@ Error Handling:
 
 Successfully cleared custom name for tab ${params.tabId}.
 
-Use \`browser_list_tabs\` to see the updated tab list.`;
+Use \`tabz_list_tabs\` to see the updated tab list.`;
           } else {
             resultText = `## Tab Renamed
 
 Successfully renamed tab ${params.tabId} to "${params.name}".
 
-Use \`browser_list_tabs\` to see the updated tab list.`;
+Use \`tabz_list_tabs\` to see the updated tab list.`;
           }
         } else {
           resultText = `## Tab Rename Failed
 
 **Error:** ${result.error}
 
-Use \`browser_list_tabs\` to see available tab IDs.`;
+Use \`tabz_list_tabs\` to see available tab IDs.`;
         }
 
         return {

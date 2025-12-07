@@ -917,11 +917,13 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
     // If sessionName provided, get the tmux pane ID for precise matching
     if (sessionName) {
       try {
+        // First check if session exists (silent check)
+        execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
         // Get pane ID for this session (format: %123)
         tmuxPaneId = execSync(`tmux list-panes -t "${sessionName}" -F "#{pane_id}"`, { encoding: 'utf-8' }).trim().split('\n')[0];
       } catch (err) {
-        // Session might not exist or not be tmux-based, fall back to dir matching
-        console.warn(`[API] Could not get pane ID for session ${sessionName}:`, err.message);
+        // Session doesn't exist - silently fall back to dir matching
+        // This is expected during backend restart before terminals reconnect
       }
     }
 
@@ -1248,6 +1250,121 @@ router.post('/console-log', asyncHandler(async (req, res) => {
   });
 
   res.json({ success: true, received: logs.length });
+}));
+
+// =============================================================================
+// MCP CONFIG ENDPOINTS
+// =============================================================================
+
+const fs = require('fs').promises;
+const configPath = require('path').join(__dirname, '../../mcp-config.json');
+
+// Default MCP tool groups - these are enabled by default
+const DEFAULT_MCP_GROUPS = ['core', 'interaction', 'navigation', 'console'];
+
+// All available tool groups with metadata
+const MCP_TOOL_GROUPS = {
+  core: { name: 'Core', tools: 4, required: true, desc: 'List tabs, switch, rename, page info' },
+  interaction: { name: 'Interaction', tools: 5, desc: 'Click, fill, screenshot, download image, inspect' },
+  navigation: { name: 'Navigation', tools: 1, desc: 'Open URLs (GitHub, localhost, Vercel, etc.)' },
+  console: { name: 'Console', tools: 2, desc: 'Get console logs, execute JavaScript' },
+  downloads: { name: 'Downloads', tools: 2, power: true, desc: 'Download any file, list downloads' },
+  cookies: { name: 'Cookies', tools: 3, power: true, desc: 'Check auth, get cookies, inspect sessions' },
+  history: { name: 'History', tools: 3, power: true, desc: 'Search browsing history, frequent sites' },
+  bookmarks: { name: 'Bookmarks', tools: 4, power: true, desc: 'Save, search, organize bookmarks' },
+  network: { name: 'Network', tools: 4, power: true, desc: 'Monitor API calls, capture responses' }
+};
+
+// Token estimates per tool group (for UI display)
+const TOKEN_ESTIMATES = {
+  core: 800, interaction: 1200, navigation: 400, console: 600,
+  downloads: 600, cookies: 700, history: 700, bookmarks: 800, network: 1500
+};
+
+/**
+ * GET /api/mcp-config - Get MCP tool configuration
+ * Returns enabled tool groups and available groups metadata
+ */
+router.get('/mcp-config', asyncHandler(async (req, res) => {
+  let config = { enabledGroups: DEFAULT_MCP_GROUPS };
+
+  try {
+    const data = await fs.readFile(configPath, 'utf-8');
+    config = JSON.parse(data);
+
+    // Ensure core is always enabled
+    if (!config.enabledGroups.includes('core')) {
+      config.enabledGroups.unshift('core');
+    }
+  } catch (err) {
+    // File doesn't exist, use defaults
+    if (err.code !== 'ENOENT') {
+      console.error('[API] Error reading MCP config:', err.message);
+    }
+  }
+
+  // Calculate estimated tokens
+  const estimatedTokens = config.enabledGroups.reduce(
+    (sum, group) => sum + (TOKEN_ESTIMATES[group] || 500), 0
+  );
+
+  res.json({
+    success: true,
+    enabledGroups: config.enabledGroups,
+    availableGroups: MCP_TOOL_GROUPS,
+    tokenEstimates: TOKEN_ESTIMATES,
+    estimatedTokens
+  });
+}));
+
+/**
+ * POST /api/mcp-config - Save MCP tool configuration
+ * Body: { enabledGroups: string[] }
+ */
+router.post('/mcp-config', asyncHandler(async (req, res) => {
+  const { enabledGroups } = req.body;
+
+  if (!Array.isArray(enabledGroups)) {
+    return res.status(400).json({
+      error: 'Invalid format',
+      message: 'enabledGroups must be an array'
+    });
+  }
+
+  // Validate groups
+  const validGroups = Object.keys(MCP_TOOL_GROUPS);
+  const invalidGroups = enabledGroups.filter(g => !validGroups.includes(g));
+  if (invalidGroups.length > 0) {
+    return res.status(400).json({
+      error: 'Invalid groups',
+      message: `Unknown groups: ${invalidGroups.join(', ')}`,
+      validGroups
+    });
+  }
+
+  // Ensure core is always included
+  const finalGroups = enabledGroups.includes('core')
+    ? enabledGroups
+    : ['core', ...enabledGroups];
+
+  const config = {
+    enabledGroups: finalGroups,
+    updatedAt: new Date().toISOString()
+  };
+
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+
+  // Calculate estimated tokens
+  const estimatedTokens = finalGroups.reduce(
+    (sum, group) => sum + (TOKEN_ESTIMATES[group] || 500), 0
+  );
+
+  res.json({
+    success: true,
+    message: 'MCP config saved successfully. Restart Claude Code to apply changes.',
+    enabledGroups: finalGroups,
+    estimatedTokens
+  });
 }));
 
 // =============================================================================

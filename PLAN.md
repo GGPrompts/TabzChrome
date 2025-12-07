@@ -2,7 +2,7 @@
 
 **Last Updated**: December 7, 2025
 **Current Version**: 2.2.0
-**Status**: Chrome API Power Features Sprint 🚀
+**Status**: Phase 2A Complete - Foundation ✅ | Next: Phase 2B Settings UI
 
 ---
 
@@ -402,7 +402,7 @@ chrome.windows.create({
 
 ---
 
-### 2.8 Cross-Platform Support (Linux, macOS, Windows)
+### 2.8 Cross-Platform Support (Linux, macOS, Windows) ✅ COMPLETE
 
 **Goal**: Ensure TabzChrome works on all major platforms, not just Windows/WSL2.
 
@@ -411,27 +411,27 @@ chrome.windows.create({
 |-----------|----------------|--------------|-------|
 | Chrome Extension | ✅ Works | ✅ Works | ✅ Works |
 | Backend (Node.js) | ✅ Works | ✅ Works | ✅ Works |
-| MCP Server | ✅ Works | ⚠️ Needs script | ⚠️ Needs script |
+| MCP Server | ✅ Works | ✅ Works | ✅ Works |
 
-**Issues:**
-- `run-windows.sh` hardcodes Windows `node.exe` path
-- PowerShell fallback only works on Windows
-- `host.docker.internal` is WSL2-specific
-- No setup docs for Linux/Mac
+**Completed:**
+- ✅ Added `run.sh` for native Linux/Mac
+- ✅ Renamed `run-windows.sh` → `run-wsl.sh`
+- ✅ Added `run-auto.sh` with platform auto-detection
+- ✅ Updated WSL2_SETUP.md with platform-specific instructions
 
 **Tasks:**
 
-1. [ ] **Add native launch script**
+1. [x] **Add native launch script**
    ```bash
    # tabz-mcp-server/run.sh (for Linux/Mac)
    #!/bin/bash
    exec node "$(dirname "$0")/dist/index.js"
    ```
 
-2. [ ] **Rename existing script**
+2. [x] **Rename existing script**
    - `run-windows.sh` → `run-wsl.sh` (clearer naming)
 
-3. [ ] **Add platform detection script** (optional, nice-to-have)
+3. [x] **Add platform detection script**
    ```bash
    # tabz-mcp-server/run-auto.sh
    #!/bin/bash
@@ -444,7 +444,7 @@ chrome.windows.create({
    fi
    ```
 
-4. [ ] **Update README with platform-specific setup**
+4. [x] **Update README with platform-specific setup**
 
    **Chrome Launch Commands:**
    ```markdown
@@ -472,7 +472,7 @@ chrome.windows.create({
    ```
    ```
 
-5. [ ] **Update README with MCP config per platform**
+5. [x] **Update README with MCP config per platform**
 
    ```markdown
    ### MCP Configuration
@@ -535,20 +535,22 @@ chrome.windows.create({
 
 ---
 
-### 2.9 MCP Rebrand: `browser` → `tabz`
+### 2.9 MCP Rebrand: `browser` → `tabz` ✅ COMPLETE
 
 **Goal**: Rename MCP server from generic "browser" to branded "tabz" for clarity.
 
 **Changes:**
-- [ ] Rename `browser-mcp-server/` → `tabz-mcp-server/`
-- [ ] Rename MCP server name: `"browser"` → `"tabz"` in package.json
-- [ ] Rename all tools: `browser_*` → `tabz_*`
-  - `browser_list_tabs` → `tabz_list_tabs`
-  - `browser_screenshot` → `tabz_screenshot`
-  - etc.
-- [ ] Update `.mcp.json` examples in docs
-- [ ] Update MCP_TOOLS.md
-- [ ] Update CLAUDE.md references
+- [x] Rename `browser-mcp-server/` → `tabz-mcp-server/`
+- [x] Rename MCP server name: `"browser"` → `"tabz"` in package.json
+- [x] Rename all tools: `browser_*` → `tabz_*`
+  - `tabz_list_tabs`, `tabz_switch_tab`, `tabz_rename_tab`
+  - `tabz_get_page_info`, `tabz_screenshot`, `tabz_download_image`
+  - `tabz_click`, `tabz_fill`, `tabz_get_element`
+  - `tabz_open_url`, `tabz_get_console_logs`, `tabz_execute_script`
+- [x] Update `.mcp.json` examples in docs
+- [x] Update MCP_TOOLS.md
+- [x] Update CLAUDE.md references
+- [x] Update WSL2_SETUP.md
 
 **Rationale:**
 - "browser" is generic, could conflict with other browser MCPs
@@ -754,20 +756,20 @@ const PRESETS = {
 
 ### 2.11 Implementation Order & Checklist
 
-**Phase A: Foundation (Do First)**
+**Phase A: Foundation (Do First)** ✅ COMPLETE
 
-1. [ ] **Cross-platform support**
-   - [ ] Add `run.sh` for native Linux/Mac
-   - [ ] Rename `run-windows.sh` → `run-wsl.sh`
-   - [ ] Add `run-auto.sh` with platform detection
-   - [ ] Update README with platform-specific setup
+1. [x] **Cross-platform support**
+   - [x] Add `run.sh` for native Linux/Mac
+   - [x] Rename `run-windows.sh` → `run-wsl.sh`
+   - [x] Add `run-auto.sh` with platform detection
+   - [x] Update README with platform-specific setup
 
-2. [ ] **Rebrand MCP**
-   - [ ] Rename `browser-mcp-server/` → `tabz-mcp-server/`
-   - [ ] Update tool names `browser_*` → `tabz_*`
-   - [ ] Update all documentation
+2. [x] **Rebrand MCP**
+   - [x] Rename `browser-mcp-server/` → `tabz-mcp-server/`
+   - [x] Update tool names `browser_*` → `tabz_*`
+   - [x] Update all documentation
 
-3. [ ] **Add Chrome permissions to manifest.json**
+3. [x] **Add Chrome permissions to manifest.json**
    ```json
    "permissions": [
      "debugger",
@@ -780,15 +782,15 @@ const PRESETS = {
    ]
    ```
 
-4. [ ] **Backend MCP config endpoint**
-   - [ ] `GET /api/mcp-config`
-   - [ ] `POST /api/mcp-config`
-   - [ ] Config file storage
+4. [x] **Backend MCP config endpoint**
+   - [x] `GET /api/mcp-config`
+   - [x] `POST /api/mcp-config`
+   - [x] Config file storage (`mcp-config.json`)
 
-5. [ ] **MCP dynamic tool loading**
-   - [ ] Query backend for enabled groups
-   - [ ] Conditional tool registration
-   - [ ] Fallback defaults
+5. [x] **MCP dynamic tool loading**
+   - [x] Query backend for enabled groups
+   - [x] Conditional tool registration
+   - [x] Fallback defaults
 
 **Phase B: Settings UI**
 

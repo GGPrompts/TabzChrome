@@ -117,7 +117,7 @@ function isAllowedUrl(url: string): { allowed: boolean; normalizedUrl?: string }
   return { allowed: false };
 }
 
-// Input schema for browser_open_url
+// Input schema for tabz_open_url
 const OpenUrlSchema = z.object({
   url: z.string()
     .min(1)
@@ -141,7 +141,7 @@ type OpenUrlInput = z.infer<typeof OpenUrlSchema>;
 export function registerOmniboxTools(server: McpServer): void {
   // Open URL tool
   server.tool(
-    "browser_open_url",
+    "tabz_open_url",
     `Open a URL in the browser (supports allowed domains only).
 
 Opens URLs from whitelisted domains in a new or current browser tab.
@@ -285,7 +285,7 @@ Cannot open URL without Chrome DevTools Protocol.
 **URL:** ${normalizedUrl}
 **Tab ID:** ${newTabId} (now Claude's current target)
 
-Use \`browser_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a new tab.`
+Use \`tabz_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a new tab.`
               }]
             };
           }
@@ -341,7 +341,7 @@ Use \`browser_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a
 **URL:** ${normalizedUrl}
 **Tab ID:** ${newTabId}${!params.background ? ' (now Claude\'s current target)' : ''}
 
-Use \`browser_list_tabs\` to see all tabs with the "← CURRENT" marker.`
+Use \`tabz_list_tabs\` to see all tabs with the "← CURRENT" marker.`
           }]
         };
       } catch (error) {

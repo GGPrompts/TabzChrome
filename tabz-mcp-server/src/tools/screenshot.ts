@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { takeScreenshot, downloadImage } from "../client.js";
 
-// Input schema for browser_screenshot
+// Input schema for tabz_screenshot
 const ScreenshotSchema = z.object({
   selector: z.string()
     .optional()
@@ -23,7 +23,7 @@ const ScreenshotSchema = z.object({
 
 type ScreenshotInput = z.infer<typeof ScreenshotSchema>;
 
-// Input schema for browser_download_image
+// Input schema for tabz_download_image
 const DownloadImageSchema = z.object({
   selector: z.string()
     .optional()
@@ -45,7 +45,7 @@ type DownloadImageInput = z.infer<typeof DownloadImageSchema>;
 export function registerScreenshotTools(server: McpServer): void {
   // Screenshot tool
   server.tool(
-    "browser_screenshot",
+    "tabz_screenshot",
     `Capture a screenshot of the browser page and save to local disk.
 
 This tool captures screenshots via Chrome DevTools Protocol (CDP). Screenshots are saved
@@ -121,7 +121,7 @@ Troubleshooting:
 
   // Download image tool
   server.tool(
-    "browser_download_image",
+    "tabz_download_image",
     `Download an image from the browser page and save to local disk.
 
 This tool extracts and downloads images via Chrome DevTools Protocol (CDP). It can download

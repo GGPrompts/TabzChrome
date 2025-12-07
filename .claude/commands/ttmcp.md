@@ -1,9 +1,9 @@
-# Browser MCP - Quick Tool Runner
+# Tabz MCP - Quick Tool Runner
 
 Display this menu and ask user to pick a tool:
 
 ```
-Browser MCP Tools:
+Tabz MCP Tools:
 ───────────────────────────────────────
  1. Page Info       - URL & title of current tab
  2. Screenshot      - Capture page to ~/ai-images/
@@ -59,18 +59,18 @@ For required params, use AskUserQuestion with example options + "Other" for cust
 ## Tool Execution
 
 Execute the corresponding MCP tool:
-- 1 → `mcp__browser__browser_get_page_info`
-- 2 → `mcp__browser__browser_screenshot`
-- 3 → `mcp__browser__browser_click`
-- 4 → `mcp__browser__browser_fill`
-- 5 → `mcp__browser__browser_execute_script`
-- 6 → `mcp__browser__browser_get_console_logs`
-- 7 → `mcp__browser__browser_list_tabs`
-- 8 → `mcp__browser__browser_switch_tab`
-- 9 → `mcp__browser__browser_rename_tab`
-- 10 → `mcp__browser__browser_open_url`
-- 11 → `mcp__browser__browser_get_element`
-- 12 → `mcp__browser__browser_download_image`
+- 1 → `mcp__tabz__tabz_get_page_info`
+- 2 → `mcp__tabz__tabz_screenshot`
+- 3 → `mcp__tabz__tabz_click`
+- 4 → `mcp__tabz__tabz_fill`
+- 5 → `mcp__tabz__tabz_execute_script`
+- 6 → `mcp__tabz__tabz_get_console_logs`
+- 7 → `mcp__tabz__tabz_list_tabs`
+- 8 → `mcp__tabz__tabz_switch_tab`
+- 9 → `mcp__tabz__tabz_rename_tab`
+- 10 → `mcp__tabz__tabz_open_url`
+- 11 → `mcp__tabz__tabz_get_element`
+- 12 → `mcp__tabz__tabz_download_image`
 
 ## After Execution
 
@@ -95,4 +95,4 @@ Execute the corresponding MCP tool:
 
 ## Quick Reference
 
-If user asks for help, show `browser-mcp-server/MCP_TOOLS.md`
+If user asks for help, show `tabz-mcp-server/MCP_TOOLS.md`

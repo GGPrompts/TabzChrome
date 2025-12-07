@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { executeScript } from "../client.js";
 
-// Input schema for browser_execute_script
+// Input schema for tabz_execute_script
 const ExecuteScriptSchema = z.object({
   code: z.string()
     .min(1, "Code is required")
@@ -30,7 +30,7 @@ type ExecuteScriptInput = z.infer<typeof ExecuteScriptSchema>;
  */
 export function registerScriptTools(server: McpServer, backendUrl: string): void {
   server.tool(
-    "browser_execute_script",
+    "tabz_execute_script",
     `Execute JavaScript code in the browser tab.
 
 WARNING: This tool can modify page state. Use carefully.

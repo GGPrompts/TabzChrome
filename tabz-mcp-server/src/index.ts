@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+/**
+ * Tabz MCP Server
+ *
+ * Provides tools for Claude to interact with browser console and pages
+ * via the TabzChrome extension and Chrome DevTools Protocol (CDP).
+ *
+ * Tool Groups:
+ * - core: tabz_list_tabs, tabz_switch_tab, tabz_rename_tab, tabz_get_page_info
+ * - interaction: tabz_click, tabz_fill, tabz_screenshot, tabz_download_image, tabz_get_element
+ * - navigation: tabz_open_url
+ * - console: tabz_get_console_logs, tabz_execute_script
+ * - downloads: (future) tabz_download_file, tabz_get_downloads
+ * - cookies: (future) tabz_check_auth, tabz_get_cookies
+ * - history: (future) tabz_search_history
+ * - bookmarks: (future) tabz_save_bookmark, tabz_search_bookmarks
+ * - network: (future) tabz_get_network_requests, tabz_get_api_response
+ *
+ * Tool groups can be configured via the backend /api/mcp-config endpoint.
+ */
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerConsoleTools } from "./tools/console.js";
+import { registerScriptTools } from "./tools/script.js";
+import { registerPageTools } from "./tools/page.js";
+import { registerScreenshotTools } from "./tools/screenshot.js";
+import { registerTabTools } from "./tools/tabs.js";
+import { registerInteractionTools } from "./tools/interaction.js";
+import { registerInspectionTools } from "./tools/inspection.js";
+import { registerOmniboxTools } from "./tools/omnibox.js";
+
+// Backend URL (TabzChrome backend running in WSL)
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8129";
+
+// Default enabled tool groups (used if backend is not reachable)
+const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console'];
+
+// Tool group registration functions
+// Maps group names to their registration functions
+type ToolGroupRegistrar = (server: McpServer, backendUrl?: string) => void;
+
+const TOOL_GROUPS: Record<string, ToolGroupRegistrar> = {
+  // Core tools (always required)
+  core: (server) => {
+    registerTabTools(server);        // tabz_list_tabs, tabz_switch_tab, tabz_rename_tab
+    registerPageTools(server, BACKEND_URL); // tabz_get_page_info
+  },
+  // Interaction tools
+  interaction: (server) => {
+    registerInteractionTools(server); // tabz_click, tabz_fill
+    registerScreenshotTools(server);  // tabz_screenshot, tabz_download_image
+    registerInspectionTools(server);  // tabz_get_element
+  },
+  // Navigation tools
+  navigation: (server) => {
+    registerOmniboxTools(server);     // tabz_open_url
+  },
+  // Console tools
+  console: (server) => {
+    registerConsoleTools(server, BACKEND_URL); // tabz_get_console_logs
+    registerScriptTools(server, BACKEND_URL);  // tabz_execute_script
+  },
+  // Future power tool groups (placeholders for Phase C implementation)
+  // downloads: (server) => registerDownloadTools(server),
+  // cookies: (server) => registerCookieTools(server),
+  // history: (server) => registerHistoryTools(server),
+  // bookmarks: (server) => registerBookmarkTools(server),
+  // network: (server) => registerNetworkTools(server),
+};
+
+/**
+ * Fetch enabled tool groups from the backend
+ * Falls back to defaults if backend is not reachable
+ */
+async function getEnabledGroups(): Promise<string[]> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/mcp-config`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const config = await response.json();
+    const groups = config.enabledGroups || DEFAULT_ENABLED_GROUPS;
+    console.error(`[MCP] Loaded config from backend: ${groups.join(', ')}`);
+    return groups;
+  } catch (error) {
+    console.error(`[MCP] Backend not reachable, using defaults: ${DEFAULT_ENABLED_GROUPS.join(', ')}`);
+    return DEFAULT_ENABLED_GROUPS;
+  }
+}
+
+/**
+ * Register only the enabled tool groups
+ */
+function registerEnabledTools(server: McpServer, enabledGroups: string[]): void {
+  let registeredCount = 0;
+
+  for (const group of enabledGroups) {
+    const registrar = TOOL_GROUPS[group];
+    if (registrar) {
+      registrar(server, BACKEND_URL);
+      registeredCount++;
+      console.error(`[MCP] Registered tool group: ${group}`);
+    } else {
+      console.error(`[MCP] Unknown tool group (skipped): ${group}`);
+    }
+  }
+
+  console.error(`[MCP] Registered ${registeredCount} tool groups`);
+}
+
+// Create MCP server instance
+const server = new McpServer({
+  name: "tabz-mcp-server",
+  version: "1.0.0"
+});
+
+// Main function
+async function main() {
+  // Fetch enabled groups from backend (or use defaults)
+  const enabledGroups = await getEnabledGroups();
+
+  // Register only enabled tool groups
+  registerEnabledTools(server, enabledGroups);
+
+  // Create stdio transport
+  const transport = new StdioServerTransport();
+
+  // Connect server to transport
+  await server.connect(transport);
+
+  // Log to stderr (stdout is used for MCP protocol)
+  console.error("Tabz MCP server running via stdio");
+  console.error(`Backend URL: ${BACKEND_URL}`);
+  console.error(`Enabled groups: ${enabledGroups.join(', ')}`);
+}
+
+// Run the server
+main().catch((error) => {
+  console.error("Server error:", error);
+  process.exit(1);
+});

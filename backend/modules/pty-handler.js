@@ -778,6 +778,19 @@ class PTYHandler extends EventEmitter {
   }
 
   /**
+   * Get PTY process by tmux session name
+   * Used to check if a PTY is already attached to a tmux session
+   */
+  getProcessBySession(sessionName) {
+    for (const [id, ptyInfo] of this.processes.entries()) {
+      if (ptyInfo.tmuxSession === sessionName) {
+        return { id, ...ptyInfo };
+      }
+    }
+    return null;
+  }
+
+  /**
    * Immediate cleanup of all resources on server shutdown
    */
   cleanupImmediate() {

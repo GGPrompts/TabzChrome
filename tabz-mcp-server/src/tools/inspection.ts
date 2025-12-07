@@ -10,7 +10,7 @@ import { z } from "zod";
 import { getElementInfo } from "../client.js";
 import { ResponseFormat } from "../types.js";
 
-// Input schema for browser_get_element
+// Input schema for tabz_get_element
 const GetElementSchema = z.object({
   selector: z.string()
     .min(1, "Selector is required")
@@ -38,7 +38,7 @@ function formatElementAsMarkdown(info: Awaited<ReturnType<typeof getElementInfo>
 **Selector:** \`${selector}\`
 **Error:** ${info.error}
 
-Try using browser_execute_script to find elements:
+Try using tabz_execute_script to find elements:
 \`\`\`javascript
 document.querySelectorAll('${selector}').length
 \`\`\``;
@@ -127,7 +127,7 @@ document.querySelectorAll('${selector}').length
  */
 export function registerInspectionTools(server: McpServer): void {
   server.tool(
-    "browser_get_element",
+    "tabz_get_element",
     `Get detailed information about a DOM element for CSS debugging or recreation.
 
 Returns the element's HTML, computed styles, bounding box, and attributes.

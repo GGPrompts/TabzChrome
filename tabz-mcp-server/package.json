@@ -1,7 +1,7 @@
 {
-  "name": "browser-mcp-server",
+  "name": "tabz-mcp-server",
   "version": "1.0.0",
-  "description": "MCP server for browser console and page interaction via TabzChrome extension",
+  "description": "Tabz MCP server for browser control and page interaction via TabzChrome extension",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
