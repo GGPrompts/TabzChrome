@@ -116,7 +116,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["spawn-options.json", "profiles.json"],
+      "resources": ["spawn-options.json", "profiles.json", "icons/tabz-logo-light.png"],
       "matches": ["<all_urls>"]
     }
   ],
