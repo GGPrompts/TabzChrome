@@ -39,6 +39,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Track previous dimensions to avoid unnecessary resize events (from terminal-tabs pattern)
   const prevDimensionsRef = useRef({ cols: 0, rows: 0 })
 
+  // Track last refreshed dimensions to avoid spamming refresh trick
+  const lastRefreshedDimensionsRef = useRef({ cols: 0, rows: 0 })
+
   // Initialization guard - filter device queries during first 1000ms (from terminal-tabs pattern)
   const isInitializingRef = useRef(true)
 
@@ -338,11 +341,28 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
         // For tmux sessions, trigger a refresh after resize settles
         // This forces tmux to rewrap text that may have gone off-screen
-        if (sessionName) {
+        // Only refresh if dimensions actually changed since last refresh (prevents spam)
+        if (sessionName && xtermRef.current) {
+          const currentCols = xtermRef.current.cols
+          const currentRows = xtermRef.current.rows
+          const lastRefreshed = lastRefreshedDimensionsRef.current
+
+          // Skip if dimensions unchanged since last refresh
+          if (currentCols === lastRefreshed.cols && currentRows === lastRefreshed.rows) {
+            return
+          }
+
           resizeRefreshTimeoutRef.current = setTimeout(() => {
             if (xtermRef.current && !isResizingRef.current) {
-              console.log('[Terminal] Post-resize refresh for tmux session')
-              triggerResizeTrick()
+              // Double-check dimensions still differ (may have changed during timeout)
+              const cols = xtermRef.current.cols
+              const rows = xtermRef.current.rows
+              if (cols !== lastRefreshedDimensionsRef.current.cols ||
+                  rows !== lastRefreshedDimensionsRef.current.rows) {
+                console.log('[Terminal] Post-resize refresh:', cols, 'x', rows)
+                lastRefreshedDimensionsRef.current = { cols, rows }
+                triggerResizeTrick()
+              }
             }
           }, 500)  // Wait for resize to fully settle before refresh
         }
