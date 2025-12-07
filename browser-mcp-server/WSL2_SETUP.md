@@ -8,14 +8,12 @@ WSL2 has network isolation from Windows:
 - WSL2's `localhost` ≠ Windows `localhost`
 - Chrome's CDP (Chrome DevTools Protocol) binds to Windows `127.0.0.1:9222` only
 - Chrome ignores `--remote-debugging-address=0.0.0.0` on Windows for security
-- An MCP server running in WSL2 cannot directly access Windows `localhost:9222`
 
 ## The Solution
 
-Two components working together:
+The MCP server runs via **Windows `node.exe`** (not WSL2), so it can access Chrome's `localhost:9222` directly. No port proxy or network bridging needed!
 
-1. **MCP server runs via Windows `node.exe`** - Direct access to Chrome's CDP
-2. **Port proxy forwards WSL → Windows** - Bridges the network gap
+> **Note:** You may see references to `netsh interface portproxy` in other guides. This is **NOT required** for TabzChrome because our MCP server runs via Windows node.exe, not inside WSL2.
 
 ## Setup Steps
 
@@ -44,33 +42,9 @@ timeout /t 3
 
 Create a desktop shortcut pointing to this batch file with Chrome's icon.
 
-**Note:** Don't use `--remote-debugging-address=0.0.0.0` - Chrome ignores it on Windows.
+**Note:** Don't use `--remote-debugging-address=0.0.0.0` - Chrome ignores it on Windows anyway.
 
-### 2. Set Up Port Proxy (One-Time, Requires Admin)
-
-Chrome only listens on `127.0.0.1:9222`. To access from WSL2, set up a port proxy:
-
-```powershell
-# Run as Administrator
-netsh interface portproxy add v4tov4 listenport=9222 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1
-```
-
-Verify it's set up:
-```powershell
-netsh interface portproxy show all
-```
-
-Expected output:
-```
-Listen on ipv4:             Connect to ipv4:
-Address         Port        Address         Port
---------------- ----------  --------------- ----------
-0.0.0.0         9222        127.0.0.1       9222
-```
-
-**This persists across reboots** - you only need to do it once.
-
-### 3. Configure MCP Server
+### 2. Configure MCP Server
 
 The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`.
 
@@ -89,7 +63,7 @@ The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`
 }
 ```
 
-### 4. Start Everything
+### 3. Start Everything
 
 **Startup order matters:**
 
@@ -97,16 +71,14 @@ The project includes a `run-windows.sh` wrapper that runs via Windows `node.exe`
 2. **Start Backend** - `cd backend && npm start` (in WSL2)
 3. **Start Claude Code** - It will connect to the MCP server
 
-### 5. Verify Setup
+### 4. Verify Setup
 
-Test CDP from WSL2:
-```bash
-# Get Windows gateway IP
-WIN_IP=$(ip route | grep default | awk '{print $3}')
-curl -s "http://${WIN_IP}:9222/json/version"
+Test CDP from PowerShell:
+```powershell
+curl.exe http://localhost:9222/json/version
 ```
 
-Should return Chrome version info.
+Should return Chrome version info (Browser, Protocol-Version, etc.).
 
 ## How It Works
 
@@ -116,18 +88,20 @@ Should return Chrome version info.
 ├──────────────────────────────────────────────────────────────────────────┤
 │                                                                           │
 │   WINDOWS                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐                              │
-│  │  Chrome         │    │  Port Proxy     │                              │
-│  │  127.0.0.1:9222 │◀───│  0.0.0.0:9222   │◀─── WSL2 connects here      │
-│  │  (CDP)          │    │  (netsh)        │                              │
-│  └─────────────────┘    └─────────────────┘                              │
-│           │                                                               │
-│           ▼                                                               │
 │  ┌─────────────────┐         ┌─────────────────┐                         │
-│  │  MCP Server     │  stdio  │  Claude Code    │                         │
-│  │  (node.exe)     │◀───────▶│  (WSL2)         │                         │
-│  │  via run-win.sh │         │                 │                         │
+│  │  Chrome         │         │  Claude Code    │                         │
+│  │  127.0.0.1:9222 │         │  (WSL2)         │                         │
+│  │  (CDP)          │         │                 │                         │
 │  └─────────────────┘         └─────────────────┘                         │
+│           ▲                           │                                   │
+│           │ localhost:9222            │ stdio                             │
+│           │                           ▼                                   │
+│  ┌─────────────────────────────────────────────┐                         │
+│  │  MCP Server (Windows node.exe)              │                         │
+│  │  - Runs via run-windows.sh                  │                         │
+│  │  - Direct access to Chrome CDP              │                         │
+│  │  - No port proxy needed!                    │                         │
+│  └─────────────────────────────────────────────┘                         │
 │           │                           │                                   │
 │           ▼                           ▼                                   │
 │    localhost:9222              localhost:8129                             │
@@ -143,11 +117,12 @@ Should return Chrome version info.
 ```
 
 **Why this works:**
-1. **Chrome** binds to `127.0.0.1:9222` (Windows-only security restriction)
-2. **Port Proxy** listens on `0.0.0.0:9222` and forwards to `127.0.0.1:9222`
-3. **MCP Server** runs via `node.exe` so `localhost:9222` reaches Chrome directly
-4. **Backend** in WSL2 is reachable from Windows via localhost forwarding
-5. **Claude Code** communicates with MCP server via stdio (works across WSL/Windows)
+1. **Chrome** binds to `127.0.0.1:9222` (localhost only - secure!)
+2. **MCP Server** runs via Windows `node.exe`, so `localhost:9222` reaches Chrome directly
+3. **Backend** in WSL2 is reachable from Windows via automatic localhost forwarding
+4. **Claude Code** communicates with MCP server via stdio (works across WSL/Windows)
+
+**Security:** Chrome's CDP is only accessible from localhost. No network exposure.
 
 ## Updating the MCP Server
 
@@ -178,7 +153,7 @@ If this fails, Chrome wasn't started with `--remote-debugging-port=9222`. Use th
 netstat -an | findstr :9222
 ```
 
-Look for `LISTENING` on either `0.0.0.0:9222` or `127.0.0.1:9222`.
+Should show `127.0.0.1:9222` in `LISTENING` state.
 
 **Check 3: Is something else using port 9222?**
 ```powershell
@@ -186,20 +161,7 @@ Get-NetTCPConnection -LocalPort 9222 -State Listen |
   ForEach-Object { Get-Process -Id $_.OwningProcess }
 ```
 
-If it shows `svchost` instead of `chrome`, the port proxy is running but Chrome isn't. Restart Chrome.
-
-**Check 4: Is the port proxy set up?**
-```powershell
-netsh interface portproxy show all
-```
-
-Should show `0.0.0.0:9222 → 127.0.0.1:9222`. If missing, set it up (see Setup Steps).
-
-**Check 5: Can WSL2 reach the port?**
-```bash
-WIN_IP=$(ip route | grep default | awk '{print $3}')
-curl -s "http://${WIN_IP}:9222/json/version"
-```
+Should show `chrome`. If it shows something else, close that application and restart Chrome.
 
 ### Startup Order Issues
 
@@ -208,7 +170,7 @@ curl -s "http://${WIN_IP}:9222/json/version"
 2. Start Backend (`cd backend && npm start`)
 3. Start Claude Code
 
-**Wrong:** Starting Chrome after the port proxy is created but without the debug flag - the proxy runs but forwards to nothing.
+**Common mistake:** Starting Chrome without the `--remote-debugging-port=9222` flag. Always use the Chrome Debug shortcut.
 
 ### Screenshots Save to Wrong Location
 
@@ -236,18 +198,12 @@ This was caused by broken CDP connection. When CDP isn't working, puppeteer may 
 ## Quick Diagnostic Commands
 
 ```bash
-# Check Chrome CDP from Windows
+# Check Chrome CDP is working
 powershell.exe -Command "curl.exe http://localhost:9222/json/version"
 
-# Check port proxy
-powershell.exe -Command "netsh interface portproxy show all"
-
-# Check what's on port 9222
+# Check what process is on port 9222
 powershell.exe -Command "netstat -an | Select-String ':9222.*LISTEN'"
 
-# Check CDP from WSL2
-curl -s "http://$(ip route | grep default | awk '{print $3}'):9222/json/version"
-
-# Check backend
+# Check backend is running
 curl -s http://localhost:8129/api/health
 ```

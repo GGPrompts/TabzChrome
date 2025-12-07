@@ -467,23 +467,21 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  WINDOWS:                                                            │
-│  Chrome (127.0.0.1:9222) ◀── Port Proxy (0.0.0.0:9222)              │
-│         ↓                           ↑                                │
-│     CDP / WebSocket            WSL2 connects via                     │
-│         ↓                      gateway IP:9222                       │
-│  Browser MCP Server ─────────────────┘                               │
-│  (Windows node.exe + puppeteer-core)                                 │
-│         ↓ stdio                                                      │
-│  Claude Code (WSL2)                                                  │
+│  Chrome (127.0.0.1:9222) ◀─── Browser MCP Server                    │
+│         ↑                      (Windows node.exe)                    │
+│     CDP / WebSocket                   ↑                              │
+│     (localhost only)                  │ stdio                        │
+│                                       ↓                              │
+│                              Claude Code (WSL2)                      │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Key insights:**
-- Chrome on Windows only binds to `127.0.0.1:9222` (ignores `0.0.0.0` flag for security)
-- Port proxy (`netsh`) forwards `0.0.0.0:9222` → `127.0.0.1:9222`
-- MCP server runs via `run-windows.sh` which uses Windows `node.exe`
-- WSL2's localhost is isolated from Windows localhost
+- Chrome binds to `127.0.0.1:9222` only (localhost - secure!)
+- MCP server runs via `run-windows.sh` using Windows `node.exe`
+- Windows node.exe can access `localhost:9222` directly (no port proxy needed)
+- Claude Code communicates with MCP server via stdio
 
 ## Interactive Command Runner: `/ttmcp`
 
@@ -522,9 +520,8 @@ The `/ttmcp` slash command provides an interactive menu-driven interface to all 
 ## Requirements
 
 1. **Chrome with remote debugging:** Use the "Chrome (Claude Debug)" desktop shortcut
-2. **Port proxy configured:** One-time setup (see [WSL2_SETUP.md](WSL2_SETUP.md))
-3. **Backend running:** `cd backend && npm start` (in WSL2)
-4. **Chrome extension loaded:** Reload at `chrome://extensions` (for console logs)
+2. **Backend running:** `cd backend && npm start` (in WSL2)
+3. **Chrome extension loaded:** Reload at `chrome://extensions` (for console logs)
 
 ## WSL2 Setup (Quick Reference)
 
@@ -543,11 +540,6 @@ The project uses `run-windows.sh` which executes via Windows `node.exe`:
 }
 ```
 
-**Port proxy (one-time admin setup):**
-```powershell
-netsh interface portproxy add v4tov4 listenport=9222 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1
-```
-
 See [WSL2_SETUP.md](WSL2_SETUP.md) for full setup instructions.
 
 ## Troubleshooting
@@ -555,8 +547,6 @@ See [WSL2_SETUP.md](WSL2_SETUP.md) for full setup instructions.
 | Issue | Solution |
 |-------|----------|
 | "CDP not available" | Use Chrome Debug shortcut, verify with `curl.exe http://localhost:9222/json/version` |
-| "CDP not available" (port proxy issue) | Check `netsh interface portproxy show all` - should show 9222 forwarding |
-| "CDP not available" (svchost on 9222) | Port proxy running but Chrome isn't - restart Chrome via debug shortcut |
 | "Cannot connect to backend" | Start backend: `cd backend && npm start` |
 | "No logs captured" | Open Chrome tabs and interact with pages |
 | "Request timed out" | Check Chrome is open with extension installed |
@@ -569,15 +559,9 @@ See [WSL2_SETUP.md](WSL2_SETUP.md) for full setup instructions.
 ### Quick Diagnostics
 
 ```bash
-# Check Chrome CDP from Windows
+# Check Chrome CDP is available
 powershell.exe -Command "curl.exe http://localhost:9222/json/version"
 
-# Check port proxy
-powershell.exe -Command "netsh interface portproxy show all"
-
-# Check what process owns port 9222
+# Check what process owns port 9222 (should be chrome.exe)
 powershell.exe -Command "Get-NetTCPConnection -LocalPort 9222 -State Listen | ForEach-Object { Get-Process -Id \$_.OwningProcess }"
-
-# Check CDP from WSL2
-curl -s "http://$(ip route | grep default | awk '{print $3}'):9222/json/version"
 ```
