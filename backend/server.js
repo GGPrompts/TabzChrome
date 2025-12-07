@@ -669,12 +669,11 @@ setInterval(() => {
     log.debug(`Cleaned up ${cleanedCount} dead connections from terminalOwners map`);
   }
 
-  // Log memory usage for monitoring
+  // Collect memory stats (broadcast to clients, don't spam console)
   const memUsage = process.memoryUsage();
   const heapUsed = Math.round(memUsage.heapUsed / 1024 / 1024);
   const heapTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
   const rss = Math.round(memUsage.rss / 1024 / 1024);
-  console.log(`[Server] Memory: ${heapUsed}MB / ${heapTotal}MB, Active WS: ${activeConnections.size}, Terminals: ${terminalRegistry.getActiveTerminalCount()}`);
 
   // Broadcast memory stats to all connected clients
   broadcast({

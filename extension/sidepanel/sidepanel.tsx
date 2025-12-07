@@ -520,6 +520,13 @@ function SidePanelTerminal() {
           }]
         })
         setCurrentSession(terminal.id)
+
+        // For API-spawned terminals, send reconnect to register this connection as owner
+        // This enables chat input to send commands to the terminal
+        sendMessage({
+          type: 'RECONNECT',
+          terminalId: terminal.id,
+        })
         break
       case 'terminal-closed':
         // Backend sends: { type: 'terminal-closed', data: { id: terminalId } }

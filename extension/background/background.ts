@@ -827,6 +827,15 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       })
       break
 
+    case 'RECONNECT':
+      // Register this connection as owner of an API-spawned terminal
+      console.log('🔄 RECONNECT:', { terminalId: message.terminalId })
+      sendToWebSocket({
+        type: 'reconnect',
+        terminalId: message.terminalId,
+      })
+      break
+
     case 'TERMINAL_RESIZE':
       // Forward terminal resize to backend
       console.log('📏 TERMINAL_RESIZE:', { terminalId: message.terminalId, cols: message.cols, rows: message.rows })

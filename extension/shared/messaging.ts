@@ -29,6 +29,8 @@ export type MessageType =
   | 'QUEUE_COMMAND'
   // Targeted pane send (for split layouts with Claude + TUI tools)
   | 'TARGETED_PANE_SEND'
+  // Reconnect to terminal (register ownership for API-spawned terminals)
+  | 'RECONNECT'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -247,6 +249,12 @@ export interface BrowserPageInfoMessage extends BaseMessage {
   favIconUrl?: string;
 }
 
+// Reconnect to terminal (for API-spawned terminals)
+export interface ReconnectMessage extends BaseMessage {
+  type: 'RECONNECT';
+  terminalId: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -274,6 +282,7 @@ export type ExtensionMessage =
   | OmniboxRunCommandMessage
   | QueueCommandMessage
   | TargetedPaneSendMessage
+  | ReconnectMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage
