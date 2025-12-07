@@ -322,9 +322,15 @@ router.delete('/agents/:id', asyncHandler(async (req, res) => {
     });
   }
   
-  // Close terminal (handles cleanup automatically)
-  terminalRegistry.closeTerminal(id);
-  
+  // Close terminal and kill tmux session
+  terminalRegistry.closeTerminal(id, true);
+
+  // Broadcast to WebSocket clients so UI removes the tab
+  const broadcast = req.app.get('broadcast');
+  if (broadcast) {
+    broadcast({ type: 'terminal-closed', data: { id } });
+  }
+
   res.json({
     success: true,
     message: `Agent '${terminal.name}' closed successfully`,
@@ -701,6 +707,14 @@ router.delete('/tmux/sessions/:name', asyncHandler(async (req, res) => {
   const result = await tmuxSessionManager.killSession(name);
 
   if (result.success) {
+    // Broadcast to WebSocket clients so UI removes the tab (if it's a ctt- session)
+    if (name.startsWith('ctt-')) {
+      const broadcast = req.app.get('broadcast');
+      if (broadcast) {
+        broadcast({ type: 'terminal-closed', data: { id: name } });
+      }
+    }
+
     res.json({
       success: true,
       message: `Session ${name} killed`
