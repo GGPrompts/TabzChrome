@@ -6,6 +6,7 @@ import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
+import { useClaudeStatus, getStatusEmoji } from '../hooks/useClaudeStatus'
 import '../styles/globals.css'
 
 interface TerminalSession {
@@ -42,6 +43,19 @@ function SidePanelTerminal() {
   const [chatInputText, setChatInputText] = useState('')
   const [chatInputMode, setChatInputMode] = useState<'execute' | 'send'>('execute')
   const chatInputRef = useRef<HTMLInputElement>(null)
+
+  // Multi-send target state
+  const [targetTabs, setTargetTabs] = useState<Set<string>>(new Set())  // Empty = current tab only
+  const [showTargetDropdown, setShowTargetDropdown] = useState(false)
+
+  // Claude status tracking - polls for Claude Code status in each terminal
+  const claudeStatuses = useClaudeStatus(
+    sessions.map(s => ({
+      id: s.id,
+      sessionName: s.sessionName,
+      workingDir: s.workingDir,
+    }))
+  )
 
   const portRef = useRef<chrome.runtime.Port | null>(null)
 
@@ -116,6 +130,13 @@ function SidePanelTerminal() {
         // Omnibox: spawn terminal and run command
         console.log('[Sidepanel] 🔍 Omnibox run command:', message.command)
         handleOmniboxRunCommand(message.command)
+      } else if (message.type === 'QUEUE_COMMAND') {
+        // Queue command from content script "Run in Terminal" button
+        console.log('[Sidepanel] 📝 Queue command:', message.command)
+        setChatInputText(message.command)
+        setChatInputMode('execute')
+        // Focus the input after a brief delay
+        setTimeout(() => chatInputRef.current?.focus(), 100)
       }
     })
 
@@ -257,6 +278,19 @@ function SidePanelTerminal() {
       document.removeEventListener('click', handleClick)
     }
   }, [showDirDropdown])
+
+  // Close target dropdown when clicking outside
+  useEffect(() => {
+    if (!showTargetDropdown) return
+    const handleClick = () => setShowTargetDropdown(false)
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick)
+    }, 100)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showTargetDropdown])
 
   // Load saved terminal sessions from Chrome storage on mount
   useEffect(() => {
@@ -601,35 +635,79 @@ function SidePanelTerminal() {
 
   // Chat input handlers - alternative to direct terminal paste
   const handleChatInputSend = () => {
-    if (!chatInputText.trim() || !currentSession) return
+    if (!chatInputText.trim()) return
 
-    const session = sessions.find(s => s.id === currentSession)
-    if (!session) return
+    // Determine target terminals: selected tabs or current tab
+    const targets = targetTabs.size > 0
+      ? Array.from(targetTabs)
+      : currentSession ? [currentSession] : []
 
-    // Send text to terminal via background worker
-    sendMessage({
-      type: 'TERMINAL_INPUT',
-      terminalId: currentSession,
-      data: chatInputText,
-    })
+    if (targets.length === 0) return
 
-    // If execute mode, send Enter after 300ms delay
-    // CRITICAL: Delay prevents submit before text loads (especially for Claude Code)
-    if (chatInputMode === 'execute') {
+    // Send to each target with slight stagger for multi-send
+    targets.forEach((terminalId, index) => {
+      const delay = index * 50 // 50ms stagger between sends
+
       setTimeout(() => {
+        // Send text to terminal via background worker
         sendMessage({
           type: 'TERMINAL_INPUT',
-          terminalId: currentSession,
-          data: '\r',
+          terminalId,
+          data: chatInputText,
         })
-      }, 300)
-    }
+
+        // If execute mode, send Enter after 300ms delay
+        // CRITICAL: Delay prevents submit before text loads (especially for Claude Code)
+        if (chatInputMode === 'execute') {
+          setTimeout(() => {
+            sendMessage({
+              type: 'TERMINAL_INPUT',
+              terminalId,
+              data: '\r',
+            })
+          }, 300)
+        }
+      }, delay)
+    })
 
     // Clear input after sending
     setChatInputText('')
 
     // Keep focus on input for next message
     chatInputRef.current?.focus()
+  }
+
+  // Toggle a tab in the target selection
+  const toggleTargetTab = (tabId: string) => {
+    setTargetTabs(prev => {
+      const next = new Set(prev)
+      if (next.has(tabId)) {
+        next.delete(tabId)
+      } else {
+        next.add(tabId)
+      }
+      return next
+    })
+  }
+
+  // Select/deselect all tabs
+  const selectAllTargetTabs = () => {
+    if (targetTabs.size === sessions.length) {
+      setTargetTabs(new Set())
+    } else {
+      setTargetTabs(new Set(sessions.map(s => s.id)))
+    }
+  }
+
+  // Get display label for target dropdown
+  const getTargetLabel = () => {
+    if (targetTabs.size === 0) return 'Current'
+    if (targetTabs.size === 1) {
+      const id = Array.from(targetTabs)[0]
+      const session = sessions.find(s => s.id === id)
+      return session?.name || 'Tab'
+    }
+    return `${targetTabs.size} tabs`
   }
 
   const handleChatInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1048,6 +1126,13 @@ function SidePanelTerminal() {
                     onClick={() => setCurrentSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                   >
+                    {/* Claude status indicator: 🤖 when detected + status emoji */}
+                    {claudeStatuses.has(session.id) && (
+                      <span className="flex items-center gap-0.5 text-xs" title={`Claude: ${claudeStatuses.get(session.id)?.status}`}>
+                        <span>🤖</span>
+                        <span>{getStatusEmoji(claudeStatuses.get(session.id))}</span>
+                      </span>
+                    )}
                     <span>{session.name}</span>
                     <button
                       onClick={(e) => handleCloseTab(e, session.id)}
@@ -1285,7 +1370,7 @@ function SidePanelTerminal() {
             )}
           </div>
 
-          {/* Chat Input Bar - Paste workaround */}
+          {/* Chat Input Bar - Multi-send with target selection */}
           {sessions.length > 0 && (
             <div className="border-t border-gray-700 bg-[#1a1a1a] flex items-center gap-2 px-2 py-1.5">
               <input
@@ -1297,6 +1382,95 @@ function SidePanelTerminal() {
                 onKeyDown={handleChatInputKeyDown}
                 placeholder={chatInputMode === 'execute' ? "Type & Enter to execute..." : "Type & Enter to send (no execute)..."}
               />
+              {/* Target tabs dropdown */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowTargetDropdown(!showTargetDropdown)
+                  }}
+                  className={`h-7 px-2 flex items-center gap-1 bg-black border rounded text-xs cursor-pointer transition-colors ${
+                    targetTabs.size > 0
+                      ? 'border-[#00ff88]/50 text-[#00ff88]'
+                      : 'border-gray-600 text-gray-300 hover:border-gray-500'
+                  }`}
+                  title="Target terminals"
+                >
+                  <span className="max-w-[60px] truncate">{getTargetLabel()}</span>
+                  <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                </button>
+
+                {showTargetDropdown && (
+                  <div className="absolute bottom-full left-0 mb-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[160px] z-50 overflow-hidden">
+                    {/* Current tab option */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTargetTabs(new Set())
+                        setShowTargetDropdown(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs border-b border-gray-800 transition-colors flex items-center gap-2 ${
+                        targetTabs.size === 0
+                          ? 'text-[#00ff88] bg-[#00ff88]/10'
+                          : 'text-gray-300 hover:bg-white/5'
+                      }`}
+                    >
+                      <span className="w-4">{targetTabs.size === 0 ? '●' : '○'}</span>
+                      <span>Current Tab</span>
+                    </button>
+
+                    {/* Divider */}
+                    <div className="border-b border-gray-700 my-1" />
+
+                    {/* Individual tabs with checkboxes */}
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {sessions.map((session) => {
+                        const claudeStatus = claudeStatuses.get(session.id)
+                        return (
+                          <button
+                            key={session.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleTargetTab(session.id)
+                            }}
+                            className={`w-full px-3 py-1.5 text-left text-xs transition-colors flex items-center gap-2 ${
+                              targetTabs.has(session.id)
+                                ? 'text-[#00ff88] bg-[#00ff88]/5'
+                                : 'text-gray-300 hover:bg-white/5'
+                            }`}
+                          >
+                            <span className="w-4 flex-shrink-0">
+                              {targetTabs.has(session.id) ? '☑' : '☐'}
+                            </span>
+                            {claudeStatus && (
+                              <span className="flex-shrink-0" title={`Claude: ${claudeStatus.status}`}>
+                                🤖{getStatusEmoji(claudeStatus)}
+                              </span>
+                            )}
+                            <span className="truncate">{session.name}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Select All / None */}
+                    {sessions.length > 1 && (
+                      <>
+                        <div className="border-t border-gray-700 mt-1" />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            selectAllTargetTabs()
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-gray-400 hover:bg-white/5 transition-colors"
+                        >
+                          {targetTabs.size === sessions.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <select
                 value={chatInputMode}
                 onChange={(e) => setChatInputMode(e.target.value as 'execute' | 'send')}

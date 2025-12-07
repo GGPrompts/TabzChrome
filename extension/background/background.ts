@@ -767,6 +767,28 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       // Badge will be updated when backend sends terminal-spawned message
       break
 
+    case 'QUEUE_COMMAND':
+      // Queue command to chat input (from content script "Run in Terminal" button)
+      // Opens sidebar and populates chat input, letting user choose which terminal
+      console.log('[Background] QUEUE_COMMAND received:', message.command)
+      try {
+        const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+        const targetWindow = windows.find(w => w.focused) || windows[0]
+        if (targetWindow?.id) {
+          await chrome.sidePanel.open({ windowId: targetWindow.id })
+        }
+      } catch (err) {
+        console.error('[Background] Failed to open side panel:', err)
+      }
+      // Broadcast to sidepanel after brief delay for sidebar to open
+      setTimeout(() => {
+        broadcastToClients({
+          type: 'QUEUE_COMMAND',
+          command: message.command,
+        })
+      }, 300)
+      break
+
     case 'CLOSE_SESSION':
       sendToWebSocket({
         type: 'close-terminal',

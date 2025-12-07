@@ -249,8 +249,9 @@ function detectPackageCommands() {
             pointer-events: none;
           `
           btn.onclick = () => {
+            // Queue command to chat input - lets user choose which terminal
             chrome.runtime.sendMessage({
-              type: 'SPAWN_TERMINAL',
+              type: 'QUEUE_COMMAND',
               command: text.trim(),
             })
           }

@@ -26,6 +26,7 @@ export type MessageType =
   | 'KEYBOARD_SWITCH_TAB'
   | 'OMNIBOX_SPAWN_PROFILE'
   | 'OMNIBOX_RUN_COMMAND'
+  | 'QUEUE_COMMAND'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -170,6 +171,11 @@ export interface OmniboxRunCommandMessage extends BaseMessage {
   command: string;
 }
 
+export interface QueueCommandMessage extends BaseMessage {
+  type: 'QUEUE_COMMAND';
+  command: string;
+}
+
 // Browser MCP - Console log entry
 export type ConsoleLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -255,6 +261,7 @@ export type ExtensionMessage =
   | KeyboardSwitchTabMessage
   | OmniboxSpawnProfileMessage
   | OmniboxRunCommandMessage
+  | QueueCommandMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage
