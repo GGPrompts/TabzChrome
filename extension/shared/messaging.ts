@@ -27,6 +27,8 @@ export type MessageType =
   | 'OMNIBOX_SPAWN_PROFILE'
   | 'OMNIBOX_RUN_COMMAND'
   | 'QUEUE_COMMAND'
+  // Targeted pane send (for split layouts with Claude + TUI tools)
+  | 'TARGETED_PANE_SEND'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -176,6 +178,15 @@ export interface QueueCommandMessage extends BaseMessage {
   command: string;
 }
 
+// Targeted pane send - for split layouts with Claude + TUI tools
+// Sends directly to a specific tmux pane, bypassing PTY and focused pane
+export interface TargetedPaneSendMessage extends BaseMessage {
+  type: 'TARGETED_PANE_SEND';
+  tmuxPane: string;  // Pane ID (e.g., '%42')
+  text?: string;     // Text to send (literal, no interpretation)
+  sendEnter?: boolean; // Whether to send Enter after text
+}
+
 // Browser MCP - Console log entry
 export type ConsoleLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -262,6 +273,7 @@ export type ExtensionMessage =
   | OmniboxSpawnProfileMessage
   | OmniboxRunCommandMessage
   | QueueCommandMessage
+  | TargetedPaneSendMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage

@@ -258,6 +258,33 @@ wss.on('connection', (ws) => {
           log.debug(`Command → terminal ${data.terminalId.slice(-8)}: ${cmdLength} bytes`);
           await terminalRegistry.sendCommand(data.terminalId, data.command);
           break;
+
+        case 'targeted-pane-send':
+          // Send text directly to a specific tmux pane (bypasses PTY, goes to exact pane)
+          // Used for split layouts where Claude is in one pane and a TUI tool in another
+          // This prevents corrupting TUI apps when user sends commands from chat bar
+          const { tmuxPane, text, sendEnter } = data;
+          if (!tmuxPane) {
+            log.warn(`targeted-pane-send missing tmuxPane`);
+            break;
+          }
+          try {
+            const { execSync } = require('child_process');
+            if (text) {
+              // Use tmux send-keys with literal flag to handle special characters correctly
+              // The -l flag sends keys literally (without interpreting special sequences)
+              execSync(`tmux send-keys -t "${tmuxPane}" -l ${JSON.stringify(text)}`, { timeout: 5000 });
+              log.debug(`Targeted send → pane ${tmuxPane}: ${text.length} bytes`);
+            }
+            if (sendEnter) {
+              // Send Enter key (not literal, so tmux interprets it as Enter)
+              execSync(`tmux send-keys -t "${tmuxPane}" Enter`, { timeout: 5000 });
+              log.debug(`Targeted Enter → pane ${tmuxPane}`);
+            }
+          } catch (err) {
+            log.error(`Failed to send to pane ${tmuxPane}:`, err.message);
+          }
+          break;
           
         case 'resize':
           // Register this connection as owner of the terminal (for API-spawned terminals)

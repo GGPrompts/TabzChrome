@@ -4,6 +4,7 @@ export interface ClaudeStatus {
   status: 'idle' | 'awaiting_input' | 'processing' | 'tool_use' | 'working' | 'unknown'
   current_tool?: string
   last_updated?: string
+  tmuxPane?: string  // Pane ID (e.g., '%42') for targeted send to Claude in split layouts
 }
 
 interface TerminalInfo {
@@ -52,6 +53,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
                 status: result.status,
                 current_tool: result.current_tool,
                 last_updated: result.last_updated,
+                tmuxPane: result.tmuxPane,  // Pane ID for targeted send
               })
             }
           } catch (error) {

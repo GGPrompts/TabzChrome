@@ -815,6 +815,18 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       })
       break
 
+    case 'TARGETED_PANE_SEND':
+      // Send directly to a specific tmux pane (for split layouts with Claude + TUI tools)
+      // This bypasses the PTY and goes straight to the pane, preventing TUI corruption
+      console.log('🎯 TARGETED_PANE_SEND:', { tmuxPane: message.tmuxPane, textLength: message.text?.length, sendEnter: message.sendEnter })
+      sendToWebSocket({
+        type: 'targeted-pane-send',
+        tmuxPane: message.tmuxPane,
+        text: message.text,
+        sendEnter: message.sendEnter,
+      })
+      break
+
     case 'TERMINAL_RESIZE':
       // Forward terminal resize to backend
       console.log('📏 TERMINAL_RESIZE:', { terminalId: message.terminalId, cols: message.cols, rows: message.rows })

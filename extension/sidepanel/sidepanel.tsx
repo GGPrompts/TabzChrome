@@ -676,23 +676,39 @@ function SidePanelTerminal() {
       const delay = index * 50 // 50ms stagger between sends
 
       setTimeout(() => {
-        // Send text to terminal via background worker
-        sendMessage({
-          type: 'TERMINAL_INPUT',
-          terminalId,
-          data: chatInputText,
-        })
+        // Check if this terminal has Claude status with a pane ID
+        // If so, use targeted pane send to avoid corrupting TUI tools in split layouts
+        const claudeStatus = claudeStatuses.get(terminalId)
+        const tmuxPane = claudeStatus?.tmuxPane
 
-        // If execute mode, send Enter after 300ms delay
-        // CRITICAL: Delay prevents submit before text loads (especially for Claude Code)
-        if (chatInputMode === 'execute') {
-          setTimeout(() => {
-            sendMessage({
-              type: 'TERMINAL_INPUT',
-              terminalId,
-              data: '\r',
-            })
-          }, 300)
+        if (tmuxPane) {
+          // Use targeted pane send - goes directly to Claude's pane
+          // This prevents sending to TUI tools (like TFE) in other panes
+          sendMessage({
+            type: 'TARGETED_PANE_SEND',
+            tmuxPane,
+            text: chatInputText,
+            sendEnter: chatInputMode === 'execute',
+          })
+        } else {
+          // Standard send via PTY (for non-Claude or unknown pane layout)
+          sendMessage({
+            type: 'TERMINAL_INPUT',
+            terminalId,
+            data: chatInputText,
+          })
+
+          // If execute mode, send Enter after 300ms delay
+          // CRITICAL: Delay prevents submit before text loads (especially for Claude Code)
+          if (chatInputMode === 'execute') {
+            setTimeout(() => {
+              sendMessage({
+                type: 'TERMINAL_INPUT',
+                terminalId,
+                data: '\r',
+              })
+            }, 300)
+          }
         }
       }, delay)
     })
