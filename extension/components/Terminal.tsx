@@ -39,8 +39,8 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Track previous dimensions to avoid unnecessary resize events (from terminal-tabs pattern)
   const prevDimensionsRef = useRef({ cols: 0, rows: 0 })
 
-  // Track last refreshed dimensions to avoid spamming refresh trick
-  const lastRefreshedDimensionsRef = useRef({ cols: 0, rows: 0 })
+  // NOTE: lastRefreshedDimensionsRef was removed - post-resize refresh disabled
+  // because it broke tmux splits (SIGWINCH affects all panes)
 
   // Initialization guard - filter device queries during first 1000ms (from terminal-tabs pattern)
   const isInitializingRef = useRef(true)
@@ -331,41 +331,22 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     // CRITICAL: Debounce to prevent xterm.js buffer corruption during rapid resizes
     // (e.g., moving browser to vertical monitor triggers many resize events)
     const resizeObserverTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null }
-    const resizeRefreshTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null }
     const resizeObserver = new ResizeObserver(() => {
       if (resizeObserverTimeoutRef.current) clearTimeout(resizeObserverTimeoutRef.current)
-      if (resizeRefreshTimeoutRef.current) clearTimeout(resizeRefreshTimeoutRef.current)
 
       resizeObserverTimeoutRef.current = setTimeout(() => {
         fitTerminal()
 
-        // For tmux sessions, trigger a refresh after resize settles
-        // This forces tmux to rewrap text that may have gone off-screen
-        // Only refresh if dimensions actually changed since last refresh (prevents spam)
-        if (sessionName && xtermRef.current) {
-          const currentCols = xtermRef.current.cols
-          const currentRows = xtermRef.current.rows
-          const lastRefreshed = lastRefreshedDimensionsRef.current
-
-          // Skip if dimensions unchanged since last refresh
-          if (currentCols === lastRefreshed.cols && currentRows === lastRefreshed.rows) {
-            return
-          }
-
-          resizeRefreshTimeoutRef.current = setTimeout(() => {
-            if (xtermRef.current && !isResizingRef.current) {
-              // Double-check dimensions still differ (may have changed during timeout)
-              const cols = xtermRef.current.cols
-              const rows = xtermRef.current.rows
-              if (cols !== lastRefreshedDimensionsRef.current.cols ||
-                  rows !== lastRefreshedDimensionsRef.current.rows) {
-                console.log('[Terminal] Post-resize refresh:', cols, 'x', rows)
-                lastRefreshedDimensionsRef.current = { cols, rows }
-                triggerResizeTrick()
-              }
-            }
-          }, 500)  // Wait for resize to fully settle before refresh
-        }
+        // DISABLED: Post-resize refresh for tmux sessions
+        // The resize trick sends SIGWINCH to tmux, which affects ALL panes in a split.
+        // This causes TUI apps (tfe, lazygit, etc.) in other panes to re-render incorrectly.
+        // Text wrapping issues are less severe than broken split rendering.
+        //
+        // Original purpose: Force tmux to rewrap text that went off-screen during sidebar resize.
+        // If text wrapping becomes a problem, consider:
+        //   1. Tmux refresh-client command via WebSocket (doesn't send SIGWINCH)
+        //   2. Only refresh after user explicitly requests it
+        //   3. Detect if splits exist and skip refresh in that case
       }, 150)  // 150ms debounce - prevents buffer corruption on rapid resize
     })
 
@@ -377,13 +358,11 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     // Store refs for cleanup
     const currentResizeObserver = resizeObserver
     const currentTimeoutRef = resizeObserverTimeoutRef
-    const currentRefreshTimeoutRef = resizeRefreshTimeoutRef
 
     // Cleanup resize observer when effect re-runs (but NOT xterm - that's handled separately)
     return () => {
       currentResizeObserver.disconnect()
       if (currentTimeoutRef.current) clearTimeout(currentTimeoutRef.current)
-      if (currentRefreshTimeoutRef.current) clearTimeout(currentRefreshTimeoutRef.current)
     }
   }, [terminalId, isActive, isInitialized]) // Re-run when isActive changes to allow deferred init
 

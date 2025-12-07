@@ -243,10 +243,23 @@ class TerminalRegistry extends EventEmitter {
 
     // NEW TERMINAL: Generate unique ID
     // For session recovery, use the sessionName as ID (maintains Chrome storage compatibility)
-    // For new terminals, generate short 8-char hex ID with ctt- prefix
+    // For new terminals, include profile name for easier identification in tmux ls
+    const sanitizeName = (name) => {
+      // Convert to lowercase, replace spaces/special chars with hyphens, limit length
+      const sanitized = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric with hyphens
+        .replace(/^-+|-+$/g, '')       // Trim leading/trailing hyphens
+        .substring(0, 20);              // Limit length
+      // Fallback to 'term' if sanitization results in empty string (e.g., emoji-only names)
+      return sanitized || 'term';
+    };
+
+    const profileName = config.name || config.profile?.name || config.terminalType || 'term';
+    const sanitizedName = sanitizeName(profileName);
     const id = config.sessionName
       ? config.sessionName  // Recovery: use tmux session name as ID
-      : (config.isChrome ? `ctt-${shortId()}` : shortId());
+      : (config.isChrome ? `ctt-${sanitizedName}-${shortId()}` : shortId());
 
     // Update name counters before generating a new name
     this.updateNameCounters();
@@ -558,7 +571,14 @@ class TerminalRegistry extends EventEmitter {
       return null;
     }
 
-    // Check if PTY process still exists and cancel grace period
+    // FIX: If terminal already has valid ptyInfo and is active, just return it
+    // This handles RECONNECT for freshly spawned terminals (not disconnected)
+    if (terminal.ptyInfo && terminal.state === 'active') {
+      console.log(`[TerminalRegistry] Terminal ${terminal.name} already has active PTY, returning`);
+      return terminal;
+    }
+
+    // Check if PTY process was disconnected and cancel grace period
     const ptyInfo = ptyHandler.reconnectPTY(id);
     if (ptyInfo) {
       console.log(`[TerminalRegistry] Successfully reconnected to PTY for terminal ${terminal.name}`);
@@ -576,28 +596,21 @@ class TerminalRegistry extends EventEmitter {
         this.terminals.set(newAgentId, terminal);
       }
       return terminal;
-    } else {
-      // PTY doesn't exist but terminal is in registry - check if we can spawn a new PTY
-      console.log(`[TerminalRegistry] No PTY found for terminal ${id}, checking if we can recreate it`);
-
-      // If terminal was recently active, we might be able to recreate the PTY
-      if (terminal.state === 'spawning' || terminal.state === 'active') {
-        try {
-          // Try to recreate the PTY process
-          const newPty = ptyHandler.createPTY(terminal.config || terminal);
-          if (newPty) {
-            console.log(`[TerminalRegistry] Created new PTY for terminal ${terminal.name}`);
-            terminal.state = 'active';
-            terminal.ptyInfo = newPty;
-            return terminal;
-          }
-        } catch (error) {
-          console.error(`[TerminalRegistry] Failed to recreate PTY for terminal ${id}:`, error);
-        }
-      }
     }
 
-    console.log(`[TerminalRegistry] Could not reconnect to terminal ${id}`);
+    // FIX: Also check if PTY exists in processes (not disconnected but still there)
+    const existingPty = ptyHandler.getProcess(id);
+    if (existingPty) {
+      console.log(`[TerminalRegistry] Found existing PTY for terminal ${terminal.name}`);
+      terminal.state = 'active';
+      terminal.ptyInfo = existingPty;
+      return terminal;
+    }
+
+    // PTY truly doesn't exist - only recreate for terminals that were meant to be active
+    // REMOVED: The aggressive PTY recreation was causing duplicate tmux sessions
+    // If the tmux session exists, we should attach to it, not create a new one
+    console.log(`[TerminalRegistry] No PTY found for terminal ${id}, not recreating`);
     return null;
   }
 

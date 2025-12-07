@@ -145,6 +145,11 @@ let recoveryComplete = false;
 // terminalId -> Set<WebSocket>
 const terminalOwners = new Map();
 
+// Spawn deduplication - prevent same requestId from spawning twice
+// This catches race conditions where the same spawn request is sent multiple times
+const recentSpawnRequests = new Set();
+const SPAWN_DEDUP_WINDOW_MS = 5000; // 5 second window
+
 wss.on('connection', (ws) => {
   log.success('WebSocket client connected');
 
@@ -201,6 +206,18 @@ wss.on('connection', (ws) => {
       
       switch (data.type) {
         case 'spawn':
+          // Spawn deduplication - prevent same requestId from spawning twice
+          // This catches race conditions, double-clicks, or duplicate WebSocket messages
+          if (data.requestId && recentSpawnRequests.has(data.requestId)) {
+            log.warn(`Duplicate spawn request ignored: ${data.requestId}`);
+            break;
+          }
+          if (data.requestId) {
+            recentSpawnRequests.add(data.requestId);
+            // Clean up after dedup window
+            setTimeout(() => recentSpawnRequests.delete(data.requestId), SPAWN_DEDUP_WINDOW_MS);
+          }
+
           // Debug log for Gemini spawn issues
           if (data.config && data.config.terminalType === 'gemini') {
             log.debug('Spawning Gemini terminal with config:', data.config);
@@ -790,9 +807,22 @@ server.listen(PORT, async () => {
 
             recoveringSessionsSet.add(sessionName);
 
-            // Use short ID for display name (first 8 chars after ctt-)
-            const shortId = sessionName.replace('ctt-', '').substring(0, 8);
-            const displayName = `Bash (${shortId})`;
+            // Extract profile name from session name (format: ctt-{profile-name}-{shortId})
+            // The shortId is the last 8 chars, profile name is everything between 'ctt-' and the last segment
+            const withoutPrefix = sessionName.replace('ctt-', '');
+            const segments = withoutPrefix.split('-');
+            let displayName;
+            if (segments.length >= 2) {
+              // New format: ctt-amber-claude-abc12345 → "Amber Claude"
+              const profileSegments = segments.slice(0, -1); // Everything except last segment (shortId)
+              const profileName = profileSegments
+                .map(s => s.charAt(0).toUpperCase() + s.slice(1)) // Capitalize each word
+                .join(' ');
+              displayName = profileName || `Bash (${segments[segments.length - 1].substring(0, 8)})`;
+            } else {
+              // Old format: ctt-abc12345 → "Bash (abc12345)"
+              displayName = `Bash (${withoutPrefix.substring(0, 8)})`;
+            }
 
             try {
               // Register the terminal with useTmux - registerTerminal creates PTY internally

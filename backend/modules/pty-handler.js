@@ -791,6 +791,13 @@ class PTYHandler extends EventEmitter {
   }
 
   /**
+   * Get PTY process by terminal ID
+   */
+  getProcess(terminalId) {
+    return this.processes.get(terminalId) || null;
+  }
+
+  /**
    * Immediate cleanup of all resources on server shutdown
    */
   cleanupImmediate() {
