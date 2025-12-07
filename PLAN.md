@@ -1,8 +1,8 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 4, 2025
+**Last Updated**: December 7, 2025
 **Current Version**: 2.2.0
-**Status**: Preparing for Public Release
+**Status**: Chrome API Power Features Sprint 🚀
 
 ---
 
@@ -93,7 +93,764 @@
 
 ---
 
-## Phase 2: Future Enhancements (Post-Release)
+## Phase 2: Chrome API Power Features for MCP
+
+**Goal**: Leverage powerful Chrome APIs to make the Browser MCP dramatically more capable for Claude power users.
+
+### 2.1 `chrome.debugger` - Full DevTools Protocol (Priority #1) 🔥🔥🔥🔥🔥
+
+**Impact**: Eliminates need for `--remote-debugging-port=9222` Chrome launch. Full CDP access from inside the extension.
+
+**Manifest change:**
+```json
+"permissions": ["debugger", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_get_network_requests` - See all XHR/fetch requests a page makes
+  - Attach to tab, enable Network domain
+  - Capture request URL, method, headers, body
+  - Capture response status, headers, body
+  - Filter by type (XHR, fetch, websocket, etc.)
+
+- [ ] `browser_get_api_response` - Capture specific API response content
+  - Wait for request matching pattern
+  - Return full response body (JSON, etc.)
+  - Useful for capturing AI service outputs
+
+- [ ] `browser_profile_performance` - Profile page performance
+  - Enable Performance domain
+  - Capture metrics: load time, scripting, rendering
+  - Identify slow operations
+
+- [ ] `browser_get_dom_tree` - Full DOM inspection
+  - Get complete DOM structure
+  - Better than innerHTML for debugging
+
+- [ ] `browser_set_breakpoint` - Debug JavaScript issues
+  - Enable Debugger domain
+  - Set breakpoints by URL/line
+  - Pause/resume execution
+
+- [ ] `browser_get_coverage` - Code coverage analysis
+  - See which code actually runs
+  - Identify dead code
+
+**Implementation notes:**
+```typescript
+// In background.ts
+chrome.debugger.attach({tabId}, "1.3", () => {
+  chrome.debugger.sendCommand({tabId}, "Network.enable");
+});
+
+chrome.debugger.onEvent.addListener((source, method, params) => {
+  if (method === "Network.responseReceived") {
+    // Capture response details
+  }
+});
+```
+
+**Migration path:**
+1. Add debugger permission to manifest
+2. Create `extension/debugger/` module for CDP commands
+3. Add MCP tools that use extension messaging → debugger
+4. Eventually deprecate external CDP connection (run-windows.sh)
+
+---
+
+### 2.2 `chrome.downloads` - File Download Control (Priority #2) 🔥🔥🔥🔥
+
+**Impact**: Download any file type, not just images. Essential for AI tool workflows.
+
+**Manifest change:**
+```json
+"permissions": ["downloads", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_download_file` - Download any file
+  - URL to download
+  - Optional filename/path
+  - Option to open folder after
+  ```typescript
+  chrome.downloads.download({
+    url: 'https://example.com/file.pdf',
+    filename: 'downloads/document.pdf',
+    saveAs: false
+  });
+  ```
+
+- [ ] `browser_get_downloads` - List recent downloads
+  - Search by filename, URL, date
+  - Show status (complete, in_progress, failed)
+  - Return file paths
+
+- [ ] `browser_monitor_download` - Track download progress
+  - Real-time progress updates
+  - Completion notification
+
+- [ ] `browser_save_page` - Save page as HTML/MHTML
+  - Capture entire page with assets
+  - Archive web content
+
+- [ ] `browser_batch_download` - Download multiple files
+  - Array of URLs
+  - Progress for each
+  - Summary when complete
+
+**Use cases:**
+- Download AI-generated images (DALL-E, Midjourney outputs)
+- Save PDFs from documentation sites
+- Batch download assets from a page
+- Export data from web apps
+
+---
+
+### 2.3 `chrome.webRequest` - Network Monitoring (Priority #3) 🔥🔥🔥🔥
+
+**Impact**: See all network traffic. Read-only in MV3 but still extremely powerful.
+
+**Manifest change:**
+```json
+"permissions": ["webRequest", "<all_urls>", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_get_api_calls` - See all API requests from a page
+  - List XHR/fetch requests
+  - Show URL, method, status, timing
+  - Filter by domain or pattern
+
+- [ ] `browser_monitor_websockets` - Track WebSocket messages
+  - See WebSocket connections
+  - Capture messages (if possible)
+
+- [ ] `browser_capture_auth_flow` - Debug OAuth/auth issues
+  - Track redirects
+  - See auth tokens in headers/cookies
+
+- [ ] `browser_find_api_endpoints` - Discover page's APIs
+  - List all unique API endpoints hit
+  - Reverse-engineer undocumented APIs
+
+**Implementation notes:**
+```typescript
+// In background.ts
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    // Store in memory for MCP queries
+    networkLog.push({
+      url: details.url,
+      method: details.method,
+      status: details.statusCode,
+      type: details.type,
+      timestamp: details.timeStamp
+    });
+  },
+  {urls: ["<all_urls>"]}
+);
+```
+
+**Note:** Cannot block/modify requests in MV3 (unless enterprise policy). Read-only monitoring only.
+
+---
+
+### 2.4 `chrome.cookies` - Authentication Debugging (Priority #4) 🔥🔥🔥
+
+**Impact**: Debug auth issues, check login state, inspect sessions.
+
+**Manifest change:**
+```json
+"permissions": ["cookies", "<all_urls>", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_check_auth` - Check if logged into a service
+  - Domain to check
+  - Returns auth cookie presence/details
+  - "Am I logged into GitHub?"
+
+- [ ] `browser_get_cookies` - Get all cookies for a domain
+  - List cookies with name, value, expiry
+  - Debug session issues
+
+- [ ] `browser_get_session` - Get specific session cookie
+  - Check token validity
+  - Debug auth flows
+
+**Implementation:**
+```typescript
+chrome.cookies.getAll({domain: "github.com"}, (cookies) => {
+  // Return to MCP
+});
+```
+
+---
+
+### 2.5 `chrome.history` - Research Assistant (Priority #5) 🔥🔥🔥
+
+**Impact**: Search browsing history, find pages you visited, research assistance.
+
+**Manifest change:**
+```json
+"permissions": ["history", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_search_history` - Search browsing history
+  - Search by text, date range
+  - "Find that page I visited about React hooks"
+  - Return URLs, titles, visit times
+
+- [ ] `browser_get_research` - Gather pages visited for a topic
+  - Aggregate related pages
+  - Build research bibliography
+
+- [ ] `browser_frequent_sites` - Get most visited sites
+  - Last week/month/all time
+  - Discover patterns
+
+**Implementation:**
+```typescript
+chrome.history.search({
+  text: "react hooks",
+  maxResults: 50
+}, (results) => {
+  // Return to MCP
+});
+```
+
+---
+
+### 2.6 `chrome.bookmarks` - Knowledge Management (Priority #6) 🔥🔥
+
+**Impact**: Save and organize important pages, quick reference.
+
+**Manifest change:**
+```json
+"permissions": ["bookmarks", ...]
+```
+
+**MCP Tools to implement:**
+
+- [ ] `browser_save_bookmark` - Bookmark current page
+  - Optional folder specification
+  - Add tags via folder structure
+
+- [ ] `browser_search_bookmarks` - Find saved resources
+  - Search by title, URL
+  - Browse folders
+
+- [ ] `browser_organize_bookmarks` - Auto-organize bookmarks
+  - Move to appropriate folders
+  - Clean up duplicates
+
+- [ ] `browser_get_bookmark_tree` - Export bookmark structure
+  - Full hierarchy
+  - For backup or analysis
+
+**Implementation:**
+```typescript
+chrome.bookmarks.create({
+  parentId: folderId,
+  title: "Important Article",
+  url: "https://..."
+});
+```
+
+---
+
+### 2.7 `chrome.windows` - Multi-Window Workflows (Priority #7) 🔥🔥
+
+**Impact**: Create and arrange windows, side-by-side views.
+
+**Note**: Already have access via `"tabs"` permission.
+
+**MCP Tools to implement:**
+
+- [ ] `browser_split_view` - Open two pages side-by-side
+  - Create two windows, position left/right
+  - Specify URLs for each
+
+- [ ] `browser_popup_window` - Pop out page as reference
+  - Small always-on-top window
+  - Great for docs while coding
+
+- [ ] `browser_arrange_windows` - Organize workspace
+  - Tile windows
+  - Maximize/restore
+
+- [ ] `browser_focus_window` - Bring window to front
+  - By window ID or URL pattern
+
+**Implementation:**
+```typescript
+chrome.windows.create({
+  url: "https://docs.example.com",
+  type: "popup",
+  width: 800,
+  height: 600,
+  left: 0,
+  top: 0
+});
+```
+
+---
+
+### 2.8 Cross-Platform Support (Linux, macOS, Windows)
+
+**Goal**: Ensure TabzChrome works on all major platforms, not just Windows/WSL2.
+
+**Current State:**
+| Component | Windows (WSL2) | Native Linux | macOS |
+|-----------|----------------|--------------|-------|
+| Chrome Extension | ✅ Works | ✅ Works | ✅ Works |
+| Backend (Node.js) | ✅ Works | ✅ Works | ✅ Works |
+| MCP Server | ✅ Works | ⚠️ Needs script | ⚠️ Needs script |
+
+**Issues:**
+- `run-windows.sh` hardcodes Windows `node.exe` path
+- PowerShell fallback only works on Windows
+- `host.docker.internal` is WSL2-specific
+- No setup docs for Linux/Mac
+
+**Tasks:**
+
+1. [ ] **Add native launch script**
+   ```bash
+   # tabz-mcp-server/run.sh (for Linux/Mac)
+   #!/bin/bash
+   exec node "$(dirname "$0")/dist/index.js"
+   ```
+
+2. [ ] **Rename existing script**
+   - `run-windows.sh` → `run-wsl.sh` (clearer naming)
+
+3. [ ] **Add platform detection script** (optional, nice-to-have)
+   ```bash
+   # tabz-mcp-server/run-auto.sh
+   #!/bin/bash
+   if grep -qi microsoft /proc/version 2>/dev/null; then
+     # WSL2 - use Windows node for CDP access
+     exec "/mnt/c/Program Files/nodejs/node.exe" "$(wslpath -w "$(dirname "$0")/dist/index.js")"
+   else
+     # Native Linux/Mac
+     exec node "$(dirname "$0")/dist/index.js"
+   fi
+   ```
+
+4. [ ] **Update README with platform-specific setup**
+
+   **Chrome Launch Commands:**
+   ```markdown
+   ### Linux
+   ```bash
+   google-chrome --remote-debugging-port=9222
+   # or for Chromium:
+   chromium-browser --remote-debugging-port=9222
+   ```
+
+   ### macOS
+   ```bash
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+   ```
+
+   ### Windows (from CMD/PowerShell)
+   ```cmd
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+   ```
+
+   ### Windows (WSL2)
+   ```bash
+   # Create a shortcut or use:
+   cmd.exe /c start chrome --remote-debugging-port=9222
+   ```
+   ```
+
+5. [ ] **Update README with MCP config per platform**
+
+   ```markdown
+   ### MCP Configuration
+
+   **Linux / macOS:**
+   ```json
+   {
+     "mcpServers": {
+       "tabz": {
+         "command": "/path/to/tabz-mcp-server/run.sh",
+         "env": { "BACKEND_URL": "http://localhost:8129" }
+       }
+     }
+   }
+   ```
+
+   **Windows (WSL2):**
+   ```json
+   {
+     "mcpServers": {
+       "tabz": {
+         "command": "/path/to/tabz-mcp-server/run-wsl.sh",
+         "env": { "BACKEND_URL": "http://localhost:8129" }
+       }
+     }
+   }
+   ```
+
+   **Or use auto-detection:**
+   ```json
+   {
+     "mcpServers": {
+       "tabz": {
+         "command": "/path/to/tabz-mcp-server/run-auto.sh",
+         "env": { "BACKEND_URL": "http://localhost:8129" }
+       }
+     }
+   }
+   ```
+   ```
+
+6. [ ] **Test matrix before release**
+   - [ ] Windows 11 + WSL2 + Chrome (current setup)
+   - [ ] Native Ubuntu + Chrome
+   - [ ] Native macOS + Chrome
+   - [ ] Verify CDP connection on each platform
+   - [ ] Verify screenshots save to correct paths
+
+7. [ ] **Path handling improvements** (if needed)
+   - The `convertPathForWSL()` function should be harmless on native (only converts Windows paths)
+   - May need `convertPathForMac()` if screenshot paths have issues on macOS
+
+**Platform-Specific Notes:**
+
+| Platform | CDP Host | Screenshot Path | Notes |
+|----------|----------|-----------------|-------|
+| WSL2 | `host.docker.internal` or PowerShell fallback | `/mnt/c/Users/.../ai-images/` | Need Windows node.exe |
+| Linux | `localhost:9222` | `~/ai-images/` | Native node works |
+| macOS | `localhost:9222` | `~/ai-images/` | Native node works |
+
+---
+
+### 2.9 MCP Rebrand: `browser` → `tabz`
+
+**Goal**: Rename MCP server from generic "browser" to branded "tabz" for clarity.
+
+**Changes:**
+- [ ] Rename `browser-mcp-server/` → `tabz-mcp-server/`
+- [ ] Rename MCP server name: `"browser"` → `"tabz"` in package.json
+- [ ] Rename all tools: `browser_*` → `tabz_*`
+  - `browser_list_tabs` → `tabz_list_tabs`
+  - `browser_screenshot` → `tabz_screenshot`
+  - etc.
+- [ ] Update `.mcp.json` examples in docs
+- [ ] Update MCP_TOOLS.md
+- [ ] Update CLAUDE.md references
+
+**Rationale:**
+- "browser" is generic, could conflict with other browser MCPs
+- "tabz" is branded and distinctive
+- Matches project name (TabzChrome)
+
+---
+
+### 2.10 Settings Modal - MCP Tools Tab
+
+**Goal**: Let users configure which MCP tool groups are enabled directly from the Chrome extension UI.
+
+**UI Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Settings                                              [X]  │
+├─────────────────────────────────────────────────────────────┤
+│  [Profiles] [MCP Tools]                                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  🔧 Tabz MCP Tool Groups                                    │
+│                                                             │
+│  Control which tools are available to Claude.               │
+│  Fewer tools = less context usage = faster responses.       │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ ☑ Core (4 tools)                        🔒 Required │   │
+│  │   List tabs, switch, rename, page info              │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☑ Interaction (5 tools)                             │   │
+│  │   Click, fill, screenshot, download image, inspect  │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☑ Navigation (1 tool)                               │   │
+│  │   Open URLs (GitHub, localhost, Vercel, etc.)       │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☑ Console (2 tools)                                 │   │
+│  │   Get console logs, execute JavaScript              │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☐ Downloads (2 tools)                    ⚡ Power   │   │
+│  │   Download any file, list downloads                 │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☐ Cookies (3 tools)                      ⚡ Power   │   │
+│  │   Check auth, get cookies, inspect sessions         │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☐ History (3 tools)                      ⚡ Power   │   │
+│  │   Search browsing history, frequent sites           │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☐ Bookmarks (4 tools)                    ⚡ Power   │   │
+│  │   Save, search, organize bookmarks                  │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ ☐ Network (4 tools)                      ⚡ Power   │   │
+│  │   Monitor API calls, capture responses              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│  📊 Estimated context: ~2,400 tokens                        │
+│     (with all power tools: ~8,200 tokens)                   │
+│                                                             │
+│  ⚡ Quick Presets:                                          │
+│  [Minimal] [Standard] [Everything]                          │
+│                                                             │
+│  ⚠️ Restart Claude Code to apply changes                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+1. [ ] **Chrome Storage for MCP Settings**
+   ```typescript
+   // extension/shared/storage.ts
+   interface McpSettings {
+     enabledGroups: string[];
+     // Default: ['core', 'interaction', 'navigation', 'console']
+   }
+
+   export async function getMcpSettings(): Promise<McpSettings>;
+   export async function saveMcpSettings(settings: McpSettings): Promise<void>;
+   ```
+
+2. [ ] **Backend API Endpoint**
+   ```javascript
+   // backend/routes/api.js
+
+   // MCP server queries this on startup
+   router.get('/api/mcp-config', async (req, res) => {
+     const config = await readMcpConfig();
+     res.json(config);
+   });
+
+   // Extension saves settings here
+   router.post('/api/mcp-config', async (req, res) => {
+     await saveMcpConfig(req.body);
+     res.json({ success: true });
+   });
+   ```
+
+3. [ ] **MCP Server - Dynamic Tool Registration**
+   ```typescript
+   // tabz-mcp-server/src/index.ts
+
+   const TOOL_GROUPS = {
+     core: () => registerCoreTools(server),
+     interaction: () => registerInteractionTools(server),
+     navigation: () => registerNavigationTools(server),
+     console: () => registerConsoleTools(server),
+     downloads: () => registerDownloadTools(server),
+     cookies: () => registerCookieTools(server),
+     history: () => registerHistoryTools(server),
+     bookmarks: () => registerBookmarkTools(server),
+     network: () => registerNetworkTools(server),
+   };
+
+   async function getEnabledGroups(): Promise<string[]> {
+     try {
+       const response = await fetch('http://localhost:8129/api/mcp-config');
+       const config = await response.json();
+       return config.enabledGroups || ['core', 'interaction', 'navigation', 'console'];
+     } catch {
+       // Fallback if backend not running
+       return ['core', 'interaction', 'navigation', 'console'];
+     }
+   }
+
+   // Register only enabled tool groups
+   const enabledGroups = await getEnabledGroups();
+   for (const group of enabledGroups) {
+     if (TOOL_GROUPS[group]) {
+       TOOL_GROUPS[group]();
+     }
+   }
+   ```
+
+4. [ ] **Settings Modal Component**
+   ```typescript
+   // extension/components/McpSettingsTab.tsx
+
+   const MCP_TOOL_GROUPS = [
+     { id: 'core', name: 'Core', tools: 4, locked: true,
+       desc: 'List tabs, switch, rename, page info' },
+     { id: 'interaction', name: 'Interaction', tools: 5,
+       desc: 'Click, fill, screenshot, download image, inspect' },
+     { id: 'navigation', name: 'Navigation', tools: 1,
+       desc: 'Open URLs (GitHub, localhost, Vercel, etc.)' },
+     { id: 'console', name: 'Console', tools: 2,
+       desc: 'Get console logs, execute JavaScript' },
+     { id: 'downloads', name: 'Downloads', tools: 2, power: true,
+       desc: 'Download any file, list downloads' },
+     { id: 'cookies', name: 'Cookies', tools: 3, power: true,
+       desc: 'Check auth, get cookies, inspect sessions' },
+     { id: 'history', name: 'History', tools: 3, power: true,
+       desc: 'Search browsing history, frequent sites' },
+     { id: 'bookmarks', name: 'Bookmarks', tools: 4, power: true,
+       desc: 'Save, search, organize bookmarks' },
+     { id: 'network', name: 'Network', tools: 4, power: true,
+       desc: 'Monitor API calls, capture responses' },
+   ];
+
+   const TOKEN_ESTIMATES = {
+     core: 800, interaction: 1200, navigation: 400, console: 600,
+     downloads: 600, cookies: 700, history: 700, bookmarks: 800, network: 1500
+   };
+   ```
+
+5. [ ] **Sync Extension → Backend**
+   ```typescript
+   // When user saves MCP settings in modal
+   async function syncMcpSettings(settings: McpSettings) {
+     // Save to Chrome storage
+     await saveMcpSettings(settings);
+
+     // Sync to backend for MCP server to read
+     await fetch('http://localhost:8129/api/mcp-config', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(settings)
+     });
+   }
+   ```
+
+**Token Estimation Logic:**
+```typescript
+const estimateTokens = (groups: string[]) => {
+  return groups.reduce((sum, g) => sum + (TOKEN_ESTIMATES[g] || 500), 0);
+};
+
+// Display in UI
+<div className="text-sm text-muted-foreground">
+  📊 Estimated context: ~{estimateTokens(enabledGroups).toLocaleString()} tokens
+</div>
+```
+
+**Quick Presets:**
+```typescript
+const PRESETS = {
+  minimal: ['core'],
+  standard: ['core', 'interaction', 'navigation', 'console'],
+  everything: Object.keys(TOOL_GROUPS),
+};
+```
+
+---
+
+### 2.11 Implementation Order & Checklist
+
+**Phase A: Foundation (Do First)**
+
+1. [ ] **Cross-platform support**
+   - [ ] Add `run.sh` for native Linux/Mac
+   - [ ] Rename `run-windows.sh` → `run-wsl.sh`
+   - [ ] Add `run-auto.sh` with platform detection
+   - [ ] Update README with platform-specific setup
+
+2. [ ] **Rebrand MCP**
+   - [ ] Rename `browser-mcp-server/` → `tabz-mcp-server/`
+   - [ ] Update tool names `browser_*` → `tabz_*`
+   - [ ] Update all documentation
+
+3. [ ] **Add Chrome permissions to manifest.json**
+   ```json
+   "permissions": [
+     "debugger",
+     "downloads",
+     "webRequest",
+     "cookies",
+     "history",
+     "bookmarks",
+     // existing...
+   ]
+   ```
+
+4. [ ] **Backend MCP config endpoint**
+   - [ ] `GET /api/mcp-config`
+   - [ ] `POST /api/mcp-config`
+   - [ ] Config file storage
+
+5. [ ] **MCP dynamic tool loading**
+   - [ ] Query backend for enabled groups
+   - [ ] Conditional tool registration
+   - [ ] Fallback defaults
+
+**Phase B: Settings UI**
+
+6. [ ] **Settings Modal - MCP Tab**
+   - [ ] Tab navigation (Profiles | MCP Tools)
+   - [ ] Tool group checkboxes
+   - [ ] Token estimate display
+   - [ ] Quick presets
+   - [ ] "Restart required" notice
+
+7. [ ] **Chrome Storage integration**
+   - [ ] Save/load MCP settings
+   - [ ] Sync to backend on change
+
+**Phase C: Power Tools**
+
+8. [ ] **Downloads tools**
+   - [ ] `tabz_download_file`
+   - [ ] `tabz_get_downloads`
+
+9. [ ] **Cookies tools**
+   - [ ] `tabz_check_auth`
+   - [ ] `tabz_get_cookies`
+
+10. [ ] **History tools**
+    - [ ] `tabz_search_history`
+
+11. [ ] **Bookmarks tools**
+    - [ ] `tabz_save_bookmark`
+    - [ ] `tabz_search_bookmarks`
+
+12. [ ] **Network/Debugger tools** (most complex)
+    - [ ] `tabz_get_network_requests`
+    - [ ] `tabz_get_api_response`
+
+**Phase D: Testing & Release**
+
+13. [ ] **Cross-platform testing**
+    - [ ] Windows 11 + WSL2 + Chrome
+    - [ ] Native Ubuntu + Chrome
+    - [ ] Native macOS + Chrome (if possible)
+    - [ ] Verify all MCP tools work on each platform
+
+**Architecture Summary:**
+```
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│ Chrome Extension │     │    Backend       │     │   Tabz MCP       │
+│ Settings Modal   │────▶│    (8129)        │◀────│   Server         │
+│                  │POST │ /api/mcp-config  │ GET │                  │
+│ [x] Core         │     │                  │     │ registerTools()  │
+│ [x] Interaction  │     │ mcp-config.json  │     │ based on config  │
+│ [ ] Downloads    │     │                  │     │                  │
+└──────────────────┘     └──────────────────┘     └──────────────────┘
+        │                                                   │
+        │              Chrome Storage                       │
+        └──────────────▶ mcpSettings ◀──────────────────────┘
+                         (backup)
+```
+
+---
+
+## Phase 3: Future Enhancements (Post-Release)
 
 ### Audio/Voice Pack for Claude Status
 Play sounds or voice announcements when Claude status changes.

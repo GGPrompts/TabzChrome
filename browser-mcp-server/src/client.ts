@@ -17,7 +17,24 @@ const SCREENSHOT_MAX_AGE_HOURS = 24;
 const SCREENSHOT_MAX_FILES = 50;
 
 // Track current tab after switching (for screenshot/other operations)
+// Exported so tools can show which tab Claude is currently targeting
 let currentTabId: number = 1;
+
+/**
+ * Get the current tab ID that Claude is targeting
+ * This is set by switchTab() and used by default in screenshot, click, etc.
+ */
+export function getCurrentTabId(): number {
+  return currentTabId;
+}
+
+/**
+ * Set the current tab ID that Claude is targeting
+ * Used by browser_open_url when opening/switching tabs
+ */
+export function setCurrentTabId(tabId: number): void {
+  currentTabId = tabId;
+}
 
 /**
  * Detect if running in WSL

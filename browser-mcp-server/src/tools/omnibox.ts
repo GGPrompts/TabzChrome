@@ -6,7 +6,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getCdpBrowser } from "../client.js";
+import { getCdpBrowser, getCurrentTabId, setCurrentTabId } from "../client.js";
 
 // Allowed URL patterns (same as in extension background.ts) - path is optional
 const ALLOWED_URL_PATTERNS = [
@@ -127,7 +127,10 @@ const OpenUrlSchema = z.object({
     .describe("Open in new tab (default: true) or current tab"),
   background: z.boolean()
     .default(false)
-    .describe("Open in background tab (default: false, opens in foreground)")
+    .describe("Open in background tab (default: false, opens in foreground)"),
+  reuseExisting: z.boolean()
+    .default(true)
+    .describe("If a tab with this URL already exists, switch to it instead of opening a new one (default: true)")
 }).strict();
 
 type OpenUrlInput = z.infer<typeof OpenUrlSchema>;
@@ -143,6 +146,10 @@ export function registerOmniboxTools(server: McpServer): void {
 
 Opens URLs from whitelisted domains in a new or current browser tab.
 Useful for opening GitHub repositories, GitLab projects, Vercel deployments, AI tools, or localhost development servers.
+
+**SMART TAB REUSE:** By default, if the URL is already open in a tab, this tool
+switches to that existing tab instead of opening a duplicate. This prevents
+tab accumulation over time. Use reuseExisting=false to force a new tab.
 
 **Allowed Domains:**
 - Code hosting: github.com, gitlab.com, bitbucket.org
@@ -160,10 +167,12 @@ Args:
   - url (required): URL to open (can omit https:// for allowed domains)
   - newTab: Open in new tab (default: true) or replace current tab
   - background: Open in background (default: false, opens in foreground)
+  - reuseExisting: If URL is already open, switch to it instead of new tab (default: true)
 
 Returns:
   - success: Whether the URL was opened
   - url: The normalized URL that was opened
+  - tabId: The tab ID (for use with other tools)
   - error: Error message if failed
 
 Examples:
@@ -173,6 +182,7 @@ Examples:
   - Open localhost: url="localhost:3000"
   - Current tab: url="github.com/user/repo", newTab=false
   - Background: url="my-app.vercel.app", background=true
+  - Force new tab: url="github.com/user/repo", reuseExisting=false
 
 Error Handling:
   - "URL not allowed": Domain not in whitelist
@@ -237,33 +247,88 @@ Cannot open URL without Chrome DevTools Protocol.
           };
         }
 
-        const pages = await browser.pages();
+        const allPages = await browser.pages();
         // Filter out chrome://, chrome-extension://, and chrome-error:// pages
-        const currentPage = pages.find(p => {
+        const pages = allPages.filter(p => {
           const url = p.url();
           return !url.startsWith('chrome://') &&
                  !url.startsWith('chrome-extension://') &&
                  !url.startsWith('chrome-error://');
-        }) || pages[0];
+        });
+
+        // Check if URL is already open (if reuseExisting is true)
+        if (params.reuseExisting) {
+          const existingPageIndex = pages.findIndex(p => {
+            const pageUrl = p.url();
+            // Check for exact match or match without trailing slash
+            return pageUrl === normalizedUrl ||
+                   pageUrl === normalizedUrl + '/' ||
+                   pageUrl + '/' === normalizedUrl;
+          });
+
+          if (existingPageIndex !== -1) {
+            // Tab already exists - switch to it instead of opening new
+            const existingPage = pages[existingPageIndex];
+            await existingPage.bringToFront();
+
+            // Update Claude's current tab tracker (1-based)
+            const newTabId = existingPageIndex + 1;
+            setCurrentTabId(newTabId);
+
+            return {
+              content: [{
+                type: "text",
+                text: `## Switched to Existing Tab
+
+**URL already open!** Switched to existing tab instead of opening a new one.
+
+**URL:** ${normalizedUrl}
+**Tab ID:** ${newTabId} (now Claude's current target)
+
+Use \`browser_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a new tab.`
+              }]
+            };
+          }
+        }
+
+        let newTabId: number;
 
         if (params.newTab) {
           // Open in new tab
           const newPage = await browser.newPage();
           await newPage.goto(normalizedUrl, { waitUntil: 'domcontentloaded' });
 
-          if (!params.background && currentPage) {
+          if (!params.background) {
             // Bring to front if not background
             await newPage.bringToFront();
           }
+
+          // Calculate new tab ID (it's the last tab in the filtered list)
+          // Re-fetch pages to get updated list
+          const updatedPages = (await browser.pages()).filter(p => {
+            const url = p.url();
+            return !url.startsWith('chrome://') &&
+                   !url.startsWith('chrome-extension://') &&
+                   !url.startsWith('chrome-error://');
+          });
+          newTabId = updatedPages.length; // New tab is at the end
         } else {
           // Navigate current tab
+          const currentPage = pages[0];
           if (currentPage) {
             await currentPage.goto(normalizedUrl, { waitUntil: 'domcontentloaded' });
+            newTabId = 1; // First tab
           } else {
             // No page available, create new one
             const newPage = await browser.newPage();
             await newPage.goto(normalizedUrl, { waitUntil: 'domcontentloaded' });
+            newTabId = 1;
           }
+        }
+
+        // Update Claude's current tab tracker
+        if (!params.background) {
+          setCurrentTabId(newTabId);
         }
 
         return {
@@ -274,8 +339,9 @@ Cannot open URL without Chrome DevTools Protocol.
 **Success!** Opened ${params.newTab ? 'in new tab' : 'in current tab'}${params.background ? ' (background)' : ''}.
 
 **URL:** ${normalizedUrl}
+**Tab ID:** ${newTabId}${!params.background ? ' (now Claude\'s current target)' : ''}
 
-Use \`browser_get_page_info\` to verify the page loaded.`
+Use \`browser_list_tabs\` to see all tabs with the "← CURRENT" marker.`
           }]
         };
       } catch (error) {
