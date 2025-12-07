@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun, History } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
 import { useClaudeStatus, getStatusEmoji } from '../hooks/useClaudeStatus'
+import { useCommandHistory } from '../hooks/useCommandHistory'
 import '../styles/globals.css'
 
 interface TerminalSession {
@@ -47,6 +48,16 @@ function SidePanelTerminal() {
   // Multi-send target state
   const [targetTabs, setTargetTabs] = useState<Set<string>>(new Set())  // Empty = current tab only
   const [showTargetDropdown, setShowTargetDropdown] = useState(false)
+
+  // Command history
+  const {
+    history: commandHistory,
+    addToHistory,
+    removeFromHistory,
+    navigateHistory,
+    resetNavigation,
+  } = useCommandHistory()
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false)
 
   // Claude status tracking - polls for Claude Code status in each terminal
   const claudeStatuses = useClaudeStatus(
@@ -291,6 +302,19 @@ function SidePanelTerminal() {
       document.removeEventListener('click', handleClick)
     }
   }, [showTargetDropdown])
+
+  // Close history dropdown when clicking outside
+  useEffect(() => {
+    if (!showHistoryDropdown) return
+    const handleClick = () => setShowHistoryDropdown(false)
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick)
+    }, 100)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [showHistoryDropdown])
 
   // Load saved terminal sessions from Chrome storage on mount
   useEffect(() => {
@@ -637,6 +661,9 @@ function SidePanelTerminal() {
   const handleChatInputSend = () => {
     if (!chatInputText.trim()) return
 
+    // Add to command history
+    addToHistory(chatInputText.trim())
+
     // Determine target terminals: selected tabs or current tab
     const targets = targetTabs.size > 0
       ? Array.from(targetTabs)
@@ -717,8 +744,27 @@ function SidePanelTerminal() {
     } else if (e.key === 'Escape') {
       e.preventDefault()
       setChatInputText('')
+      resetNavigation()
       chatInputRef.current?.blur()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const historyCommand = navigateHistory('up', chatInputText)
+      if (historyCommand !== null) {
+        setChatInputText(historyCommand)
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const historyCommand = navigateHistory('down', chatInputText)
+      if (historyCommand !== null) {
+        setChatInputText(historyCommand)
+      }
     }
+  }
+
+  // Reset history navigation when user types manually
+  const handleChatInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChatInputText(e.target.value)
+    resetNavigation()
   }
 
   // Keyboard shortcut handlers (use refs to access current state from callbacks)
@@ -1373,14 +1419,73 @@ function SidePanelTerminal() {
           {/* Chat Input Bar - Multi-send with target selection */}
           {sessions.length > 0 && (
             <div className="border-t border-gray-700 bg-[#1a1a1a] flex items-center gap-2 px-2 py-1.5">
+              {/* History dropdown button */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowHistoryDropdown(!showHistoryDropdown)
+                  }}
+                  className={`h-7 w-7 flex items-center justify-center bg-black border rounded transition-colors ${
+                    commandHistory.length > 0
+                      ? 'border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+                      : 'border-gray-700 text-gray-600 cursor-not-allowed'
+                  }`}
+                  title={commandHistory.length > 0 ? `Command history (${commandHistory.length})` : 'No command history'}
+                  disabled={commandHistory.length === 0}
+                >
+                  <History className="h-3.5 w-3.5" />
+                </button>
+
+                {showHistoryDropdown && commandHistory.length > 0 && (
+                  <div className="absolute bottom-full left-0 mb-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[280px] max-w-[400px] z-50 overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-gray-800 text-xs text-gray-500 flex items-center justify-between">
+                      <span>Command History</span>
+                      <span className="text-gray-600">↑↓ to navigate</span>
+                    </div>
+                    <div className="max-h-[250px] overflow-y-auto">
+                      {commandHistory.map((cmd, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-[#00ff88]/10 transition-colors text-xs font-mono border-b border-gray-800 last:border-b-0 group"
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setChatInputText(cmd)
+                              setShowHistoryDropdown(false)
+                              chatInputRef.current?.focus()
+                            }}
+                            className="flex-1 text-left text-gray-300 hover:text-white truncate pr-2"
+                            title={cmd}
+                          >
+                            {cmd}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeFromHistory(cmd)
+                            }}
+                            className="ml-2 p-0.5 rounded hover:bg-red-500/20 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            title="Remove from history"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <input
                 ref={chatInputRef}
                 type="text"
                 className="flex-1 h-7 px-3 bg-black border border-gray-600 rounded text-sm text-white font-mono focus:border-[#00ff88]/50 focus:outline-none placeholder-gray-500"
                 value={chatInputText}
-                onChange={(e) => setChatInputText(e.target.value)}
+                onChange={handleChatInputChange}
                 onKeyDown={handleChatInputKeyDown}
-                placeholder={chatInputMode === 'execute' ? "Type & Enter to execute..." : "Type & Enter to send (no execute)..."}
+                placeholder={chatInputMode === 'execute' ? "↑↓ history • Enter to execute" : "↑↓ history • Enter to send"}
               />
               {/* Target tabs dropdown */}
               <div className="relative">

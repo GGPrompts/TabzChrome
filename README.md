@@ -94,6 +94,37 @@ The folder icon in the header sets a global working directory. Profiles without 
 - **Session persistence** - Terminals survive sidebar close (tmux-backed)
 - **Tab management** - Multiple terminals, click to switch
 
+### Claude Code Status Detection
+
+Terminal tabs show live Claude Code status with emoji indicators:
+
+| Emoji | Meaning |
+|-------|---------|
+| 🤖✅ | Claude ready/waiting for input |
+| 🤖⏳ | Claude is thinking |
+| 🤖🔧 | Claude is using a tool |
+
+**Setup required** - See [claude-hooks/README.md](claude-hooks/README.md) for installation.
+
+### Command History
+
+The chat input bar includes command history:
+
+- **↑/↓ arrows** - Navigate through previous commands
+- **Clock icon** - Open history dropdown with remove buttons
+- Commands persist in Chrome storage
+
+### Custom Terminal Triggers
+
+Add `data-terminal-command` to any HTML element to make it trigger "Run in Terminal":
+
+```html
+<button data-terminal-command="npm run dev">Start Dev</button>
+<div data-terminal-command="lazygit">Open Lazygit</div>
+```
+
+Clicking the element queues the command to the sidebar chat input.
+
 ---
 
 ## Browser MCP Integration

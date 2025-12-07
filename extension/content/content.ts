@@ -207,6 +207,60 @@ function setupErrorMonitoring() {
   }
 }
 
+// Detect elements with data-terminal-command attribute
+// Allows custom pages to define clickable elements that run commands
+// Usage: <button data-terminal-command="npm run dev">Start Dev</button>
+function detectCustomCommands() {
+  const elements = document.querySelectorAll('[data-terminal-command]')
+
+  elements.forEach(element => {
+    // Skip if already processed
+    if (element.hasAttribute('data-terminal-command-attached')) return
+
+    const command = element.getAttribute('data-terminal-command')
+    if (!command) return
+
+    // Mark as processed
+    element.setAttribute('data-terminal-command-attached', 'true')
+
+    // Add visual indicator (optional play icon)
+    const htmlElement = element as HTMLElement
+    const originalCursor = htmlElement.style.cursor
+    htmlElement.style.cursor = 'pointer'
+
+    // Add click handler
+    element.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Queue command to chat input
+      chrome.runtime.sendMessage({
+        type: 'QUEUE_COMMAND',
+        command: command.trim(),
+      })
+
+      // Visual feedback
+      const original = htmlElement.textContent
+      const originalBg = htmlElement.style.backgroundColor
+      htmlElement.style.backgroundColor = '#4CAF50'
+      htmlElement.textContent = '✓ Queued!'
+
+      setTimeout(() => {
+        htmlElement.textContent = original
+        htmlElement.style.backgroundColor = originalBg
+      }, 1000)
+    })
+
+    // Add hover effect
+    element.addEventListener('mouseenter', () => {
+      htmlElement.style.opacity = '0.8'
+    })
+    element.addEventListener('mouseleave', () => {
+      htmlElement.style.opacity = '1'
+    })
+  })
+}
+
 // Detect package manager commands in code blocks
 function detectPackageCommands() {
   // Look for code blocks with npm/yarn/pnpm commands
@@ -294,11 +348,13 @@ function init() {
   setupContextMenus()
   setupErrorMonitoring()
   detectPackageCommands()
+  detectCustomCommands()  // Custom data-terminal-command elements
   setupKeyboardShortcuts()
 
-  // Re-detect package commands when DOM changes
+  // Re-detect commands when DOM changes
   const observer = new MutationObserver(() => {
     detectPackageCommands()
+    detectCustomCommands()
   })
 
   observer.observe(document.body, {
