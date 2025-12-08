@@ -372,6 +372,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     } catch (err) {
       console.error('[Settings] Failed to sync MCP config to backend (Chrome storage saved):', err)
     }
+
+    // Close modal after save
+    onClose()
   }
 
   // Calculate token estimate from individual tools

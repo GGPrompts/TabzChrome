@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2025-12-07T21:56:40.419Z",
+  "enabledTools": [
+    "tabz_list_tabs",
+    "tabz_switch_tab",
+    "tabz_rename_tab",
+    "tabz_get_page_info",
+    "tabz_click",
+    "tabz_fill",
+    "tabz_screenshot",
+    "tabz_open_url",
+    "tabz_get_console_logs",
+    "tabz_execute_script",
+    "tabz_get_element",
+    "tabz_download_image"
+  ],
+  "allowAllUrls": false,
+  "customDomains": ""
+}

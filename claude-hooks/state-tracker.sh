@@ -50,6 +50,45 @@ case "$HOOK_TYPE" in
         STATUS="idle"
         CURRENT_TOOL=""
         DETAILS='{"event":"session_started"}'
+
+        # Smart cleanup on session start (runs in background)
+        (
+            # Get active tmux panes
+            active_panes=$(tmux list-panes -a -F '#{pane_id}' 2>/dev/null | sed 's/[^a-zA-Z0-9_-]/_/g' || echo "")
+
+            for file in "$STATE_DIR"/*.json; do
+                [[ -f "$file" ]] || continue
+                filename=$(basename "$file" .json)
+
+                # Skip if it's an active tmux pane
+                if [[ "$active_panes" == *"$filename"* ]]; then
+                    continue
+                fi
+
+                # For pane-style IDs (_XX), remove if pane doesn't exist
+                if [[ "$filename" =~ ^_[0-9]+$ ]]; then
+                    rm -f "$file"
+                    continue
+                fi
+
+                # For PWD hash IDs, remove if older than 1 hour
+                if [[ "$filename" =~ ^[a-f0-9]{12}$ ]]; then
+                    file_age=$(($(date +%s) - $(stat -c %Y "$file" 2>/dev/null || echo 0)))
+                    if [[ $file_age -gt 3600 ]]; then
+                        rm -f "$file"
+                    fi
+                fi
+            done
+
+            # Also clean debug files older than 1 hour
+            find "$DEBUG_DIR" -name "*.json" -mmin +60 -delete 2>/dev/null || true
+        ) &
+
+        # Audio announcement (optional - set CLAUDE_AUDIO=1 to enable)
+        if [[ "${CLAUDE_AUDIO:-0}" == "1" ]]; then
+            SESSION_NAME="${CLAUDE_SESSION_NAME:-Claude}"
+            ~/.claude/hooks/audio-announcer.sh session-start "$SESSION_NAME" &
+        fi
         ;;
 
     user-prompt)
@@ -73,13 +112,20 @@ case "$HOOK_TYPE" in
         STATUS="processing"
         # Tool just finished, Claude is processing results (shows ⏳ between tools)
         CURRENT_TOOL=$(echo "$STDIN_DATA" | jq -r '.tool_name // .tool // .name // "unknown"' 2>/dev/null || echo "unknown")
-        DETAILS=$(jq -n --arg tool "$CURRENT_TOOL" '{event:"tool_completed",tool:$tool}')
+        # Include args so UI can show what just completed (prevents flashing between detailed/simple)
+        TOOL_ARGS_STR=$(echo "$STDIN_DATA" | jq -c '.tool_input // .input // .parameters // {}' 2>/dev/null || echo '{}')
+        DETAILS=$(jq -n --arg tool "$CURRENT_TOOL" --arg args "$TOOL_ARGS_STR" '{event:"tool_completed",tool:$tool,args:($args|fromjson)}' 2>/dev/null || echo '{"event":"tool_completed"}')
         ;;
 
     stop)
         STATUS="awaiting_input"
         CURRENT_TOOL=""
         DETAILS='{"event":"claude_stopped","waiting_for_user":true}'
+        # Audio announcement (optional - set CLAUDE_AUDIO=1 to enable)
+        if [[ "${CLAUDE_AUDIO:-0}" == "1" ]]; then
+            SESSION_NAME="${CLAUDE_SESSION_NAME:-Claude}"
+            ~/.claude/hooks/audio-announcer.sh stop "$SESSION_NAME" &
+        fi
         ;;
 
     notification)
@@ -151,24 +197,18 @@ EOF
 # Write state to primary file
 echo "$STATE_JSON" > "$STATE_FILE"
 
-# ALSO write to alternate naming strategies for cross-compatibility
-# This ensures both tmuxplexer AND statusline can find the state
-
-# If we're in tmux, ALSO write using PWD hash (for statusline)
-if [[ "$TMUX_PANE" != "none" && -n "$TMUX_PANE" ]] && [[ -n "$PWD" ]]; then
-    PWD_HASH=$(echo "$PWD" | md5sum | cut -d' ' -f1 | head -c 12)
-    PWD_STATE_FILE="$STATE_DIR/${PWD_HASH}.json"
-    echo "$STATE_JSON" > "$PWD_STATE_FILE"
-fi
-
-# If we're using PWD hash, ALSO write using TMUX_PANE (for tmuxplexer)
+# Cross-compatibility: If using PWD hash but also in tmux, write to pane file too
+# This ensures tmuxplexer can find non-tmux-started sessions
 if [[ "$SESSION_ID" =~ ^[a-f0-9]{12}$ ]] && [[ "$TMUX_PANE" != "none" && -n "$TMUX_PANE" ]]; then
     PANE_ID=$(echo "$TMUX_PANE" | sed 's/[^a-zA-Z0-9_-]/_/g')
     PANE_STATE_FILE="$STATE_DIR/${PANE_ID}.json"
     echo "$STATE_JSON" > "$PANE_STATE_FILE"
 fi
 
-# Cleanup old state files (older than 24 hours)
-find "$STATE_DIR" -name "*.json" -mtime +1 -delete 2>/dev/null || true
+# NOTE: We no longer write tmux sessions to PWD hash files because:
+# 1. Statusline now checks TMUX_PANE first (reads from pane ID file)
+# 2. Writing to PWD hash caused collisions when multiple Claudes share same directory
+
+# Cleanup is handled by session-start hook (smart cleanup with tmux pane validation)
 
 exit 0

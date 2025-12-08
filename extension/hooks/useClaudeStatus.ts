@@ -5,6 +5,16 @@ export interface ClaudeStatus {
   current_tool?: string
   last_updated?: string
   tmuxPane?: string  // Pane ID (e.g., '%42') for targeted send to Claude in split layouts
+  details?: {
+    args?: {
+      file_path?: string
+      command?: string
+      pattern?: string
+      description?: string
+      [key: string]: any
+    }
+    [key: string]: any
+  }
 }
 
 interface TerminalInfo {
@@ -54,6 +64,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
                 current_tool: result.current_tool,
                 last_updated: result.last_updated,
                 tmuxPane: result.tmuxPane,  // Pane ID for targeted send
+                details: result.details,    // Tool args for detailed status display
               })
             }
           } catch (error) {
@@ -94,6 +105,68 @@ export function getStatusEmoji(status: ClaudeStatus | undefined): string {
       return '🔧' // Using a tool
     case 'working':
       return '💭' // Working/processing
+    default:
+      return ''
+  }
+}
+
+/**
+ * Get detailed status text for display (matches Tabz format)
+ * Returns emoji + tool name + detail, e.g., "🔧 Read: settings.tsx"
+ */
+export function getStatusText(status: ClaudeStatus | undefined): string {
+  if (!status) return ''
+
+  switch (status.status) {
+    case 'idle':
+    case 'awaiting_input':
+      return '✓ Ready'
+    case 'processing': {
+      // Show what just completed if we have the info (prevents flashing)
+      if (status.current_tool && status.details?.args) {
+        let detail = ''
+        const args = status.details.args
+        if (args.file_path) {
+          const parts = args.file_path.split('/')
+          detail = `: ${parts[parts.length - 1]}`
+        } else if (args.description) {
+          const desc = args.description
+          detail = `: ${desc.length > 20 ? desc.substring(0, 20) + '…' : desc}`
+        } else if (args.command) {
+          const cmd = args.command
+          detail = `: ${cmd.length > 20 ? cmd.substring(0, 20) + '…' : cmd}`
+        }
+        return `⏳ ${status.current_tool}${detail}`
+      }
+      return '⏳ Processing'
+    }
+    case 'tool_use': {
+      // Extract detail from args for more informative display
+      let detail = ''
+      if (status.details?.args) {
+        const args = status.details.args
+        if (args.file_path) {
+          // Show just filename for Read/Edit/Write
+          const parts = args.file_path.split('/')
+          detail = `: ${parts[parts.length - 1]}`
+        } else if (args.description) {
+          // Show task description for Task/Bash (truncate)
+          const desc = args.description
+          detail = `: ${desc.length > 20 ? desc.substring(0, 20) + '…' : desc}`
+        } else if (args.command) {
+          // Show truncated command for Bash
+          const cmd = args.command
+          detail = `: ${cmd.length > 20 ? cmd.substring(0, 20) + '…' : cmd}`
+        } else if (args.pattern) {
+          // Show search pattern for Grep/Glob
+          const pattern = args.pattern
+          detail = `: ${pattern.length > 15 ? pattern.substring(0, 15) + '…' : pattern}`
+        }
+      }
+      return status.current_tool ? `🔧 ${status.current_tool}${detail}` : '🔧 Tool'
+    }
+    case 'working':
+      return '⚙️ Working'
     default:
       return ''
   }

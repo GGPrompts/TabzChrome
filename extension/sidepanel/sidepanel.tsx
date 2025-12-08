@@ -6,7 +6,7 @@ import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
-import { useClaudeStatus, getStatusEmoji } from '../hooks/useClaudeStatus'
+import { useClaudeStatus, getStatusEmoji, getStatusText } from '../hooks/useClaudeStatus'
 import { useCommandHistory } from '../hooks/useCommandHistory'
 import '../styles/globals.css'
 
@@ -1196,7 +1196,8 @@ function SidePanelTerminal() {
                     onDrop={(e) => handleTabDrop(e, session.id)}
                     onDragEnd={handleTabDragEnd}
                     className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-all cursor-pointer group
+                      flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer group
+                      ${claudeStatuses.has(session.id) ? 'min-w-[160px] max-w-[220px]' : 'whitespace-nowrap'}
                       ${currentSession === session.id
                         ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
                         : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
@@ -1207,17 +1208,21 @@ function SidePanelTerminal() {
                     onClick={() => setCurrentSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                   >
-                    {/* Claude status indicator: 🤖 when detected + status emoji */}
-                    {claudeStatuses.has(session.id) && (
-                      <span className="flex items-center gap-0.5 text-xs" title={`Claude: ${claudeStatuses.get(session.id)?.status}`}>
-                        <span>🤖</span>
-                        <span>{getStatusEmoji(claudeStatuses.get(session.id))}</span>
+                    {/* Claude sessions: show detailed status. Others: show name */}
+                    {claudeStatuses.has(session.id) ? (
+                      <span
+                        className="flex-1 flex items-center gap-1 text-xs truncate min-w-0"
+                        title={`${session.name} - ${claudeStatuses.get(session.id)?.status}`}
+                      >
+                        <span className="flex-shrink-0">🤖</span>
+                        <span className="truncate">{getStatusText(claudeStatuses.get(session.id))}</span>
                       </span>
+                    ) : (
+                      <span className="flex-1 truncate">{session.name}</span>
                     )}
-                    <span>{session.name}</span>
                     <button
                       onClick={(e) => handleCloseTab(e, session.id)}
-                      className="p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                      className="flex-shrink-0 ml-auto p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
                       title="Close tab"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1582,12 +1587,14 @@ function SidePanelTerminal() {
                             <span className="w-4 flex-shrink-0">
                               {targetTabs.has(session.id) ? '☑' : '☐'}
                             </span>
-                            {claudeStatus && (
-                              <span className="flex-shrink-0" title={`Claude: ${claudeStatus.status}`}>
-                                🤖{getStatusEmoji(claudeStatus)}
+                            {claudeStatus ? (
+                              <span className="flex items-center gap-1 truncate" title={`${session.name} - ${claudeStatus.status}`}>
+                                <span className="flex-shrink-0">🤖</span>
+                                <span className="truncate">{getStatusText(claudeStatus)}</span>
                               </span>
+                            ) : (
+                              <span className="truncate">{session.name}</span>
                             )}
-                            <span className="truncate">{session.name}</span>
                           </button>
                         )
                       })}
