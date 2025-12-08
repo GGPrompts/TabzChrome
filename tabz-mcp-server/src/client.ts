@@ -781,6 +781,271 @@ export interface ElementInfo {
 /**
  * Get detailed information about an element via CDP
  */
+// =====================================
+// Network Monitoring
+// =====================================
+
+import type { NetworkRequest, NetworkRequestsResponse, NetworkResponseResult } from "./types.js";
+
+// Network request storage (in-memory, per-page)
+const networkRequests: Map<string, NetworkRequest> = new Map();
+const MAX_STORED_REQUESTS = 500;
+const REQUEST_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_BODY_SIZE = 100 * 1024; // 100KB max response body
+
+// Track which pages have network monitoring enabled
+const networkEnabledPages: Set<string> = new Set();
+
+// CDP session cache for network monitoring
+let networkCdpSession: Awaited<ReturnType<typeof import('puppeteer-core').Page.prototype.createCDPSession>> | null = null;
+
+/**
+ * Clean up old network requests
+ */
+function cleanupOldRequests(): void {
+  const now = Date.now();
+  const toDelete: string[] = [];
+
+  for (const [id, req] of networkRequests) {
+    if (now - req.timestamp > REQUEST_MAX_AGE_MS) {
+      toDelete.push(id);
+    }
+  }
+
+  for (const id of toDelete) {
+    networkRequests.delete(id);
+  }
+
+  // Also enforce max size
+  if (networkRequests.size > MAX_STORED_REQUESTS) {
+    const sorted = [...networkRequests.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toRemove = sorted.slice(0, networkRequests.size - MAX_STORED_REQUESTS);
+    for (const [id] of toRemove) {
+      networkRequests.delete(id);
+    }
+  }
+}
+
+/**
+ * Enable network monitoring for the current page
+ * Must be called before requests will be captured
+ */
+export async function enableNetworkCapture(tabId?: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const page = await getPageByTabId(tabId);
+    if (!page) {
+      return { success: false, error: 'No active page found. Make sure Chrome is running with --remote-debugging-port=9222' };
+    }
+
+    const pageUrl = page.url();
+
+    // Check if already enabled for this page
+    if (networkEnabledPages.has(pageUrl)) {
+      return { success: true };
+    }
+
+    // Create CDP session for this page
+    const client = await page.createCDPSession();
+    networkCdpSession = client;
+
+    // Enable Network domain
+    await client.send('Network.enable');
+
+    // Get the effective tabId
+    const pages = await getNonChromePages();
+    const effectiveTabId = pages?.findIndex(p => p === page) ?? 0;
+
+    // Listen for requests
+    client.on('Network.requestWillBeSent', (event: any) => {
+      cleanupOldRequests();
+
+      const request: NetworkRequest = {
+        requestId: event.requestId,
+        url: event.request.url,
+        method: event.request.method,
+        resourceType: event.type || 'Other',
+        timestamp: Date.now(),
+        tabId: effectiveTabId + 1,
+        requestHeaders: event.request.headers,
+        postData: event.request.postData
+      };
+
+      networkRequests.set(event.requestId, request);
+    });
+
+    // Listen for responses
+    client.on('Network.responseReceived', (event: any) => {
+      const request = networkRequests.get(event.requestId);
+      if (request) {
+        request.status = event.response.status;
+        request.statusText = event.response.statusText;
+        request.responseHeaders = event.response.headers;
+        request.mimeType = event.response.mimeType;
+      }
+    });
+
+    // Listen for loading finished (timing)
+    client.on('Network.loadingFinished', (event: any) => {
+      const request = networkRequests.get(event.requestId);
+      if (request) {
+        request.responseTime = Date.now() - request.timestamp;
+        request.encodedDataLength = event.encodedDataLength;
+      }
+    });
+
+    networkEnabledPages.add(pageUrl);
+    console.error(`[Network] Monitoring enabled for: ${pageUrl}`);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Check if network capture is currently active
+ */
+export function isNetworkCaptureActive(): boolean {
+  return networkEnabledPages.size > 0;
+}
+
+/**
+ * Get captured network requests with optional filtering
+ */
+export async function getNetworkRequests(options: {
+  urlPattern?: string;
+  method?: string;
+  statusMin?: number;
+  statusMax?: number;
+  resourceType?: string;
+  limit?: number;
+  offset?: number;
+  tabId?: number;
+}): Promise<NetworkRequestsResponse> {
+  // Clean up old requests first
+  cleanupOldRequests();
+
+  let requests = [...networkRequests.values()];
+
+  // Apply filters
+  if (options.urlPattern) {
+    try {
+      const regex = new RegExp(options.urlPattern, 'i');
+      requests = requests.filter(r => regex.test(r.url));
+    } catch {
+      // Invalid regex, treat as literal string
+      requests = requests.filter(r => r.url.includes(options.urlPattern!));
+    }
+  }
+
+  if (options.method && options.method !== 'all') {
+    requests = requests.filter(r => r.method.toUpperCase() === options.method!.toUpperCase());
+  }
+
+  if (options.statusMin !== undefined) {
+    requests = requests.filter(r => r.status !== undefined && r.status >= options.statusMin!);
+  }
+
+  if (options.statusMax !== undefined) {
+    requests = requests.filter(r => r.status !== undefined && r.status <= options.statusMax!);
+  }
+
+  if (options.resourceType && options.resourceType !== 'all') {
+    requests = requests.filter(r => r.resourceType.toLowerCase() === options.resourceType!.toLowerCase());
+  }
+
+  if (options.tabId !== undefined) {
+    requests = requests.filter(r => r.tabId === options.tabId);
+  }
+
+  // Sort by timestamp (newest first)
+  requests.sort((a, b) => b.timestamp - a.timestamp);
+
+  const total = requests.length;
+  const offset = options.offset || 0;
+  const limit = options.limit || 50;
+
+  // Apply pagination
+  const paginatedRequests = requests.slice(offset, offset + limit);
+
+  return {
+    requests: paginatedRequests,
+    total,
+    hasMore: offset + limit < total,
+    nextOffset: offset + limit < total ? offset + limit : undefined,
+    captureActive: isNetworkCaptureActive()
+  };
+}
+
+/**
+ * Get response body for a specific request
+ */
+export async function getNetworkResponseBody(requestId: string): Promise<NetworkResponseResult> {
+  const request = networkRequests.get(requestId);
+
+  if (!request) {
+    return { success: false, error: `Request not found: ${requestId}. Requests expire after 5 minutes.` };
+  }
+
+  // If we already have the body cached, return it
+  if (request.responseBody !== undefined) {
+    return { success: true, request };
+  }
+
+  // Try to get the body via CDP
+  try {
+    if (!networkCdpSession) {
+      return { success: false, error: 'Network session not available. Enable network capture first.' };
+    }
+
+    const response = await networkCdpSession.send('Network.getResponseBody', {
+      requestId: requestId
+    }) as { body: string; base64Encoded: boolean };
+
+    let body = response.body;
+    let truncated = false;
+
+    // Handle base64 encoded bodies
+    if (response.base64Encoded) {
+      try {
+        body = Buffer.from(response.body, 'base64').toString('utf8');
+      } catch {
+        // Keep as base64 if can't decode
+        body = `[Base64 encoded, ${response.body.length} chars]`;
+      }
+    }
+
+    // Truncate large bodies
+    if (body.length > MAX_BODY_SIZE) {
+      body = body.slice(0, MAX_BODY_SIZE) + `\n\n[Truncated: ${body.length - MAX_BODY_SIZE} more characters]`;
+      truncated = true;
+    }
+
+    // Cache the body
+    request.responseBody = body;
+    request.responseBodyTruncated = truncated;
+
+    return { success: true, request };
+  } catch (error) {
+    // Body may not be available (e.g., for redirects, or if page navigated away)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes('No resource with given identifier')) {
+      return { success: false, error: 'Response body no longer available. The page may have navigated away.' };
+    }
+
+    return { success: false, error: `Failed to get response body: ${errorMessage}` };
+  }
+}
+
+/**
+ * Clear all captured network requests
+ */
+export function clearNetworkRequests(): void {
+  networkRequests.clear();
+  console.error('[Network] Cleared all captured requests');
+}
+
 export async function getElementInfo(
   selector: string,
   options: {

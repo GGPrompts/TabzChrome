@@ -17,8 +17,14 @@ Tabz MCP Tools:
 10. Open URL        - GitHub/Vercel/localhost only
 11. Inspect Element - HTML/CSS for debugging
 12. Download Image  - Save image from page
+── Network Monitoring ─────────────────
+13. Enable Network  - Start capturing requests (**)
+14. Network Requests - List captured XHR/fetch
+15. API Response    - Get response body by ID
+16. Clear Network   - Clear captured requests
 ───────────────────────────────────────
 (*) After switching, all tools auto-target that tab
+(**) Must enable before browsing to capture requests
 ```
 
 Use AskUserQuestion with options:
@@ -26,7 +32,8 @@ Use AskUserQuestion with options:
 - "Interact (3-4)"
 - "Debug (5-6)"
 - "Tabs (7-9)"
-- "Other (10-12)"
+- "Navigation (10-12)"
+- "Network (13-16)"
 
 User types the number via "Other" or you infer from category.
 
@@ -48,6 +55,10 @@ Based on the number entered, prompt for required parameters:
 | 10. Open URL | url | newTab, background | Allowed domains only |
 | 11. Inspect Element | selector | includeStyles | Full CSS computed |
 | 12. Download Image | selector OR url | - | Returns WSL path |
+| 13. Enable Network | - | tabId | **Call before browsing** |
+| 14. Network Requests | - | urlPattern, method, statusMin, statusMax, resourceType, limit | Filter captured requests |
+| 15. API Response | requestId | - | Get from Network Requests |
+| 16. Clear Network | - | - | Clears all captured |
 
 **Important:** After `Switch Tab`, all subsequent tools auto-target that tab (no need to pass tabId).
 
@@ -55,6 +66,7 @@ For required params, use AskUserQuestion with example options + "Other" for cust
 
 **Selector examples:** `#id`, `.class`, `button`, `input[type="text"]`, `textarea`
 **URL examples:** `github.com/user/repo`, `localhost:3000`, `my-app.vercel.app`
+**Network filter examples:** `urlPattern="api/"`, `method="POST"`, `statusMin=400`
 
 ## Tool Execution
 
@@ -71,6 +83,10 @@ Execute the corresponding MCP tool:
 - 10 → `mcp__tabz__tabz_open_url`
 - 11 → `mcp__tabz__tabz_get_element`
 - 12 → `mcp__tabz__tabz_download_image`
+- 13 → `mcp__tabz__tabz_enable_network_capture`
+- 14 → `mcp__tabz__tabz_get_network_requests`
+- 15 → `mcp__tabz__tabz_get_api_response`
+- 16 → `mcp__tabz__tabz_clear_network_requests`
 
 ## After Execution
 
@@ -92,6 +108,17 @@ Execute the corresponding MCP tool:
 **Debug page errors:**
 1. Console Logs (6) with level=error
 2. Execute JS (5) to inspect state
+
+**Capture and inspect API calls:**
+1. Enable Network (13) → start capturing
+2. Navigate/interact with page
+3. Network Requests (14) → see all requests
+4. API Response (15) → get specific response body
+
+**Find failed API requests:**
+1. Enable Network (13)
+2. Interact with page
+3. Network Requests (14) with statusMin=400
 
 ## Quick Reference
 

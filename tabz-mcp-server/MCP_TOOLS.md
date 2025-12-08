@@ -18,6 +18,10 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_fill` | "fill", "type", "enter text", "fill form" | Fill an input field with text |
 | `tabz_get_element` | "inspect element", "get styles", "element info", "css debug" | Get element HTML, styles, bounds for CSS debugging/recreation |
 | `tabz_open_url` | "open URL", "navigate to", "open GitHub", "open localhost" | Open allowed URLs (GitHub, GitLab, Vercel, localhost) in browser tabs |
+| `tabz_enable_network_capture` | "enable network", "start capture", "monitor requests" | Start capturing network requests (XHR, fetch, etc.) |
+| `tabz_get_network_requests` | "network requests", "API calls", "what requests" | List captured network requests with filtering |
+| `tabz_get_api_response` | "API response", "response body", "request data" | Get full response body for a specific request |
+| `tabz_clear_network_requests` | "clear network", "reset requests" | Clear all captured network requests |
 
 > **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
@@ -440,6 +444,140 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 
 ---
 
+## tabz_enable_network_capture
+
+**Purpose:** Enable network request monitoring for the current browser tab.
+
+**Trigger phrases:**
+- "Start capturing network requests"
+- "Enable network monitoring"
+- "Monitor API calls"
+- "Watch network traffic"
+
+**Parameters:**
+- `tabId` (optional): Specific tab ID to enable capture for. Defaults to current tab.
+
+**Returns:**
+- `success`: Whether capture was enabled
+- `error`: Error message if failed
+
+**Important:** You must call this **before** navigating to pages you want to monitor. Requests are captured in real-time after enabling.
+
+**Examples:**
+```javascript
+// Enable for current tab
+{}
+
+// Enable for specific tab
+{ tabId: 2 }
+```
+
+---
+
+## tabz_get_network_requests
+
+**Purpose:** List captured network requests (XHR, fetch, etc.) from browser pages.
+
+**Trigger phrases:**
+- "Show network requests"
+- "What API calls were made?"
+- "Find failed requests"
+- "Show all XHR requests"
+
+**Parameters:**
+- `urlPattern` (optional): Filter by URL pattern (regex or substring). Examples: `"api/"`, `"\\.json$"`, `"graphql"`
+- `method`: Filter by HTTP method - `all`, `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `OPTIONS`, `HEAD`
+- `statusMin` (optional): Minimum status code (e.g., 400 for errors only)
+- `statusMax` (optional): Maximum status code (e.g., 299 for successful only)
+- `resourceType`: Filter by type - `all`, `XHR`, `Fetch`, `Document`, `Script`, `Stylesheet`, `Image`, `Font`, `Other`
+- `limit`: Max requests to return (1-200, default: 50)
+- `offset`: Skip N requests for pagination (default: 0)
+- `tabId` (optional): Filter by specific browser tab ID
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- `requests`: Array of captured requests with URL, method, status, timing, etc.
+- `total`: Total matching requests
+- `hasMore`: Whether more requests are available
+- `captureActive`: Whether network capture is currently enabled
+
+**Examples:**
+```javascript
+// All requests
+{}
+
+// API calls only
+{ urlPattern: "api/" }
+
+// Find errors
+{ statusMin: 400 }
+
+// POST requests
+{ method: "POST" }
+
+// GraphQL requests
+{ urlPattern: "graphql", method: "POST" }
+
+// Successful only
+{ statusMin: 200, statusMax: 299 }
+```
+
+---
+
+## tabz_get_api_response
+
+**Purpose:** Get the full response body for a specific network request.
+
+**Trigger phrases:**
+- "Show the API response"
+- "What did that request return?"
+- "Get the response body"
+
+**Parameters:**
+- `requestId` (required): The request ID from `tabz_get_network_requests`
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+Full request details including:
+- URL, method, status
+- Request and response headers
+- Response body (truncated at 100KB if larger)
+- POST data (if applicable)
+
+**Limitations:**
+- Response bodies may not be available for:
+  - Redirects (3xx status)
+  - Pages that have navigated away
+  - Requests older than 5 minutes (auto-cleaned)
+- Large bodies (>100KB) are truncated
+
+**Examples:**
+```javascript
+// Get response for specific request
+{ requestId: "12345.67" }
+```
+
+---
+
+## tabz_clear_network_requests
+
+**Purpose:** Clear all captured network requests.
+
+**Trigger phrases:**
+- "Clear network requests"
+- "Reset captured requests"
+- "Start fresh with network monitoring"
+
+**Parameters:**
+None
+
+**Returns:**
+Confirmation that requests were cleared.
+
+**Note:** Network capture remains active after clearing. New requests will continue to be captured.
+
+---
+
 ## Architecture
 
 ```
@@ -462,8 +600,8 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           CDP-BASED TOOLS                            │
-│    (tabz_screenshot, tabz_click, tabz_fill, tabz_*_tab, │
-│              tabz_download_image, tabz_get_element)            │
+│    (tabz_screenshot, tabz_click, tabz_fill, tabz_*_tab,     │
+│     tabz_download_image, tabz_get_element, tabz_*_network)   │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  WINDOWS:                                                            │

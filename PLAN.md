@@ -26,23 +26,40 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-## Phase 2C: Power Tools (TODO)
+## Phase 2C: Power Tools (In Progress)
 
 **Goal**: Implement Chrome API-based tools now that the settings infrastructure is in place.
 
-### 2.1 `chrome.debugger` - Full DevTools Protocol
+### 2.1 Network Monitoring (CDP-based) ✅ COMPLETE
+
+**Impact**: Capture and inspect all network requests (XHR, fetch, etc.) with full response bodies.
+
+**Tools implemented:**
+- [x] `tabz_enable_network_capture` - Enable network monitoring for current tab
+- [x] `tabz_get_network_requests` - List captured requests with filtering (URL pattern, method, status, type)
+- [x] `tabz_get_api_response` - Get full response body for a specific request
+- [x] `tabz_clear_network_requests` - Clear captured requests
+
+**Features:**
+- CDP Network domain via puppeteer-core
+- URL pattern filtering (regex or substring)
+- Method, status code, resource type filters
+- Pagination support (limit/offset)
+- Auto-cleanup (5 min expiry, 500 request max)
+- Response body caching with 100KB truncation
+- Markdown and JSON output formats
+
+### 2.2 `chrome.debugger` - Additional DevTools Tools (TODO)
 
 **Impact**: Eliminates need for `--remote-debugging-port=9222`. Full CDP access from inside the extension.
 
 **Tools to implement:**
-- [ ] `tabz_get_network_requests` - See all XHR/fetch requests a page makes
-- [ ] `tabz_get_api_response` - Capture specific API response content
 - [ ] `tabz_profile_performance` - Profile page performance metrics
 - [ ] `tabz_get_dom_tree` - Full DOM inspection
 - [ ] `tabz_set_breakpoint` - Debug JavaScript issues
 - [ ] `tabz_get_coverage` - Code coverage analysis
 
-### 2.2 `chrome.downloads` - File Download Control
+### 2.3 `chrome.downloads` - File Download Control (TODO)
 
 **Impact**: Download any file type, not just images. Essential for AI tool workflows.
 
@@ -55,31 +72,29 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 **Use cases:** AI-generated images, PDFs, batch asset downloads
 
-### 2.3 `chrome.webRequest` - Network Monitoring
+### 2.4 `chrome.webRequest` - Additional Network Tools (TODO)
 
-**Impact**: See all network traffic (read-only in MV3).
+**Impact**: WebSocket monitoring and auth debugging.
 
 **Tools to implement:**
-- [ ] `tabz_get_api_calls` - See all API requests from a page
 - [ ] `tabz_monitor_websockets` - Track WebSocket messages
 - [ ] `tabz_capture_auth_flow` - Debug OAuth/auth issues
-- [ ] `tabz_find_api_endpoints` - Discover page's APIs
 
-### 2.4 `chrome.cookies` - Authentication Debugging
+### 2.5 `chrome.cookies` - Authentication Debugging
 
 **Tools to implement:**
 - [ ] `tabz_check_auth` - Check if logged into a service
 - [ ] `tabz_get_cookies` - Get all cookies for a domain
 - [ ] `tabz_get_session` - Get specific session cookie
 
-### 2.5 `chrome.history` - Research Assistant
+### 2.6 `chrome.history` - Research Assistant
 
 **Tools to implement:**
 - [ ] `tabz_search_history` - Search browsing history
 - [ ] `tabz_get_research` - Gather pages visited for a topic
 - [ ] `tabz_frequent_sites` - Get most visited sites
 
-### 2.6 `chrome.bookmarks` - Knowledge Management
+### 2.7 `chrome.bookmarks` - Knowledge Management
 
 **Tools to implement:**
 - [ ] `tabz_save_bookmark` - Bookmark current page

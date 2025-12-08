@@ -28,6 +28,11 @@ const MCP_TOOLS: McpTool[] = [
   // Console/Script
   { id: 'tabz_get_console_logs', name: 'Console Logs', desc: 'View browser console output', tokens: 1100 },
   { id: 'tabz_execute_script', name: 'Execute Script', desc: 'Run JavaScript in browser tab', tokens: 1100 },
+  // Network monitoring (CDP-based)
+  { id: 'tabz_enable_network_capture', name: 'Enable Network', desc: 'Start capturing network requests', tokens: 950 },
+  { id: 'tabz_get_network_requests', name: 'Network Requests', desc: 'List captured XHR/fetch requests', tokens: 1400 },
+  { id: 'tabz_get_api_response', name: 'API Response', desc: 'Get response body for a request', tokens: 1100 },
+  { id: 'tabz_clear_network_requests', name: 'Clear Network', desc: 'Clear captured requests', tokens: 400 },
 ]
 
 // All tool IDs for reference
@@ -36,7 +41,7 @@ const CORE_TOOL_IDS = MCP_TOOLS.filter(t => t.locked).map(t => t.id)
 
 const PRESETS = {
   minimal: CORE_TOOL_IDS,
-  standard: [...CORE_TOOL_IDS, 'tabz_click', 'tabz_fill', 'tabz_screenshot', 'tabz_open_url', 'tabz_get_console_logs'],
+  standard: [...CORE_TOOL_IDS, 'tabz_click', 'tabz_fill', 'tabz_screenshot', 'tabz_open_url', 'tabz_get_console_logs', 'tabz_enable_network_capture', 'tabz_get_network_requests'],
   full: ALL_TOOL_IDS,
 }
 

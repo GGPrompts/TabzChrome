@@ -10,11 +10,11 @@
  * - interaction: tabz_click, tabz_fill, tabz_screenshot, tabz_download_image, tabz_get_element
  * - navigation: tabz_open_url
  * - console: tabz_get_console_logs, tabz_execute_script
+ * - network: tabz_enable_network_capture, tabz_get_network_requests, tabz_get_api_response, tabz_clear_network_requests
  * - downloads: (future) tabz_download_file, tabz_get_downloads
  * - cookies: (future) tabz_check_auth, tabz_get_cookies
  * - history: (future) tabz_search_history
  * - bookmarks: (future) tabz_save_bookmark, tabz_search_bookmarks
- * - network: (future) tabz_get_network_requests, tabz_get_api_response
  *
  * Tool groups can be configured via the backend /api/mcp-config endpoint.
  */
@@ -29,12 +29,13 @@ import { registerTabTools } from "./tools/tabs.js";
 import { registerInteractionTools } from "./tools/interaction.js";
 import { registerInspectionTools } from "./tools/inspection.js";
 import { registerOmniboxTools } from "./tools/omnibox.js";
+import { registerNetworkTools } from "./tools/network.js";
 
 // Backend URL (TabzChrome backend running in WSL)
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8129";
 
 // Default enabled tool groups (used if backend is not reachable)
-const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console'];
+const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console', 'network'];
 
 // Tool group registration functions
 // Maps group names to their registration functions
@@ -61,12 +62,15 @@ const TOOL_GROUPS: Record<string, ToolGroupRegistrar> = {
     registerConsoleTools(server, BACKEND_URL); // tabz_get_console_logs
     registerScriptTools(server, BACKEND_URL);  // tabz_execute_script
   },
+  // Network monitoring tools (CDP-based)
+  network: (server) => {
+    registerNetworkTools(server);     // tabz_enable_network_capture, tabz_get_network_requests, tabz_get_api_response, tabz_clear_network_requests
+  },
   // Future power tool groups (placeholders for Phase C implementation)
   // downloads: (server) => registerDownloadTools(server),
   // cookies: (server) => registerCookieTools(server),
   // history: (server) => registerHistoryTools(server),
   // bookmarks: (server) => registerBookmarkTools(server),
-  // network: (server) => registerNetworkTools(server),
 };
 
 /**
