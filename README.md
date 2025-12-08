@@ -106,6 +106,68 @@ Terminal tabs show live Claude Code status with emoji indicators:
 
 **Setup required** - See [claude-hooks/README.md](claude-hooks/README.md) for installation.
 
+### Claude Code Audio Announcements
+
+Get voice announcements for Claude Code activity using Edge TTS:
+
+```bash
+# Enable audio for a session
+CLAUDE_AUDIO=1 claude
+
+# With custom voice
+CLAUDE_AUDIO=1 CLAUDE_VOICE="en-GB-SoniaNeural" claude
+```
+
+**What gets announced:**
+- Session start/ready for input
+- Tool usage with context (e.g., "Reading package.json", "Editing App.tsx")
+
+**Configuration file:** `~/.claude/audio-config.sh`
+
+```bash
+# Key settings
+DEFAULT_VOICE="en-US-AndrewMultilingualNeural"  # Edge TTS voice
+DEFAULT_RATE="+30%"                              # Speech speed
+PLAYBACK_SPEED="1.0"                             # mpv speed multiplier
+TOOL_DEBOUNCE_MS="1000"                          # Min gap between announcements
+
+# Toggle features
+ANNOUNCE_TOOLS="true"
+ANNOUNCE_SESSION_START="true"
+ANNOUNCE_READY="true"
+
+# Custom audio clips (optional)
+CUSTOM_CLIPS_DIR="/path/to/clips"
+```
+
+**Available voices** (run `edge-tts voice-list` for full list):
+
+| Voice | Description |
+|-------|-------------|
+| `en-US-AndrewMultilingualNeural` | US Male (default) |
+| `en-US-EmmaMultilingualNeural` | US Female |
+| `en-GB-SoniaNeural` | British Female |
+| `en-GB-RyanNeural` | British Male |
+| `en-AU-WilliamNeural` | Australian Male |
+
+**Multi-Claude setups:** Use different voices per terminal to distinguish which Claude is speaking:
+
+```bash
+# Terminal 1
+CLAUDE_AUDIO=1 CLAUDE_VOICE="en-US-AndrewMultilingualNeural" claude
+
+# Terminal 2
+CLAUDE_AUDIO=1 CLAUDE_VOICE="en-GB-SoniaNeural" claude
+```
+
+**Custom clips:** Drop `.mp3` files in your clips directory to replace TTS:
+- `ready.mp3` - Played when Claude is ready for input
+- `session-start.mp3` - Played on session start
+- `build-pass.mp3` - Played on successful build
+- `error.mp3` - Played on errors
+
+**Requirements:** `edge-tts` and `mpv` must be installed.
+
 ### Command History
 
 The chat input bar includes command history:
