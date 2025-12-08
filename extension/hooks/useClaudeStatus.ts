@@ -41,9 +41,25 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
   // Track consecutive "unknown" responses per terminal to prevent flashing
   const missCountsRef = useRef<Map<string, number>>(new Map())
 
+  // Memoize terminals to prevent useEffect re-running on every render
+  // The parent component passes a new array reference each render (sessions.map(...))
+  // which would cause the effect to re-run and flood the network with requests
+  const terminalsRef = useRef<TerminalInfo[]>([])
+  const terminalsKey = terminals.map(t => `${t.id}:${t.sessionName}:${t.workingDir}`).join('|')
+  const prevTerminalsKeyRef = useRef<string>('')
+
+  // Only update ref when terminals actually change (by content, not reference)
+  if (terminalsKey !== prevTerminalsKeyRef.current) {
+    terminalsRef.current = terminals
+    prevTerminalsKeyRef.current = terminalsKey
+  }
+
   useEffect(() => {
+    // Use the stable ref instead of the prop directly
+    const currentTerminals = terminalsRef.current
+
     // Only poll terminals that have a working directory (needed for status detection)
-    const terminalsWithDir = terminals.filter(t => t.workingDir)
+    const terminalsWithDir = currentTerminals.filter(t => t.workingDir)
     const terminalIds = new Set(terminalsWithDir.map(t => t.id))
 
     // Clean up miss counts for terminals that no longer exist
@@ -127,7 +143,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
     const interval = setInterval(checkStatus, 5000)
 
     return () => clearInterval(interval)
-  }, [terminals])
+  }, [terminalsKey])  // Use stable key instead of array reference to prevent re-running on every render
 
   return statuses
 }

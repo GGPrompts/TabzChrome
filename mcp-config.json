@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-12-07T21:56:40.419Z",
+  "updatedAt": "2025-12-08T14:08:49.581Z",
   "enabledTools": [
     "tabz_list_tabs",
     "tabz_switch_tab",
@@ -12,8 +12,12 @@
     "tabz_get_console_logs",
     "tabz_execute_script",
     "tabz_get_element",
-    "tabz_download_image"
+    "tabz_download_image",
+    "tabz_enable_network_capture",
+    "tabz_get_network_requests",
+    "tabz_get_api_response",
+    "tabz_clear_network_requests"
   ],
-  "allowAllUrls": false,
+  "allowAllUrls": true,
   "customDomains": ""
 }

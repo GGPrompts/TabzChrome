@@ -149,32 +149,10 @@ Play sounds when Claude status changes.
 
 ---
 
-### Keyboard Shortcuts Settings Tab
-3rd tab in Settings for viewing/configuring keyboard shortcuts.
-
-**Features:**
-- Display current keybindings (from manifest)
-- "Open Chrome shortcuts page" button
-- Available actions: New Tab, Close Tab, Next/Previous Tab, Jump to Tab 1-9
-- Conflict detection with Chrome/Windows hotkeys
-
----
-
 ### Other Future Features
 - **Import/Export Profiles** - Backup/share profiles as JSON
 - **Tab Context Menu** - Right-click for Rename, Close, Close Others
 - **Chrome Web Store Publication** - Privacy policy, screenshots, version management
-
----
-
-## Known Issues to Investigate
-
-### Tmux Status Bar Rendering Glitch
-When Claude is working, sometimes the tmux status bar shows random terminal output.
-
-**Suspected cause:** Conflict between `state-tracker.sh` and `tmux-status-claude.sh` (from Tabz web app)
-
-**Fix:** `Ctrl+L` or `tmux refresh-client -S` temporarily
 
 ---
 
