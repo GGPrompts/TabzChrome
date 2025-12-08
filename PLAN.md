@@ -819,6 +819,58 @@ const PRESETS = {
 
 ## Phase 3: Future Enhancements (Post-Release)
 
+### Detached Sessions Manager (👻 Ghost Badge)
+Show count of detached tmux sessions with quick reattach/kill options.
+
+**UI Design:**
+```
+Header: [🟢 Connected] [👻 3]  ← click for dropdown
+                        ┌──────────────────────┐
+                        │ Detached Sessions    │
+                        ├──────────────────────┤
+                        │ ctt-claude-abc123    │
+                        │   [Reattach] [Kill]  │
+                        │ ctt-lazygit-def456   │
+                        │   [Reattach] [Kill]  │
+                        └──────────────────────┘
+```
+
+**Implementation:**
+
+1. **Backend endpoint** (~30 min)
+   ```javascript
+   // GET /api/tmux/orphaned-sessions
+   // Returns ctt- sessions NOT in terminal registry
+   const tmuxSessions = execSync('tmux ls').toString().split('\n')
+   const registeredIds = terminalRegistry.getTerminalIds()
+   const orphaned = tmuxSessions
+     .filter(s => s.startsWith('ctt-'))
+     .filter(s => !registeredIds.includes(s.split(':')[0]))
+   ```
+
+2. **Frontend state** (~30 min)
+   - Poll every 30s or on-demand when badge clicked
+   - Store orphaned session list in state
+
+3. **Ghost badge UI** (~30 min)
+   - Show 👻 + count next to connection indicator
+   - Hide when count is 0
+   - Subtle animation on count change
+
+4. **Dropdown menu** (~30 min)
+   - List session names
+   - Reattach button → calls spawn API with `sessionName`
+   - Kill button → calls `DELETE /api/tmux/sessions/:name`
+
+**Complexity:** Low-Medium (~2-3 hours total)
+
+**Files to modify:**
+- `backend/routes/api.js` - Add orphaned sessions endpoint
+- `extension/sidepanel/sidepanel.tsx` - Badge + dropdown UI
+- `extension/hooks/useOrphanedSessions.ts` - New hook for polling
+
+---
+
 ### Audio/Voice Pack for Claude Status
 Play sounds or voice announcements when Claude status changes.
 
