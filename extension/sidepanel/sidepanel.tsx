@@ -97,7 +97,7 @@ function SidePanelTerminal() {
     const port = connectToBackground('sidepanel', (message) => {
       // ✅ Handle initial state sent immediately on connection
       if (message.type === 'INITIAL_STATE') {
-        console.log('[Sidepanel] Initial state received, wsConnected:', message.wsConnected)
+        // Initial state received
         setWsConnected(message.wsConnected)
       } else if (message.type === 'WS_CONNECTED') {
         setWsConnected(true)
@@ -109,45 +109,25 @@ function SidePanelTerminal() {
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
       } else if (message.type === 'PASTE_COMMAND') {
-        // Paste command from context menu or keyboard shortcut (selected text)
-        console.log('[Sidepanel] 📋 Received paste command:', message.command)
         setPasteCommand(message.command)
-        // Clear after a brief moment (Terminal will have received it)
         setTimeout(() => setPasteCommand(null), 100)
       } else if (message.type === 'KEYBOARD_NEW_TAB') {
-        // Alt+T - spawn new tab with default profile
-        console.log('[Sidepanel] ⌨️ New tab shortcut')
         handleKeyboardNewTab()
       } else if (message.type === 'KEYBOARD_CLOSE_TAB') {
-        // Alt+W - close current tab
-        console.log('[Sidepanel] ⌨️ Close tab shortcut')
         handleKeyboardCloseTab()
       } else if (message.type === 'KEYBOARD_NEXT_TAB') {
-        // Next tab
-        console.log('[Sidepanel] ⌨️ Next tab shortcut')
         handleKeyboardNextTab()
       } else if (message.type === 'KEYBOARD_PREV_TAB') {
-        // Previous tab
-        console.log('[Sidepanel] ⌨️ Prev tab shortcut')
         handleKeyboardPrevTab()
       } else if (message.type === 'KEYBOARD_SWITCH_TAB') {
-        // Alt+1-9 - switch to specific tab
-        console.log('[Sidepanel] ⌨️ Switch to tab:', message.tabIndex)
         handleKeyboardSwitchTab(message.tabIndex)
       } else if (message.type === 'OMNIBOX_SPAWN_PROFILE') {
-        // Omnibox: spawn terminal with specific profile
-        console.log('[Sidepanel] 🔍 Omnibox spawn profile:', message.profile.name)
         handleOmniboxSpawnProfile(message.profile)
       } else if (message.type === 'OMNIBOX_RUN_COMMAND') {
-        // Omnibox: spawn terminal and run command
-        console.log('[Sidepanel] 🔍 Omnibox run command:', message.command)
         handleOmniboxRunCommand(message.command)
       } else if (message.type === 'QUEUE_COMMAND') {
-        // Queue command from content script "Run in Terminal" button
-        console.log('[Sidepanel] 📝 Queue command:', message.command)
         setChatInputText(message.command)
         setChatInputMode('execute')
-        // Focus the input after a brief delay
         setTimeout(() => chatInputRef.current?.focus(), 100)
       }
     })
@@ -202,7 +182,6 @@ function SidePanelTerminal() {
           p => p.fontSize === undefined || p.fontFamily === undefined || p.themeName === undefined || p.theme !== undefined
         )
         if (needsMigration) {
-          console.log('[Sidepanel] Migrating old profiles with missing fields or old theme format')
           chrome.storage.local.set({ profiles: migratedProfiles })
         }
       } else {
@@ -211,8 +190,6 @@ function SidePanelTerminal() {
           const url = chrome.runtime.getURL('profiles.json')
           const response = await fetch(url)
           const data = await response.json()
-
-          console.log('[Sidepanel] Initializing default profiles from profiles.json')
           setProfiles(data.profiles as Profile[])
 
           // Save to storage so they persist
@@ -320,46 +297,29 @@ function SidePanelTerminal() {
   // Load saved terminal sessions from Chrome storage on mount
   // CRITICAL: Must complete before LIST_TERMINALS request to avoid race condition
   useEffect(() => {
-    console.log('[Sidepanel] Checking Chrome storage for saved terminal sessions...')
     chrome.storage.local.get(['terminalSessions'], (result) => {
-      console.log('[Sidepanel] Chrome storage result:', result)
       if (result.terminalSessions && Array.isArray(result.terminalSessions)) {
-        console.log('📥 Restored terminal sessions from storage:', result.terminalSessions)
         setSessions(result.terminalSessions)
-        // Set the first session as current if any exist
         if (result.terminalSessions.length > 0) {
-          console.log('[Sidepanel] Setting current session to:', result.terminalSessions[0].id)
           setCurrentSession(result.terminalSessions[0].id)
         }
-      } else {
-        console.log('[Sidepanel] No saved terminal sessions found in Chrome storage')
       }
-      // Mark storage as loaded so LIST_TERMINALS can proceed
       setStorageLoaded(true)
-      console.log('[Sidepanel] ✅ Storage loaded, ready for reconciliation')
     })
   }, [])
 
   // Save terminal sessions to Chrome storage whenever they change
   useEffect(() => {
-    console.log('[Sidepanel] Sessions changed:', sessions.length, 'sessions')
     if (sessions.length > 0) {
-      chrome.storage.local.set({ terminalSessions: sessions }, () => {
-        console.log('💾 Saved terminal sessions to storage:', sessions)
-      })
+      chrome.storage.local.set({ terminalSessions: sessions })
     } else {
-      // Clear storage when no sessions
-      chrome.storage.local.remove('terminalSessions', () => {
-        console.log('🗑️ Cleared terminal sessions from storage')
-      })
+      chrome.storage.local.remove('terminalSessions')
     }
   }, [sessions])
 
   // Request terminal list when WebSocket connects AND storage is loaded
-  // CRITICAL: Must wait for storage to load first to preserve session names during reconciliation
   useEffect(() => {
     if (wsConnected && storageLoaded) {
-      console.log('[Sidepanel] WebSocket connected + storage loaded, requesting terminal list to sync with backend...')
       sendMessage({ type: 'LIST_TERMINALS' })
     }
   }, [wsConnected, storageLoaded])
@@ -402,14 +362,12 @@ function SidePanelTerminal() {
   }, [showEmptyStateDropdown])
 
   const handleWebSocketMessage = (data: any) => {
-    console.log('[Sidepanel] handleWebSocketMessage:', data.type, data.type === 'terminal-spawned' || data.type === 'terminals' ? JSON.stringify(data).slice(0, 300) : '')
     switch (data.type) {
       case 'terminals':
         // Terminal list received from backend - reconcile with stored sessions
         // Filter to only ctt- prefixed terminals (Chrome extension terminals)
         const backendTerminals = (data.data || []).filter((t: any) => t.id && t.id.startsWith('ctt-'))
         const recoveryComplete = data.recoveryComplete === true
-        console.log('[Sidepanel] 🔄 Backend terminals (ctt- only):', backendTerminals.length, 'recoveryComplete:', recoveryComplete)
 
         // Track connection count for multi-window warning
         if (data.connectionCount !== undefined) {
@@ -452,12 +410,9 @@ function SidePanelTerminal() {
             const backendIds = new Set(backendTerminals.map((t: any) => t.id))
             for (const [id, _] of sessionMap) {
               if (!backendIds.has(id)) {
-                console.log(`[Sidepanel] Removing stale session: ${id}`)
                 sessionMap.delete(id)
               }
             }
-          } else {
-            console.log('[Sidepanel] ⏳ Recovery pending, preserving Chrome storage sessions')
           }
 
           const updatedSessions = Array.from(sessionMap.values())
@@ -475,8 +430,7 @@ function SidePanelTerminal() {
               return prevCurrent
             }
 
-            // Only now fall back to first session (when current was truly removed)
-            console.log('[Sidepanel] ⚠️ Current session removed, switching to first')
+            // Fall back to first session (current was removed)
             return updatedSessions[0].id
           })
 
@@ -493,20 +447,12 @@ function SidePanelTerminal() {
 
         // Ignore non-ctt terminals (from other projects sharing this backend)
         if (!terminal.id || !terminal.id.startsWith('ctt-')) {
-          console.log('[Sidepanel] ⏭️ Ignoring non-ctt terminal:', terminal.id)
           break
         }
 
-        console.log('[Sidepanel] 📥 Terminal spawned:', {
-          id: terminal.id,
-          name: terminal.name,
-          type: terminal.terminalType,
-          profile: terminal.profile,
-        })
         setSessions(prev => {
           // Check if terminal already exists (from restore)
           if (prev.find(s => s.id === terminal.id)) {
-            console.log('[Sidepanel] Terminal already exists, skipping add')
             return prev
           }
           return [...prev, {
@@ -531,7 +477,7 @@ function SidePanelTerminal() {
       case 'terminal-closed':
         // Backend sends: { type: 'terminal-closed', data: { id: terminalId } }
         const closedTerminalId = data.data?.id || data.terminalId || data.id
-        console.log('[Sidepanel] 🗑️ Terminal closed:', closedTerminalId)
+        // Terminal closed
         setSessions(prev => {
           const closedIndex = prev.findIndex(s => s.id === closedTerminalId)
           const updated = prev.filter(s => s.id !== closedTerminalId)

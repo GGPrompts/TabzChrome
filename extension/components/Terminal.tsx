@@ -11,8 +11,8 @@ interface TerminalProps {
   terminalId: string
   sessionName?: string
   terminalType?: string
-  workingDir?: string      // For Claude status polling
-  tmuxSession?: string     // Tmux session name for precise status matching
+  workingDir?: string      // Passed to backend for terminal working directory
+  tmuxSession?: string     // Tmux session name
   fontSize?: number
   fontFamily?: string
   themeName?: string       // Theme family name (high-contrast, dracula, ocean, etc.)
@@ -21,11 +21,7 @@ interface TerminalProps {
   pasteCommand?: string | null  // Command to paste into terminal input
   onClose?: () => void
 }
-
-interface ClaudeStatus {
-  status: 'idle' | 'awaiting_input' | 'processing' | 'tool_use' | 'working' | 'unknown'
-  current_tool?: string
-}
+// NOTE: ClaudeStatus interface removed - status polling handled by sidepanel's useClaudeStatus hook
 
 export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 14, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -33,8 +29,8 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [claudeStatus, setClaudeStatus] = useState<ClaudeStatus | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)  // Track if xterm has been opened
+  // NOTE: Claude status polling removed - sidepanel handles it via useClaudeStatus hook
 
   // Track previous dimensions to avoid unnecessary resize events (from terminal-tabs pattern)
   const prevDimensionsRef = useRef({ cols: 0, rows: 0 })
@@ -53,7 +49,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Output tracking - delay resize during active output to prevent tmux status bar corruption
   // When tmux is outputting content, resizing can corrupt scroll regions and cause the status bar to disappear
   const lastOutputTimeRef = useRef(0)
-  const OUTPUT_QUIET_PERIOD = 200 // ms to wait after output before allowing resize
+  const OUTPUT_QUIET_PERIOD = 100 // ms to wait after output before allowing resize (reduced from 200)
+  const resizeDeferCountRef = useRef(0) // Track deferrals to prevent infinite loop
+  const MAX_RESIZE_DEFERRALS = 3 // Max times to defer before forcing resize
 
   // Resize trick to force complete redraw (used for theme/font changes and manual refresh)
   // CRITICAL: Uses resize lock and try/catch to prevent buffer corruption
@@ -62,13 +60,11 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Skip if already resizing
     if (isResizingRef.current) {
-      console.log('[Terminal] Skipping resize trick - resize already in progress')
       return
     }
 
     const currentCols = xtermRef.current.cols
     const currentRows = xtermRef.current.rows
-    console.log('[Terminal] Triggering resize trick for:', terminalId)
 
     try {
       isResizingRef.current = true
@@ -93,7 +89,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
               cols: currentCols,
               rows: currentRows,
             })
-            console.log('[Terminal] Resize trick completed')
           } catch (e) {
             console.warn('[Terminal] Resize trick step 2 failed:', e)
           }
@@ -156,12 +151,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
           // CRITICAL: Only send if dimensions actually changed (from terminal-tabs pattern)
           if (cols === prevDimensionsRef.current.cols && rows === prevDimensionsRef.current.rows) {
-            console.log('[Terminal] Skipping resize - dimensions unchanged:', cols, 'x', rows)
             return
           }
 
           prevDimensionsRef.current = { cols, rows }
-          console.log('[Terminal] Sending debounced resize:', cols, 'x', rows)
           sendMessage({
             type: 'TERMINAL_RESIZE',
             terminalId,
@@ -175,32 +168,36 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     // Fit terminal to container with dimension verification and resize lock
     // CRITICAL: Wraps fit() in try/catch and uses resize lock to prevent buffer corruption
     // The isWrapped error occurs when resize() is called during active write operations
-    const fitTerminal = () => {
+    const fitTerminal = (retryCount = 0) => {
       if (!fitAddonRef.current || !terminalRef.current || !xtermRef.current) return
 
       const containerWidth = terminalRef.current.offsetWidth
       const containerHeight = terminalRef.current.offsetHeight
 
       if (containerWidth <= 0 || containerHeight <= 0) {
-        console.log('[Terminal] Skipping fit - container has 0 dimensions')
+        // Retry up to 5 times with increasing delay for 0-dimension cases (sidebar animating)
+        if (retryCount < 5) {
+          setTimeout(() => fitTerminal(retryCount + 1), 50 * (retryCount + 1))
+        }
         return
       }
 
       // Skip if already resizing (prevents buffer corruption)
       if (isResizingRef.current) {
-        console.log('[Terminal] Skipping fit - resize already in progress')
         return
       }
 
       // Skip if output happened recently - prevents tmux status bar corruption
-      // Resizing during active output can corrupt scroll regions
+      // But limit deferrals to prevent infinite loop (Claude outputs constantly)
       const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-      if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
-        console.log('[Terminal] Deferring fit - output in progress, will retry')
-        // Schedule retry after quiet period
-        setTimeout(fitTerminal, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+      if (timeSinceOutput < OUTPUT_QUIET_PERIOD && resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
+        resizeDeferCountRef.current++
+        setTimeout(() => fitTerminal(retryCount), OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
         return
       }
+
+      // Reset deferral counter on successful resize attempt
+      resizeDeferCountRef.current = 0
 
       try {
         isResizingRef.current = true
@@ -265,7 +262,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         initialFit()
       } else if (retryCount < MAX_RETRIES) {
         retryCount++
-        console.log(`[Terminal] Container not ready (0x0), retrying... (${retryCount}/${MAX_RETRIES})`)
         setTimeout(attemptOpen, RETRY_DELAY)
       } else {
         console.error('[Terminal] Failed to open - container never got valid dimensions after', MAX_RETRIES, 'attempts')
@@ -391,7 +387,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     const port = connectToBackground(`terminal-${terminalId}`, (message) => {
       // ✅ Handle initial state sent immediately on connection
       if (message.type === 'INITIAL_STATE') {
-        console.log('[Terminal] 📥 Received initial state - WebSocket:', message.wsConnected ? 'connected' : 'disconnected')
         setIsConnected(message.wsConnected)
       } else if (message.type === 'TERMINAL_OUTPUT' && message.terminalId === terminalId) {
         if (xtermRef.current && message.data) {
@@ -410,13 +405,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           console.warn('[Terminal] ⚠️ Cannot write - xterm:', !!xtermRef.current, 'data:', !!message.data)
         }
       } else if (message.type === 'WS_CONNECTED') {
-        console.log('[Terminal] WebSocket connected')
         setIsConnected(true)
       } else if (message.type === 'WS_DISCONNECTED') {
-        console.log('[Terminal] WebSocket disconnected')
         setIsConnected(false)
       } else if (message.type === 'REFRESH_TERMINALS') {
-        console.log('[Terminal] 🔄 Refresh requested for:', terminalId)
         // Use timeout to ensure xterm is fully ready
         setTimeout(() => {
           triggerResizeTrick()
@@ -429,7 +421,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     // Uses triggerResizeTrick which has proper resize lock and try/catch protection
     setTimeout(() => {
       if (xtermRef.current && fitAddonRef.current && !isResizingRef.current) {
-        console.log('[Terminal] Post-reconnection refresh for:', terminalId)
         triggerResizeTrick()
 
         // Focus terminal after resize trick completes
@@ -443,7 +434,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Cleanup
     return () => {
-      console.log('[Terminal] Disconnecting from background')
       port.disconnect()
     }
   }, [terminalId, isInitialized])
@@ -454,8 +444,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     const fitAddon = fitAddonRef.current
     if (!xterm || !fitAddon) return
 
-    console.log('[Terminal] Updating settings:', { fontSize, fontFamily, themeName, isDark })
-
     // Track if we need a full redraw (font changes require clearing renderer cache)
     const fontChanged = xterm.options.fontFamily !== fontFamily
     const fontSizeChanged = xterm.options.fontSize !== fontSize
@@ -465,13 +453,11 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Update font size
     if (fontSizeChanged) {
-      console.log('[Terminal] Changing font size from', xterm.options.fontSize, 'to', fontSize)
       xterm.options.fontSize = fontSize
     }
 
     // Update font family
     if (fontChanged) {
-      console.log('[Terminal] Changing font family from', xterm.options.fontFamily, 'to', fontFamily)
       xterm.options.fontFamily = fontFamily
     }
 
@@ -487,7 +473,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
       // Skip if already resizing
       if (isResizingRef.current) {
-        console.log('[Terminal] Skipping settings redraw - resize in progress')
         return
       }
 
@@ -520,8 +505,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           })
         }
 
-        console.log('[Terminal] Settings updated - fontSize:', fontSize, 'fontFamily:', fontFamily, 'theme:', themeName, 'isDark:', isDark)
-
         // Release resize lock after buffer stabilizes
         setTimeout(() => {
           isResizingRef.current = false
@@ -537,8 +520,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // CRITICAL: Chrome sidebar resize triggers many events rapidly - must debounce!
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null
+    let windowResizeDeferCount = 0
 
-    const handleResize = () => {
+    const handleResize = (retryCount = 0) => {
       // Debounce the resize to prevent isWrapped buffer corruption
       if (resizeTimeout) clearTimeout(resizeTimeout)
 
@@ -548,27 +532,30 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         const containerWidth = terminalRef.current.offsetWidth
         const containerHeight = terminalRef.current.offsetHeight
 
-        // Skip if container has 0 dimensions (can happen during Chrome sidebar animations)
+        // Retry with increasing delay for 0-dimension cases (sidebar animating)
         if (containerWidth <= 0 || containerHeight <= 0) {
-          console.log('[Terminal] Skipping window resize - container has 0 dimensions')
+          if (retryCount < 5) {
+            setTimeout(() => handleResize(retryCount + 1), 50 * (retryCount + 1))
+          }
           return
         }
 
         // Skip if already resizing
         if (isResizingRef.current) {
-          console.log('[Terminal] Skipping window resize - resize already in progress')
           return
         }
 
-        // Skip if output happened recently - prevents tmux status bar corruption
+        // Skip if output happened recently - but limit deferrals to prevent infinite loop
         const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-        if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
-          console.log('[Terminal] Deferring window resize - output in progress')
-          // Retry after quiet period
+        if (timeSinceOutput < OUTPUT_QUIET_PERIOD && windowResizeDeferCount < MAX_RESIZE_DEFERRALS) {
+          windowResizeDeferCount++
           if (resizeTimeout) clearTimeout(resizeTimeout)
-          resizeTimeout = setTimeout(handleResize, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+          resizeTimeout = setTimeout(() => handleResize(retryCount), OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
           return
         }
+
+        // Reset deferral counter on successful resize
+        windowResizeDeferCount = 0
 
         try {
           isResizingRef.current = true
@@ -601,9 +588,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       }, 150) // 150ms debounce - matches ResizeObserver debounce
     }
 
-    window.addEventListener('resize', handleResize)
+    const onWindowResize = () => handleResize(0)
+    window.addEventListener('resize', onWindowResize)
     return () => {
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', onWindowResize)
       if (resizeTimeout) clearTimeout(resizeTimeout)
     }
   }, [terminalId])
@@ -622,66 +610,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
   }, [pasteCommand, terminalId])
 
-  // Poll Claude status if we have a working directory
-  useEffect(() => {
-    if (!workingDir) {
-      setClaudeStatus(null)
-      return
-    }
-
-    // Pass the path as-is - backend handles ~ expansion
-    const expandedDir = workingDir
-
-    const checkStatus = async () => {
-      try {
-        const encodedDir = encodeURIComponent(expandedDir)
-        // Include tmux session name for precise pane matching when available
-        const sessionParam = tmuxSession ? `&sessionName=${encodeURIComponent(tmuxSession)}` : ''
-        const response = await fetch(`http://localhost:8129/api/claude-status?dir=${encodedDir}${sessionParam}`)
-        const result = await response.json()
-
-        if (result.success && result.status !== 'unknown') {
-          setClaudeStatus({
-            status: result.status,
-            current_tool: result.current_tool
-          })
-        } else {
-          setClaudeStatus(null)
-        }
-      } catch {
-        // Backend not available or no status - silently ignore
-        setClaudeStatus(null)
-      }
-    }
-
-    // Initial check
-    checkStatus()
-
-    // Poll every 2 seconds
-    const interval = setInterval(checkStatus, 2000)
-
-    return () => clearInterval(interval)
-  }, [workingDir])
-
-  // Helper to format Claude status for display
-  const formatClaudeStatus = () => {
-    if (!claudeStatus) return null
-
-    switch (claudeStatus.status) {
-      case 'idle':
-        return { emoji: '🟢', text: 'Ready' }
-      case 'awaiting_input':
-        return { emoji: '⏸️', text: 'Awaiting' }
-      case 'processing':
-        return { emoji: '🟡', text: 'Thinking' }
-      case 'tool_use':
-        return { emoji: '🔧', text: claudeStatus.current_tool?.slice(0, 10) || 'Tool' }
-      case 'working':
-        return { emoji: '⚙️', text: claudeStatus.current_tool?.slice(0, 10) || 'Working' }
-      default:
-        return null
-    }
-  }
+  // NOTE: Claude status polling removed from Terminal component
+  // The sidepanel handles all status polling via useClaudeStatus hook
+  // This eliminates duplicate network requests (was 2x requests per terminal)
 
   // Get the background gradient for this theme
   const backgroundGradient = getBackgroundGradient(themeName, isDark)

@@ -1,6 +1,16 @@
-# Claude Code Hooks for Tabz Status Detection
+# Claude Code Hooks for TabzChrome Status Detection
 
 These hooks enable the Claude status indicator (🤖✅/⏳/🔧) on terminal tabs.
+
+## Quick Setup
+
+If you already have tmuxplexer installed, the hooks are likely already configured.
+Check with:
+
+```bash
+ls ~/.claude/hooks/state-tracker.sh
+cat ~/.claude/settings.json | grep -A2 '"hooks"'
+```
 
 ## Status Indicators
 
@@ -10,41 +20,53 @@ These hooks enable the Claude status indicator (🤖✅/⏳/🔧) on terminal ta
 | `processing` | 🤖⏳ | Claude is thinking |
 | `tool_use` | 🤖🔧 | Claude is using a tool (Edit, Bash, etc.) |
 
-## Installation
+## Installation (if not already set up)
 
-### 1. Copy the hook script
+### Option 1: From tmuxplexer (recommended)
 
 ```bash
-# Create hooks directory
+cd ~/projects/tmuxplexer
+./hooks/install.sh
+```
+
+### Option 2: Manual setup
+
+1. **Copy hooks from tmuxplexer:**
+```bash
 mkdir -p ~/.claude/hooks
-
-# Copy the state tracker
-cp claude-hooks/state-tracker.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/state-tracker.sh
+cp ~/projects/tmuxplexer/hooks/state-tracker.sh ~/.claude/hooks/
+cp ~/projects/tmuxplexer/hooks/tmux-status-claude.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
 ```
 
-### 2. Add hooks to your Claude settings
+2. **Add hooks to Claude settings:**
 
-Merge the contents of `settings.example.json` into your `~/.claude/settings.json`:
-
+Merge `settings.example.json` into `~/.claude/settings.json`:
 ```bash
-# If you don't have a settings.json yet:
-cp claude-hooks/settings.example.json ~/.claude/settings.json
+# View the example:
+cat ~/projects/TabzChrome/claude-hooks/settings.example.json
 
-# If you already have one, manually merge the "hooks" section
+# Then manually merge the "hooks" section into ~/.claude/settings.json
 ```
 
-### 3. Restart Claude Code
-
-The hooks will take effect on the next Claude Code session.
+3. **Restart Claude Code** - hooks take effect on next session.
 
 ## How It Works
+
+```
+Claude Code ─► hooks ─► /tmp/claude-code-state/*.json
+                                    │
+                                    ├─► TabzChrome backend (/api/claude-status)
+                                    │         └─► Frontend polls every 2s
+                                    │
+                                    └─► tmux status bar (tmux-status-claude.sh)
+```
 
 1. **Claude hooks** write state to `/tmp/claude-code-state/*.json`
 2. **Backend API** (`/api/claude-status`) reads these files
 3. **Frontend** polls every 2 seconds and displays status on tabs
 
-### State File Format
+## State File Format
 
 ```json
 {
@@ -58,7 +80,7 @@ The hooks will take effect on the next Claude Code session.
 }
 ```
 
-### Hook Events
+## Hook Events
 
 | Hook | Triggered When | Sets Status |
 |------|----------------|-------------|
@@ -88,7 +110,13 @@ The hooks will take effect on the next Claude Code session.
    chmod +x ~/.claude/hooks/state-tracker.sh
    ```
 
-### Stale status?
+### Status bar disappearing?
+
+The tmux status bar hides if:
+- State file is >60 seconds old (stale)
+- No Claude running in current session
+
+### Stale status files?
 
 The cleanup endpoint removes old state files:
 ```bash
@@ -99,4 +127,12 @@ curl -X POST http://localhost:8129/api/claude-status/cleanup
 
 - `jq` - for JSON parsing in the hook script
 - Claude Code with hooks support
-- Tabz backend running on port 8129
+- TabzChrome backend running on port 8129
+
+## Source of Truth
+
+The canonical hook scripts are maintained in:
+- **Active:** `~/.claude/hooks/` (what Claude actually uses)
+- **Source:** `~/projects/tmuxplexer/hooks/` (upstream for updates)
+
+Do NOT copy hooks from this directory - use tmuxplexer's install.sh instead.

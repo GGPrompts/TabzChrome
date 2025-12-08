@@ -279,7 +279,6 @@ function connectWebSocket() {
         })
       } else if (message.type === 'terminals') {
         // Terminal list received on connection - restore sessions
-        console.log('📋 Terminal list received:', message.data?.length, 'terminals')
         // Update badge based on terminal count
         const terminalCount = message.data?.length || 0
         chrome.action.setBadgeText({ text: terminalCount > 0 ? String(terminalCount) : '' })
@@ -291,13 +290,10 @@ function connectWebSocket() {
         })
       } else if (message.type === 'terminal-spawned') {
         // Terminal spawned - broadcast first so sidepanel can focus it
-        console.log('📤 Terminal spawned, broadcasting to clients')
-
         const clientMessage: ExtensionMessage = {
           type: 'WS_MESSAGE',
           data: message,
         }
-        console.log('📤 Broadcasting to clients:', JSON.stringify(clientMessage).slice(0, 200))
         broadcastToClients(clientMessage)
 
         // Update badge count without requesting full terminal list
@@ -309,8 +305,6 @@ function connectWebSocket() {
         })
       } else if (message.type === 'terminal-closed') {
         // Terminal closed - broadcast first
-        console.log('📤 Terminal closed, broadcasting to clients')
-
         broadcastToClients({
           type: 'WS_MESSAGE',
           data: message,
@@ -698,10 +692,6 @@ chrome.omnibox.onInputEntered.addListener(async (text, disposition) => {
 // Message handler from extension pages
 chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, sendResponse) => {
   // Don't log high-frequency messages (terminal I/O, resize)
-  if (!['TERMINAL_INPUT', 'TERMINAL_RESIZE', 'RECONNECT'].includes(message.type)) {
-    console.log('📬 Message received from extension:', message.type)
-  }
-
   switch (message.type) {
     case 'OPEN_SESSION':
       // Open side panel with specific session
@@ -711,7 +701,6 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
         const targetWindow = windows.find(w => w.focused) || windows[0]
 
         if (targetWindow?.id) {
-          console.log('[Background] Opening side panel in window:', targetWindow.id)
           await chrome.sidePanel.open({ windowId: targetWindow.id })
         } else {
           console.error('[Background] No normal browser window found')
@@ -734,13 +723,6 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       // This ensures terminals survive extension reloads
       const useTmux = true
 
-      console.log('[Background] SPAWN_TERMINAL received:', {
-        spawnOption: message.spawnOption,
-        name: message.name,
-        command: message.command,
-        workingDir: message.workingDir
-      })
-
       sendToWebSocket({
         type: 'spawn',
         config: {
@@ -755,23 +737,12 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
         requestId,
       })
 
-      console.log('📤 Sending to backend:', {
-        terminalType: message.spawnOption || 'bash',
-        name: message.name,
-        command: message.command || '(no command)',
-        workingDir: message.workingDir || message.profile?.workingDir,
-        useTmux: useTmux,
-        isChrome: true,
-        requestId,
-        profile: message.profile, // Log profile to debug theme/font issues
-      })
       // Badge will be updated when backend sends terminal-spawned message
       break
 
     case 'QUEUE_COMMAND':
       // Queue command to chat input (from content script "Run in Terminal" button)
       // Opens sidebar and populates chat input, letting user choose which terminal
-      console.log('[Background] QUEUE_COMMAND received:', message.command)
       try {
         const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
         const targetWindow = windows.find(w => w.focused) || windows[0]
@@ -860,13 +831,11 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
 
     case 'LIST_TERMINALS':
       // Request terminal list from backend
-      console.log('📋 Requesting terminal list from backend')
       sendToWebSocket({ type: 'list-terminals' })
       break
 
     case 'REFRESH_TERMINALS':
       // Broadcast refresh message to all terminals
-      console.log('🔄 Broadcasting REFRESH_TERMINALS to all clients')
       broadcastToClients({ type: 'REFRESH_TERMINALS' })
       break
 
@@ -1027,7 +996,6 @@ chrome.runtime.onMessageExternal.addListener(async (message, sender, sendRespons
 
 // Port connections from extension pages (persistent communication)
 chrome.runtime.onConnect.addListener((port) => {
-  console.log('🔌 Client connected:', port.name)
   connectedClients.add(port)
 
   // ✅ IMMEDIATELY send current WebSocket state to newly connected client
@@ -1039,7 +1007,6 @@ chrome.runtime.onConnect.addListener((port) => {
   })
 
   port.onDisconnect.addListener(() => {
-    console.log('🔌 Client disconnected:', port.name)
     connectedClients.delete(port)
   })
 
