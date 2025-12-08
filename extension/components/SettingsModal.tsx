@@ -143,7 +143,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           }
         })
         .catch(err => {
-          console.error('[Settings] Failed to load MCP config from backend:', err)
+          console.warn('[Settings] Backend unavailable, using Chrome storage:', err.message)
           // Fallback to Chrome storage
           chrome.storage.local.get(['mcpEnabledTools', 'mcpEnabledGroups', 'allowAllUrls', 'customDomains'], (result) => {
             if (result.mcpEnabledTools && Array.isArray(result.mcpEnabledTools)) {
