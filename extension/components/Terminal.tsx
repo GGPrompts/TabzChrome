@@ -640,8 +640,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
       // For tmux sessions, trigger backend refresh-client to fix scroll region corruption
       // This is separate from xterm.refresh() which only redraws the frontend canvas
-      if (sessionName) {
-        fetch(`http://localhost:8129/api/tmux/refresh/${encodeURIComponent(sessionName)}`, {
+      // Use tmuxSession (actual tmux session name like "ctt-bash-abc") not sessionName (display name like "Bash")
+      if (tmuxSession) {
+        fetch(`http://localhost:8129/api/tmux/refresh/${encodeURIComponent(tmuxSession)}`, {
           method: 'POST'
         }).catch(() => {
           // Ignore errors - session might not exist or backend might be down

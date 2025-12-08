@@ -290,11 +290,12 @@ wss.on('connection', (ws) => {
               break;
             }
             try {
-              const { execSync } = require('child_process');
+              const { spawnSync } = require('child_process');
               if (text) {
-                // Use tmux send-keys with literal flag to handle special characters correctly
-                // The -l flag sends keys literally (without interpreting special sequences)
-                execSync(`tmux send-keys -t "${tmuxPane}" -l ${JSON.stringify(text)}`, { timeout: 5000 });
+                // Use spawnSync with array args to bypass shell interpretation
+                // This preserves $VAR, backticks, and other shell special characters
+                // The -l flag sends keys literally (without interpreting tmux special sequences)
+                spawnSync('tmux', ['send-keys', '-t', tmuxPane, '-l', text], { timeout: 5000 });
                 log.debug(`Targeted send → pane ${tmuxPane}: ${text.length} bytes`);
               }
               if (sendEnter) {
@@ -302,7 +303,7 @@ wss.on('connection', (ws) => {
                 // Without delay, Claude may interpret newline before full text loads
                 await new Promise(resolve => setTimeout(resolve, 300));
                 // Send Enter key (not literal, so tmux interprets it as Enter)
-                execSync(`tmux send-keys -t "${tmuxPane}" Enter`, { timeout: 5000 });
+                spawnSync('tmux', ['send-keys', '-t', tmuxPane, 'Enter'], { timeout: 5000 });
                 log.debug(`Targeted Enter → pane ${tmuxPane}`);
               }
             } catch (err) {
@@ -321,17 +322,19 @@ wss.on('connection', (ws) => {
               break;
             }
             try {
-              const { execSync } = require('child_process');
+              const { spawnSync } = require('child_process');
               // Target the session's first pane (sessionName:0.0)
               const target = `${sessionName}:0.0`;
               if (sessionText) {
-                execSync(`tmux send-keys -t "${target}" -l ${JSON.stringify(sessionText)}`, { timeout: 5000 });
+                // Use spawnSync with array args to bypass shell interpretation
+                // This preserves $VAR, backticks, and other shell special characters
+                spawnSync('tmux', ['send-keys', '-t', target, '-l', sessionText], { timeout: 5000 });
                 log.debug(`Session send → ${target}: ${sessionText.length} bytes`);
               }
               if (sessionSendEnter) {
                 // CRITICAL: 300ms delay before Enter for long prompts
                 await new Promise(resolve => setTimeout(resolve, 300));
-                execSync(`tmux send-keys -t "${target}" Enter`, { timeout: 5000 });
+                spawnSync('tmux', ['send-keys', '-t', target, 'Enter'], { timeout: 5000 });
                 log.debug(`Session Enter → ${target}`);
               }
             } catch (err) {

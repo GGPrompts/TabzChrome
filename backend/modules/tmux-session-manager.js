@@ -530,14 +530,16 @@ class TmuxSessionManager {
    */
   async sendCommand(sessionName, command) {
     try {
-      // Send command text
-      execSync(`tmux send-keys -t "${sessionName}" "${command.replace(/"/g, '\\"')}"`);
+      const { spawnSync } = require('child_process');
+      // Use spawnSync with array args to bypass shell interpretation
+      // This preserves $VAR, #, backticks, and other shell special characters
+      spawnSync('tmux', ['send-keys', '-t', sessionName, '-l', command], { timeout: 5000 });
 
       // Wait a bit for command to be typed
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Send Enter
-      execSync(`tmux send-keys -t "${sessionName}" Enter`);
+      spawnSync('tmux', ['send-keys', '-t', sessionName, 'Enter'], { timeout: 5000 });
 
       return { success: true };
     } catch (error) {

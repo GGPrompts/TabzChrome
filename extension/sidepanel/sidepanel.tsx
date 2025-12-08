@@ -386,9 +386,12 @@ function SidePanelTerminal() {
             const existingSession = sessionMap.get(t.id)
             if (existingSession) {
               // Update existing session with backend data, preserving the name from Chrome storage
+              // CRITICAL: Use ?? to preserve existing sessionName if backend returns undefined
+              // This prevents chat send from falling back to unreliable TERMINAL_INPUT path
               sessionMap.set(t.id, {
                 ...existingSession,
-                sessionName: t.sessionName,
+                sessionName: t.sessionName ?? existingSession.sessionName,
+                workingDir: t.workingDir ?? existingSession.workingDir,
                 active: false,
               })
             } else {
@@ -671,6 +674,8 @@ function SidePanelTerminal() {
           })
         } else {
           // Last resort: PTY send (only for non-tmux terminals)
+          // This path is less reliable for "execute" mode - two separate messages instead of atomic tmux send
+          console.warn(`[ChatSend] Using PTY fallback for terminal ${terminalId} - sessionName missing. Session:`, session)
           sendMessage({
             type: 'TERMINAL_INPUT',
             terminalId,
