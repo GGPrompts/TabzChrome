@@ -540,6 +540,18 @@ class PTYHandler extends EventEmitter {
       ptyInfo.process.resize(validCols, validRows);
       console.log(`[PTYHandler] Resized PTY ${ptyInfo.name}: ${validCols}x${validRows}`);
 
+      // For tmux sessions, refresh the client after resize to fix scroll region corruption
+      // This forces tmux to recalculate its display, preventing status bar disappearing issues
+      if (ptyInfo.tmuxSession) {
+        setTimeout(() => {
+          try {
+            execSync(`tmux refresh-client -t "${ptyInfo.tmuxSession}" 2>/dev/null`);
+          } catch {
+            // Ignore errors - session might not exist anymore
+          }
+        }, 100); // Small delay to let resize settle
+      }
+
       return { cols: validCols, rows: validRows };
     } catch (error) {
       // Ignore ENOTTY errors which happen when terminal is not ready

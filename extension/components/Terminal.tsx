@@ -236,6 +236,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       // Force a refresh to ensure content is rendered
       setTimeout(() => {
         if (xtermRef.current) {
+          // For tmux sessions, clear any stale scrollback that might cause phantom lines
+          if (sessionName) {
+            xtermRef.current.clear()
+          }
           xtermRef.current.refresh(0, xtermRef.current.rows - 1)
         }
       }, 350)
@@ -394,9 +398,15 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           // This prevents tmux status bar corruption when scroll regions are being updated
           lastOutputTimeRef.current = Date.now()
 
+          // Strip VS16 (variation selector, U+FE0F) to prevent tmux width calculation issues
+          // VS16 makes emojis render in emoji presentation, but tmux miscalculates width
+          // when it sees emoji+VS16, corrupting scroll regions and hiding status bar
+          // The emoji still renders correctly without VS16, just uses default presentation
+          const sanitizedData = message.data.replace(/\uFE0F/g, '')
+
           // Wrap write in try/catch - buffer corruption can cause isWrapped errors during resize
           try {
-            xtermRef.current.write(message.data)
+            xtermRef.current.write(sanitizedData)
           } catch (e) {
             // Buffer may be in inconsistent state during resize - log but don't crash
             console.warn('[Terminal] Write failed (likely resize in progress):', e)
@@ -595,6 +605,61 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       if (resizeTimeout) clearTimeout(resizeTimeout)
     }
   }, [terminalId])
+
+  // Handle tab becoming active - trigger resize to catch sidebar width changes while inactive
+  // ResizeObserver doesn't fire for display:none elements, so we need to manually fit
+  // when switching back to a previously-hidden tab
+  useEffect(() => {
+    if (!isActive || !isInitialized) return
+    if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
+
+    // Small delay to ensure element is visible and has dimensions
+    const timeoutId = setTimeout(() => {
+      if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
+      if (isResizingRef.current) return
+
+      const containerWidth = terminalRef.current.offsetWidth
+      const containerHeight = terminalRef.current.offsetHeight
+
+      // Skip if still hidden (0 dimensions)
+      if (containerWidth <= 0 || containerHeight <= 0) return
+
+      try {
+        isResizingRef.current = true
+        fitAddonRef.current.fit()
+
+        const cols = xtermRef.current.cols
+        const rows = xtermRef.current.rows
+
+        // Only send resize if dimensions actually changed
+        if (cols !== prevDimensionsRef.current.cols || rows !== prevDimensionsRef.current.rows) {
+          prevDimensionsRef.current = { cols, rows }
+          sendMessage({
+            type: 'TERMINAL_RESIZE',
+            terminalId,
+            cols,
+            rows,
+          })
+        }
+
+        // For tmux sessions, clear stale scrollback and force refresh to fix phantom lines
+        if (sessionName) {
+          xtermRef.current.clear()
+          xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+        }
+
+        // Release resize lock
+        setTimeout(() => {
+          isResizingRef.current = false
+        }, 50)
+      } catch (e) {
+        console.warn('[Terminal] Tab activation fit failed:', e)
+        isResizingRef.current = false
+      }
+    }, 100) // 100ms delay for visibility transition
+
+    return () => clearTimeout(timeoutId)
+  }, [isActive, isInitialized, terminalId, sessionName])
 
   // Handle paste command (from context menu)
   useEffect(() => {

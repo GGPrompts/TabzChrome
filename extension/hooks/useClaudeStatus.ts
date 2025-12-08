@@ -123,8 +123,8 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
     // Initial check
     checkStatus()
 
-    // Poll every 2 seconds
-    const interval = setInterval(checkStatus, 2000)
+    // Poll every 5 seconds (reduced from 2s to prevent Chrome DevTools lag)
+    const interval = setInterval(checkStatus, 5000)
 
     return () => clearInterval(interval)
   }, [terminals])
