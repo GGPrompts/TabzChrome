@@ -799,6 +799,7 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
     case 'TMUX_SESSION_SEND':
       // Send to tmux session by name (fallback when pane ID unavailable)
       // Safer than PTY for Claude terminals - prevents content going to bash
+      console.log(`[Background] TMUX_SESSION_SEND: session=${message.sessionName}, textLen=${message.text?.length}`)
       sendToWebSocket({
         type: 'tmux-session-send',
         sessionName: message.sessionName,

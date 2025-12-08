@@ -513,8 +513,18 @@ function SidePanelTerminal() {
     const currentGlobalWorkingDir = globalWorkingDir
 
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
-      const defaultProfileId = result.defaultProfile || 'default'
       const profiles = (result.profiles as Profile[]) || []
+      const savedDefaultId = (result.defaultProfile as string) || 'default'
+
+      // Validate defaultProfile - ensure it matches an existing profile ID
+      const profileIds = profiles.map(p => p.id)
+      let defaultProfileId = savedDefaultId
+      if (!profileIds.includes(savedDefaultId) && profiles.length > 0) {
+        defaultProfileId = profiles[0].id
+        console.warn(`[SpawnDefault] defaultProfile '${savedDefaultId}' not found, auto-fixing to '${defaultProfileId}'`)
+        chrome.storage.local.set({ defaultProfile: defaultProfileId })
+      }
+
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
@@ -532,7 +542,7 @@ function SidePanelTerminal() {
         })
         addToRecentDirs(effectiveWorkingDir)
       } else {
-        // Fallback to regular bash if profile not found
+        // Fallback to regular bash if no profiles exist at all
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
@@ -656,6 +666,7 @@ function SidePanelTerminal() {
         if (tmuxPane) {
           // Use targeted pane send - goes directly to Claude's pane
           // This prevents sending to TUI tools (like TFE) in other panes
+          console.log(`[ChatSend] Using TARGETED_PANE_SEND to pane ${tmuxPane}`)
           sendMessage({
             type: 'TARGETED_PANE_SEND',
             tmuxPane,
@@ -666,6 +677,7 @@ function SidePanelTerminal() {
           // Fallback: Use tmux session name when pane ID isn't available
           // This is safer than PTY for Claude terminals - sends to first pane of session
           // Avoids the bug where content gets executed by bash instead of going to Claude
+          console.log(`[ChatSend] Using TMUX_SESSION_SEND to session ${tmuxSessionName}`)
           sendMessage({
             type: 'TMUX_SESSION_SEND',
             sessionName: tmuxSessionName,
@@ -773,8 +785,18 @@ function SidePanelTerminal() {
     const currentGlobalWorkingDir = globalWorkingDir
 
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
-      const defaultProfileId = result.defaultProfile || 'default'
       const profiles = (result.profiles as Profile[]) || []
+      const savedDefaultId = (result.defaultProfile as string) || 'default'
+
+      // Validate defaultProfile - ensure it matches an existing profile ID
+      const profileIds = profiles.map(p => p.id)
+      let defaultProfileId = savedDefaultId
+      if (!profileIds.includes(savedDefaultId) && profiles.length > 0) {
+        defaultProfileId = profiles[0].id
+        console.warn(`[KeyboardNewTab] defaultProfile '${savedDefaultId}' not found, auto-fixing to '${defaultProfileId}'`)
+        chrome.storage.local.set({ defaultProfile: defaultProfileId })
+      }
+
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {

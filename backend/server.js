@@ -317,14 +317,15 @@ wss.on('connection', (ws) => {
           // Sends to first pane of session - safer than PTY for Claude terminals
           {
             const { sessionName, text: sessionText, sendEnter: sessionSendEnter } = data;
+            log.info(`[tmux-session-send] Received: session=${sessionName}, textLen=${sessionText?.length}, sendEnter=${sessionSendEnter}`);
             if (!sessionName) {
               log.warn(`tmux-session-send missing sessionName`);
               break;
             }
             try {
               const { spawnSync } = require('child_process');
-              // Target the session's first pane (sessionName:0.0)
-              const target = `${sessionName}:0.0`;
+              // Target the session directly (tmux will use current window/pane)
+              const target = sessionName;
               if (sessionText) {
                 // Use spawnSync with array args to bypass shell interpretation
                 // This preserves $VAR, backticks, and other shell special characters
@@ -362,12 +363,12 @@ wss.on('connection', (ws) => {
               const terminal = terminalRegistry.getTerminal(data.terminalId);
               if (terminal?.ptyInfo?.tmuxSession) {
                 const { execSync } = require('child_process');
-                // Send tmux refresh-client to redraw all panes correctly
+                // Send empty key to trigger redraw (refresh-client needs client target, not session)
                 execSync(
-                  `tmux refresh-client -t "${terminal.ptyInfo.tmuxSession}" 2>/dev/null || true`,
+                  `tmux send-keys -t "${terminal.ptyInfo.tmuxSession}" '' 2>/dev/null || true`,
                   { encoding: 'utf8', timeout: 1000 }
                 );
-                log.info(`[Tmux Refresh] Sent refresh-client for ${data.terminalId.slice(-8)}`);
+                log.debug(`[Tmux Refresh] Sent refresh for ${data.terminalId.slice(-8)}`);
               }
             } catch (err) {
               log.debug(`Could not refresh tmux for ${data.terminalId.slice(-8)}:`, err.message);

@@ -215,7 +215,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           }
         })
         setProfiles(migratedProfiles)
-        setDefaultProfile((result.defaultProfile as string) || 'default')
+
+        // Validate defaultProfile - ensure it matches an existing profile ID
+        const savedDefault = result.defaultProfile as string
+        const profileIds = migratedProfiles.map((p: Profile) => p.id)
+        const validDefault = savedDefault && profileIds.includes(savedDefault)
+          ? savedDefault
+          : migratedProfiles[0]?.id || 'default'
+
+        if (!validDefault || validDefault !== savedDefault) {
+          console.log(`[Settings] defaultProfile '${savedDefault}' not found in profiles, using '${validDefault}'`)
+          chrome.storage.local.set({ defaultProfile: validDefault })
+        }
+        setDefaultProfile(validDefault)
 
         // Save migrated profiles back to storage if any were updated
         const needsMigration = (result.profiles as any[]).some(

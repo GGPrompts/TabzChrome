@@ -1122,4 +1122,70 @@ terminalRegistry.on('output', (terminalId, data) => {
 
 ---
 
-**Last Updated**: November 13, 2025
+---
+
+## Chat Input & Tmux Integration
+
+### Lesson: Tmux Session Targets Don't Need Window/Pane Suffix (Dec 8, 2025)
+
+**Problem:** Chat messages sent to plain bash terminals "disappeared into the void" - never appeared in terminal.
+
+**What Happened:**
+1. User types message in chat input for bash terminal
+2. Frontend sends `TMUX_SESSION_SEND` with `sessionName: "ctt-defaultbash-a559de93"`
+3. Backend constructs target as `${sessionName}:0.0` → `ctt-defaultbash-a559de93:0.0`
+4. Runs `tmux send-keys -t ctt-defaultbash-a559de93:0.0 -l "test"`
+5. Tmux error: `can't find window: 0`
+6. Message silently lost
+
+**Root Cause:** The `:0.0` suffix assumes window 0, pane 0 exists. But tmux sessions may:
+- Have `base-index` set to 1 (windows start at 1, not 0)
+- Have different window numbering due to config
+- Only have the active window/pane
+
+**Wrong Approach:**
+```javascript
+// ❌ BROKEN - assumes window 0 exists
+const target = `${sessionName}:0.0`;
+spawnSync('tmux', ['send-keys', '-t', target, '-l', text]);
+```
+
+**Right Approach:**
+```javascript
+// ✅ CORRECT - let tmux use current/active window
+const target = sessionName;
+spawnSync('tmux', ['send-keys', '-t', target, '-l', text]);
+```
+
+**Why This Works:**
+- `tmux send-keys -t sessionName` targets the session's **current** window and pane
+- No need to specify `:0.0` - tmux knows which pane is active
+- Works regardless of `base-index` setting
+
+**Verification:**
+```bash
+# This FAILS if base-index=1:
+tmux send-keys -t ctt-bash-abc123:0.0 -l "test"
+# Error: can't find window: 0
+
+# This ALWAYS WORKS:
+tmux send-keys -t ctt-bash-abc123 -l "test"
+# Success - sends to current window/pane
+```
+
+**Key Insight:**
+- Tmux session names are sufficient targets for send-keys
+- Window/pane suffixes (`:0.0`) are only needed when targeting specific panes in multi-window sessions
+- For single-window sessions (most terminal tabs), just use the session name
+
+**Related Issue - defaultProfile Validation:**
+Also discovered that `defaultProfile` setting can point to non-existent profile ID, causing spawn to skip profile entirely. Added auto-validation that fixes `defaultProfile` to first available profile if mismatch detected.
+
+**Files:**
+- `backend/server.js:325-328` - Removed `:0.0` suffix from tmux target
+- `extension/sidepanel/sidepanel.tsx:519-535` - Auto-fix invalid defaultProfile
+- `extension/components/SettingsModal.tsx:219-230` - Validate defaultProfile on load
+
+---
+
+**Last Updated**: December 8, 2025

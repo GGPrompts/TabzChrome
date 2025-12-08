@@ -300,8 +300,6 @@ class TerminalRegistry extends EventEmitter {
     };
 
     console.log(`[TerminalRegistry] Working directory: ${config.workingDir} -> ${terminalConfig.workingDir}`);
-    console.log(`[TerminalRegistry] Profile in config:`, JSON.stringify(config.profile));
-    console.log(`[TerminalRegistry] Profile in terminalConfig:`, JSON.stringify(terminalConfig.profile));
 
     // Debug terminal type
     console.log(`[TerminalRegistry] Registering terminal with type: '${terminalConfig.terminalType}' (config.terminalType: '${config.terminalType}')`);
