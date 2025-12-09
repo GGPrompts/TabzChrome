@@ -131,6 +131,7 @@ export interface AudioEventSettings {
   ready: boolean
   sessionStart: boolean
   tools: boolean
+  toolDetails: boolean  // Announce file names for Read/Edit/Write, patterns for Grep/Glob
   subagents: boolean
 }
 
@@ -162,6 +163,7 @@ const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     ready: true,
     sessionStart: false,
     tools: false,
+    toolDetails: false,
     subagents: false,
   },
   toolDebounceMs: 1000,
@@ -1867,7 +1869,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="flex items-center justify-between p-3">
                     <div>
                       <span className="text-sm text-white">Tool announcements</span>
-                      <p className="text-xs text-gray-500">"Reading file", "Editing", "Searching"...</p>
+                      <p className="text-xs text-gray-500">"Reading", "Editing", "Searching"...</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -1879,6 +1881,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
                     </label>
                   </div>
+
+                  {/* Tool Details (only shown if tools enabled) */}
+                  {audioSettings.events.tools && (
+                    <div className="flex items-center justify-between p-3 pl-8 bg-black/20">
+                      <div>
+                        <span className="text-sm text-white">Include file names</span>
+                        <p className="text-xs text-gray-500">"Reading settings.tsx", "Editing api.js"...</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={audioSettings.events.toolDetails}
+                          onChange={(e) => updateAudioEvents({ toolDetails: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                      </label>
+                    </div>
+                  )}
 
                   {/* Subagents */}
                   <div className="flex items-center justify-between p-3">

@@ -144,8 +144,8 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
     // Initial check
     checkStatus()
 
-    // Poll every 3 seconds (balance between responsiveness and performance)
-    const interval = setInterval(checkStatus, 3000)
+    // Poll every 1 second (more responsive for tool announcements)
+    const interval = setInterval(checkStatus, 1000)
 
     return () => clearInterval(interval)
   }, [terminalsKey])  // Use stable key instead of array reference to prevent re-running on every render
@@ -166,8 +166,32 @@ export function getRobotEmojis(status: ClaudeStatus | undefined): string {
 }
 
 /**
+ * Get tool-specific emoji for display
+ * Maps tool names to intuitive emojis
+ */
+export function getToolEmoji(toolName: string | undefined): string {
+  if (!toolName) return '🔧'
+
+  switch (toolName) {
+    case 'Read': return '📖'
+    case 'Write': return '📝'
+    case 'Edit': return '✏️'
+    case 'Bash': return '🔺'
+    case 'Glob': return '🔍'
+    case 'Grep': return '🔎'
+    case 'Task': return '🤖'
+    case 'WebFetch': return '🌐'
+    case 'WebSearch': return '🔍'
+    case 'TodoWrite': return '📋'
+    case 'NotebookEdit': return '📓'
+    case 'AskUserQuestion': return '❓'
+    default: return '🔧'
+  }
+}
+
+/**
  * Get status emoji for display
- * Returns just the emoji, suitable for compact tab display
+ * Returns tool-specific emoji when using a tool, otherwise status emoji
  */
 export function getStatusEmoji(status: ClaudeStatus | undefined): string {
   if (!status) return ''
@@ -177,9 +201,10 @@ export function getStatusEmoji(status: ClaudeStatus | undefined): string {
     case 'awaiting_input':
       return '✓'  // Ready/waiting for input
     case 'processing':
-      return '⏳' // Thinking
+      // Show tool emoji if we know the tool, otherwise hourglass
+      return status.current_tool ? getToolEmoji(status.current_tool) : '⏳'
     case 'tool_use':
-      return '🔧' // Using a tool
+      return getToolEmoji(status.current_tool)
     case 'working':
       return '💭' // Working/processing
     default:
@@ -189,7 +214,7 @@ export function getStatusEmoji(status: ClaudeStatus | undefined): string {
 
 /**
  * Get detailed status text for display (matches Tabz format)
- * Returns emoji + tool name + detail, e.g., "🔧 Read: settings.tsx"
+ * Returns emoji + tool name + detail, e.g., "📖 Read: settings.tsx"
  * When idle/ready, shows profile name if provided, otherwise "Ready"
  */
 export function getStatusText(status: ClaudeStatus | undefined, profileName?: string): string {
@@ -214,7 +239,8 @@ export function getStatusText(status: ClaudeStatus | undefined, profileName?: st
           const cmd = args.command
           detail = `: ${cmd.length > 20 ? cmd.substring(0, 20) + '…' : cmd}`
         }
-        return `⏳ ${status.current_tool}${detail}`
+        const emoji = getToolEmoji(status.current_tool)
+        return `${emoji} ${status.current_tool}${detail}`
       }
       return '⏳ Processing'
     }
@@ -241,7 +267,8 @@ export function getStatusText(status: ClaudeStatus | undefined, profileName?: st
           detail = `: ${pattern.length > 15 ? pattern.substring(0, 15) + '…' : pattern}`
         }
       }
-      return status.current_tool ? `🔧 ${status.current_tool}${detail}` : '🔧 Tool'
+      const emoji = getToolEmoji(status.current_tool)
+      return status.current_tool ? `${emoji} ${status.current_tool}${detail}` : '🔧 Tool'
     }
     case 'working':
       return '⚙️ Working'

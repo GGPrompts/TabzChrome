@@ -104,12 +104,13 @@ function SidePanelTerminal() {
     volume: 0.7,
     voice: 'en-US-AndrewMultilingualNeural',
     rate: '+0%',
-    events: { ready: true, sessionStart: false, tools: false, subagents: false },
+    events: { ready: true, sessionStart: false, tools: false, toolDetails: false, subagents: false },
     toolDebounceMs: 1000,
   })
   const [audioGlobalMute, setAudioGlobalMute] = useState(false)  // Master mute toggle in header
   const [categorySettings, setCategorySettings] = useState<CategorySettings>({})  // Category colors for tabs
   const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())  // Track previous statuses for transition detection
+  const prevToolNamesRef = useRef<Map<string, string>>(new Map())  // Track previous tool names for consecutive tool announcements
   const prevSubagentCountsRef = useRef<Map<string, number>>(new Map())  // Track subagent counts for change detection
   const lastAudioTimeRef = useRef<number>(0)  // Debounce audio playback
   const lastToolAudioTimeRef = useRef<number>(0)  // Separate debounce for tool announcements
@@ -461,10 +462,7 @@ function SidePanelTerminal() {
   // Watch Claude status changes and trigger audio notifications
   useEffect(() => {
     // If master mute is on, no audio plays regardless of profile settings
-    if (audioGlobalMute) {
-      console.log('[Audio] Master mute is on, skipping')
-      return
-    }
+    if (audioGlobalMute) return
 
     // Check each terminal for status transitions
     claudeStatuses.forEach((status, terminalId) => {
@@ -473,20 +471,12 @@ function SidePanelTerminal() {
       const currentStatus = status.status
       const currentSubagentCount = status.subagent_count || 0
 
-      // Log all status changes for debugging
-      if (prevStatus !== currentStatus) {
-        console.log(`[Audio] Status change for ${terminalId}: ${prevStatus} → ${currentStatus}`, { tool: status.current_tool })
-      }
-
       // Find the session to get its profile and assigned voice
       const session = sessions.find(s => s.id === terminalId)
 
       // Check if audio is enabled for this profile (uses getAudioSettingsForProfile logic)
       const audioForProfile = getAudioSettingsForProfile(session?.profile, session?.assignedVoice)
       if (!audioForProfile.enabled) {
-        if (prevStatus !== currentStatus) {
-          console.log(`[Audio] Audio disabled for profile. audioSettings.enabled=${audioSettings.enabled}, audioGlobalMute=${audioGlobalMute}, profileMode=${session?.profile?.audioOverrides?.mode}`)
-        }
         prevClaudeStatusesRef.current.set(terminalId, currentStatus)
         prevSubagentCountsRef.current.set(terminalId, currentSubagentCount)
         return
@@ -512,23 +502,21 @@ function SidePanelTerminal() {
           currentStatus === 'awaiting_input' &&
           currentSubagentCount === 0
 
-      if (currentStatus === 'awaiting_input' && prevStatus !== 'awaiting_input') {
-        console.log(`[Audio] Ready check: events.ready=${audioSettings.events.ready}, prevStatus=${prevStatus}, subagents=${currentSubagentCount}, shouldPlay=${shouldPlayReady}`)
-      }
-
       if (shouldPlayReady) {
-        console.log(`[Audio] Playing ready notification: "${getDisplayName()} ready"`)
         playAudio(`${getDisplayName()} ready`, session)
       }
 
-      // EVENT: Tool announcements (idle/processing → tool_use)
-      if (audioSettings.events.tools &&
-          currentStatus === 'tool_use' &&
-          prevStatus !== 'tool_use' &&
-          status.current_tool) {
-        const toolName = status.current_tool
+      // EVENT: Tool announcements
+      // Trigger when: tool_use status, OR processing/tool_use with a NEW tool name
+      // This catches tools even if we poll during 'processing' state (post-tool)
+      const prevToolName = prevToolNamesRef.current.get(terminalId) || ''
+      const currentToolName = status.current_tool || ''
+      const isActiveStatus = currentStatus === 'tool_use' || currentStatus === 'processing'
+      const isNewTool = currentToolName !== '' && currentToolName !== prevToolName
+
+      if (audioSettings.events.tools && isActiveStatus && isNewTool) {
         let announcement = ''
-        switch (toolName) {
+        switch (currentToolName) {
           case 'Read': announcement = 'Reading'; break
           case 'Write': announcement = 'Writing'; break
           case 'Edit': announcement = 'Editing'; break
@@ -538,10 +526,28 @@ function SidePanelTerminal() {
           case 'Task': announcement = 'Spawning agent'; break
           case 'WebFetch': announcement = 'Fetching web'; break
           case 'WebSearch': announcement = 'Searching web'; break
-          default: announcement = `Using ${toolName}`
+          default: announcement = `Using ${currentToolName}`
         }
+
+        // Add file details if enabled
+        if (audioSettings.events.toolDetails && status.details?.args) {
+          const args = status.details.args
+          if (args.file_path) {
+            // Extract just the filename from the path
+            const parts = args.file_path.split('/')
+            const filename = parts[parts.length - 1]
+            announcement += ` ${filename}`
+          } else if (args.pattern && (currentToolName === 'Glob' || currentToolName === 'Grep')) {
+            // Add search pattern for search tools
+            announcement += ` for ${args.pattern}`
+          }
+        }
+
         playAudio(announcement, session, true)
       }
+
+      // Update previous tool name
+      prevToolNamesRef.current.set(terminalId, currentToolName)
 
       // EVENT: Subagent count changes
       if (audioSettings.events.subagents && currentSubagentCount !== prevSubagentCount) {
@@ -563,6 +569,7 @@ function SidePanelTerminal() {
     for (const id of prevClaudeStatusesRef.current.keys()) {
       if (!claudeStatuses.has(id)) {
         prevClaudeStatusesRef.current.delete(id)
+        prevToolNamesRef.current.delete(id)
         prevSubagentCountsRef.current.delete(id)
       }
     }

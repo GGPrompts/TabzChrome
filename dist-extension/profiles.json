@@ -4,7 +4,7 @@
       "id": "default",
       "name": "Default",
       "workingDir": "",
-      "fontSize": 14,
+      "fontSize": 16,
       "fontFamily": "monospace",
       "themeName": "high-contrast"
     },
@@ -12,7 +12,7 @@
       "id": "projects",
       "name": "Projects",
       "workingDir": "~/projects",
-      "fontSize": 14,
+      "fontSize": 16,
       "fontFamily": "monospace",
       "themeName": "high-contrast"
     },
@@ -28,7 +28,7 @@
       "id": "dracula",
       "name": "Dracula",
       "workingDir": "",
-      "fontSize": 14,
+      "fontSize": 16,
       "fontFamily": "monospace",
       "themeName": "dracula"
     }
