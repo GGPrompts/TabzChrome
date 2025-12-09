@@ -8,20 +8,26 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { takeScreenshot, downloadImage } from "../client.js";
 
-// Input schema for tabz_screenshot
-const ScreenshotSchema = z.object({
+// Input schema for tabz_screenshot (viewport only)
+const ScreenshotViewportSchema = z.object({
   selector: z.string()
     .optional()
-    .describe("CSS selector for element to screenshot. If not provided, captures the viewport or full page."),
-  fullPage: z.boolean()
-    .default(false)
-    .describe("Capture the full scrollable page instead of just the viewport (default: false)"),
+    .describe("CSS selector for element to screenshot. If not provided, captures the current viewport."),
   outputPath: z.string()
     .optional()
     .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png")
 }).strict();
 
-type ScreenshotInput = z.infer<typeof ScreenshotSchema>;
+type ScreenshotViewportInput = z.infer<typeof ScreenshotViewportSchema>;
+
+// Input schema for tabz_screenshot_full (entire scrollable page)
+const ScreenshotFullSchema = z.object({
+  outputPath: z.string()
+    .optional()
+    .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png")
+}).strict();
+
+type ScreenshotFullInput = z.infer<typeof ScreenshotFullSchema>;
 
 // Input schema for tabz_download_image
 const DownloadImageSchema = z.object({
@@ -43,17 +49,19 @@ type DownloadImageInput = z.infer<typeof DownloadImageSchema>;
  * Register screenshot tools with the MCP server
  */
 export function registerScreenshotTools(server: McpServer): void {
-  // Screenshot tool
+  // Screenshot viewport tool - captures what's currently visible
   server.tool(
     "tabz_screenshot",
-    `Capture a screenshot of the browser page and save to local disk.
+    `Capture a screenshot of the current browser viewport (what's visible on screen).
+
+Use this tool when you need to see "what I see", "my current view", or "the visible area".
+For capturing an entire scrollable page, use tabz_screenshot_full instead.
 
 This tool captures screenshots via Chrome DevTools Protocol (CDP). Screenshots are saved
 to ~/ai-images/ by default, and the file path is returned so Claude can view it with the Read tool.
 
 Args:
-  - selector (optional): CSS selector to screenshot a specific element
-  - fullPage (optional): If true, captures the entire scrollable page (default: false)
+  - selector (optional): CSS selector to screenshot a specific element instead of the viewport
   - outputPath (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
 
 Returns:
@@ -62,10 +70,14 @@ Returns:
   - error: Error message if failed
 
 Examples:
-  - Capture viewport: (no args needed)
-  - Capture full page: fullPage=true
-  - Capture element: selector="#main-content"
-  - Custom path: outputPath="/tmp/screenshot.png"
+  - "Screenshot my view" → tabz_screenshot (no args)
+  - "Screenshot that button" → tabz_screenshot with selector="button.submit"
+  - "What do I see right now" → tabz_screenshot (no args)
+
+When to use tabz_screenshot_full instead:
+  - "Screenshot this page" → use tabz_screenshot_full
+  - "Capture the entire page" → use tabz_screenshot_full
+  - "I want to see the whole page" → use tabz_screenshot_full
 
 Error Handling:
   - "CDP not available": Chrome not running with --remote-debugging-port=9222
@@ -73,12 +85,12 @@ Error Handling:
   - "Element not found": Selector doesn't match any element
 
 After capturing, use the Read tool with the returned filePath to view the screenshot.`,
-    ScreenshotSchema.shape,
-    async (params: ScreenshotInput) => {
+    ScreenshotViewportSchema.shape,
+    async (params: ScreenshotViewportInput) => {
       try {
         const result = await takeScreenshot({
           selector: params.selector,
-          fullPage: params.fullPage,
+          fullPage: false,
           outputPath: params.outputPath
         });
 
@@ -101,6 +113,89 @@ Troubleshooting:
 - Ensure Chrome is running with: --remote-debugging-port=9222
 - Check that a webpage (not chrome://) is open
 - Verify the selector matches an element on the page`;
+        }
+
+        return {
+          content: [{ type: "text", text: resultText }],
+          isError: !result.success
+        };
+      } catch (error) {
+        return {
+          content: [{
+            type: "text",
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // Screenshot full page tool - captures entire scrollable page
+  server.tool(
+    "tabz_screenshot_full",
+    `Capture a screenshot of the entire scrollable page in one image.
+
+Use this tool when you need to see "the whole page", "entire page", "full page", or "this page".
+This captures everything from top to bottom, even content below the fold.
+For capturing only what's currently visible, use tabz_screenshot instead.
+
+This is the recommended tool when exploring a webpage for the first time, as it shows all content
+without needing to scroll and take multiple screenshots.
+
+This tool captures screenshots via Chrome DevTools Protocol (CDP). Screenshots are saved
+to ~/ai-images/ by default, and the file path is returned so Claude can view it with the Read tool.
+
+Args:
+  - outputPath (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
+
+Returns:
+  - success: Whether the screenshot was captured
+  - filePath: Path to the saved screenshot file (use Read tool to view)
+  - error: Error message if failed
+
+Examples:
+  - "Screenshot this page" → tabz_screenshot_full
+  - "Capture the entire page" → tabz_screenshot_full
+  - "Show me the whole page" → tabz_screenshot_full
+  - "Take a full page screenshot" → tabz_screenshot_full
+
+When to use tabz_screenshot instead:
+  - "Screenshot my view" → use tabz_screenshot
+  - "What's visible right now" → use tabz_screenshot
+  - "Screenshot that button" → use tabz_screenshot with selector
+
+Error Handling:
+  - "CDP not available": Chrome not running with --remote-debugging-port=9222
+  - "No active page": No browser tab is open
+
+After capturing, use the Read tool with the returned filePath to view the screenshot.`,
+    ScreenshotFullSchema.shape,
+    async (params: ScreenshotFullInput) => {
+      try {
+        const result = await takeScreenshot({
+          fullPage: true,
+          outputPath: params.outputPath
+        });
+
+        let resultText: string;
+        if (result.success && result.filePath) {
+          resultText = `## Full Page Screenshot Captured
+
+**File saved to:** ${result.filePath}
+
+Use the Read tool to view the screenshot:
+\`\`\`
+Read file: ${result.filePath}
+\`\`\``;
+        } else {
+          resultText = `## Full Page Screenshot Failed
+
+**Error:** ${result.error}
+
+Troubleshooting:
+- Ensure Chrome is running with: --remote-debugging-port=9222
+- Check that a webpage (not chrome://) is open`;
         }
 
         return {

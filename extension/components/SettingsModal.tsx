@@ -20,7 +20,8 @@ const MCP_TOOLS: McpTool[] = [
   // Interaction tools
   { id: 'tabz_click', name: 'Click', desc: 'Click elements by CSS selector', tokens: 986 },
   { id: 'tabz_fill', name: 'Fill', desc: 'Fill form inputs with text', tokens: 1100 },
-  { id: 'tabz_screenshot', name: 'Screenshot', desc: 'Capture page screenshots to disk', tokens: 995 },
+  { id: 'tabz_screenshot', name: 'Screenshot', desc: 'Capture viewport (visible area)', tokens: 995 },
+  { id: 'tabz_screenshot_full', name: 'Screenshot Full', desc: 'Capture entire scrollable page', tokens: 1100 },
   { id: 'tabz_download_image', name: 'Download Image', desc: 'Download images from pages', tokens: 1000 },
   { id: 'tabz_get_element', name: 'Inspect Element', desc: 'Get HTML/CSS details of elements', tokens: 1300 },
   // Navigation
@@ -41,7 +42,7 @@ const CORE_TOOL_IDS = MCP_TOOLS.filter(t => t.locked).map(t => t.id)
 
 const PRESETS = {
   minimal: CORE_TOOL_IDS,
-  standard: [...CORE_TOOL_IDS, 'tabz_click', 'tabz_fill', 'tabz_screenshot', 'tabz_open_url', 'tabz_get_console_logs', 'tabz_enable_network_capture', 'tabz_get_network_requests'],
+  standard: [...CORE_TOOL_IDS, 'tabz_click', 'tabz_fill', 'tabz_screenshot', 'tabz_screenshot_full', 'tabz_open_url', 'tabz_get_console_logs', 'tabz_enable_network_capture', 'tabz_get_network_requests'],
   full: ALL_TOOL_IDS,
 }
 
@@ -767,6 +768,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <p className="text-sm text-gray-400">
                   Control which MCP tools are available to Claude Code.
                   Fewer tools = less context usage = faster responses.
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 <a
+                    href="https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#00c8ff] hover:underline"
+                  >Save ~80% tokens with mcp-cli mode</a>
                 </p>
               </div>
 

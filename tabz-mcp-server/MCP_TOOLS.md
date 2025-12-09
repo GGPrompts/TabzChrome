@@ -9,7 +9,8 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_get_page_info` | "what page", "current tab", "what site", "looking at", "URL" | Get the current page's URL, title, and tab ID |
 | `tabz_get_console_logs` | "console logs", "errors", "warnings", "debug", "browser logs" | Retrieve console output from browser tabs |
 | `tabz_execute_script` | "run script", "execute", "DOM", "get element", "page data" | Execute JavaScript in the browser tab |
-| `tabz_screenshot` | "screenshot", "capture page", "take picture", "save screen" | Capture screenshots to local disk |
+| `tabz_screenshot` | "screenshot my view", "what I see", "current viewport" | Capture viewport screenshot (what's visible) |
+| `tabz_screenshot_full` | "screenshot this page", "full page", "entire page", "whole page" | Capture entire scrollable page in one image |
 | `tabz_download_image` | "download image", "save image", "get picture" | Download images from pages to local disk |
 | `tabz_list_tabs` | "list tabs", "what tabs", "open tabs", "show tabs" | List all open browser tabs |
 | `tabz_switch_tab` | "switch tab", "go to tab", "change tab" | Switch to a specific tab |
@@ -120,17 +121,21 @@ JSON.stringify(localStorage)
 
 ## tabz_screenshot
 
-**Purpose:** Capture a screenshot of the browser page and save to local disk.
+**Purpose:** Capture a screenshot of the current viewport (what's visible on screen).
 
-**Trigger phrases:**
-- "Take a screenshot of this page"
-- "Capture the screen"
-- "Save a picture of the page"
-- "Screenshot the element"
+**When to use:**
+- "Screenshot my view"
+- "What do I see right now"
+- "Screenshot that button" (with selector)
+- "Capture current viewport"
+
+**When to use `tabz_screenshot_full` instead:**
+- "Screenshot this page"
+- "Capture the entire page"
+- "Show me the whole page"
 
 **Parameters:**
 - `selector` (optional): CSS selector for a specific element to screenshot
-- `fullPage` (optional): If true, captures the entire scrollable page (default: false)
 - `outputPath` (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
 
 **Returns:**
@@ -139,11 +144,8 @@ JSON.stringify(localStorage)
 
 **Examples:**
 ```javascript
-// Capture viewport
+// Capture viewport (what's visible)
 {}
-
-// Capture full page
-{ fullPage: true }
 
 // Capture specific element
 { selector: "#main-content" }
@@ -151,6 +153,42 @@ JSON.stringify(localStorage)
 // Custom output path
 { outputPath: "/tmp/screenshot.png" }
 ```
+
+---
+
+## tabz_screenshot_full
+
+**Purpose:** Capture the entire scrollable page in one image.
+
+**When to use:**
+- "Screenshot this page"
+- "Capture the entire page"
+- "Show me the whole page"
+- "Take a full page screenshot"
+- First-time page exploration (recommended - avoids scroll-and-screenshot)
+
+**When to use `tabz_screenshot` instead:**
+- "Screenshot my view"
+- "What's visible right now"
+- "Screenshot that button" (with selector)
+
+**Parameters:**
+- `outputPath` (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
+
+**Returns:**
+- `success`: Whether the screenshot was captured
+- `filePath`: Path to the saved screenshot (use Read tool to view)
+
+**Examples:**
+```javascript
+// Capture full scrollable page
+{}
+
+// Custom output path
+{ outputPath: "/tmp/fullpage.png" }
+```
+
+**Note:** This is the recommended tool when exploring a webpage for the first time, as it captures all content without needing to scroll and take multiple screenshots.
 
 ---
 
@@ -600,8 +638,8 @@ Confirmation that requests were cleared.
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           CDP-BASED TOOLS                            │
-│    (tabz_screenshot, tabz_click, tabz_fill, tabz_*_tab,     │
-│     tabz_download_image, tabz_get_element, tabz_*_network)   │
+│  (tabz_screenshot, tabz_screenshot_full, tabz_click, tabz_fill, │
+│   tabz_*_tab, tabz_download_image, tabz_get_element, tabz_*_network) │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  WINDOWS:                                                            │
