@@ -132,12 +132,86 @@ Audio Notifications
 
 ---
 
+### 3. Profile Organization (Categories + Search)
+
+**Goal**: Make long profile lists manageable with categories and/or search.
+
+**Options:**
+
+#### Option A: Collapsible Categories
+```
+▼ Claude Code (4)
+    Claude (default)
+    Claude --dangerously-skip-permissions
+    Claude Resume
+    Claude Opus
+▼ TUI Tools (3)
+    lazygit
+    htop
+    btop
+► Development (2)  [collapsed]
+```
+
+**Implementation:**
+1. Add `category` field to profile schema (optional, default: "Uncategorized")
+2. Group profiles by category in UI
+3. Collapsible headers with count badge
+4. Remember collapsed state in Chrome storage
+5. Add category selector in profile edit form
+6. Drag-drop to reorder within category
+
+**Considerations:**
+- Migration: existing profiles get "Uncategorized" or infer from name
+- Default profile indicator still visible
+- Categories could be user-defined or preset list
+
+#### Option B: Search/Filter Bar
+```
+[🔍 Search profiles...        ]
+```
+
+1. Add search input above profile list
+2. Filter profiles by name/command as user types
+3. Highlight matching text
+4. Show "No matches" if empty
+
+**Pros:** Simpler to implement, no schema changes
+**Cons:** Doesn't help visual organization
+
+#### Option C: Both (Recommended)
+- Categories for organization
+- Search for quick access when you know what you want
+- Search filters across all categories
+
+**Files to modify:**
+- `extension/components/SettingsModal.tsx` - UI changes
+- `extension/shared/storage.ts` - Profile schema update (if categories)
+- Profile type definition
+
+**Profile schema addition:**
+```typescript
+interface Profile {
+  id: string;
+  name: string;
+  workingDir?: string;
+  command?: string;
+  fontSize: number;
+  fontFamily: string;
+  theme: string;
+  category?: string;  // NEW: optional category
+}
+```
+
+---
+
 ### Implementation Order
 
 1. **Profile Export** (30 min) - Simple, high value for sharing
 2. **Profile Import** (30 min) - Completes the feature
-3. **Audio: Basic sounds** (1 hr) - Add files, playback logic, settings
-4. **Audio: TTS** (optional) - If you want dynamic announcements
+3. **Profile Search** (30 min) - Quick win, no schema changes
+4. **Profile Categories** (1 hr) - Full organization solution
+5. **Audio: Basic sounds** (1 hr) - Add files, playback logic, settings
+6. **Audio: TTS** (optional) - If you want dynamic announcements
 
 ---
 
