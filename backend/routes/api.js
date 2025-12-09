@@ -478,7 +478,7 @@ router.get('/tmux/sessions', asyncHandler(async (req, res) => {
 
   try {
     // List tmux sessions with format: session_name:session_id
-    const output = execSync('tmux list-sessions -F "#{session_name}"', { encoding: 'utf8' });
+    const output = execSync('tmux list-sessions -F "#{session_name}" 2>/dev/null', { encoding: 'utf8' });
     const sessions = output.trim().split('\n').filter(s => s.length > 0);
 
     res.json({
@@ -1067,7 +1067,7 @@ router.post('/claude-status/cleanup', asyncHandler(async (req, res) => {
     // Get all active tmux panes
     let activePanes = new Set();
     try {
-      const panes = execSync('tmux list-panes -a -F "#{pane_id}"', { encoding: 'utf-8' });
+      const panes = execSync('tmux list-panes -a -F "#{pane_id}" 2>/dev/null', { encoding: 'utf-8' });
       activePanes = new Set(panes.trim().split('\n').filter(p => p));
     } catch (err) {
       console.warn('[API] Could not list tmux panes:', err.message);
@@ -1202,7 +1202,7 @@ router.get('/tmux/orphaned-sessions', asyncHandler(async (req, res) => {
     // Get all tmux sessions
     let tmuxSessions = [];
     try {
-      const output = execSync('tmux list-sessions -F "#{session_name}"', { encoding: 'utf8' });
+      const output = execSync('tmux list-sessions -F "#{session_name}" 2>/dev/null', { encoding: 'utf8' });
       tmuxSessions = output.trim().split('\n').filter(s => s.length > 0);
     } catch (err) {
       // tmux server not running or no sessions
