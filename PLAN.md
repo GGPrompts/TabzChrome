@@ -1,8 +1,143 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 7, 2025
-**Current Version**: 2.3.0
-**Status**: Phase 2B Complete | Next: Phase 2C Power Tools
+**Last Updated**: December 9, 2025
+**Current Version**: 2.4.0
+**Status**: Pre-release polish | Next: Profile Export + Audio Notifications
+
+---
+
+## Next Up: Pre-Release Features
+
+### 1. Profile Import/Export
+
+**Goal**: Let users backup, share, and restore their terminal profiles.
+
+**UI Location**: Settings Modal → Profiles tab → Add Import/Export buttons
+
+**Implementation:**
+
+#### Export Profiles
+```
+[Export] button → Downloads profiles.json
+```
+
+1. Add "Export" button next to profile list header
+2. On click: serialize profiles array to JSON
+3. Trigger browser download of `tabz-profiles-{date}.json`
+4. Include version number for future compatibility
+
+**Export format:**
+```json
+{
+  "version": 1,
+  "exported": "2025-12-09T12:00:00Z",
+  "profiles": [
+    {
+      "id": "bash",
+      "name": "Bash",
+      "workingDir": "",
+      "command": "",
+      "fontSize": 14,
+      "fontFamily": "JetBrains Mono",
+      "theme": "dracula"
+    }
+  ]
+}
+```
+
+#### Import Profiles
+```
+[Import] button → File picker → Merge or Replace dialog
+```
+
+1. Add "Import" button next to Export
+2. On click: open file picker (accept .json)
+3. Parse and validate JSON structure
+4. Show dialog: "Merge with existing" or "Replace all"
+5. If merge: skip duplicates by ID, add new ones
+6. Save to Chrome storage
+
+**Files to modify:**
+- `extension/components/SettingsModal.tsx` - Add buttons and logic
+- No backend changes needed (Chrome storage only)
+
+**Edge cases:**
+- Invalid JSON → Show error toast
+- Missing required fields → Skip invalid profiles with warning
+- Duplicate IDs on merge → Keep existing, skip imported
+
+---
+
+### 2. Audio Notifications for Claude Status
+
+**Goal**: Play sounds when Claude Code status changes (idle→working, working→idle, tool use).
+
+**Current state tracking**: You have hooks that track Claude status via terminal output parsing.
+
+**Options to explore:**
+
+#### Option A: Chrome Extension Audio (Simplest)
+```
+Extension plays audio files when claudeStatuses changes
+```
+
+1. Add audio files to extension (`extension/sounds/`)
+   - `ready.mp3` - Claude finished, ready for input
+   - `working.mp3` - Claude started working (optional, might be annoying)
+   - `tool.mp3` - Tool use detected (optional)
+
+2. In sidepanel, watch `claudeStatuses` state changes
+3. Use Web Audio API or `<audio>` element to play sounds
+4. Add Settings toggle: "Enable audio notifications"
+5. Optional: Per-sound toggles, volume slider
+
+**Pros:** Simple, works offline, instant
+**Cons:** Limited to bundled sounds
+
+#### Option B: Backend Audio via PowerShell TTS (Windows)
+```
+Backend triggers PowerShell speech synthesis
+```
+
+1. Backend endpoint: `POST /api/audio/speak` with text
+2. Calls PowerShell: `Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Claude is ready')`
+3. Extension calls this endpoint on status change
+
+**Pros:** Dynamic text, RTS advisor style ("Construction complete")
+**Cons:** Windows only, slight latency, requires backend
+
+#### Option C: Hybrid (Recommended?)
+- Use Chrome extension audio for simple beeps/chimes
+- Optional TTS for verbose announcements via backend
+
+**Files to modify:**
+- `extension/sounds/` - Add audio files
+- `extension/sidepanel/sidepanel.tsx` - Add audio playback logic
+- `extension/components/SettingsModal.tsx` - Add audio settings
+- `extension/shared/storage.ts` - Persist audio preferences
+- (Option B) `backend/routes/api.js` - TTS endpoint
+
+**Settings UI mockup:**
+```
+Audio Notifications
+  [x] Enable sounds
+  [ ] Play sound when Claude starts working
+  [x] Play sound when Claude is ready for input
+  [ ] Play sound on tool use
+
+  Volume: [====|----] 50%
+
+  [ ] Use Windows TTS for announcements (experimental)
+```
+
+---
+
+### Implementation Order
+
+1. **Profile Export** (30 min) - Simple, high value for sharing
+2. **Profile Import** (30 min) - Completes the feature
+3. **Audio: Basic sounds** (1 hr) - Add files, playback logic, settings
+4. **Audio: TTS** (optional) - If you want dynamic announcements
 
 ---
 
@@ -116,41 +251,12 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## Phase 3: Future Enhancements
 
-### Detached Sessions Manager (Ghost Badge)
-Show count of detached tmux sessions with quick reattach/kill options.
-
-```
-Header: [Connected] [3]  <- click for dropdown
-                    |-- Detached Sessions --|
-                    | ctt-claude-abc123     |
-                    |   [Reattach] [Kill]   |
-                    | ctt-lazygit-def456    |
-                    |   [Reattach] [Kill]   |
-```
-
-**Implementation:**
-1. Backend endpoint: `GET /api/tmux/orphaned-sessions` (ctt- sessions NOT in registry)
-2. Frontend polling: Every 30s or on-demand
-3. Ghost badge UI: Show count, hide when 0
-4. Dropdown: Reattach/Kill buttons
-
-**Files:** `backend/routes/api.js`, `extension/sidepanel/sidepanel.tsx`, `extension/hooks/useOrphanedSessions.ts`
-
----
-
-### Audio/Voice Pack for Claude Status
-Play sounds when Claude status changes.
-
-**Options:**
-1. Extension plays audio (React to `claudeStatuses` changes)
-2. Windows TTS via PowerShell for dynamic announcements
-
-**Ideas:** Tool-specific sounds, "Ready for input" notification, RTS-style advisor
+### ✅ Detached Sessions Manager (Ghost Badge) - COMPLETE (v2.4.0)
+Shows 👻 badge with count of orphaned tmux sessions. Click for reattach/kill options.
 
 ---
 
 ### Other Future Features
-- **Import/Export Profiles** - Backup/share profiles as JSON
 - **Tab Context Menu** - Right-click for Rename, Close, Close Others
 - **Chrome Web Store Publication** - Privacy policy, screenshots, version management
 
