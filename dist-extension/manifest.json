@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabz - Chrome Edition",
-  "version": "2.5.0",
+  "version": "2.7.0",
   "description": "Full-featured terminal manager in your browser with xterm.js, tmux integration, and multi-window support",
   "permissions": [
     "storage",
@@ -112,7 +112,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.ts-B-_UkUGJ.js"
+        "assets/content.ts-D-RWKCsQ.js"
       ],
       "matches": [
         "<all_urls>"
@@ -133,7 +133,7 @@
         "spawn-options.json",
         "profiles.json",
         "icons/tabz-logo-light.png",
-        "assets/content.ts-B-_UkUGJ.js"
+        "assets/content.ts-D-RWKCsQ.js"
       ],
       "use_dynamic_url": false
     }

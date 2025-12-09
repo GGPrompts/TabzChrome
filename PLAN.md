@@ -173,7 +173,38 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-## Phase 2D: Testing & Release
+## Phase 2D: Public Release Cleanup
+
+**Status**: Pre-release audit complete. See [AUDIT_REPORT.md](AUDIT_REPORT.md) for full findings.
+
+### ✅ Critical Issues - FIXED
+- [x] Repository URL in package.json (was `tmux-chrome-sidebar`, now `TabzChrome`)
+- [x] Package name corrected (`tabzchrome`)
+- [x] Version sync (package.json, manifest.json → 2.7.0)
+- [x] Personal paths genericized in CLAUDE.md
+- [x] GitHub URL fixed in CLAUDE.md
+- [x] Added `dist-extension/` to .gitignore
+- [x] Created CONTRIBUTING.md
+
+### High Priority - TODO
+- [ ] **Add screenshots** - `docs/screenshots/` folder is empty
+- [ ] **Remove debug console.logs** - ~25 logs in popup.tsx and sidepanel.tsx
+- [ ] **Update MCP tool count** - README/CLAUDE say 12, actually 16 with network monitoring
+
+### Medium Priority - TODO
+- [ ] **Add license to backend/package.json** - Missing `"license": "MIT"` field
+- [ ] **Review manifest permissions** - debugger, cookies, history, bookmarks may be excessive
+- [ ] **Clean archived docs** - Personal paths remain in `docs/archived/*` files
+- [ ] **Document backend .env** - No docs for PORT, LOG_LEVEL environment variables
+
+### Low Priority - TODO
+- [ ] Add homepage/bugs fields to backend/package.json
+- [ ] Consider conditional debug mode for console.logs
+- [ ] Archive outdated planning documents
+
+---
+
+## Phase 2E: Testing & Release
 
 - [ ] **Cross-platform testing matrix**
   - [ ] Windows 11 + WSL2 + Chrome (current setup)

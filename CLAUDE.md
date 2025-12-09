@@ -143,23 +143,19 @@ npm run build
 **Load/Reload in Chrome:**
 1. Navigate to `chrome://extensions`
 2. Enable "Developer mode" (top-right toggle)
-3. First time: Click "Load unpacked" → Select:
-   ```
-   C:\Users\marci\Desktop\TabzChrome\dist-extension
-   ```
+3. First time: Click "Load unpacked" → Select your `dist-extension` folder:
+   - Windows: `C:\Users\<USERNAME>\path\to\TabzChrome\dist-extension`
+   - WSL: `\\wsl.localhost\Ubuntu\home\<USERNAME>\projects\TabzChrome\dist-extension`
 4. After rebuilding: Click the 🔄 **Reload** button on the extension card
 
-**Development workflow:**
+**Development workflow (WSL users):**
 ```bash
 # Build and copy to Windows (recommended - more stable than WSL path)
-npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/TabzChrome/dist-extension/
+npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/TabzChrome/dist-extension/
 # Then click Reload in chrome://extensions
 ```
 
-**Alternative (may be flaky):** Load directly from WSL path:
-```
-\\wsl.localhost\Ubuntu\home\matt\projects\TabzChrome\dist-extension
-```
+**Alternative:** Load directly from WSL path (may be flaky)
 
 ---
 
@@ -650,8 +646,7 @@ tmux capture-pane -t Bash -p -S -20
 
 ## 🔗 Links
 
-- **GitHub**: https://github.com/GGPrompts/Tabz
-- **Parent Project**: https://github.com/GGPrompts/opustrator
+- **GitHub**: https://github.com/GGPrompts/TabzChrome
 - **xterm.js Docs**: https://xtermjs.org/
 
 ---

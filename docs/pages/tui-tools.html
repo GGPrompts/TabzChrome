@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUI Tools - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">></span>
+            <span class="logo-text">TabzChrome</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="mcp-tools.html">MCP Tools</a></li>
+            <li><a href="cli-tools.html">CLI Reference</a></li>
+            <li><a href="tui-tools.html" class="active">TUI Tools</a></li>
+            <li><a href="spawn-api.html">Spawn API</a></li>
+            <li><a href="terminal-commands.html">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/GGPrompts/TabzChrome" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0;">
+            <h1>TUI Tools to Install</h1>
+            <p class="tagline">Recommended terminal UI tools for power users</p>
+        </header>
+
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+            These TUI (Terminal User Interface) tools work great with TabzChrome. Create profiles for each tool
+            and use smart directory inheritance to run them in any project.
+        </p>
+
+        <!-- Git -->
+        <div class="category-header">
+            <span class="emoji">🌿</span>
+            <h3>Git</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">🦥</div>
+                <div class="info">
+                    <h3><a href="https://github.com/jesseduffield/lazygit" target="_blank">lazygit</a></h3>
+                    <p>Simple terminal UI for git commands. Stage, commit, push, manage branches - all with keyboard shortcuts.</p>
+                    <div class="install">
+                        <code>brew install lazygit</code> or <code>apt install lazygit</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🔀</div>
+                <div class="info">
+                    <h3><a href="https://github.com/extrawurst/gitui" target="_blank">gitui</a></h3>
+                    <p>Blazing fast terminal-ui for git written in Rust. Alternative to lazygit with great performance.</p>
+                    <div class="install">
+                        <code>brew install gitui</code> or <code>cargo install gitui</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">📊</div>
+                <div class="info">
+                    <h3><a href="https://github.com/o2sh/onefetch" target="_blank">onefetch</a></h3>
+                    <p>Command-line Git information tool. Shows beautiful repo stats and language breakdown.</p>
+                    <div class="install">
+                        <code>brew install onefetch</code> or <code>cargo install onefetch</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Management -->
+        <div class="category-header">
+            <span class="emoji">📁</span>
+            <h3>File Management</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">🦬</div>
+                <div class="info">
+                    <h3><a href="https://github.com/sxyazi/yazi" target="_blank">yazi</a></h3>
+                    <p>Blazing fast terminal file manager written in Rust with async I/O. Image preview support!</p>
+                    <div class="install">
+                        <code>brew install yazi</code> or <code>cargo install yazi-fm</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🦎</div>
+                <div class="info">
+                    <h3><a href="https://github.com/ranger/ranger" target="_blank">ranger</a></h3>
+                    <p>Console file manager with VI key bindings. Highly customizable with Python.</p>
+                    <div class="install">
+                        <code>brew install ranger</code> or <code>pip install ranger-fm</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🌲</div>
+                <div class="info">
+                    <h3><a href="https://github.com/Canop/broot" target="_blank">broot</a></h3>
+                    <p>A new way to see and navigate directory trees. Fuzzy search and file preview.</p>
+                    <div class="install">
+                        <code>brew install broot</code> or <code>cargo install broot</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">📦</div>
+                <div class="info">
+                    <h3><a href="https://github.com/jarun/nnn" target="_blank">nnn</a></h3>
+                    <p>The unorthodox terminal file manager. Tiny, nearly 0-config, incredibly fast.</p>
+                    <div class="install">
+                        <code>brew install nnn</code> or <code>apt install nnn</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Monitoring -->
+        <div class="category-header">
+            <span class="emoji">📈</span>
+            <h3>System Monitoring</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">📊</div>
+                <div class="info">
+                    <h3><a href="https://github.com/aristocratos/btop" target="_blank">btop</a></h3>
+                    <p>Resource monitor with beautiful interface. Shows CPU, memory, disks, network, and processes.</p>
+                    <div class="install">
+                        <code>brew install btop</code> or <code>apt install btop</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🔝</div>
+                <div class="info">
+                    <h3><a href="https://github.com/htop-dev/htop" target="_blank">htop</a></h3>
+                    <p>Interactive process viewer. The classic improved version of top.</p>
+                    <div class="install">
+                        <code>brew install htop</code> or <code>apt install htop</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">💾</div>
+                <div class="info">
+                    <h3><a href="https://github.com/bootandy/dust" target="_blank">dust</a></h3>
+                    <p>A more intuitive version of du (disk usage). Visual breakdown of disk space.</p>
+                    <div class="install">
+                        <code>brew install dust</code> or <code>cargo install du-dust</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🖥️</div>
+                <div class="info">
+                    <h3><a href="https://github.com/xxxserxxx/gotop" target="_blank">gotop</a></h3>
+                    <p>Terminal based graphical activity monitor inspired by gtop and vtop.</p>
+                    <div class="install">
+                        <code>brew install gotop</code> or <code>go install github.com/xxxserxxx/gotop/v4</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Development -->
+        <div class="category-header">
+            <span class="emoji">💻</span>
+            <h3>Development</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">🐳</div>
+                <div class="info">
+                    <h3><a href="https://github.com/jesseduffield/lazydocker" target="_blank">lazydocker</a></h3>
+                    <p>Simple terminal UI for docker and docker-compose. Manage containers with ease.</p>
+                    <div class="install">
+                        <code>brew install lazydocker</code> or <code>go install github.com/jesseduffield/lazydocker</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">☸️</div>
+                <div class="info">
+                    <h3><a href="https://github.com/derailed/k9s" target="_blank">k9s</a></h3>
+                    <p>Kubernetes CLI to manage clusters in style. Navigate, observe, and manage K8s.</p>
+                    <div class="install">
+                        <code>brew install k9s</code> or <code>go install github.com/derailed/k9s</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🔍</div>
+                <div class="info">
+                    <h3><a href="https://github.com/junegunn/fzf" target="_blank">fzf</a></h3>
+                    <p>Command-line fuzzy finder. Search files, history, processes - anything!</p>
+                    <div class="install">
+                        <code>brew install fzf</code> or <code>apt install fzf</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">⚡</div>
+                <div class="info">
+                    <h3><a href="https://github.com/zellij-org/zellij" target="_blank">zellij</a></h3>
+                    <p>Terminal workspace with batteries included. Modern tmux alternative.</p>
+                    <div class="install">
+                        <code>brew install zellij</code> or <code>cargo install zellij</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Databases -->
+        <div class="category-header">
+            <span class="emoji">🗄️</span>
+            <h3>Databases</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">🐘</div>
+                <div class="info">
+                    <h3><a href="https://github.com/dbcli/pgcli" target="_blank">pgcli</a></h3>
+                    <p>Postgres CLI with auto-completion and syntax highlighting.</p>
+                    <div class="install">
+                        <code>brew install pgcli</code> or <code>pip install pgcli</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🐬</div>
+                <div class="info">
+                    <h3><a href="https://github.com/dbcli/mycli" target="_blank">mycli</a></h3>
+                    <p>MySQL CLI with auto-completion and syntax highlighting.</p>
+                    <div class="install">
+                        <code>brew install mycli</code> or <code>pip install mycli</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🔴</div>
+                <div class="info">
+                    <h3><a href="https://github.com/laixintao/iredis" target="_blank">iredis</a></h3>
+                    <p>Interactive Redis CLI with auto-completion and syntax highlighting.</p>
+                    <div class="install">
+                        <code>pip install iredis</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text & Editing -->
+        <div class="category-header">
+            <span class="emoji">📝</span>
+            <h3>Text & Editing</h3>
+        </div>
+
+        <div class="tui-grid">
+            <div class="tui-card">
+                <div class="icon">🌙</div>
+                <div class="info">
+                    <h3><a href="https://github.com/neovim/neovim" target="_blank">neovim</a></h3>
+                    <p>Hyperextensible Vim-based text editor. Modern features, great plugins.</p>
+                    <div class="install">
+                        <code>brew install neovim</code> or <code>apt install neovim</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">🗒️</div>
+                <div class="info">
+                    <h3><a href="https://github.com/helix-editor/helix" target="_blank">helix</a></h3>
+                    <p>A post-modern modal text editor. No config needed, batteries included.</p>
+                    <div class="install">
+                        <code>brew install helix</code> or <code>cargo install helix-term</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tui-card">
+                <div class="icon">📋</div>
+                <div class="info">
+                    <h3><a href="https://github.com/charmbracelet/glow" target="_blank">glow</a></h3>
+                    <p>Render markdown on the CLI with style. Beautiful markdown preview.</p>
+                    <div class="install">
+                        <code>brew install glow</code> or <code>go install github.com/charmbracelet/glow</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TabzChrome Profile Tips -->
+        <section style="margin-top: 3rem;">
+            <h2>TabzChrome Profile Tips</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Recommended Profile Setup</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Create profiles with empty workingDir</span>
+<span class="comment"># They'll inherit from header dropdown!</span>
+
+<span class="output">Profile: lazygit</span>
+  Command: lazygit
+  Working Dir: <span class="comment">(empty - inherits header)</span>
+
+<span class="output">Profile: htop</span>
+  Command: htop
+  Working Dir: <span class="comment">(empty - runs anywhere)</span>
+
+<span class="output">Profile: yazi</span>
+  Command: yazi
+  Working Dir: <span class="comment">(empty - inherits header)</span>
+
+<span class="output">Profile: k9s</span>
+  Command: k9s
+  Working Dir: <span class="comment">(empty)</span>
+
+<span class="comment"># Now just change header dir to switch projects!</span></code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Quick Install Script</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">macOS (Homebrew)</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="prompt">$</span> brew install lazygit btop yazi fzf glow dust
+
+<span class="comment"># Optional extras</span>
+<span class="prompt">$</span> brew install lazydocker k9s neovim helix</code></pre>
+                </div>
+            </div>
+
+            <div class="terminal-window" style="margin-top: 1rem;">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Ubuntu/Debian</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="prompt">$</span> sudo apt install htop fzf neovim
+
+<span class="comment"># For Rust tools, use cargo</span>
+<span class="prompt">$</span> cargo install yazi-fm du-dust broot gitui
+
+<span class="comment"># lazygit needs special repo</span>
+<span class="prompt">$</span> LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+<span class="prompt">$</span> curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+<span class="prompt">$</span> tar xf lazygit.tar.gz lazygit
+<span class="prompt">$</span> sudo install lazygit /usr/local/bin</code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+</body>
+</html>

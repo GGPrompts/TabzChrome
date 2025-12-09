@@ -4,7 +4,10 @@ node_modules/
 
 # Build outputs
 dist/
+dist-extension/
 *.local
+*.crx
+terminal-tabs-extension.zip
 
 # Logs
 *.log

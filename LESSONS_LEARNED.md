@@ -1235,4 +1235,150 @@ Also discovered that `defaultProfile` setting can point to non-existent profile 
 
 ---
 
-**Last Updated**: December 8, 2025
+## Chrome Extension Audio Notifications
+
+### Lesson: Polling-Based Audio Misses Fast Tool Transitions (Dec 9, 2025)
+
+**Problem:** Chrome extension audio notifications only announced ~1 tool out of 4-5, while WSL-based audio announced all of them.
+
+**What Happened:**
+1. Extension polls `/api/claude-status` every 1 second
+2. Backend returns current status (`tool_use`, `processing`, `awaiting_input`) with tool name
+3. Extension only triggered audio when `status === 'tool_use'`
+4. But tools complete fast - by the time poll happens, status is often `processing` (post-tool)
+5. Result: Most tools missed, only occasionally caught one
+
+**Root Cause - Multiple Issues:**
+
+1. **Status vs Tool Name**: Original code only announced when transitioning INTO `tool_use` status. But quick tools often show as `processing` with a tool name by the time poll catches them.
+
+2. **Same-Status Transitions**: If Claude does Read → Grep → Glob quickly:
+   - Poll 1: `processing (Read)`
+   - Poll 2: `processing (Grep)` - status unchanged, tool changed!
+   - Original code: `prevStatus !== 'tool_use'` → false, no announcement
+
+3. **Build Not Deployed**: After fixing code, forgot to copy build to Windows location where Chrome loads extension from.
+
+**Solution - Three Fixes:**
+
+```typescript
+// 1. Track tool NAME changes, not just status changes
+const prevToolNamesRef = useRef<Map<string, string>>(new Map())
+
+// 2. Announce on EITHER status transition OR tool name change
+const isActiveStatus = currentStatus === 'tool_use' || currentStatus === 'processing'
+const isNewTool = currentToolName !== '' && currentToolName !== prevToolName
+
+if (audioSettings.events.tools && isActiveStatus && isNewTool) {
+  playAudio(announcement, session, true)
+}
+
+// 3. Update prev tool after checking
+prevToolNamesRef.current.set(terminalId, currentToolName)
+```
+
+**Also Required:**
+- Reduce polling interval from 3s → 1s for better responsiveness
+- Reduce tool debounce from 1000ms → 250ms to allow rapid announcements
+- **Copy build to Windows**: `rsync -av dist-extension/ /mnt/c/Users/.../dist-extension/`
+
+**Why WSL Audio Works Better:**
+- WSL uses Claude Code hooks (`PreToolUse`) that fire **instantly** on every tool
+- No polling - event-driven via `state-tracker.sh` → `audio-announcer.sh`
+- Chrome extension can't use hooks directly, must poll state files
+
+**Key Insights:**
+- Polling-based systems miss fast state transitions
+- Track the **data** that matters (tool name), not just status
+- `processing` status with a tool name is just as valid as `tool_use`
+- Always verify builds are deployed to correct location (WSL vs Windows paths)
+
+**Debugging Pattern - Backend Logging:**
+```javascript
+// Add to /api/claude-status endpoint:
+console.log(`[claude-status] → ${status} (tool: ${current_tool || 'none'})`)
+```
+This showed the backend WAS catching all tools - problem was frontend logic.
+
+**Files:**
+- `extension/sidepanel/sidepanel.tsx:113,525-550` - prevToolNamesRef + isNewTool logic
+- `extension/hooks/useClaudeStatus.ts:148` - Polling interval (1000ms)
+- `backend/routes/api.js:920-1035` - Claude status endpoint
+
+**Build & Deploy Reminder:**
+```bash
+# Build AND copy to Windows for Chrome to load:
+npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/marci/Desktop/TabzChrome/dist-extension/
+# Then reload extension in chrome://extensions
+```
+
+---
+
+---
+
+## WebSocket Output Routing
+
+### Lesson: Don't Auto-Register as Owner of All Terminals on Connect (Dec 9, 2025)
+
+**Problem:** Terminal corruption - same text appeared 100+ times, had to refresh page to fix. Happened especially when:
+1. Restarting the backend
+2. Spawning new terminals via HTTP API (like `/api/spawn`)
+3. Multiple browser windows open
+
+**What Happened:**
+1. Backend has `terminalOwners` Map: `terminalId → Set<WebSocket>`
+2. When WebSocket connects, old code did this:
+```javascript
+// OLD CODE - BROKEN
+existingTerminals.forEach(terminal => {
+  terminalOwners.get(terminal.id).add(ws)  // ❌ Registers for ALL terminals!
+})
+```
+3. Result: Every WebSocket connection received output from EVERY terminal
+4. If you had 3 terminals, your one xterm instance received 3x the output
+5. Same text rendered 100 times → corruption
+
+**Root Cause:** The auto-registration was meant to "restore" sessions after reconnect, but it's fundamentally wrong:
+- A single browser sidebar should only own terminals IT created or explicitly reconnected to
+- HTTP API-spawned terminals shouldn't broadcast to existing sidebars
+- Multiple browser windows would all get each other's output
+
+**Solution:** Remove auto-registration. Let frontend explicitly reconnect:
+
+```javascript
+// NEW CODE - CORRECT
+// Send terminal list (for UI display)
+ws.send(JSON.stringify({ type: 'terminals', data: existingTerminals }));
+
+// Do NOT auto-register as owner of all terminals!
+// Frontend must send 'reconnect' message for each terminal it owns
+```
+
+Frontend already sends `RECONNECT` messages during session reconciliation:
+```typescript
+// In sidepanel.tsx
+backendTerminals.forEach(terminal => {
+  sendMessage({ type: 'RECONNECT', terminalId: terminal.id })
+})
+```
+
+**Why This Works:**
+- Each sidebar only owns terminals it explicitly requests
+- HTTP API-spawned terminals only owned by the spawning connection
+- Multiple windows don't interfere with each other
+- Backend restart → frontend reconnects only to its own terminals
+
+**Key Insights:**
+- "Helpful" auto-registration can cause subtle bugs
+- Multi-tenant WebSocket servers need explicit ownership, not implicit
+- Always verify routing in multi-client scenarios
+
+**Prevention Checklist:**
+- [ ] Does new WebSocket connection get output from terminals it didn't create?
+- [ ] Can spawning terminal in Window A affect Window B?
+- [ ] After backend restart, does each sidebar reconnect only to its own terminals?
+
+**Files:**
+- `backend/server.js:268-286` - Removed auto-registration, added comment explaining why
+
+**Last Updated**: December 9, 2025

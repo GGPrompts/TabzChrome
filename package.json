@@ -1,13 +1,17 @@
 {
-  "name": "tmux-chrome-sidebar",
-  "version": "1.0.0",
-  "description": "Chrome extension for managing tmux sessions in a persistent sidebar",
+  "name": "tabzchrome",
+  "version": "2.7.0",
+  "description": "Windows Terminal-style Chrome extension for managing bash terminals in your browser sidebar",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GGPrompts/tmux-chrome-sidebar.git"
+    "url": "https://github.com/GGPrompts/TabzChrome.git"
   },
-  "keywords": ["chrome-extension", "tmux", "terminal", "sidebar", "session-manager"],
+  "homepage": "https://github.com/GGPrompts/TabzChrome#readme",
+  "bugs": {
+    "url": "https://github.com/GGPrompts/TabzChrome/issues"
+  },
+  "keywords": ["chrome-extension", "tmux", "terminal", "sidebar", "xterm", "bash", "tabz"],
   "author": "Matt",
   "license": "MIT",
   "scripts": {

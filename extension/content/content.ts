@@ -261,22 +261,50 @@ function detectCustomCommands() {
   })
 }
 
-// Detect package manager commands in code blocks
+// Detect runnable commands in code blocks
 function detectPackageCommands() {
-  // Look for code blocks with npm/yarn/pnpm commands
+  // Look for code blocks with runnable commands
   const codeBlocks = document.querySelectorAll('pre code, code')
 
   codeBlocks.forEach(block => {
     const text = block.textContent || ''
 
-    // Check for package manager commands
+    // Check for runnable commands - package managers, installers, CLI tools
     const commandPatterns = [
-      /^npm install/m,
-      /^npm run/m,
-      /^yarn install/m,
-      /^yarn add/m,
-      /^pnpm install/m,
-      /^pnpm add/m,
+      // Package managers
+      /^npm (install|run|test|start|build)/m,
+      /^yarn (install|add|run|test|start|build)/m,
+      /^pnpm (install|add|run|test|start|build)/m,
+      /^bun (install|add|run|test|start|build)/m,
+      // System package managers
+      /^brew install/m,
+      /^apt install/m,
+      /^apt-get install/m,
+      /^sudo apt/m,
+      /^cargo install/m,
+      /^pip install/m,
+      /^pip3 install/m,
+      /^go install/m,
+      // Git commands
+      /^git (clone|pull|push|checkout|status|log|diff|add|commit)/m,
+      // Common CLI tools
+      /^curl /m,
+      /^wget /m,
+      /^docker /m,
+      /^docker-compose /m,
+      /^kubectl /m,
+      /^terraform /m,
+      // AI CLI tools
+      /^claude /m,
+      /^gemini /m,
+      /^codex /m,
+      // TUI tools (direct invocation)
+      /^(lazygit|htop|btop|yazi|ranger|k9s|lazydocker)$/m,
+      // Shell commands that look runnable
+      /^(cd|ls|mkdir|rm|cp|mv|cat|echo|export|source) /m,
+      // Commands starting with $ or > prompt (strip the prompt)
+      /^\$ .+/m,
+      /^> .+/m,
     ]
 
     for (const pattern of commandPatterns) {
@@ -304,9 +332,12 @@ function detectPackageCommands() {
           `
           btn.onclick = () => {
             // Queue command to chat input - lets user choose which terminal
+            // Strip common prompt prefixes like "$ " or "> "
+            let command = text.trim()
+            command = command.replace(/^\$\s+/, '').replace(/^>\s+/, '')
             chrome.runtime.sendMessage({
               type: 'QUEUE_COMMAND',
-              command: text.trim(),
+              command: command,
             })
           }
 

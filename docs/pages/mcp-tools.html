@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Tools Reference - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">></span>
+            <span class="logo-text">TabzChrome</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="mcp-tools.html" class="active">MCP Tools</a></li>
+            <li><a href="cli-tools.html">CLI Reference</a></li>
+            <li><a href="tui-tools.html">TUI Tools</a></li>
+            <li><a href="spawn-api.html">Spawn API</a></li>
+            <li><a href="terminal-commands.html">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/GGPrompts/TabzChrome" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0;">
+            <h1>MCP Tools Reference</h1>
+            <p class="tagline">12 browser automation tools for Claude Code</p>
+        </header>
+
+        <section>
+            <h2>Quick Reference Table</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Trigger Words</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>tabz_screenshot</code></td>
+                        <td>"screenshot my view", "current viewport"</td>
+                        <td>Capture visible viewport</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_screenshot_full</code></td>
+                        <td>"full page", "entire page", "whole page"</td>
+                        <td>Capture entire scrollable page</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_click</code></td>
+                        <td>"click", "press button", "click element"</td>
+                        <td>Click element by CSS selector</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_fill</code></td>
+                        <td>"fill", "type", "enter text"</td>
+                        <td>Fill input field with text</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_execute_script</code></td>
+                        <td>"run script", "DOM", "page data"</td>
+                        <td>Run JavaScript in browser</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_list_tabs</code></td>
+                        <td>"list tabs", "what tabs", "open tabs"</td>
+                        <td>List all open browser tabs</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_switch_tab</code></td>
+                        <td>"switch tab", "go to tab"</td>
+                        <td>Switch to specific tab</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_rename_tab</code></td>
+                        <td>"rename tab", "name tab", "label"</td>
+                        <td>Assign custom name to tab</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_open_url</code></td>
+                        <td>"open URL", "navigate to", "open GitHub"</td>
+                        <td>Open allowed URLs</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_get_page_info</code></td>
+                        <td>"what page", "current URL", "what site"</td>
+                        <td>Get URL, title, tab ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_download_image</code></td>
+                        <td>"download image", "save image"</td>
+                        <td>Download images to disk</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_get_element</code></td>
+                        <td>"inspect element", "get styles", "CSS debug"</td>
+                        <td>Get HTML, styles, bounds</td>
+                    </tr>
+                    <tr>
+                        <td><code>tabz_get_console_logs</code></td>
+                        <td>"console logs", "errors", "browser logs"</td>
+                        <td>View browser console output</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Screenshots -->
+        <div class="category-header">
+            <span class="emoji">📸</span>
+            <h3>Capture Tools</h3>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_screenshot</h3>
+            <p class="description">Capture a screenshot of the current viewport (what's visible on screen).</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"screenshot my view"</span>
+                <span class="trigger-tag">"what do I see"</span>
+                <span class="trigger-tag">"capture viewport"</span>
+                <span class="trigger-tag">"screenshot that button"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Capture viewport</span>
+{}
+
+<span class="comment">// Capture specific element</span>
+{ <span class="string">"selector"</span>: <span class="string">"#main-content"</span> }
+
+<span class="comment">// Custom output path</span>
+{ <span class="string">"outputPath"</span>: <span class="string">"/tmp/screenshot.png"</span> }</code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_screenshot_full</h3>
+            <p class="description">Capture the entire scrollable page in one image. Best for first-time page exploration.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"full page screenshot"</span>
+                <span class="trigger-tag">"entire page"</span>
+                <span class="trigger-tag">"whole page"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Capture full scrollable page</span>
+{}
+
+<span class="comment">// Custom output path</span>
+{ <span class="string">"outputPath"</span>: <span class="string">"/tmp/fullpage.png"</span> }</code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_download_image</h3>
+            <p class="description">Download an image from the browser page and save to local disk.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"download that image"</span>
+                <span class="trigger-tag">"save the image"</span>
+                <span class="trigger-tag">"get the picture"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Download by selector</span>
+{ <span class="string">"selector"</span>: <span class="string">"img.hero-image"</span> }
+
+<span class="comment">// Download by URL</span>
+{ <span class="string">"url"</span>: <span class="string">"https://example.com/image.png"</span> }
+
+<span class="comment">// First image on page</span>
+{ <span class="string">"selector"</span>: <span class="string">"img"</span> }</code></div>
+            </div>
+        </div>
+
+        <!-- Interaction -->
+        <div class="category-header">
+            <span class="emoji">👆</span>
+            <h3>Interaction Tools</h3>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_click</h3>
+            <p class="description">Click an element on the page.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"click the submit button"</span>
+                <span class="trigger-tag">"press the login button"</span>
+                <span class="trigger-tag">"click on that link"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// By ID</span>
+{ <span class="string">"selector"</span>: <span class="string">"#submit-button"</span> }
+
+<span class="comment">// By class</span>
+{ <span class="string">"selector"</span>: <span class="string">".btn-primary"</span> }
+
+<span class="comment">// By attribute</span>
+{ <span class="string">"selector"</span>: <span class="string">"button[type='submit']"</span> }
+
+<span class="comment">// By tag and class</span>
+{ <span class="string">"selector"</span>: <span class="string">"a.nav-link"</span> }</code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_fill</h3>
+            <p class="description">Fill an input field with text.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"fill in the email field"</span>
+                <span class="trigger-tag">"type my username"</span>
+                <span class="trigger-tag">"enter text in search"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// By ID</span>
+{ <span class="string">"selector"</span>: <span class="string">"#email"</span>, <span class="string">"value"</span>: <span class="string">"user@example.com"</span> }
+
+<span class="comment">// By name attribute</span>
+{ <span class="string">"selector"</span>: <span class="string">"input[name='username']"</span>, <span class="string">"value"</span>: <span class="string">"myuser"</span> }
+
+<span class="comment">// Textarea</span>
+{ <span class="string">"selector"</span>: <span class="string">"textarea#message"</span>, <span class="string">"value"</span>: <span class="string">"Hello world"</span> }</code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_execute_script</h3>
+            <p class="description">Execute JavaScript code in the browser tab.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"run this script"</span>
+                <span class="trigger-tag">"get the page title"</span>
+                <span class="trigger-tag">"extract data from page"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Get page title</span>
+{ <span class="string">"code"</span>: <span class="string">"document.title"</span> }
+
+<span class="comment">// Get all links</span>
+{ <span class="string">"code"</span>: <span class="string">"[...document.links].map(a => a.href)"</span> }
+
+<span class="comment">// Check if element exists</span>
+{ <span class="string">"code"</span>: <span class="string">"!!document.querySelector('.user-avatar')"</span> }
+
+<span class="comment">// Click a button</span>
+{ <span class="string">"code"</span>: <span class="string">"document.querySelector('button.submit').click()"</span> }
+
+<span class="comment">// Get localStorage</span>
+{ <span class="string">"code"</span>: <span class="string">"JSON.stringify(localStorage)"</span> }</code></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="category-header">
+            <span class="emoji">🧭</span>
+            <h3>Navigation Tools</h3>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_list_tabs</h3>
+            <p class="description">List all open browser tabs with their IDs, URLs, and titles.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"what tabs are open"</span>
+                <span class="trigger-tag">"list all tabs"</span>
+                <span class="trigger-tag">"show me the tabs"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// List all tabs</span>
+{}
+
+<span class="comment">// Returns array with tabId, url, title, active status</span></code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_switch_tab</h3>
+            <p class="description">Switch to a specific browser tab. After switching, all subsequent tools target that tab.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"switch to tab 2"</span>
+                <span class="trigger-tag">"go to the other tab"</span>
+                <span class="trigger-tag">"change to that tab"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Switch to tab by ID (from tabz_list_tabs)</span>
+{ <span class="string">"tabId"</span>: <span class="number">2</span> }
+
+<span class="comment">// After switching, screenshots etc. target this tab</span></code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_rename_tab</h3>
+            <p class="description">Assign a custom name to a tab for easier identification.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"rename tab 0"</span>
+                <span class="trigger-tag">"name this tab"</span>
+                <span class="trigger-tag">"label the tab"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Name a tab</span>
+{ <span class="string">"tabId"</span>: <span class="number">0</span>, <span class="string">"name"</span>: <span class="string">"GitHub Trending"</span> }
+
+<span class="comment">// Clear custom name</span>
+{ <span class="string">"tabId"</span>: <span class="number">0</span>, <span class="string">"name"</span>: <span class="string">""</span> }</code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_open_url</h3>
+            <p class="description">Open a URL in the browser. Only allowed domains (GitHub, localhost, Vercel, etc.).</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"open GitHub repo"</span>
+                <span class="trigger-tag">"navigate to localhost"</span>
+                <span class="trigger-tag">"open my Vercel app"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Open GitHub repo</span>
+{ <span class="string">"url"</span>: <span class="string">"github.com/user/repo"</span> }
+
+<span class="comment">// Open in background</span>
+{ <span class="string">"url"</span>: <span class="string">"github.com/user/repo/pull/123"</span>, <span class="string">"background"</span>: <span class="keyword">true</span> }
+
+<span class="comment">// Replace current tab</span>
+{ <span class="string">"url"</span>: <span class="string">"localhost:3000"</span>, <span class="string">"newTab"</span>: <span class="keyword">false</span> }</code></div>
+            </div>
+            <h4 style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">Allowed Domains:</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                github.com, gitlab.com, localhost, *.vercel.app, *.netlify.app,
+                developer.mozilla.org, stackoverflow.com, npmjs.com, claude.ai,
+                chatgpt.com, figma.com, and more...
+            </p>
+        </div>
+
+        <!-- Inspection -->
+        <div class="category-header">
+            <span class="emoji">🔍</span>
+            <h3>Inspection Tools</h3>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_get_page_info</h3>
+            <p class="description">Get information about the current browser page.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"what page am I on"</span>
+                <span class="trigger-tag">"what's the current URL"</span>
+                <span class="trigger-tag">"what site is this"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Get current page info</span>
+{}
+
+<span class="comment">// Specific tab</span>
+{ <span class="string">"tabId"</span>: <span class="number">2</span> }
+
+<span class="comment">// Returns: url, title, tabId, favIconUrl</span></code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_get_element</h3>
+            <p class="description">Get detailed information about a DOM element for CSS debugging or recreation.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"inspect that element"</span>
+                <span class="trigger-tag">"what styles does this have"</span>
+                <span class="trigger-tag">"get the CSS for that card"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// Inspect a card component</span>
+{ <span class="string">"selector"</span>: <span class="string">".card"</span> }
+
+<span class="comment">// Just HTML, no styles</span>
+{ <span class="string">"selector"</span>: <span class="string">".modal"</span>, <span class="string">"includeStyles"</span>: <span class="keyword">false</span> }
+
+<span class="comment">// Specific properties only</span>
+{ <span class="string">"selector"</span>: <span class="string">".nav"</span>, <span class="string">"styleProperties"</span>: [<span class="string">"display"</span>, <span class="string">"gap"</span>] }
+
+<span class="comment">// Returns: tagName, attributes, bounds, styles, outerHTML, innerText</span></code></div>
+            </div>
+        </div>
+
+        <div class="tool-card">
+            <h3>tabz_get_console_logs</h3>
+            <p class="description">Retrieve console output (log, warn, error, info, debug) from browser tabs.</p>
+            <div class="triggers">
+                <h4>Trigger phrases:</h4>
+                <span class="trigger-tag">"show me the console"</span>
+                <span class="trigger-tag">"are there any errors"</span>
+                <span class="trigger-tag">"check for JS errors"</span>
+            </div>
+            <div class="code-wrapper">
+                <div class="code-block"><code><span class="comment">// All logs</span>
+{}
+
+<span class="comment">// Errors only</span>
+{ <span class="string">"level"</span>: <span class="string">"error"</span> }
+
+<span class="comment">// Last 20 entries</span>
+{ <span class="string">"limit"</span>: <span class="number">20</span> }
+
+<span class="comment">// From specific tab</span>
+{ <span class="string">"tabId"</span>: <span class="number">2</span>, <span class="string">"level"</span>: <span class="string">"warn"</span> }</code></div>
+            </div>
+        </div>
+
+        <section style="margin-top: 3rem;">
+            <h2>Interactive Command: /ttmcp</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Type <code>/ttmcp</code> in Claude Code for a menu-driven interface to all MCP tools.
+            </p>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Claude Code</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="prompt">></span> /ttmcp
+
+<span class="output">Select a category:</span>
+  1. Capture (screenshot, download_image)
+  2. Interaction (click, fill, execute_script)
+  3. Navigation (list_tabs, switch_tab, open_url)
+  4. Inspection (get_page_info, get_element, console_logs)
+
+<span class="prompt">></span> 2  <span class="comment"># Select Interaction</span>
+
+<span class="output">Select a tool:</span>
+  1. tabz_fill - Fill form field
+  2. tabz_click - Click element
+  3. tabz_execute_script - Run JavaScript
+
+<span class="prompt">></span> 1  <span class="comment"># Select fill</span>
+<span class="output">Enter selector:</span> textarea
+<span class="output">Enter value:</span> Generate a cute cat image
+<span class="output">Executing...</span> ✓ Done</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Setup Requirements</h2>
+            <div class="ref-grid">
+                <div class="ref-item">
+                    <h4>Chrome Debug Mode</h4>
+                    <code>--remote-debugging-port=9222</code>
+                </div>
+                <div class="ref-item">
+                    <h4>Backend Running</h4>
+                    <code>cd backend && npm start</code>
+                </div>
+                <div class="ref-item">
+                    <h4>MCP Config</h4>
+                    <code>.mcp.json</code> in project root
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+</body>
+</html>

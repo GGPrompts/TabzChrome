@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spawn API - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">></span>
+            <span class="logo-text">TabzChrome</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="mcp-tools.html">MCP Tools</a></li>
+            <li><a href="cli-tools.html">CLI Reference</a></li>
+            <li><a href="tui-tools.html">TUI Tools</a></li>
+            <li><a href="spawn-api.html" class="active">Spawn API</a></li>
+            <li><a href="terminal-commands.html">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/GGPrompts/TabzChrome" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0;">
+            <h1>Spawn API</h1>
+            <p class="tagline">Spawn terminals programmatically via REST API</p>
+        </header>
+
+        <section>
+            <h2>POST /api/spawn</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Spawn a new terminal tab with optional custom name, working directory, and startup command.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>name</code></td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>Display name for the tab (default: "Claude Terminal")</td>
+                    </tr>
+                    <tr>
+                        <td><code>workingDir</code></td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>Starting directory (default: $HOME). Supports ~</td>
+                    </tr>
+                    <tr>
+                        <td><code>command</code></td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>Command to run after shell ready (~1.2s delay)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Basic Examples</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">curl examples</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Simple terminal</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+<span class="comment"># Named terminal with directory</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Project Work",
+    "workingDir": "~/projects/myapp"
+  }'
+
+<span class="comment"># Terminal with startup command</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Git UI",
+    "workingDir": "~/projects/myapp",
+    "command": "lazygit"
+  }'</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Claude Code Examples</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Claude Code spawn commands</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Basic Claude Code</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Claude",
+    "workingDir": "~/projects/myapp",
+    "command": "claude"
+  }'
+
+<span class="comment"># Claude Code with full permissions</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Claude (Auto)",
+    "workingDir": "~/projects/myapp",
+    "command": "claude --dangerously-skip-permissions"
+  }'
+
+<span class="comment"># Claude Code explore agent</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Claude Explore",
+    "workingDir": "~/projects/myapp",
+    "command": "claude --agent explore --dangerously-skip-permissions"
+  }'
+
+<span class="comment"># Claude Code with voice</span>
+<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Claude + Voice",
+    "workingDir": "~/projects/myapp",
+    "command": "claude --voice jenny --dangerously-skip-permissions"
+  }'</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Demo -->
+        <section>
+            <h2>Interactive Claude Code Launcher</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Build Claude Code commands dynamically. Requires TabzChrome backend running on localhost:8129.
+            </p>
+
+            <div class="demo-section">
+                <h3>Configure Your Command</h3>
+                <div class="demo-controls">
+                    <label>
+                        Working Directory
+                        <input type="text" id="workingDir" value="~/projects" placeholder="~/projects/myapp">
+                    </label>
+
+                    <label>
+                        Agent
+                        <select id="agent">
+                            <option value="">None</option>
+                            <option value="--agent explore">Explore</option>
+                            <option value="--agent plan">Plan</option>
+                            <option value="--agent code-reviewer">Code Reviewer</option>
+                            <option value="--agent general-purpose">General Purpose</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Model
+                        <select id="model">
+                            <option value="">Default (Sonnet)</option>
+                            <option value="--model opus">Opus</option>
+                            <option value="--model haiku">Haiku</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Voice
+                        <select id="voice">
+                            <option value="">None</option>
+                            <option value="--voice jenny">Jenny</option>
+                            <option value="--voice guy">Guy</option>
+                            <option value="--voice en-GB-SoniaNeural">Sonia (UK)</option>
+                            <option value="--voice en-AU-WilliamNeural">William (AU)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="skipPermissions" checked>
+                        Skip Permissions (--dangerously-skip-permissions)
+                    </label>
+
+                    <label style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="continueSession">
+                        Continue Previous (--continue)
+                    </label>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <h4 style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Generated Command:</h4>
+                    <div class="demo-output" id="commandPreview">claude</div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <h4 style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Tab Name:</h4>
+                    <div class="demo-output" id="namePreview">Claude</div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <h4 style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">curl Command:</h4>
+                    <div class="demo-output" id="curlPreview" style="max-height: 200px;"></div>
+                </div>
+
+                <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                    <button onclick="spawnTerminal()" style="background: var(--green);">
+                        🚀 Spawn Terminal
+                    </button>
+                    <button onclick="copyCurl()" style="background: var(--accent);">
+                        📋 Copy curl
+                    </button>
+                </div>
+
+                <div id="spawnResult" style="margin-top: 1rem; display: none;"></div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Response Format</h2>
+            <div class="code-block">
+                <code>{
+  <span class="string">"success"</span>: <span class="keyword">true</span>,
+  <span class="string">"terminal"</span>: {
+    <span class="string">"id"</span>: <span class="string">"ctt-Claude-a1b2c3d4"</span>,
+    <span class="string">"name"</span>: <span class="string">"Claude"</span>,
+    <span class="string">"terminalType"</span>: <span class="string">"bash"</span>,
+    <span class="string">"ptyInfo"</span>: {
+      <span class="string">"useTmux"</span>: <span class="keyword">true</span>,
+      <span class="string">"tmuxSession"</span>: <span class="string">"ctt-Claude-a1b2c3d4"</span>
+    }
+  }
+}</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>Shell Function</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Add to your <code>.bashrc</code> or <code>.zshrc</code> for quick terminal spawning:
+            </p>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">.bashrc / .zshrc</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Spawn a terminal in TabzChrome</span>
+tabz-spawn() {
+  local name="${1:-Terminal}"
+  local dir="${2:-$PWD}"
+  local cmd="${3:-}"
+
+  curl -s -X POST http://localhost:8129/api/spawn \
+    -H "Content-Type: application/json" \
+    -d "{\"name\": \"$name\", \"workingDir\": \"$dir\", \"command\": \"$cmd\"}"
+}
+
+<span class="comment"># Quick Claude Code spawn</span>
+tabz-claude() {
+  local dir="${1:-$PWD}"
+  tabz-spawn "Claude" "$dir" "claude --dangerously-skip-permissions"
+}
+
+<span class="comment"># Usage:</span>
+<span class="prompt">$</span> tabz-spawn "My Terminal" ~/projects
+<span class="prompt">$</span> tabz-spawn "Git" ~/projects/myapp lazygit
+<span class="prompt">$</span> tabz-claude ~/projects/myapp</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>JavaScript / Web Page Integration</h2>
+            <div class="code-block">
+                <code><span class="comment">// Spawn terminal from web page</span>
+<span class="keyword">async function</span> <span class="function">spawnTerminal</span>(name, workingDir, command) {
+  <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:8129/api/spawn'</span>, {
+    method: <span class="string">'POST'</span>,
+    headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+    body: JSON.stringify({ name, workingDir, command })
+  });
+  <span class="keyword">return</span> response.json();
+}
+
+<span class="comment">// Example: Spawn Claude Code</span>
+spawnTerminal(
+  <span class="string">'Claude Worker'</span>,
+  <span class="string">'~/projects/myapp'</span>,
+  <span class="string">'claude --dangerously-skip-permissions'</span>
+);</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>Notes</h2>
+            <ul style="color: var(--text-secondary); list-style: disc; padding-left: 1.5rem;">
+                <li>Terminal IDs use <code>ctt-</code> prefix (Chrome Terminal Tabs)</li>
+                <li>Command executes ~1.2s after spawn (waits for shell ready)</li>
+                <li>Terminals use tmux for persistence (survive backend restarts)</li>
+                <li>Tab appears automatically in the sidebar via WebSocket broadcast</li>
+                <li>Claude Code status tracking works based on working directory</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+
+    <script>
+        function buildCommand() {
+            const parts = ['claude'];
+            const agent = document.getElementById('agent').value;
+            const model = document.getElementById('model').value;
+            const voice = document.getElementById('voice').value;
+            const skip = document.getElementById('skipPermissions').checked;
+            const cont = document.getElementById('continueSession').checked;
+
+            if (agent) parts.push(agent);
+            if (model) parts.push(model);
+            if (voice) parts.push(voice);
+            if (skip) parts.push('--dangerously-skip-permissions');
+            if (cont) parts.push('--continue');
+
+            return parts.join(' ');
+        }
+
+        function buildName() {
+            const parts = ['Claude'];
+            const agent = document.getElementById('agent').value;
+            const voice = document.getElementById('voice').value;
+            const model = document.getElementById('model').value;
+
+            if (agent) {
+                const agentName = agent.replace('--agent ', '');
+                parts.push(agentName.charAt(0).toUpperCase() + agentName.slice(1));
+            }
+            if (model) {
+                parts.push(model.replace('--model ', ''));
+            }
+            if (voice) {
+                const voiceName = voice.replace('--voice ', '');
+                parts.push(voiceName.split('-')[0]);
+            }
+
+            return parts.join(' + ');
+        }
+
+        function buildCurl() {
+            const workingDir = document.getElementById('workingDir').value || '~/projects';
+            const name = buildName();
+            const command = buildCommand();
+
+            return `curl -X POST http://localhost:8129/api/spawn \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "${name}",
+    "workingDir": "${workingDir}",
+    "command": "${command}"
+  }'`;
+        }
+
+        function updatePreview() {
+            document.getElementById('commandPreview').textContent = buildCommand();
+            document.getElementById('namePreview').textContent = buildName();
+            document.getElementById('curlPreview').textContent = buildCurl();
+        }
+
+        async function spawnTerminal() {
+            const workingDir = document.getElementById('workingDir').value || '~/projects';
+            const name = buildName();
+            const command = buildCommand();
+
+            const resultDiv = document.getElementById('spawnResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span style="color: var(--yellow);">Spawning terminal...</span>';
+
+            try {
+                const response = await fetch('http://localhost:8129/api/spawn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, workingDir, command })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `<span style="color: var(--green);">✓ Terminal spawned!</span><br>
+                        <span style="color: var(--text-muted);">ID: ${data.terminal?.id || 'N/A'}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span style="color: var(--red);">✗ Failed: ${data.error || 'Unknown error'}</span>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<span style="color: var(--red);">✗ Error: ${err.message}</span><br>
+                    <span style="color: var(--text-muted);">Is the backend running on localhost:8129?</span>`;
+            }
+        }
+
+        function copyCurl() {
+            navigator.clipboard.writeText(buildCurl()).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => btn.textContent = originalText, 1500);
+            });
+        }
+
+        // Attach listeners
+        document.querySelectorAll('select, input').forEach(el => {
+            el.addEventListener('change', updatePreview);
+            el.addEventListener('input', updatePreview);
+        });
+
+        // Initial render
+        updatePreview();
+    </script>
+</body>
+</html>

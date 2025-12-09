@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLI Tools Reference - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">></span>
+            <span class="logo-text">TabzChrome</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="mcp-tools.html">MCP Tools</a></li>
+            <li><a href="cli-tools.html" class="active">CLI Reference</a></li>
+            <li><a href="tui-tools.html">TUI Tools</a></li>
+            <li><a href="spawn-api.html">Spawn API</a></li>
+            <li><a href="terminal-commands.html">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/anthropics/claude-code" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0;">
+            <h1>CLI Tools Reference</h1>
+            <p class="tagline">Quick reference for Claude Code, Gemini CLI, and Codex CLI</p>
+        </header>
+
+        <!-- Claude Code -->
+        <div class="category-header">
+            <span class="emoji">🤖</span>
+            <h3>Claude Code</h3>
+        </div>
+
+        <section>
+            <h2>Essential Flags</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>--dangerously-skip-permissions</code></td>
+                        <td>Skip all permission prompts (use with caution)</td>
+                        <td><code>claude --dangerously-skip-permissions</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>-p, --print</code></td>
+                        <td>Print response and exit (non-interactive)</td>
+                        <td><code>claude -p "What is 2+2"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--model MODEL</code></td>
+                        <td>Select model (sonnet, opus, haiku)</td>
+                        <td><code>claude --model opus</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--resume SESSION_ID</code></td>
+                        <td>Resume a previous session</td>
+                        <td><code>claude --resume abc123</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--continue</code></td>
+                        <td>Continue most recent conversation</td>
+                        <td><code>claude --continue</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Agent Modes</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Agent Examples</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Explore codebase (read-only, fast)</span>
+<span class="prompt">$</span> claude --agent explore
+
+<span class="comment"># Plan implementation (design-focused)</span>
+<span class="prompt">$</span> claude --agent plan
+
+<span class="comment"># Review code changes</span>
+<span class="prompt">$</span> claude --agent code-reviewer
+
+<span class="comment"># General purpose</span>
+<span class="prompt">$</span> claude --agent general-purpose</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Voice & Audio</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>--voice NAME</code></td>
+                        <td>Enable voice output with specified voice</td>
+                    </tr>
+                    <tr>
+                        <td><code>--speed RATE</code></td>
+                        <td>Speech speed (0.5 to 2.0)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="terminal-window" style="margin-top: 1rem;">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Voice Examples</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># With voice enabled</span>
+<span class="prompt">$</span> claude --voice jenny
+
+<span class="comment"># Faster speech</span>
+<span class="prompt">$</span> claude --voice guy --speed 1.5</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Useful Slash Commands</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/help</code></td>
+                        <td>Show help information</td>
+                    </tr>
+                    <tr>
+                        <td><code>/clear</code></td>
+                        <td>Clear conversation history</td>
+                    </tr>
+                    <tr>
+                        <td><code>/config</code></td>
+                        <td>View/edit configuration</td>
+                    </tr>
+                    <tr>
+                        <td><code>/cost</code></td>
+                        <td>Show session cost</td>
+                    </tr>
+                    <tr>
+                        <td><code>/compact</code></td>
+                        <td>Toggle compact output mode</td>
+                    </tr>
+                    <tr>
+                        <td><code>/memory</code></td>
+                        <td>Manage project memory (CLAUDE.md)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Environment Variables</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ANTHROPIC_API_KEY</code></td>
+                        <td>API key for authentication</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_MODEL</code></td>
+                        <td>Default model to use</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_AUDIO</code></td>
+                        <td>Enable audio announcements (1/0)</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_VOICE</code></td>
+                        <td>Default voice for TTS</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Gemini CLI -->
+        <div class="category-header">
+            <span class="emoji">💎</span>
+            <h3>Gemini CLI</h3>
+        </div>
+
+        <section>
+            <h2>Gemini CLI Flags</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>-m, --model MODEL</code></td>
+                        <td>Model selection</td>
+                        <td><code>gemini -m gemini-2.0-flash</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>-p, --prompt TEXT</code></td>
+                        <td>Send prompt and exit</td>
+                        <td><code>gemini -p "Explain this"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>-y, --yes</code></td>
+                        <td>Auto-approve tool calls</td>
+                        <td><code>gemini -y</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--sandbox</code></td>
+                        <td>Run in Docker sandbox</td>
+                        <td><code>gemini --sandbox</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Gemini Models</h2>
+            <div class="ref-grid">
+                <div class="ref-item">
+                    <h4>gemini-2.0-flash</h4>
+                    <span style="color: var(--green);">Fast, efficient</span>
+                </div>
+                <div class="ref-item">
+                    <h4>gemini-2.0-flash-thinking</h4>
+                    <span style="color: var(--cyan);">Reasoning mode</span>
+                </div>
+                <div class="ref-item">
+                    <h4>gemini-exp-1206</h4>
+                    <span style="color: var(--purple);">Experimental</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Codex CLI -->
+        <div class="category-header">
+            <span class="emoji">📦</span>
+            <h3>Codex CLI (OpenAI)</h3>
+        </div>
+
+        <section>
+            <h2>Codex CLI Flags</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>-m, --model MODEL</code></td>
+                        <td>Model selection</td>
+                        <td><code>codex -m o3</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--approval-mode MODE</code></td>
+                        <td>suggest, auto-edit, full-auto</td>
+                        <td><code>codex --approval-mode full-auto</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>--full-auto</code></td>
+                        <td>Shortcut for full-auto mode</td>
+                        <td><code>codex --full-auto</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>-q, --quiet</code></td>
+                        <td>Minimal output</td>
+                        <td><code>codex -q</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Codex Models</h2>
+            <div class="ref-grid">
+                <div class="ref-item">
+                    <h4>codex-mini</h4>
+                    <span style="color: var(--green);">Fast, cheap</span>
+                </div>
+                <div class="ref-item">
+                    <h4>o3</h4>
+                    <span style="color: var(--cyan);">Reasoning</span>
+                </div>
+                <div class="ref-item">
+                    <h4>o3-mini</h4>
+                    <span style="color: var(--purple);">Balanced</span>
+                </div>
+                <div class="ref-item">
+                    <h4>o1</h4>
+                    <span style="color: var(--orange);">Original</span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Approval Modes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>suggest</code></td>
+                        <td>Only suggest changes, no execution</td>
+                    </tr>
+                    <tr>
+                        <td><code>auto-edit</code></td>
+                        <td>Auto-apply file edits, prompt for commands</td>
+                    </tr>
+                    <tr>
+                        <td><code>full-auto</code></td>
+                        <td>Auto-apply all changes (use with caution!)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Quick Reference -->
+        <section>
+            <h2>Quick Copy Commands</h2>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Common Patterns</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Claude Code with full auto</span>
+<span class="prompt">$</span> claude --dangerously-skip-permissions
+
+<span class="comment"># Claude Code explore agent</span>
+<span class="prompt">$</span> claude --agent explore --dangerously-skip-permissions
+
+<span class="comment"># Gemini with auto-approve</span>
+<span class="prompt">$</span> gemini -y
+
+<span class="comment"># Codex full auto</span>
+<span class="prompt">$</span> codex --full-auto
+
+<span class="comment"># Codex with o3 reasoning</span>
+<span class="prompt">$</span> codex -m o3 --approval-mode suggest</code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+</body>
+</html>

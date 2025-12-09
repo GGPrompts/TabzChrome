@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Commands - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .demo-button {
+            display: inline-block;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .demo-button:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg-primary);
+        }
+        .demo-button.success {
+            background: var(--green);
+            border-color: var(--green);
+            color: var(--bg-primary);
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">></span>
+            <span class="logo-text">TabzChrome</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="mcp-tools.html">MCP Tools</a></li>
+            <li><a href="cli-tools.html">CLI Reference</a></li>
+            <li><a href="tui-tools.html">TUI Tools</a></li>
+            <li><a href="spawn-api.html">Spawn API</a></li>
+            <li><a href="terminal-commands.html" class="active">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/GGPrompts/TabzChrome" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0;">
+            <h1>Terminal Commands</h1>
+            <p class="tagline">Add "Run in Terminal" buttons to any web page</p>
+        </header>
+
+        <section>
+            <h2>data-terminal-command Attribute</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Add <code>data-terminal-command</code> to any HTML element to make it queue commands to TabzChrome.
+            </p>
+
+            <div class="code-block">
+                <code><span class="comment">&lt;!-- Simple button --&gt;</span>
+&lt;<span class="keyword">button</span> <span class="string">data-terminal-command</span>=<span class="string">"npm run dev"</span>&gt;Start Dev Server&lt;/<span class="keyword">button</span>&gt;
+
+<span class="comment">&lt;!-- Link style --&gt;</span>
+&lt;<span class="keyword">a</span> <span class="string">href</span>=<span class="string">"#"</span> <span class="string">data-terminal-command</span>=<span class="string">"git status"</span>&gt;Check Git Status&lt;/<span class="keyword">a</span>&gt;
+
+<span class="comment">&lt;!-- Code block with run option --&gt;</span>
+&lt;<span class="keyword">code</span> <span class="string">data-terminal-command</span>=<span class="string">"npm install express"</span>&gt;npm install express&lt;/<span class="keyword">code</span>&gt;
+
+<span class="comment">&lt;!-- Any element works --&gt;</span>
+&lt;<span class="keyword">div</span> <span class="string">data-terminal-command</span>=<span class="string">"docker compose up -d"</span>&gt;Launch Containers&lt;/<span class="keyword">div</span>&gt;</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>How It Works</h2>
+            <ol style="color: var(--text-secondary); list-style: decimal; padding-left: 1.5rem; line-height: 2;">
+                <li><strong>Click</strong> the element with <code>data-terminal-command</code></li>
+                <li><strong>TabzChrome sidebar opens</strong> and focuses the chat input</li>
+                <li><strong>Command populates</strong> in the chat input field</li>
+                <li><strong>User selects terminal</strong> tab to send the command to</li>
+                <li><strong>Visual feedback</strong> - element shows "✓ Queued!" with green background</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Live Demo</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Click these buttons to queue commands (requires TabzChrome extension installed):
+            </p>
+
+            <div class="button-grid">
+                <button class="demo-button" data-terminal-command="git status">
+                    📊 git status
+                </button>
+                <button class="demo-button" data-terminal-command="git log --oneline -10">
+                    📜 git log
+                </button>
+                <button class="demo-button" data-terminal-command="npm run dev">
+                    🚀 npm run dev
+                </button>
+                <button class="demo-button" data-terminal-command="npm test">
+                    🧪 npm test
+                </button>
+                <button class="demo-button" data-terminal-command="lazygit">
+                    🦥 lazygit
+                </button>
+                <button class="demo-button" data-terminal-command="htop">
+                    📈 htop
+                </button>
+                <button class="demo-button" data-terminal-command="docker ps">
+                    🐳 docker ps
+                </button>
+                <button class="demo-button" data-terminal-command="ls -la">
+                    📁 ls -la
+                </button>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                Note: These buttons will only work if TabzChrome extension is installed and backend is running.
+            </p>
+        </section>
+
+        <section>
+            <h2>WebSocket QUEUE_COMMAND API</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Send commands directly from CLI tools or scripts using WebSocket:
+            </p>
+
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Using websocat</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Install websocat</span>
+<span class="prompt">$</span> cargo install websocat
+<span class="comment"># or: brew install websocat</span>
+
+<span class="comment"># Send a command</span>
+<span class="prompt">$</span> echo '{"type":"QUEUE_COMMAND","command":"npm run dev"}' | websocat ws://localhost:8129
+
+<span class="comment"># One-liner</span>
+<span class="prompt">$</span> websocat ws://localhost:8129 <<< '{"type":"QUEUE_COMMAND","command":"git status"}'</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Shell Function</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Add to your <code>.bashrc</code> or <code>.zshrc</code>:
+            </p>
+
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">.bashrc / .zshrc</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="comment"># Queue command/prompt to TabzChrome sidebar</span>
+tabz() {
+  local cmd="$*"
+  echo "{\"type\":\"QUEUE_COMMAND\",\"command\":$(echo "$cmd" | jq -Rs .)}" | websocat ws://localhost:8129
+}
+
+<span class="comment"># Usage:</span>
+<span class="prompt">$</span> tabz npm run dev
+<span class="prompt">$</span> tabz "Explain this error and suggest a fix"
+<span class="prompt">$</span> tabz git status && git diff</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Multi-line Prompts</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Send complex prompts with heredoc:
+            </p>
+
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="terminal-title">Multi-line prompt</span>
+                </div>
+                <div class="terminal-body">
+                    <pre><code><span class="prompt">$</span> cat &lt;&lt;'EOF' | jq -Rs '{type:"QUEUE_COMMAND",command:.}' | websocat ws://localhost:8129
+Implement a new feature that:
+1. Adds user authentication
+2. Uses JWT tokens
+3. Includes refresh token rotation
+EOF</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>JavaScript API</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                For dynamic web apps (prompt libraries, dashboards, etc.):
+            </p>
+
+            <div class="code-block">
+                <code><span class="comment">// Connect to TabzChrome backend</span>
+<span class="keyword">const</span> ws = <span class="keyword">new</span> WebSocket(<span class="string">'ws://localhost:8129'</span>);
+
+<span class="comment">// Queue a command to the chat input</span>
+<span class="keyword">function</span> <span class="function">queueToTabz</span>(command) {
+  <span class="keyword">if</span> (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: <span class="string">'QUEUE_COMMAND'</span>,
+      command: command
+    }));
+  }
+}
+
+<span class="comment">// Example: Send a prompt template</span>
+<span class="keyword">const</span> filledPrompt = <span class="string">`
+Refactor the ${selectedFile} to:
+- Use ${framework} patterns
+- Add error handling for ${errorCases}
+`</span>;
+queueToTabz(filledPrompt);</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>Prompt Library Example</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Build a prompt template UI with fillable fields:
+            </p>
+
+            <div class="demo-section">
+                <h3>Code Review Prompt</h3>
+                <div class="demo-controls">
+                    <label>
+                        File to review
+                        <input type="text" id="reviewFile" value="src/App.tsx" placeholder="src/App.tsx">
+                    </label>
+                    <label>
+                        Focus area
+                        <select id="reviewFocus">
+                            <option value="Security">Security</option>
+                            <option value="Performance">Performance</option>
+                            <option value="Readability">Readability</option>
+                            <option value="Best Practices">Best Practices</option>
+                        </select>
+                    </label>
+                    <button onclick="sendReviewPrompt()">
+                        Send to TabzChrome
+                    </button>
+                </div>
+
+                <h4 style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 1rem;">Preview:</h4>
+                <div class="demo-output" id="reviewPreview"></div>
+            </div>
+
+            <div class="demo-section">
+                <h3>Bug Fix Prompt</h3>
+                <div class="demo-controls">
+                    <label>
+                        Error message
+                        <input type="text" id="errorMsg" value="TypeError: Cannot read property 'map' of undefined" placeholder="Error message">
+                    </label>
+                    <label>
+                        Affected file
+                        <input type="text" id="errorFile" value="src/components/List.tsx" placeholder="src/file.ts">
+                    </label>
+                    <button onclick="sendBugFixPrompt()">
+                        Send to TabzChrome
+                    </button>
+                </div>
+
+                <h4 style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 1rem;">Preview:</h4>
+                <div class="demo-output" id="bugFixPreview"></div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Comparison: QUEUE_COMMAND vs Spawn API</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Use Case</th>
+                        <th>Method</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Send command to existing terminal</td>
+                        <td><code>QUEUE_COMMAND</code></td>
+                        <td>Populates chat input, user picks tab</td>
+                    </tr>
+                    <tr>
+                        <td>Create new terminal + run command</td>
+                        <td><code>POST /api/spawn</code></td>
+                        <td>New tab appears with command running</td>
+                    </tr>
+                    <tr>
+                        <td>Prompt library / templates</td>
+                        <td><code>QUEUE_COMMAND</code></td>
+                        <td>User reviews before sending</td>
+                    </tr>
+                    <tr>
+                        <td>Claude Code launcher</td>
+                        <td><code>POST /api/spawn</code></td>
+                        <td>New Claude session starts automatically</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Architecture</h2>
+            <div class="code-block">
+                <code>┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Web Page      │     │    CLI/Script   │     │   Prompt App    │
+│ data-terminal-  │     │   (websocat)    │     │  (templates)    │
+│    command      │     │                 │     │                 │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         │ content script        │ WebSocket             │ WebSocket
+         │ click handler         │                       │
+         ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    TabzChrome Backend                           │
+│                    ws://localhost:8129                          │
+│                                                                 │
+│  case 'QUEUE_COMMAND':                                          │
+│    broadcast({ type: 'QUEUE_COMMAND', command: data.command }); │
+└────────────────────────────────┬────────────────────────────────┘
+                                 │ broadcast to extension
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                Chrome Extension (background.ts)                 │
+│                                                                 │
+│  → Opens sidebar if closed                                      │
+│  → Forwards QUEUE_COMMAND to sidepanel                          │
+└────────────────────────────────┬────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Sidepanel (React)                            │
+│                                                                 │
+│  → Populates chat input with command                            │
+│  → User picks terminal tab and sends                            │
+└─────────────────────────────────────────────────────────────────┘</code>
+            </div>
+        </section>
+
+        <section>
+            <h2>Requirements</h2>
+            <ul style="color: var(--text-secondary); list-style: disc; padding-left: 1.5rem;">
+                <li>TabzChrome extension installed and enabled</li>
+                <li>Backend running on <code>localhost:8129</code></li>
+                <li>For CLI usage: <code>websocat</code> installed (<code>cargo install websocat</code>)</li>
+                <li>MutationObserver watches for dynamically added elements</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+
+    <script>
+        // WebSocket connection for demos
+        let ws = null;
+
+        function connectWS() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+            try {
+                ws = new WebSocket('ws://localhost:8129');
+                ws.onopen = () => console.log('Connected to TabzChrome');
+                ws.onerror = (e) => console.log('WebSocket error:', e);
+            } catch (e) {
+                console.log('Could not connect to TabzChrome');
+            }
+        }
+
+        function queueToTabz(command) {
+            connectWS();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'QUEUE_COMMAND', command }));
+                return true;
+            }
+            return false;
+        }
+
+        // Demo buttons with data-terminal-command
+        document.querySelectorAll('[data-terminal-command]').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.preventDefault();
+                const cmd = this.getAttribute('data-terminal-command');
+                const success = queueToTabz(cmd);
+
+                if (success) {
+                    this.classList.add('success');
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '✓ Queued!';
+                    setTimeout(() => {
+                        this.classList.remove('success');
+                        this.innerHTML = originalText;
+                    }, 1500);
+                } else {
+                    alert('Could not connect to TabzChrome. Is the backend running?');
+                }
+            });
+        });
+
+        // Prompt templates
+        function updateReviewPreview() {
+            const file = document.getElementById('reviewFile').value;
+            const focus = document.getElementById('reviewFocus').value;
+            document.getElementById('reviewPreview').textContent =
+                `Review ${file} with focus on ${focus}.\n\nProvide specific suggestions for improvement with code examples.`;
+        }
+
+        function updateBugFixPreview() {
+            const error = document.getElementById('errorMsg').value;
+            const file = document.getElementById('errorFile').value;
+            document.getElementById('bugFixPreview').textContent =
+                `I'm getting this error in ${file}:\n\n${error}\n\nPlease explain why this is happening and suggest a fix.`;
+        }
+
+        function sendReviewPrompt() {
+            const file = document.getElementById('reviewFile').value;
+            const focus = document.getElementById('reviewFocus').value;
+            const prompt = `Review ${file} with focus on ${focus}.\n\nProvide specific suggestions for improvement with code examples.`;
+            queueToTabz(prompt);
+        }
+
+        function sendBugFixPrompt() {
+            const error = document.getElementById('errorMsg').value;
+            const file = document.getElementById('errorFile').value;
+            const prompt = `I'm getting this error in ${file}:\n\n${error}\n\nPlease explain why this is happening and suggest a fix.`;
+            queueToTabz(prompt);
+        }
+
+        // Initialize previews
+        document.getElementById('reviewFile').addEventListener('input', updateReviewPreview);
+        document.getElementById('reviewFocus').addEventListener('change', updateReviewPreview);
+        document.getElementById('errorMsg').addEventListener('input', updateBugFixPreview);
+        document.getElementById('errorFile').addEventListener('input', updateBugFixPreview);
+
+        updateReviewPreview();
+        updateBugFixPreview();
+
+        // Try to connect on load
+        connectWS();
+    </script>
+</body>
+</html>

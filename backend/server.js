@@ -265,23 +265,25 @@ wss.on('connection', (ws) => {
   const malformedMessageCount = { count: 0, lastReset: Date.now() };
   const MAX_MALFORMED_PER_MINUTE = 10;
 
-  // Send initial terminal state
+  // Send initial terminal state (list only - don't auto-register as owner)
+  // Frontend must explicitly reconnect to terminals it wants via 'reconnect' message
+  // This prevents cross-contamination where one sidebar receives output from all terminals
   const existingTerminals = terminalRegistry.getAllTerminals();
   ws.send(JSON.stringify({
     type: 'terminals',
     data: existingTerminals
   }));
 
-  // CRITICAL: Register this connection as an owner of all existing terminals
-  // This ensures reconnected clients receive output from restored terminals
-  existingTerminals.forEach(terminal => {
-    if (!terminalOwners.has(terminal.id)) {
-      terminalOwners.set(terminal.id, new Set());
-    }
-    terminalOwners.get(terminal.id).add(ws);
-    connectionTerminals.add(terminal.id);
-    log.debug(`Registered connection as owner of existing terminal: ${terminal.id.slice(-8)}`);
-  });
+  // NOTE: We intentionally do NOT auto-register as owner of all terminals here.
+  // The old code registered this connection as owner of ALL existing terminals,
+  // which caused cross-contamination bugs:
+  // - When backend restarts, all sidebars would receive output from ALL terminals
+  // - Multiple browser windows would get duplicate output
+  // - Spawning terminals via HTTP API would leak output to unrelated sidebars
+  //
+  // Instead, the frontend must explicitly send 'reconnect' messages for each
+  // terminal it wants to receive output from. This happens in sidepanel.tsx
+  // during session reconciliation.
 
   // Send immediate memory stats to new client
   const memUsage = process.memoryUsage();
@@ -630,6 +632,15 @@ wss.on('connection', (ws) => {
               error: data.error
             });
           }
+          break;
+
+        // ============================================
+        // QUEUE_COMMAND - Forward to Chrome extension
+        // ============================================
+        case 'QUEUE_COMMAND':
+          // Forward command to Chrome extension which broadcasts to sidepanel
+          log.info('[Server] QUEUE_COMMAND received:', data.command?.slice(0, 50));
+          broadcast({ type: 'QUEUE_COMMAND', command: data.command });
           break;
 
       }

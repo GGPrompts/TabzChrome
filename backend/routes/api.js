@@ -924,6 +924,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
   const path = require('path');
   const { execSync } = require('child_process');
 
+
   if (!workingDir) {
     return res.status(400).json({
       success: false,

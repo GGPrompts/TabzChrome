@@ -1115,7 +1115,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (menuId === 'paste-to-terminal' && info.selectionText) {
     const selectedText = info.selectionText
-    console.log('📋 Pasting to terminal:', selectedText)
+    console.log('📋 Queuing to chat:', selectedText)
 
     try {
       const windowId = await getValidWindowId()
@@ -1125,15 +1125,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
         // Wait a bit for sidebar to be ready
         setTimeout(() => {
-          // Broadcast paste command to sidepanel
+          // Queue command to chat input - lets user choose which terminal
           broadcastToClients({
-            type: 'PASTE_COMMAND',
+            type: 'QUEUE_COMMAND',
             command: selectedText,
           })
         }, 500)  // Increased delay for reliability
       }
     } catch (err) {
-      console.error('[Background] Failed to open sidebar for paste:', err)
+      console.error('[Background] Failed to open sidebar for queue:', err)
     }
   }
 })
@@ -1212,7 +1212,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
         const selectedText = results[0]?.result
         if (selectedText) {
-          console.log('[Background] 📋 Pasting selection to terminal:', selectedText.substring(0, 50) + '...')
+          console.log('[Background] 📋 Queuing selection to chat:', selectedText.substring(0, 50) + '...')
 
           // Open sidebar if not already open
           const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
@@ -1225,9 +1225,9 @@ chrome.commands.onCommand.addListener(async (command) => {
             }
           }
 
-          // Send to sidepanel
+          // Queue to chat input - lets user choose which terminal
           broadcastToClients({
-            type: 'PASTE_COMMAND',
+            type: 'QUEUE_COMMAND',
             command: selectedText,
           })
         } else {
