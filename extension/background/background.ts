@@ -1156,33 +1156,8 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('⌨️ Keyboard command:', command)
 
-  // Get current window for sidebar operations
-  const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
-  const currentWindow = windows.find(w => w.focused) || windows[0]
-
-  // Handle toggle-sidebar
-  if (command === 'toggle-sidebar') {
-    try {
-      if (currentWindow?.id) {
-        console.log('[Background] Toggling sidebar in window:', currentWindow.id)
-        await chrome.sidePanel.open({ windowId: currentWindow.id })
-      } else {
-        console.error('[Background] No normal browser window found')
-      }
-    } catch (err) {
-      console.error('[Background] Failed to toggle sidebar:', err)
-      if (err instanceof Error && err.message.includes('user gesture')) {
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icons/icon128.png',
-          title: 'Terminal Sidebar',
-          message: 'Please click the extension icon to open the sidebar. Chrome doesn\'t allow keyboard shortcuts to open side panels.',
-          priority: 1
-        })
-      }
-    }
-    return
-  }
+  // Note: _execute_action command automatically triggers chrome.action.onClicked
+  // which opens the sidebar - no handler needed here for it
 
   // Handle new-tab
   if (command === 'new-tab') {
@@ -1240,6 +1215,8 @@ chrome.commands.onCommand.addListener(async (command) => {
           console.log('[Background] 📋 Pasting selection to terminal:', selectedText.substring(0, 50) + '...')
 
           // Open sidebar if not already open
+          const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+          const currentWindow = windows.find(w => w.focused) || windows[0]
           if (currentWindow?.id) {
             try {
               await chrome.sidePanel.open({ windowId: currentWindow.id })

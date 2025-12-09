@@ -13,6 +13,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2025-12-09
+
+### 🚀 Major Features
+
+#### Chrome Audio Notifications for Claude Status
+- **Neural TTS via Edge-TTS** - Backend generates MP3s using Azure neural voices (free, no API key)
+- **Chrome Playback** - Audio plays through Chrome for native Windows audio (better than WSL→mpv)
+- **Backend Endpoint** - `POST /api/audio/generate { text, voice? }` with MD5-based caching
+- **Static File Serving** - `GET /audio/{hash}.mp3` serves cached audio files
+- **Named Announcements** - Says "Claude ready" or "Claude 1 ready" based on profile name and tab count
+- **Smart Detection** - Only plays when `processing/tool_use → awaiting_input` AND `subagent_count === 0`
+- **1s Debounce** - Prevents rapid-fire announcements
+- Files: `backend/server.js`, `extension/sidepanel/sidepanel.tsx`
+
+#### Audio Settings UI
+- **New "Audio" Tab** - Third tab in Settings modal alongside Profiles and MCP Tools
+- **Master Toggle** - Enable/disable all audio notifications
+- **"Ready" Toggle** - Control the ready notification specifically
+- **Volume Slider** - 0-100% volume control
+- **Test Button** - Preview the "Ready" sound at current volume
+- **Auto-Save** - Settings save immediately to Chrome storage
+- Files: `extension/components/SettingsModal.tsx`
+
+#### Profile Import/Export
+- **Export Profiles** - Download all profiles as JSON file (`tabz-profiles-{date}.json`)
+- **Import Profiles** - Load profiles from JSON with validation
+- **Merge or Replace** - Choose to add new profiles while keeping existing, or replace all
+- **Edge Case Handling** - Invalid JSON shows error, missing fields show warnings, duplicates skipped on merge
+- Files: `extension/components/SettingsModal.tsx`
+
+### 🔧 Improvements
+
+#### Keyboard Shortcuts
+- **Keyboard Icon in Header** - Click to open `chrome://extensions/shortcuts` directly
+- **Fixed Ctrl+Shift+9** - Changed to `_execute_action` so shortcut actually opens sidebar (was showing error notification)
+- **Fixed Alt+T Working Directory** - Now uses ref to get current `globalWorkingDir` (was using stale closure value)
+- Files: `extension/manifest.json`, `extension/background/background.ts`, `extension/sidepanel/sidepanel.tsx`
+
+#### Tab Context Menu
+- **Copy Session ID** - New right-click option "📋 Copy Session ID" copies tmux session name to clipboard
+- **Use Case** - Quick copy for tmux conductor workflows (`tmux send-keys -t <session>`)
+- Files: `extension/sidepanel/sidepanel.tsx`
+
+### 🐛 Bug Fixes
+
+- **Alt+T ignored header directory** - Fixed stale closure by adding `globalWorkingDirRef`
+- **Sidebar shortcut showed error** - Replaced custom `toggle-sidebar` command with `_execute_action`
+
+---
+
+## [2.4.1] - 2025-12-09
+
+### Added
+
+#### Profile Import/Export (Initial)
+- **Export Profiles** - Download all profiles as JSON file (`tabz-profiles-{date}.json`)
+- **Import Profiles** - Load profiles from JSON with validation
+- **Merge or Replace** - Choose to add new profiles while keeping existing, or replace all
+- **Edge Case Handling** - Invalid JSON shows error, missing fields show warnings, duplicates skipped on merge
+- Files: `extension/components/SettingsModal.tsx`
+
+---
+
 ## [2.4.0] - 2025-12-08
 
 ### 🚀 Major Features

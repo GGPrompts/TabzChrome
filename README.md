@@ -79,6 +79,15 @@ Click the **+** dropdown to spawn terminals from saved profiles:
 - **Font Size** - 12-24px per profile
 - **Theme** - 6 color schemes (high-contrast, dracula, ocean, neon, amber, matrix) + dark/light toggle
 
+#### Import/Export Profiles
+
+Backup and share your profile configurations:
+
+- **Export** - Click the download icon to save all profiles as `tabz-profiles-{date}.json`
+- **Import** - Click the upload icon to load profiles from a JSON file
+- **Merge** - Add new profiles while keeping existing ones (duplicates by ID are skipped)
+- **Replace** - Replace all existing profiles with imported ones
+
 ### Working Directory Inheritance
 
 The folder icon in the header sets a global working directory. Profiles without an explicit directory inherit this, enabling:

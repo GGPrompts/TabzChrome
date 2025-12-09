@@ -42,6 +42,99 @@ app.use(express.json());
 app.use('/api', apiRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/browser', browserRouter);
+
+// Serve cached audio files from edge-tts
+// Used by Chrome extension for audio playback (better Windows audio than WSL mpv)
+app.use('/audio', express.static('/tmp/claude-audio-cache', {
+  setHeaders: (res, path) => {
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24h
+  }
+}));
+
+// List available cached audio files (for testing)
+app.get('/api/audio/list', (req, res) => {
+  const fs = require('fs');
+  const audioDir = '/tmp/claude-audio-cache';
+
+  try {
+    const files = fs.readdirSync(audioDir)
+      .filter(f => f.endsWith('.mp3'))
+      .map(f => ({
+        file: f,
+        url: `http://localhost:8129/audio/${f}`,
+        size: fs.statSync(path.join(audioDir, f)).size
+      }));
+
+    res.json({
+      success: true,
+      count: files.length,
+      files: files.slice(0, 20) // Return first 20
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message, files: [] });
+  }
+});
+
+// Generate audio using edge-tts (with caching)
+// POST /api/audio/generate { text: string, voice?: string }
+app.post('/api/audio/generate', async (req, res) => {
+  const { execSync } = require('child_process');
+  const fs = require('fs');
+  const crypto = require('crypto');
+
+  const { text, voice = 'en-US-AndrewMultilingualNeural' } = req.body;
+
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing text parameter' });
+  }
+
+  const audioDir = '/tmp/claude-audio-cache';
+
+  // Ensure directory exists
+  if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir, { recursive: true });
+  }
+
+  // Generate cache key from voice + text
+  const cacheKey = crypto.createHash('md5').update(`${voice}:${text}`).digest('hex');
+  const cacheFile = path.join(audioDir, `${cacheKey}.mp3`);
+
+  // Check if cached
+  if (fs.existsSync(cacheFile)) {
+    return res.json({
+      success: true,
+      url: `http://localhost:8129/audio/${cacheKey}.mp3`,
+      cached: true
+    });
+  }
+
+  // Generate with edge-tts
+  try {
+    const outputBase = path.join(audioDir, cacheKey);
+    execSync(`edge-tts synthesize -v "${voice}" -t "${text.replace(/"/g, '\\"')}" -o "${outputBase}"`, {
+      timeout: 10000  // 10 second timeout
+    });
+
+    // edge-tts adds .mp3 extension
+    if (fs.existsSync(`${outputBase}.mp3`)) {
+      fs.renameSync(`${outputBase}.mp3`, cacheFile);
+    }
+
+    if (fs.existsSync(cacheFile)) {
+      res.json({
+        success: true,
+        url: `http://localhost:8129/audio/${cacheKey}.mp3`,
+        cached: false
+      });
+    } else {
+      res.status(500).json({ success: false, error: 'Audio generation failed' });
+    }
+  } catch (err) {
+    console.error('[Audio] edge-tts error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 // app.use('/api/workspace', workspaceRouter); // Archived - workspace-manager removed
 
 // TUI Tools endpoints

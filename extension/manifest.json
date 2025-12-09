@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabz - Chrome Edition",
-  "version": "2.3.0",
+  "version": "2.5.0",
   "description": "Full-featured terminal manager in your browser with xterm.js, tmux integration, and multi-window support",
   "permissions": [
     "storage",
@@ -50,7 +50,7 @@
     "default_path": "sidepanel/sidepanel.html"
   },
   "commands": {
-    "toggle-sidebar": {
+    "_execute_action": {
       "suggested_key": {
         "default": "Ctrl+Shift+9",
         "windows": "Ctrl+Shift+9",

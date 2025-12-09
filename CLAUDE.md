@@ -4,7 +4,7 @@
 
 A **simple, Windows Terminal-style Chrome extension** for managing bash terminals in your browser sidebar. Built with React, TypeScript, and xterm.js.
 
-**Version**: 2.4.0 (Ghost Badge + Detached Sessions)
+**Version**: 2.5.0 (Audio Notifications + Profile Import/Export)
 **Status**: In Development - Windows Terminal Simplification ✨
 **Architecture**: Chrome Extension (Side Panel) + WebSocket backend
 **Philosophy**: Windows Terminal simplicity - bash with profiles and smart directory inheritance

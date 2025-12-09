@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { X, Terminal as TerminalIcon, Plus, Edit, Trash2, GripVertical, Palette, Wrench, AlertTriangle, Settings, ChevronDown, ChevronUp } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { X, Terminal as TerminalIcon, Plus, Edit, Trash2, GripVertical, Palette, Wrench, AlertTriangle, Settings, ChevronDown, ChevronUp, Download, Upload, Volume2 } from 'lucide-react'
 import { themes, themeNames } from '../styles/themes'
 
 // Individual MCP Tools configuration with accurate token counts from /context
@@ -46,7 +46,7 @@ const PRESETS = {
   full: ALL_TOOL_IDS,
 }
 
-type TabType = 'profiles' | 'mcp'
+type TabType = 'profiles' | 'mcp' | 'audio'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -112,6 +112,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [allowAllUrls, setAllowAllUrls] = useState(false)
   const [customDomains, setCustomDomains] = useState('')
 
+  // Import/Export state
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [pendingImportProfiles, setPendingImportProfiles] = useState<Profile[]>([])
+  const [importWarnings, setImportWarnings] = useState<string[]>([])
+
+  // Audio settings state
+  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [audioReadyEnabled, setAudioReadyEnabled] = useState(true)
+  const [audioVolume, setAudioVolume] = useState(0.7)
+  const [audioTestPlaying, setAudioTestPlaying] = useState(false)
+
   // Reset form state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -120,6 +132,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setFormData(DEFAULT_PROFILE)
       setMcpConfigChanged(false)
       setMcpConfigSaved(false)
+      setShowImportDialog(false)
+      setPendingImportProfiles([])
+      setImportWarnings([])
       // Don't reset activeTab - let user stay on their last tab
     }
   }, [isOpen])
@@ -171,6 +186,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         .finally(() => {
           setMcpLoading(false)
         })
+
+      // Load audio settings from Chrome storage
+      chrome.storage.local.get(['audioEnabled', 'audioReadyEnabled', 'audioVolume'], (result) => {
+        if (typeof result.audioEnabled === 'boolean') {
+          setAudioEnabled(result.audioEnabled)
+        }
+        if (typeof result.audioReadyEnabled === 'boolean') {
+          setAudioReadyEnabled(result.audioReadyEnabled)
+        }
+        if (typeof result.audioVolume === 'number') {
+          setAudioVolume(result.audioVolume)
+        }
+      })
     }
   }, [isOpen])
 
@@ -352,6 +380,120 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setDropPosition(null)
   }
 
+  // Export/Import handlers
+  const handleExportProfiles = () => {
+    const exportData = {
+      version: 1,
+      exported: new Date().toISOString(),
+      profiles: profiles,
+    }
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const date = new Date().toISOString().split('T')[0]
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tabz-profiles-${date}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string)
+        const warnings: string[] = []
+
+        // Validate structure
+        if (!json.profiles || !Array.isArray(json.profiles)) {
+          alert('Invalid file: missing profiles array')
+          return
+        }
+
+        // Validate and filter profiles
+        const validProfiles: Profile[] = []
+        json.profiles.forEach((p: any, i: number) => {
+          if (!p.id || !p.name) {
+            warnings.push(`Profile ${i + 1}: Missing required fields (id, name) - skipped`)
+            return
+          }
+          // Ensure required fields have defaults
+          validProfiles.push({
+            id: p.id,
+            name: p.name,
+            workingDir: p.workingDir || '',
+            command: p.command || '',
+            fontSize: p.fontSize ?? 14,
+            fontFamily: p.fontFamily ?? 'monospace',
+            themeName: p.themeName ?? 'high-contrast',
+          })
+        })
+
+        if (validProfiles.length === 0) {
+          alert('No valid profiles found in file')
+          return
+        }
+
+        setPendingImportProfiles(validProfiles)
+        setImportWarnings(warnings)
+        setShowImportDialog(true)
+      } catch (err) {
+        alert('Invalid JSON file: ' + (err as Error).message)
+      }
+    }
+    reader.readAsText(file)
+
+    // Reset file input so same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleImportConfirm = (mode: 'merge' | 'replace') => {
+    let newProfiles: Profile[]
+    const skipped: string[] = []
+
+    if (mode === 'replace') {
+      newProfiles = pendingImportProfiles
+    } else {
+      // Merge: keep existing, add new ones (skip duplicates by ID)
+      const existingIds = new Set(profiles.map(p => p.id))
+      const toAdd = pendingImportProfiles.filter(p => {
+        if (existingIds.has(p.id)) {
+          skipped.push(p.name)
+          return false
+        }
+        return true
+      })
+      newProfiles = [...profiles, ...toAdd]
+    }
+
+    setProfiles(newProfiles)
+
+    // Update default profile if needed (when replacing and old default no longer exists)
+    const newIds = new Set(newProfiles.map(p => p.id))
+    if (!newIds.has(defaultProfile) && newProfiles.length > 0) {
+      setDefaultProfile(newProfiles[0].id)
+    }
+
+    // Show summary
+    if (skipped.length > 0) {
+      console.log(`[Settings] Import: Skipped ${skipped.length} duplicate profiles: ${skipped.join(', ')}`)
+    }
+
+    setShowImportDialog(false)
+    setPendingImportProfiles([])
+    setImportWarnings([])
+  }
+
   // MCP handlers
   const handleMcpToolToggle = (toolId: string) => {
     // Core tools are always required
@@ -399,6 +541,49 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     // Don't close modal - let user see the restart notice
   }
 
+  // Audio handlers
+  const handleAudioToggle = (enabled: boolean) => {
+    setAudioEnabled(enabled)
+    chrome.storage.local.set({ audioEnabled: enabled })
+  }
+
+  const handleAudioReadyToggle = (enabled: boolean) => {
+    setAudioReadyEnabled(enabled)
+    chrome.storage.local.set({ audioReadyEnabled: enabled })
+  }
+
+  const handleAudioVolumeChange = (volume: number) => {
+    setAudioVolume(volume)
+    chrome.storage.local.set({ audioVolume: volume })
+  }
+
+  const handleAudioTest = async () => {
+    if (audioTestPlaying) return
+    setAudioTestPlaying(true)
+
+    try {
+      const response = await fetch('http://localhost:8129/api/audio/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Ready' })
+      })
+      const data = await response.json()
+
+      if (data.success && data.url) {
+        const audio = new Audio(data.url)
+        audio.volume = audioVolume
+        audio.onended = () => setAudioTestPlaying(false)
+        audio.onerror = () => setAudioTestPlaying(false)
+        await audio.play()
+      } else {
+        setAudioTestPlaying(false)
+      }
+    } catch (err) {
+      console.error('[Settings] Audio test failed:', err)
+      setAudioTestPlaying(false)
+    }
+  }
+
   // Calculate token estimate from individual tools
   const estimatedTokens = mcpEnabledTools.reduce((sum, toolId) => {
     const tool = MCP_TOOLS.find(t => t.id === toolId)
@@ -409,6 +594,62 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* Import Confirmation Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-[#1a1a1a] border border-gray-700 rounded-lg max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white mb-4">Import Profiles</h3>
+            <p className="text-sm text-gray-400 mb-2">
+              Found {pendingImportProfiles.length} profile{pendingImportProfiles.length !== 1 ? 's' : ''} to import.
+            </p>
+            {importWarnings.length > 0 && (
+              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs text-yellow-400 font-medium mb-1">Warnings:</p>
+                {importWarnings.map((warning, i) => (
+                  <p key={i} className="text-xs text-yellow-300">{warning}</p>
+                ))}
+              </div>
+            )}
+            <p className="text-sm text-gray-400 mb-4">
+              How would you like to handle existing profiles?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleImportConfirm('merge')}
+                className="w-full px-4 py-2 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors"
+              >
+                Merge (add new, keep existing)
+              </button>
+              <button
+                onClick={() => handleImportConfirm('replace')}
+                className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+              >
+                Replace all
+              </button>
+              <button
+                onClick={() => {
+                  setShowImportDialog(false)
+                  setPendingImportProfiles([])
+                  setImportWarnings([])
+                }}
+                className="w-full px-4 py-2 bg-transparent hover:bg-white/5 text-gray-400 rounded text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-[#0f0f0f] border border-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
@@ -456,6 +697,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <Wrench className="h-4 w-4" />
             MCP Tools
           </button>
+          <button
+            onClick={() => setActiveTab('audio')}
+            className={`
+              flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-[1px]
+              ${activeTab === 'audio'
+                ? 'text-[#00ff88] border-[#00ff88]'
+                : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
+              }
+            `}
+          >
+            <Volume2 className="h-4 w-4" />
+            Audio
+          </button>
         </div>
 
         {/* Content */}
@@ -468,13 +722,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <p className="text-sm text-gray-400">
                   Configure terminal profiles with custom settings
                 </p>
-                <button
-                  onClick={() => setIsAdding(true)}
-                  className="px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors flex items-center gap-1"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Profile
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportProfiles}
+                    disabled={profiles.length === 0}
+                    className="px-2 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-sm transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Export profiles to JSON"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleImportClick}
+                    className="px-2 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-sm transition-colors flex items-center gap-1"
+                    title="Import profiles from JSON"
+                  >
+                    <Upload className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setIsAdding(true)}
+                    className="px-3 py-1.5 bg-[#00ff88] hover:bg-[#00c8ff] text-black rounded text-sm font-medium transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Profile
+                  </button>
+                </div>
               </div>
 
               {/* Default Profile Selector */}
@@ -977,6 +1248,96 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             </>
           )}
+
+          {/* Audio Tab */}
+          {activeTab === 'audio' && (
+            <>
+              <div className="mb-4">
+                <p className="text-sm text-gray-400">
+                  Play audio notifications when Claude Code status changes.
+                  Audio is generated using neural text-to-speech and played through Chrome.
+                </p>
+              </div>
+
+              {/* Master Toggle */}
+              <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-white">Enable Audio Notifications</h4>
+                    <p className="text-xs text-gray-500 mt-1">Master switch for all audio alerts</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={audioEnabled}
+                      onChange={(e) => handleAudioToggle(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Notification Types */}
+              <div className={`space-y-3 ${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <h4 className="text-sm font-medium text-white">Notification Types</h4>
+
+                <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm text-white">"Ready" notification</h5>
+                      <p className="text-xs text-gray-500 mt-1">Play when Claude finishes and is awaiting input</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audioReadyEnabled}
+                        onChange={(e) => handleAudioReadyToggle(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Volume Control */}
+              <div className={`space-y-3 ${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <h4 className="text-sm font-medium text-white">Volume</h4>
+                <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={audioVolume}
+                      onChange={(e) => handleAudioVolumeChange(parseFloat(e.target.value))}
+                      className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                    />
+                    <span className="text-sm text-gray-400 w-12 text-right">{Math.round(audioVolume * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test Button */}
+              <div className={`${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <button
+                  onClick={handleAudioTest}
+                  disabled={audioTestPlaying}
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Volume2 className="h-4 w-4" />
+                  {audioTestPlaying ? 'Playing...' : 'Test Sound'}
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="text-xs text-gray-500 mt-4 p-3 bg-gray-900/50 rounded-lg">
+                <p><strong>Note:</strong> Audio uses edge-tts neural voices. First playback may have a brief delay while the audio is generated - subsequent plays are instant (cached).</p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -985,9 +1346,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             onClick={onClose}
             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-sm transition-colors"
           >
-            {activeTab === 'mcp' && mcpConfigSaved ? 'Done' : activeTab === 'mcp' ? 'Close' : 'Cancel'}
+            {activeTab === 'audio' ? 'Done' : activeTab === 'mcp' && mcpConfigSaved ? 'Done' : activeTab === 'mcp' ? 'Close' : 'Cancel'}
           </button>
-          {activeTab === 'mcp' && mcpConfigSaved ? (
+          {activeTab === 'audio' ? (
+            <span className="px-4 py-2 text-gray-500 text-sm">
+              Settings save automatically
+            </span>
+          ) : activeTab === 'mcp' && mcpConfigSaved ? (
             <span className="px-4 py-2 bg-green-600/20 text-green-400 rounded text-sm font-medium">
               ✓ Saved
             </span>

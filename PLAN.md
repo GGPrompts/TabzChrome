@@ -1,232 +1,41 @@
 # PLAN.md - TabzChrome Roadmap
 
 **Last Updated**: December 9, 2025
-**Current Version**: 2.4.0
-**Status**: Pre-release polish | Next: Profile Export + Audio Notifications
+**Current Version**: 2.5.0
+**Status**: Pre-release polish | Next: Profile Organization
+
+---
+
+## Recently Completed (v2.5.0)
+
+### ✅ Audio Notifications for Claude Status - COMPLETE
+
+- **Chrome Audio Playback** - Neural TTS via edge-tts, played through Chrome (better than WSL audio)
+- **Backend Endpoint** - `POST /api/audio/generate` generates and caches MP3s
+- **Settings UI** - New "Audio" tab with master toggle, "Ready" notification toggle, volume slider, test button
+- **Named Announcements** - Says "Claude ready", "Claude 1 ready", "Claude 2 ready" based on tab name/order
+- **Smart Detection** - Only plays when `processing/tool_use → awaiting_input` AND `subagent_count === 0`
+- Files: `backend/server.js`, `extension/sidepanel/sidepanel.tsx`, `extension/components/SettingsModal.tsx`
+
+### ✅ Profile Import/Export - COMPLETE
+
+- **Export** - Download all profiles as `tabz-profiles-{date}.json`
+- **Import** - Load profiles from JSON with validation, merge or replace options
+- Files: `extension/components/SettingsModal.tsx`
+
+### ✅ UX Improvements - COMPLETE
+
+- **Keyboard Shortcuts Link** - Keyboard icon in header opens `chrome://extensions/shortcuts`
+- **Fixed Alt+T Working Directory** - Now correctly uses header's global working directory (was using stale state)
+- **Ctrl+Shift+9 Opens Sidebar** - Changed to `_execute_action` so keyboard shortcut actually works
+- **Copy Session ID** - Right-click tab → "📋 Copy Session ID" for tmux conductor workflows
+- Files: `extension/manifest.json`, `extension/background/background.ts`, `extension/sidepanel/sidepanel.tsx`
 
 ---
 
 ## Next Up: Pre-Release Features
 
-### 1. Profile Import/Export
-
-**Goal**: Let users backup, share, and restore their terminal profiles.
-
-**UI Location**: Settings Modal → Profiles tab → Add Import/Export buttons
-
-**Implementation:**
-
-#### Export Profiles
-```
-[Export] button → Downloads profiles.json
-```
-
-1. Add "Export" button next to profile list header
-2. On click: serialize profiles array to JSON
-3. Trigger browser download of `tabz-profiles-{date}.json`
-4. Include version number for future compatibility
-
-**Export format:**
-```json
-{
-  "version": 1,
-  "exported": "2025-12-09T12:00:00Z",
-  "profiles": [
-    {
-      "id": "bash",
-      "name": "Bash",
-      "workingDir": "",
-      "command": "",
-      "fontSize": 14,
-      "fontFamily": "JetBrains Mono",
-      "theme": "dracula"
-    }
-  ]
-}
-```
-
-#### Import Profiles
-```
-[Import] button → File picker → Merge or Replace dialog
-```
-
-1. Add "Import" button next to Export
-2. On click: open file picker (accept .json)
-3. Parse and validate JSON structure
-4. Show dialog: "Merge with existing" or "Replace all"
-5. If merge: skip duplicates by ID, add new ones
-6. Save to Chrome storage
-
-**Files to modify:**
-- `extension/components/SettingsModal.tsx` - Add buttons and logic
-- No backend changes needed (Chrome storage only)
-
-**Edge cases:**
-- Invalid JSON → Show error toast
-- Missing required fields → Skip invalid profiles with warning
-- Duplicate IDs on merge → Keep existing, skip imported
-
----
-
-### 2. Audio Notifications for Claude Status
-
-**Goal**: Play sounds when Claude Code status changes (idle→working, working→idle, tool use).
-
-**Existing Infrastructure** (already working!):
-
-```
-~/.claude/hooks/
-├── state-tracker.sh      # Writes state to /tmp/claude-code-state/{session}.json
-├── audio-announcer.sh    # Edge TTS with caching, mutex, debounce
-└── audio-config.sh       # Voice, rate, pitch, volume, toggles
-```
-
-**State tracker output** (`/tmp/claude-code-state/{session}.json`):
-```json
-{
-  "session_id": "...",
-  "status": "awaiting_input|processing|tool_use|idle",
-  "current_tool": "Read|Edit|Bash|Task|...",
-  "subagent_count": 0,
-  "last_updated": "2025-12-09T...",
-  "hook_type": "stop|pre-tool|post-tool|..."
-}
-```
-
-**Audio announcer features**:
-- Edge TTS via `edge-tts` CLI (Linux/WSL)
-- Audio caching (generate once, replay from cache)
-- Mutex lock (prevents overlapping announcements)
-- Debounce for rapid tool calls (1000ms default)
-- Custom clips directory option
-- Per-event toggles: `ANNOUNCE_TOOLS`, `ANNOUNCE_READY`, `ANNOUNCE_SESSION_START`
-- Triggered by `CLAUDE_AUDIO=1` env var
-
-**TabzChrome Integration - Chrome Native Audio (Recommended)**
-
-The extension already reads state from `/tmp/claude-code-state/` for emoji indicators.
-Add audio playback through Chrome for better Windows audio quality (vs WSL→mpv).
-
-**Why Chrome audio is better:**
-- Native Windows audio stack (proper device selection, volume mixer)
-- No WSL audio routing complexity
-- Web Speech API for TTS (no edge-tts CLI needed)
-- Extension already has the state data
-
-**Implementation:**
-
-1. **Watch state changes** in sidepanel (already tracking `claudeStatuses`)
-2. **Detect transitions**:
-   - `processing` → `awaiting_input` = "Ready" sound
-   - `idle` → `processing` = "Working" sound (optional)
-   - `tool_use` events = Tool sounds (optional)
-3. **Play audio** via Web Audio API or HTML5 `<audio>`
-4. **Optional TTS** via Web Speech API (`speechSynthesis.speak()`)
-
-**Audio options:**
-
-| Type | Implementation | Notes |
-|------|----------------|-------|
-| Simple sounds | Bundled MP3s | `extension/sounds/ready.mp3` |
-| **Edge TTS via backend** | Backend generates, Chrome plays | Neural voices + Windows audio (recommended) |
-| Web Speech TTS | `window.speechSynthesis` | Windows SAPI5 voices (lower quality) |
-
-**Recommended: Edge TTS + Chrome playback**
-
-```
-Extension detects state change
-    ↓
-POST /api/audio/generate { text: "Claude ready", voice: "..." }
-    ↓
-Backend runs edge-tts → returns MP3 path (cached)
-    ↓
-Extension fetches MP3 → plays via <audio> element
-```
-
-- **Neural voice quality** (Azure voices via edge-tts - free, no API key)
-- **Windows audio routing** (Chrome plays the MP3)
-- **Caching** (same text = same cached file, instant playback)
-- **Voice selection** (reuse ~/.claude/audio-config.sh settings)
-
-**Files to modify:**
-- `extension/sounds/` - Bundled fallback sounds (ready.mp3, etc.)
-- `extension/sidepanel/sidepanel.tsx` - Watch state + play audio
-- `extension/components/SettingsModal.tsx` - Audio settings section
-- `extension/shared/storage.ts` - Persist audio preferences
-- `backend/routes/api.js` - `POST /api/audio/generate` endpoint (runs edge-tts, returns MP3 URL)
-
-**Settings UI mockup:**
-```
-Audio Notifications
-  [x] Enable sounds
-  [x] Play sound when Claude is ready
-  [ ] Play sound when Claude starts working
-  [ ] Announce tool usage
-
-  Volume: [====|----] 50%
-
-  Sound Type:
-    (•) Simple chimes (built-in)
-    ( ) Text-to-speech (Windows voices)
-```
-
-**Web Speech TTS example:**
-```typescript
-const speak = (text: string) => {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.2;  // Slightly faster
-  utterance.voice = speechSynthesis.getVoices().find(v => v.name.includes('David'));
-  speechSynthesis.speak(utterance);
-};
-
-// On state change: awaiting_input
-speak("Claude ready");
-```
-
-**Debounce:** Same concept as audio-announcer.sh - skip if last sound was <1s ago
-
-**MP3 Cache Cleanup:**
-```
-/tmp/claude-audio-cache/
-├── {hash}.mp3  # Cached by voice+rate+text hash
-└── ...
-```
-
-- Common phrases reuse same file ("Claude ready", "Reading", etc.)
-- Dynamic text creates unique files ("Reading config.json")
-- Cleanup strategy:
-  - On backend start: delete files older than 24h
-  - Or: `find /tmp/claude-audio-cache -mtime +1 -delete` via cron/startup
-  - Keep cache small by using short phrases (not full filenames)
-
-**Subagent Handling:**
-
-State files exist per-session:
-```
-/tmp/claude-code-state/
-├── {main_session}.json      # Main Claude
-├── {subagent_1}.json        # Subagent (Task tool)
-├── {subagent_2}.json        # Another subagent
-└── ...
-```
-
-Audio should probably only trigger for **main session** transitions:
-- Subagents finishing doesn't mean main Claude is ready
-- Main session tracks `subagent_count` - only "ready" when count = 0
-- Check `subagent_count === 0` before playing "ready" sound
-
-```typescript
-// Only announce ready when main session is truly idle
-if (status === 'awaiting_input' && subagentCount === 0) {
-  playSound('ready');
-}
-```
-
-Alternatively, could announce "All agents complete" when last subagent finishes.
-
----
-
-### 3. Profile Organization (Categories + Search)
+### 1. Profile Organization (Categories + Search)
 
 **Goal**: Make long profile lists manageable with categories and/or search.
 
@@ -300,12 +109,10 @@ interface Profile {
 
 ### Implementation Order
 
-1. **Profile Export** (30 min) - Simple, high value for sharing
-2. **Profile Import** (30 min) - Completes the feature
-3. **Profile Search** (30 min) - Quick win, no schema changes
-4. **Profile Categories** (1 hr) - Full organization solution
-5. **Audio: Basic sounds** (1 hr) - Add files, playback logic, settings
-6. **Audio: TTS** (optional) - If you want dynamic announcements
+1. **Profile Search** - Quick win, no schema changes
+2. **Profile Categories** - Full organization solution
+3. **Audio: Basic sounds** - Add files, playback logic, settings
+4. **Audio: TTS** (optional) - If you want dynamic announcements
 
 ---
 

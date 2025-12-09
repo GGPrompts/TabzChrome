@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun, History } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun, History, Keyboard } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
@@ -83,11 +83,19 @@ function SidePanelTerminal() {
     }))
   )
 
+  // Audio notification settings
+  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [audioReadyEnabled, setAudioReadyEnabled] = useState(true)
+  const [audioVolume, setAudioVolume] = useState(0.7)
+  const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())  // Track previous statuses for transition detection
+  const lastAudioTimeRef = useRef<number>(0)  // Debounce audio playback
+
   const portRef = useRef<chrome.runtime.Port | null>(null)
 
   // Refs for keyboard shortcut handlers (to access current state from callbacks)
   const sessionsRef = useRef<TerminalSession[]>([])
   const currentSessionRef = useRef<string | null>(null)
+  const globalWorkingDirRef = useRef<string>('~')
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -97,6 +105,10 @@ function SidePanelTerminal() {
   useEffect(() => {
     currentSessionRef.current = currentSession
   }, [currentSession])
+
+  useEffect(() => {
+    globalWorkingDirRef.current = globalWorkingDir
+  }, [globalWorkingDir])
 
   // Tab context menu state (for session management)
   const [contextMenu, setContextMenu] = useState<{
@@ -243,9 +255,9 @@ function SidePanelTerminal() {
     }
   }, [])
 
-  // Load global working directory, recent dirs, and dark mode from Chrome storage
+  // Load global working directory, recent dirs, dark mode, and audio settings from Chrome storage
   useEffect(() => {
-    chrome.storage.local.get(['globalWorkingDir', 'recentDirs', 'isDark'], (result) => {
+    chrome.storage.local.get(['globalWorkingDir', 'recentDirs', 'isDark', 'audioEnabled', 'audioReadyEnabled', 'audioVolume'], (result) => {
       if (result.globalWorkingDir && typeof result.globalWorkingDir === 'string') {
         setGlobalWorkingDir(result.globalWorkingDir)
       }
@@ -254,6 +266,15 @@ function SidePanelTerminal() {
       }
       if (typeof result.isDark === 'boolean') {
         setIsDark(result.isDark)
+      }
+      if (typeof result.audioEnabled === 'boolean') {
+        setAudioEnabled(result.audioEnabled)
+      }
+      if (typeof result.audioReadyEnabled === 'boolean') {
+        setAudioReadyEnabled(result.audioReadyEnabled)
+      }
+      if (typeof result.audioVolume === 'number') {
+        setAudioVolume(result.audioVolume)
       }
     })
   }, [])
@@ -272,6 +293,89 @@ function SidePanelTerminal() {
   useEffect(() => {
     chrome.storage.local.set({ isDark })
   }, [isDark])
+
+  // Save audio settings when they change
+  useEffect(() => {
+    chrome.storage.local.set({ audioEnabled, audioReadyEnabled, audioVolume })
+  }, [audioEnabled, audioReadyEnabled, audioVolume])
+
+  // Audio playback helper - plays MP3 from backend cache via Chrome
+  const playAudio = async (text: string) => {
+    // Debounce: skip if audio played less than 1 second ago
+    const now = Date.now()
+    if (now - lastAudioTimeRef.current < 1000) return
+    lastAudioTimeRef.current = now
+
+    try {
+      // Request audio generation from backend (uses edge-tts with caching)
+      const response = await fetch('http://localhost:8129/api/audio/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      })
+      const data = await response.json()
+
+      if (data.success && data.url) {
+        const audio = new Audio(data.url)
+        audio.volume = audioVolume
+        audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+      }
+    } catch (err) {
+      console.warn('[Audio] Failed to generate/play:', err)
+    }
+  }
+
+  // Watch Claude status changes and trigger audio notifications
+  useEffect(() => {
+    if (!audioEnabled) return
+
+    // Check each terminal for status transitions
+    claudeStatuses.forEach((status, terminalId) => {
+      const prevStatus = prevClaudeStatusesRef.current.get(terminalId)
+      const currentStatus = status.status
+
+      // Detect: processing/tool_use → awaiting_input (Claude ready)
+      if (audioReadyEnabled &&
+          (prevStatus === 'processing' || prevStatus === 'tool_use') &&
+          currentStatus === 'awaiting_input') {
+        // Only play "ready" if no subagents are running
+        const subagentCount = status.subagent_count || 0
+        if (subagentCount === 0) {
+          // Find the session to get its display name
+          const session = sessions.find(s => s.id === terminalId)
+          if (session) {
+            // Get base name from profile or session name (e.g., "Claude", "Projects")
+            const baseName = session.profile?.name || session.name || 'Claude'
+
+            // Count how many sessions share this base name
+            const sameNameSessions = sessions.filter(s =>
+              (s.profile?.name || s.name) === baseName
+            )
+
+            // If multiple sessions with same name, add a number
+            if (sameNameSessions.length > 1) {
+              const index = sameNameSessions.findIndex(s => s.id === terminalId) + 1
+              playAudio(`${baseName} ${index} ready`)
+            } else {
+              playAudio(`${baseName} ready`)
+            }
+          } else {
+            playAudio('Ready')
+          }
+        }
+      }
+
+      // Update previous status
+      prevClaudeStatusesRef.current.set(terminalId, currentStatus)
+    })
+
+    // Clean up removed terminals from prev ref
+    for (const id of prevClaudeStatusesRef.current.keys()) {
+      if (!claudeStatuses.has(id)) {
+        prevClaudeStatusesRef.current.delete(id)
+      }
+    }
+  }, [claudeStatuses, audioEnabled, audioReadyEnabled, audioVolume, sessions])
 
   // Helper to add a directory to recent list
   const addToRecentDirs = (dir: string) => {
@@ -858,8 +962,8 @@ function SidePanelTerminal() {
 
   // Keyboard shortcut handlers (use refs to access current state from callbacks)
   const handleKeyboardNewTab = () => {
-    // Capture current globalWorkingDir to avoid stale closure in async callback
-    const currentGlobalWorkingDir = globalWorkingDir
+    // Use ref to get current globalWorkingDir (state might be stale in callback)
+    const currentGlobalWorkingDir = globalWorkingDirRef.current
 
     chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
       const profiles = (result.profiles as Profile[]) || []
@@ -1364,11 +1468,20 @@ function SidePanelTerminal() {
             )}
           </div>
 
+          {/* Keyboard Shortcuts Button */}
+          <button
+            onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+            className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
+            title="Keyboard Shortcuts"
+          >
+            <Keyboard className="h-4 w-4" />
+          </button>
+
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
-            title="Profiles"
+            title="Settings"
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -1899,6 +2012,18 @@ function SidePanelTerminal() {
                 {isTmuxSession && (
                   <>
                     <div className="context-menu-divider" />
+                    <button
+                      className="context-menu-item"
+                      onClick={() => {
+                        const sessionId = terminal?.sessionName || terminal?.id
+                        if (sessionId) {
+                          navigator.clipboard.writeText(sessionId)
+                        }
+                        setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
+                      }}
+                    >
+                      📋 Copy Session ID
+                    </button>
                     <button
                       className="context-menu-item"
                       onClick={handleDetachSession}
