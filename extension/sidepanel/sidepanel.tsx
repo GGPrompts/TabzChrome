@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun, History, Keyboard } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
-import { SettingsModal, type Profile } from '../components/SettingsModal'
+import { SettingsModal, type Profile, type AudioSettings, type ProfileAudioOverrides } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
 import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis } from '../hooks/useClaudeStatus'
@@ -83,12 +83,19 @@ function SidePanelTerminal() {
     }))
   )
 
-  // Audio notification settings
-  const [audioEnabled, setAudioEnabled] = useState(false)
-  const [audioReadyEnabled, setAudioReadyEnabled] = useState(true)
-  const [audioVolume, setAudioVolume] = useState(0.7)
+  // Audio notification settings (unified AudioSettings object)
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>({
+    enabled: false,
+    volume: 0.7,
+    voice: 'en-US-AndrewMultilingualNeural',
+    rate: '+0%',
+    events: { ready: true, sessionStart: false, tools: false, subagents: false },
+    toolDebounceMs: 1000,
+  })
   const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())  // Track previous statuses for transition detection
+  const prevSubagentCountsRef = useRef<Map<string, number>>(new Map())  // Track subagent counts for change detection
   const lastAudioTimeRef = useRef<number>(0)  // Debounce audio playback
+  const lastToolAudioTimeRef = useRef<number>(0)  // Separate debounce for tool announcements
 
   const portRef = useRef<chrome.runtime.Port | null>(null)
 
@@ -257,7 +264,7 @@ function SidePanelTerminal() {
 
   // Load global working directory, recent dirs, dark mode, and audio settings from Chrome storage
   useEffect(() => {
-    chrome.storage.local.get(['globalWorkingDir', 'recentDirs', 'isDark', 'audioEnabled', 'audioReadyEnabled', 'audioVolume'], (result) => {
+    chrome.storage.local.get(['globalWorkingDir', 'recentDirs', 'isDark', 'audioSettings'], (result) => {
       if (result.globalWorkingDir && typeof result.globalWorkingDir === 'string') {
         setGlobalWorkingDir(result.globalWorkingDir)
       }
@@ -267,14 +274,8 @@ function SidePanelTerminal() {
       if (typeof result.isDark === 'boolean') {
         setIsDark(result.isDark)
       }
-      if (typeof result.audioEnabled === 'boolean') {
-        setAudioEnabled(result.audioEnabled)
-      }
-      if (typeof result.audioReadyEnabled === 'boolean') {
-        setAudioReadyEnabled(result.audioReadyEnabled)
-      }
-      if (typeof result.audioVolume === 'number') {
-        setAudioVolume(result.audioVolume)
+      if (result.audioSettings && typeof result.audioSettings === 'object') {
+        setAudioSettings(prev => ({ ...prev, ...(result.audioSettings as Partial<AudioSettings>) }))
       }
     })
   }, [])
@@ -294,30 +295,59 @@ function SidePanelTerminal() {
     chrome.storage.local.set({ isDark })
   }, [isDark])
 
-  // Save audio settings when they change
+  // Listen for audioSettings changes from settings modal
   useEffect(() => {
-    chrome.storage.local.set({ audioEnabled, audioReadyEnabled, audioVolume })
-  }, [audioEnabled, audioReadyEnabled, audioVolume])
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.audioSettings?.newValue && typeof changes.audioSettings.newValue === 'object') {
+        setAudioSettings(prev => ({ ...prev, ...(changes.audioSettings.newValue as Partial<AudioSettings>) }))
+      }
+    }
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange)
+  }, [])
+
+  // Get merged audio settings for a profile (global + profile overrides)
+  const getAudioSettingsForProfile = (profile?: Profile): { voice: string; rate: string; volume: number; enabled: boolean } => {
+    const overrides = profile?.audioOverrides
+    return {
+      voice: overrides?.voice || audioSettings.voice,
+      rate: overrides?.rate || audioSettings.rate,
+      volume: audioSettings.volume,
+      enabled: overrides?.enabled !== false && audioSettings.enabled,
+    }
+  }
 
   // Audio playback helper - plays MP3 from backend cache via Chrome
-  const playAudio = async (text: string) => {
-    // Debounce: skip if audio played less than 1 second ago
+  const playAudio = async (text: string, profile?: Profile, isToolAnnouncement = false) => {
+    const settings = getAudioSettingsForProfile(profile)
+    if (!settings.enabled) return
+
+    // Debounce: use separate timers for tools vs other announcements
     const now = Date.now()
-    if (now - lastAudioTimeRef.current < 1000) return
-    lastAudioTimeRef.current = now
+    if (isToolAnnouncement) {
+      if (now - lastToolAudioTimeRef.current < audioSettings.toolDebounceMs) return
+      lastToolAudioTimeRef.current = now
+    } else {
+      if (now - lastAudioTimeRef.current < 1000) return
+      lastAudioTimeRef.current = now
+    }
 
     try {
       // Request audio generation from backend (uses edge-tts with caching)
       const response = await fetch('http://localhost:8129/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({
+          text,
+          voice: settings.voice,
+          rate: settings.rate
+        })
       })
       const data = await response.json()
 
       if (data.success && data.url) {
         const audio = new Audio(data.url)
-        audio.volume = audioVolume
+        audio.volume = settings.volume
         audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
       }
     } catch (err) {
@@ -327,55 +357,96 @@ function SidePanelTerminal() {
 
   // Watch Claude status changes and trigger audio notifications
   useEffect(() => {
-    if (!audioEnabled) return
+    if (!audioSettings.enabled) return
 
     // Check each terminal for status transitions
     claudeStatuses.forEach((status, terminalId) => {
       const prevStatus = prevClaudeStatusesRef.current.get(terminalId)
+      const prevSubagentCount = prevSubagentCountsRef.current.get(terminalId) || 0
       const currentStatus = status.status
+      const currentSubagentCount = status.subagent_count || 0
 
-      // Detect: processing/tool_use → awaiting_input (Claude ready)
-      if (audioReadyEnabled &&
+      // Find the session to get its profile
+      const session = sessions.find(s => s.id === terminalId)
+      const profile = session?.profile
+
+      // Check if audio is enabled for this profile
+      const profileEnabled = profile?.audioOverrides?.enabled !== false
+
+      if (!profileEnabled) {
+        prevClaudeStatusesRef.current.set(terminalId, currentStatus)
+        prevSubagentCountsRef.current.set(terminalId, currentSubagentCount)
+        return
+      }
+
+      // Get the display name for announcements
+      const getDisplayName = () => {
+        if (!session) return 'Claude'
+        const baseName = profile?.name || session.name || 'Claude'
+        const sameNameSessions = sessions.filter(s =>
+          (s.profile?.name || s.name) === baseName
+        )
+        if (sameNameSessions.length > 1) {
+          const index = sameNameSessions.findIndex(s => s.id === terminalId) + 1
+          return `${baseName} ${index}`
+        }
+        return baseName
+      }
+
+      // EVENT: Ready notification (processing/tool_use → awaiting_input)
+      if (audioSettings.events.ready &&
           (prevStatus === 'processing' || prevStatus === 'tool_use') &&
-          currentStatus === 'awaiting_input') {
-        // Only play "ready" if no subagents are running
-        const subagentCount = status.subagent_count || 0
-        if (subagentCount === 0) {
-          // Find the session to get its display name
-          const session = sessions.find(s => s.id === terminalId)
-          if (session) {
-            // Get base name from profile or session name (e.g., "Claude", "Projects")
-            const baseName = session.profile?.name || session.name || 'Claude'
+          currentStatus === 'awaiting_input' &&
+          currentSubagentCount === 0) {
+        playAudio(`${getDisplayName()} ready`, profile)
+      }
 
-            // Count how many sessions share this base name
-            const sameNameSessions = sessions.filter(s =>
-              (s.profile?.name || s.name) === baseName
-            )
+      // EVENT: Tool announcements (idle/processing → tool_use)
+      if (audioSettings.events.tools &&
+          currentStatus === 'tool_use' &&
+          prevStatus !== 'tool_use' &&
+          status.current_tool) {
+        const toolName = status.current_tool
+        let announcement = ''
+        switch (toolName) {
+          case 'Read': announcement = 'Reading'; break
+          case 'Write': announcement = 'Writing'; break
+          case 'Edit': announcement = 'Editing'; break
+          case 'Bash': announcement = 'Running command'; break
+          case 'Glob': announcement = 'Searching files'; break
+          case 'Grep': announcement = 'Searching code'; break
+          case 'Task': announcement = 'Spawning agent'; break
+          case 'WebFetch': announcement = 'Fetching web'; break
+          case 'WebSearch': announcement = 'Searching web'; break
+          default: announcement = `Using ${toolName}`
+        }
+        playAudio(announcement, profile, true)
+      }
 
-            // If multiple sessions with same name, add a number
-            if (sameNameSessions.length > 1) {
-              const index = sameNameSessions.findIndex(s => s.id === terminalId) + 1
-              playAudio(`${baseName} ${index} ready`)
-            } else {
-              playAudio(`${baseName} ready`)
-            }
-          } else {
-            playAudio('Ready')
-          }
+      // EVENT: Subagent count changes
+      if (audioSettings.events.subagents && currentSubagentCount !== prevSubagentCount) {
+        if (currentSubagentCount > prevSubagentCount) {
+          // New subagent spawned
+          playAudio(`${currentSubagentCount} agent${currentSubagentCount > 1 ? 's' : ''} running`, profile, true)
+        } else if (currentSubagentCount === 0 && prevSubagentCount > 0) {
+          // All subagents finished
+          playAudio('All agents complete', profile)
         }
       }
 
-      // Update previous status
+      // Update previous values
       prevClaudeStatusesRef.current.set(terminalId, currentStatus)
+      prevSubagentCountsRef.current.set(terminalId, currentSubagentCount)
     })
 
-    // Clean up removed terminals from prev ref
+    // Clean up removed terminals from prev refs
     for (const id of prevClaudeStatusesRef.current.keys()) {
       if (!claudeStatuses.has(id)) {
         prevClaudeStatusesRef.current.delete(id)
+        prevSubagentCountsRef.current.delete(id)
       }
     }
-  }, [claudeStatuses, audioEnabled, audioReadyEnabled, audioVolume, sessions])
+  }, [claudeStatuses, audioSettings, sessions])
 
   // Helper to add a directory to recent list
   const addToRecentDirs = (dir: string) => {

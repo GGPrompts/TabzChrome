@@ -572,7 +572,8 @@ Backend logs show WebSocket activity when `LOG_LEVEL=5` (debug):
 LOG_LEVEL=5  # Shows detailed PTY operations, tmux session info
 
 # Restart backend:
-./stop.sh && ./start-tmux.sh
+# Ctrl+C to stop, then:
+cd backend && npm start
 ```
 
 ### Common Debugging Scenarios
@@ -628,14 +629,8 @@ tmux capture-pane -t Bash -p -S -20
 
 **User can view logs manually:**
 ```bash
-# Method 1: Attach to backend session
-tmux attach -t tabz:backend
-
-# Method 2: Spawn "Dev Logs" terminal in app
-# Right-click → Dev Logs
-
-# Method 3: Capture last 50 browser logs
-tmux capture-pane -t tabz:backend -p -S -50 | grep "\[Browser"
+# Backend logs appear in the terminal where you ran `npm start`
+# Look for [Browser] prefixed lines for frontend logs
 ```
 
 **Format (optimized for Claude Code):**

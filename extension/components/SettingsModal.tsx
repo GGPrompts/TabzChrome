@@ -61,6 +61,7 @@ export interface Profile {
   fontSize: number
   fontFamily: string
   themeName: string  // Theme family name (high-contrast, dracula, ocean, etc.)
+  audioOverrides?: ProfileAudioOverrides  // Optional per-profile audio settings
 }
 
 const DEFAULT_PROFILE: Profile = {
@@ -86,6 +87,60 @@ const FONT_FAMILIES = [
   { label: 'Hack NF', value: "'Hack Nerd Font', monospace" },
   { label: 'MesloLGS NF', value: "'MesloLGS Nerd Font', monospace" },
 ]
+
+// Available TTS voices (edge-tts neural voices)
+const TTS_VOICES = [
+  { label: 'Andrew (US Male)', value: 'en-US-AndrewMultilingualNeural' },
+  { label: 'Emma (US Female)', value: 'en-US-EmmaMultilingualNeural' },
+  { label: 'Brian (US Male)', value: 'en-US-BrianMultilingualNeural' },
+  { label: 'Aria (US Female)', value: 'en-US-AriaNeural' },
+  { label: 'Guy (US Male)', value: 'en-US-GuyNeural' },
+  { label: 'Jenny (US Female)', value: 'en-US-JennyNeural' },
+  { label: 'Sonia (UK Female)', value: 'en-GB-SoniaNeural' },
+  { label: 'Ryan (UK Male)', value: 'en-GB-RyanNeural' },
+  { label: 'Natasha (AU Female)', value: 'en-AU-NatashaNeural' },
+  { label: 'William (AU Male)', value: 'en-AU-WilliamNeural' },
+]
+
+// Audio event settings
+export interface AudioEventSettings {
+  ready: boolean
+  sessionStart: boolean
+  tools: boolean
+  subagents: boolean
+}
+
+// Global audio settings (stored in Chrome storage)
+export interface AudioSettings {
+  enabled: boolean
+  volume: number  // 0-1
+  voice: string
+  rate: string    // e.g., "+30%", "-10%"
+  events: AudioEventSettings
+  toolDebounceMs: number
+}
+
+// Per-profile audio overrides
+export interface ProfileAudioOverrides {
+  enabled?: boolean    // null/undefined = use global
+  voice?: string
+  rate?: string
+  events?: Partial<AudioEventSettings>
+}
+
+const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  enabled: false,
+  volume: 0.7,
+  voice: 'en-US-AndrewMultilingualNeural',
+  rate: '+0%',
+  events: {
+    ready: true,
+    sessionStart: false,
+    tools: false,
+    subagents: false,
+  },
+  toolDebounceMs: 1000,
+}
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Tab state
@@ -118,11 +173,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [pendingImportProfiles, setPendingImportProfiles] = useState<Profile[]>([])
   const [importWarnings, setImportWarnings] = useState<string[]>([])
 
-  // Audio settings state
-  const [audioEnabled, setAudioEnabled] = useState(false)
-  const [audioReadyEnabled, setAudioReadyEnabled] = useState(true)
-  const [audioVolume, setAudioVolume] = useState(0.7)
+  // Audio settings state (full settings object)
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>(DEFAULT_AUDIO_SETTINGS)
   const [audioTestPlaying, setAudioTestPlaying] = useState(false)
+  const [expandedProfileAudio, setExpandedProfileAudio] = useState<string | null>(null)
 
   // Reset form state when modal opens
   useEffect(() => {
@@ -188,15 +242,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         })
 
       // Load audio settings from Chrome storage
-      chrome.storage.local.get(['audioEnabled', 'audioReadyEnabled', 'audioVolume'], (result) => {
-        if (typeof result.audioEnabled === 'boolean') {
-          setAudioEnabled(result.audioEnabled)
-        }
-        if (typeof result.audioReadyEnabled === 'boolean') {
-          setAudioReadyEnabled(result.audioReadyEnabled)
-        }
-        if (typeof result.audioVolume === 'number') {
-          setAudioVolume(result.audioVolume)
+      chrome.storage.local.get(['audioSettings'], (result) => {
+        if (result.audioSettings) {
+          // Merge with defaults to handle missing fields from older versions
+          setAudioSettings({ ...DEFAULT_AUDIO_SETTINGS, ...result.audioSettings })
         }
       })
     }
@@ -541,20 +590,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     // Don't close modal - let user see the restart notice
   }
 
-  // Audio handlers
-  const handleAudioToggle = (enabled: boolean) => {
-    setAudioEnabled(enabled)
-    chrome.storage.local.set({ audioEnabled: enabled })
+  // Audio handlers - update settings and save to Chrome storage
+  const updateAudioSettings = (updates: Partial<AudioSettings>) => {
+    const newSettings = { ...audioSettings, ...updates }
+    setAudioSettings(newSettings)
+    chrome.storage.local.set({ audioSettings: newSettings })
   }
 
-  const handleAudioReadyToggle = (enabled: boolean) => {
-    setAudioReadyEnabled(enabled)
-    chrome.storage.local.set({ audioReadyEnabled: enabled })
-  }
-
-  const handleAudioVolumeChange = (volume: number) => {
-    setAudioVolume(volume)
-    chrome.storage.local.set({ audioVolume: volume })
+  const updateAudioEvents = (eventUpdates: Partial<AudioEventSettings>) => {
+    updateAudioSettings({ events: { ...audioSettings.events, ...eventUpdates } })
   }
 
   const handleAudioTest = async () => {
@@ -565,13 +609,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const response = await fetch('http://localhost:8129/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'Ready' })
+        body: JSON.stringify({
+          text: 'Claude ready',
+          voice: audioSettings.voice,
+          rate: audioSettings.rate
+        })
       })
       const data = await response.json()
 
       if (data.success && data.url) {
         const audio = new Audio(data.url)
-        audio.volume = audioVolume
+        audio.volume = audioSettings.volume
         audio.onended = () => setAudioTestPlaying(false)
         audio.onerror = () => setAudioTestPlaying(false)
         await audio.play()
@@ -582,6 +630,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       console.error('[Settings] Audio test failed:', err)
       setAudioTestPlaying(false)
     }
+  }
+
+  // Profile audio override handlers
+  const updateProfileAudioOverrides = (profileId: string, overrides: ProfileAudioOverrides | undefined) => {
+    const updatedProfiles = profiles.map(p =>
+      p.id === profileId ? { ...p, audioOverrides: overrides } : p
+    )
+    setProfiles(updatedProfiles)
+    // Auto-save profiles when audio overrides change
+    chrome.storage.local.set({ profiles: updatedProfiles })
+  }
+
+  const getProfileAudioSummary = (profile: Profile): string => {
+    if (!profile.audioOverrides) return 'Global defaults'
+    const overrides = profile.audioOverrides
+    if (overrides.enabled === false) return 'Audio OFF'
+    if (overrides.voice) {
+      const voice = TTS_VOICES.find(v => v.value === overrides.voice)
+      return voice?.label || overrides.voice
+    }
+    return 'Custom'
   }
 
   // Calculate token estimate from individual tools
@@ -1269,8 +1338,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={audioEnabled}
-                      onChange={(e) => handleAudioToggle(e.target.checked)}
+                      checked={audioSettings.enabled}
+                      onChange={(e) => updateAudioSettings({ enabled: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff88]"></div>
@@ -1278,50 +1347,165 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </div>
 
-              {/* Notification Types */}
-              <div className={`space-y-3 ${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                <h4 className="text-sm font-medium text-white">Notification Types</h4>
-
-                <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h5 className="text-sm text-white">"Ready" notification</h5>
-                      <p className="text-xs text-gray-500 mt-1">Play when Claude finishes and is awaiting input</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={audioReadyEnabled}
-                        onChange={(e) => handleAudioReadyToggle(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff88]"></div>
-                    </label>
+              {/* Voice & Speed Settings */}
+              <div className={`space-y-4 ${!audioSettings.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <h4 className="text-sm font-medium text-white">Voice & Speed</h4>
+                <div className="bg-black/30 border border-gray-800 rounded-lg p-4 space-y-4">
+                  {/* Voice Selection */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Voice</label>
+                    <select
+                      value={audioSettings.voice}
+                      onChange={(e) => updateAudioSettings({ voice: e.target.value })}
+                      className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
+                    >
+                      {TTS_VOICES.map((voice) => (
+                        <option key={voice.value} value={voice.value}>
+                          {voice.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-              </div>
 
-              {/* Volume Control */}
-              <div className={`space-y-3 ${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                <h4 className="text-sm font-medium text-white">Volume</h4>
-                <div className="bg-black/30 border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-center gap-4">
+                  {/* Rate Slider */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">
+                      Speech Rate: {audioSettings.rate}
+                    </label>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="100"
+                      step="10"
+                      value={parseInt(audioSettings.rate)}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value)
+                        updateAudioSettings({ rate: val >= 0 ? `+${val}%` : `${val}%` })
+                      }}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>-50% (slower)</span>
+                      <span>0%</span>
+                      <span>+100% (faster)</span>
+                    </div>
+                  </div>
+
+                  {/* Volume Slider */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">
+                      Volume: {Math.round(audioSettings.volume * 100)}%
+                    </label>
                     <input
                       type="range"
                       min="0"
                       max="1"
                       step="0.1"
-                      value={audioVolume}
-                      onChange={(e) => handleAudioVolumeChange(parseFloat(e.target.value))}
-                      className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                      value={audioSettings.volume}
+                      onChange={(e) => updateAudioSettings({ volume: parseFloat(e.target.value) })}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
                     />
-                    <span className="text-sm text-gray-400 w-12 text-right">{Math.round(audioVolume * 100)}%</span>
                   </div>
                 </div>
               </div>
 
+              {/* Event Toggles */}
+              <div className={`space-y-3 ${!audioSettings.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <h4 className="text-sm font-medium text-white">Events</h4>
+                <div className="bg-black/30 border border-gray-800 rounded-lg divide-y divide-gray-800">
+                  {/* Ready */}
+                  <div className="flex items-center justify-between p-3">
+                    <div>
+                      <span className="text-sm text-white">Ready notification</span>
+                      <p className="text-xs text-gray-500">When Claude finishes and awaits input</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.events.ready}
+                        onChange={(e) => updateAudioEvents({ ready: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                    </label>
+                  </div>
+
+                  {/* Session Start */}
+                  <div className="flex items-center justify-between p-3">
+                    <div>
+                      <span className="text-sm text-white">Session start</span>
+                      <p className="text-xs text-gray-500">When a new Claude session begins</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.events.sessionStart}
+                        onChange={(e) => updateAudioEvents({ sessionStart: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                    </label>
+                  </div>
+
+                  {/* Tools */}
+                  <div className="flex items-center justify-between p-3">
+                    <div>
+                      <span className="text-sm text-white">Tool announcements</span>
+                      <p className="text-xs text-gray-500">"Reading file", "Editing", "Searching"...</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.events.tools}
+                        onChange={(e) => updateAudioEvents({ tools: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                    </label>
+                  </div>
+
+                  {/* Subagents */}
+                  <div className="flex items-center justify-between p-3">
+                    <div>
+                      <span className="text-sm text-white">Subagent activity</span>
+                      <p className="text-xs text-gray-500">"Spawning agent", agent count changes</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audioSettings.events.subagents}
+                        onChange={(e) => updateAudioEvents({ subagents: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tool Debounce (only shown if tools enabled) */}
+                {audioSettings.events.tools && (
+                  <div className="bg-black/30 border border-gray-800 rounded-lg p-3">
+                    <label className="block text-xs text-gray-400 mb-1">
+                      Tool debounce: {audioSettings.toolDebounceMs}ms
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="3000"
+                      step="250"
+                      value={audioSettings.toolDebounceMs}
+                      onChange={(e) => updateAudioSettings({ toolDebounceMs: parseInt(e.target.value) })}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Minimum time between tool announcements (prevents spam)
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Test Button */}
-              <div className={`${!audioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className={`${!audioSettings.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
                 <button
                   onClick={handleAudioTest}
                   disabled={audioTestPlaying}
@@ -1332,9 +1516,180 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </button>
               </div>
 
+              {/* Profile Overrides Section */}
+              <div className={`space-y-3 ${!audioSettings.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                <h4 className="text-sm font-medium text-white">Profile Overrides</h4>
+                <p className="text-xs text-gray-500">
+                  Give different Claude sessions different voices, or disable audio for specific profiles.
+                </p>
+                <div className="bg-black/30 border border-gray-800 rounded-lg divide-y divide-gray-800">
+                  {profiles.map((profile) => (
+                    <div key={profile.id}>
+                      <button
+                        onClick={() => setExpandedProfileAudio(
+                          expandedProfileAudio === profile.id ? null : profile.id
+                        )}
+                        className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${
+                            profile.audioOverrides?.enabled === false
+                              ? 'bg-gray-500'
+                              : profile.audioOverrides?.voice
+                                ? 'bg-[#00c8ff]'
+                                : 'bg-[#00ff88]'
+                          }`} />
+                          <span className="text-sm text-white">{profile.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{getProfileAudioSummary(profile)}</span>
+                          {expandedProfileAudio === profile.id ? (
+                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Expanded Profile Settings */}
+                      {expandedProfileAudio === profile.id && (
+                        <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-800/50 bg-black/20">
+                          {/* Enable/Disable Override */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={profile.audioOverrides?.enabled !== false}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  // Remove the enabled:false override
+                                  const { enabled, ...rest } = profile.audioOverrides || {}
+                                  updateProfileAudioOverrides(
+                                    profile.id,
+                                    Object.keys(rest).length > 0 ? rest : undefined
+                                  )
+                                } else {
+                                  // Set enabled:false
+                                  updateProfileAudioOverrides(profile.id, {
+                                    ...profile.audioOverrides,
+                                    enabled: false
+                                  })
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-600 bg-black/50 text-[#00ff88]"
+                            />
+                            <span className="text-sm text-white">Audio enabled for this profile</span>
+                          </label>
+
+                          {profile.audioOverrides?.enabled !== false && (
+                            <>
+                              {/* Voice Override */}
+                              <div>
+                                <label className="flex items-center gap-2 mb-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!profile.audioOverrides?.voice}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        updateProfileAudioOverrides(profile.id, {
+                                          ...profile.audioOverrides,
+                                          voice: audioSettings.voice
+                                        })
+                                      } else {
+                                        const { voice, ...rest } = profile.audioOverrides || {}
+                                        updateProfileAudioOverrides(
+                                          profile.id,
+                                          Object.keys(rest).length > 0 ? rest : undefined
+                                        )
+                                      }
+                                    }}
+                                    className="w-4 h-4 rounded border-gray-600 bg-black/50 text-[#00ff88]"
+                                  />
+                                  <span className="text-xs text-gray-400">Override voice</span>
+                                </label>
+                                {profile.audioOverrides?.voice && (
+                                  <select
+                                    value={profile.audioOverrides.voice}
+                                    onChange={(e) => updateProfileAudioOverrides(profile.id, {
+                                      ...profile.audioOverrides,
+                                      voice: e.target.value
+                                    })}
+                                    className="w-full px-2 py-1.5 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
+                                  >
+                                    {TTS_VOICES.map((voice) => (
+                                      <option key={voice.value} value={voice.value}>
+                                        {voice.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+
+                              {/* Rate Override */}
+                              <div>
+                                <label className="flex items-center gap-2 mb-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!profile.audioOverrides?.rate}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        updateProfileAudioOverrides(profile.id, {
+                                          ...profile.audioOverrides,
+                                          rate: audioSettings.rate
+                                        })
+                                      } else {
+                                        const { rate, ...rest } = profile.audioOverrides || {}
+                                        updateProfileAudioOverrides(
+                                          profile.id,
+                                          Object.keys(rest).length > 0 ? rest : undefined
+                                        )
+                                      }
+                                    }}
+                                    className="w-4 h-4 rounded border-gray-600 bg-black/50 text-[#00ff88]"
+                                  />
+                                  <span className="text-xs text-gray-400">
+                                    Override rate: {profile.audioOverrides?.rate || audioSettings.rate}
+                                  </span>
+                                </label>
+                                {profile.audioOverrides?.rate && (
+                                  <input
+                                    type="range"
+                                    min="-50"
+                                    max="100"
+                                    step="10"
+                                    value={parseInt(profile.audioOverrides.rate)}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value)
+                                      updateProfileAudioOverrides(profile.id, {
+                                        ...profile.audioOverrides,
+                                        rate: val >= 0 ? `+${val}%` : `${val}%`
+                                      })
+                                    }}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                                  />
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {/* Reset Button */}
+                          {profile.audioOverrides && (
+                            <button
+                              onClick={() => updateProfileAudioOverrides(profile.id, undefined)}
+                              className="text-xs text-gray-400 hover:text-white transition-colors"
+                            >
+                              Reset to global defaults
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Info */}
               <div className="text-xs text-gray-500 mt-4 p-3 bg-gray-900/50 rounded-lg">
-                <p><strong>Note:</strong> Audio uses edge-tts neural voices. First playback may have a brief delay while the audio is generated - subsequent plays are instant (cached).</p>
+                <p><strong>Note:</strong> Audio uses edge-tts neural voices. First playback may have a brief delay while audio is generated - subsequent plays are instant (cached).</p>
               </div>
             </>
           )}

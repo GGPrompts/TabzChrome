@@ -77,13 +77,17 @@ app.get('/api/audio/list', (req, res) => {
 });
 
 // Generate audio using edge-tts (with caching)
-// POST /api/audio/generate { text: string, voice?: string }
+// POST /api/audio/generate { text: string, voice?: string, rate?: string }
 app.post('/api/audio/generate', async (req, res) => {
   const { execSync } = require('child_process');
   const fs = require('fs');
   const crypto = require('crypto');
 
-  const { text, voice = 'en-US-AndrewMultilingualNeural' } = req.body;
+  const {
+    text,
+    voice = 'en-US-AndrewMultilingualNeural',
+    rate = '+0%'  // e.g., "+30%", "-10%"
+  } = req.body;
 
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing text parameter' });
@@ -96,8 +100,8 @@ app.post('/api/audio/generate', async (req, res) => {
     fs.mkdirSync(audioDir, { recursive: true });
   }
 
-  // Generate cache key from voice + text
-  const cacheKey = crypto.createHash('md5').update(`${voice}:${text}`).digest('hex');
+  // Generate cache key from voice + rate + text
+  const cacheKey = crypto.createHash('md5').update(`${voice}:${rate}:${text}`).digest('hex');
   const cacheFile = path.join(audioDir, `${cacheKey}.mp3`);
 
   // Check if cached
@@ -112,7 +116,9 @@ app.post('/api/audio/generate', async (req, res) => {
   // Generate with edge-tts
   try {
     const outputBase = path.join(audioDir, cacheKey);
-    execSync(`edge-tts synthesize -v "${voice}" -t "${text.replace(/"/g, '\\"')}" -o "${outputBase}"`, {
+    // Build command with rate flag
+    const rateFlag = rate && rate !== '+0%' ? `-r "${rate}"` : '';
+    execSync(`edge-tts synthesize -v "${voice}" ${rateFlag} -t "${text.replace(/"/g, '\\"')}" -o "${outputBase}"`, {
       timeout: 10000  // 10 second timeout
     });
 
