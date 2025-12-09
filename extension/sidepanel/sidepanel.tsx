@@ -6,7 +6,7 @@ import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
-import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText } from '../hooks/useClaudeStatus'
+import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis } from '../hooks/useClaudeStatus'
 import { useCommandHistory } from '../hooks/useCommandHistory'
 import { useOrphanedSessions } from '../hooks/useOrphanedSessions'
 import '../styles/globals.css'
@@ -1421,9 +1421,10 @@ function SidePanelTerminal() {
                   >
                     {/* Tab content: show Claude status if detected, otherwise session name */}
                     {/* Using consistent structure to prevent DOM thrashing */}
+                    {/* Robot emojis multiply based on active subagent count: 🤖🤖🤖 */}
                     <span className="flex-1 flex items-center gap-1 text-xs truncate min-w-0">
                       {claudeStatuses.has(session.id) && (
-                        <span className="flex-shrink-0">🤖</span>
+                        <span className="flex-shrink-0">{getRobotEmojis(claudeStatuses.get(session.id))}</span>
                       )}
                       <span className="truncate">
                         {claudeStatuses.has(session.id)

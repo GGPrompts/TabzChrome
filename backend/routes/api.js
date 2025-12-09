@@ -971,7 +971,8 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
               tmuxPane: stateData.tmux_pane,
-              details: stateData.details || null
+              details: stateData.details || null,
+              subagent_count: stateData.subagent_count || 0
             };
             bestMatchTime = updateTime;
           }
@@ -988,7 +989,8 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
               details: stateData.details || null,
-              matchType: 'exact'
+              matchType: 'exact',
+              subagent_count: stateData.subagent_count || 0
             };
             bestMatchTime = updateTime;
           }
@@ -1007,7 +1009,8 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
               details: stateData.details || null,
-              matchType: 'parent'
+              matchType: 'parent',
+              subagent_count: stateData.subagent_count || 0
             };
             bestMatchTime = updateTime;
           }

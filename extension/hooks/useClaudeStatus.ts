@@ -5,6 +5,7 @@ export interface ClaudeStatus {
   current_tool?: string
   last_updated?: string
   tmuxPane?: string  // Pane ID (e.g., '%42') for targeted send to Claude in split layouts
+  subagent_count?: number  // Number of active subagents (for 🤖🤖🤖 display)
   details?: {
     args?: {
       file_path?: string
@@ -97,6 +98,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
                   current_tool: result.current_tool,
                   last_updated: result.last_updated,
                   tmuxPane: result.tmuxPane,
+                  subagent_count: result.subagent_count || 0,
                   details: result.details,
                 } as ClaudeStatus,
                 success: true,
@@ -146,6 +148,18 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
   }, [terminalsKey])  // Use stable key instead of array reference to prevent re-running on every render
 
   return statuses
+}
+
+/**
+ * Get robot emoji(s) for display
+ * Returns 🤖 plus extra 🤖 for each active subagent
+ * e.g., 1 subagent = 🤖🤖, 2 subagents = 🤖🤖🤖
+ */
+export function getRobotEmojis(status: ClaudeStatus | undefined): string {
+  if (!status) return ''
+  const count = status.subagent_count || 0
+  // Always show at least one robot, plus one for each subagent
+  return '🤖'.repeat(1 + count)
 }
 
 /**
