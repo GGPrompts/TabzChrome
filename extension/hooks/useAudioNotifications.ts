@@ -255,7 +255,11 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
       const isActiveStatus = currentStatus === 'tool_use' || currentStatus === 'processing'
       const isNewTool = currentToolName !== '' && currentToolName !== prevToolName
 
-      if (audioSettings.events.tools && isActiveStatus && isNewTool) {
+      // Skip internal Claude session files (session memory updates)
+      const filePath = status.details?.args?.file_path || ''
+      const isInternalFile = filePath.includes('/.claude/') || filePath.includes('/session-memory/')
+
+      if (audioSettings.events.tools && isActiveStatus && isNewTool && !isInternalFile) {
         let announcement = ''
         switch (currentToolName) {
           case 'Read': announcement = 'Reading'; break

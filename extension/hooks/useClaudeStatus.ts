@@ -190,6 +190,15 @@ export function getToolEmoji(toolName: string | undefined): string {
 }
 
 /**
+ * Check if a file path is an internal Claude file (session memory, etc.)
+ * These should not be shown in status updates as they're not user-relevant
+ */
+function isInternalClaudeFile(filePath: string | undefined): boolean {
+  if (!filePath) return false
+  return filePath.includes('/.claude/') || filePath.includes('/session-memory/')
+}
+
+/**
  * Get status emoji for display
  * Returns tool-specific emoji when using a tool, otherwise status emoji
  */
@@ -219,6 +228,14 @@ export function getStatusEmoji(status: ClaudeStatus | undefined): string {
  */
 export function getStatusText(status: ClaudeStatus | undefined, profileName?: string): string {
   if (!status) return ''
+
+  // Skip displaying internal Claude file operations
+  const filePath = status.details?.args?.file_path
+  if (isInternalClaudeFile(filePath)) {
+    // Show generic processing status instead of internal file details
+    if (status.status === 'processing') return '⏳ Processing'
+    if (status.status === 'tool_use') return '🔧 Working'
+  }
 
   switch (status.status) {
     case 'idle':
@@ -283,6 +300,13 @@ export function getStatusText(status: ClaudeStatus | undefined, profileName?: st
  */
 export function getFullStatusText(status: ClaudeStatus | undefined): string {
   if (!status) return ''
+
+  // Skip displaying internal Claude file operations
+  const filePath = status.details?.args?.file_path
+  if (isInternalClaudeFile(filePath)) {
+    if (status.status === 'processing') return 'Processing...'
+    if (status.status === 'tool_use') return 'Working...'
+  }
 
   switch (status.status) {
     case 'idle':
