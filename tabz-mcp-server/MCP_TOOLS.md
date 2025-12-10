@@ -765,11 +765,43 @@ The `/ttmcp` slash command provides an interactive menu-driven interface to all 
 - Controlling AI tools (Sora, DALL-E, etc.)
 - Quick access without remembering exact tool names
 
+## Extension vs CDP Dependencies
+
+Most tools work via **CDP (Chrome DevTools Protocol)** and only require Chrome launched with `--remote-debugging-port=9222`. The extension is only needed for specific features.
+
+| Tool | Needs Extension? | Implementation |
+|------|-----------------|----------------|
+| `tabz_list_tabs` | ❌ No | CDP (puppeteer-core) |
+| `tabz_switch_tab` | ❌ No | CDP |
+| `tabz_rename_tab` | ❌ No | CDP (in-memory storage) |
+| `tabz_get_page_info` | ⚠️ Fallback | CDP first, extension fallback |
+| `tabz_click` | ❌ No | CDP |
+| `tabz_fill` | ❌ No | CDP |
+| `tabz_screenshot` | ❌ No | CDP |
+| `tabz_screenshot_full` | ❌ No | CDP |
+| `tabz_download_image` | ❌ No | CDP |
+| `tabz_get_element` | ❌ No | CDP |
+| `tabz_open_url` | ⚠️ Partial | Extension for URL allowlist |
+| `tabz_execute_script` | ⚠️ Fallback | CDP first, extension fallback |
+| `tabz_get_console_logs` | ✅ Yes | Extension captures logs |
+| `tabz_enable_network_capture` | ❌ No | CDP |
+| `tabz_get_network_requests` | ❌ No | CDP |
+| `tabz_get_api_response` | ❌ No | CDP |
+| `tabz_clear_network_requests` | ❌ No | CDP |
+| `tabz_download_file` | ✅ Yes | Chrome downloads API |
+| `tabz_get_downloads` | ✅ Yes | Chrome downloads API |
+| `tabz_cancel_download` | ✅ Yes | Chrome downloads API |
+
+**Summary:**
+- **CDP-only tools (15):** Work with just Chrome + `--remote-debugging-port=9222`
+- **Extension-required (4):** Console logs, downloads API
+- **Hybrid (3):** Try CDP first, fall back to extension
+
 ## Requirements
 
 1. **Chrome with remote debugging:** Use the "Chrome (Claude Debug)" desktop shortcut
 2. **Backend running:** `cd backend && npm start` (in WSL2)
-3. **Chrome extension loaded:** Reload at `chrome://extensions` (for console logs)
+3. **Chrome extension loaded:** Reload at `chrome://extensions` (required for console logs and downloads)
 
 ## Platform Setup (Quick Reference)
 
