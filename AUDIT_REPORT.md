@@ -139,20 +139,32 @@ This audit evaluated TabzChrome for public release readiness across four dimensi
 
 ### High Priority
 - [ ] Add screenshots to `docs/screenshots/` folder
-- [ ] Remove debug console.logs from popup.tsx and sidepanel.tsx
-- [ ] Update MCP tool count in README.md (12 → 16)
+- [x] Remove debug console.logs from popup.tsx and sidepanel.tsx
+- [x] Update MCP tool count in README.md and CLAUDE.md (12 → 17)
 - [x] Add `dist-extension/` to .gitignore
 
 ### Medium Priority
-- [ ] Add license field to backend/package.json
-- [ ] Review manifest.json permissions (debugger, cookies, history, bookmarks)
+- [x] Add license field to backend/package.json
+- [x] Review manifest.json permissions (see notes below)
 - [ ] Clean up personal paths in docs/archived/ files
-- [ ] Document backend .env variables in README
+- [x] Document backend .env variables in README
 
 ### Low Priority
 - [ ] Add homepage/bugs fields to package.json
 - [ ] Consider adding conditional debug mode for console.logs
 - [ ] Archive outdated planning documents
+
+### Manifest Permissions Analysis
+
+**Actually Used:**
+- storage, contextMenus, tabs, sidePanel, clipboardRead/Write, notifications, scripting, activeTab, alarms ✅
+
+**Reserved for Phase 2C (not yet implemented):**
+- debugger, downloads, webRequest, cookies, history, bookmarks
+
+These reserved permissions are for planned MCP tools (see PLAN.md Phase 2C). Options:
+1. **Keep them** - If Phase 2C will be implemented soon
+2. **Remove them** - For minimal permissions; re-add when features are built
 
 ---
 
@@ -162,6 +174,8 @@ Before publishing, verify:
 
 - [x] Repository URL correct in package.json
 - [x] Package name matches repository
+- [x] Debug console.logs removed from extension
+- [x] MCP tool count updated (17 tools)
 - [x] Version numbers consistent (2.7.0)
 - [x] No hardcoded personal paths in main docs
 - [x] LICENSE file exists (MIT)

@@ -232,11 +232,12 @@ Clicking the element queues the command to the sidebar chat input.
 
 ## Tabz MCP Integration
 
-Tabz includes an **MCP server** with 12 tools that let Claude Code control your browser:
+Tabz includes an **MCP server** with 17 tools that let Claude Code control your browser:
 
 | Tool | Description |
 |------|-------------|
-| `tabz_screenshot` | Capture page to disk |
+| `tabz_screenshot` | Capture viewport to disk |
+| `tabz_screenshot_full` | Capture entire scrollable page |
 | `tabz_click` | Click element by CSS selector |
 | `tabz_fill` | Type into input fields |
 | `tabz_execute_script` | Run JavaScript |
@@ -248,6 +249,10 @@ Tabz includes an **MCP server** with 12 tools that let Claude Code control your 
 | `tabz_get_page_info` | Get current URL/title |
 | `tabz_download_image` | Download images to disk |
 | `tabz_get_element` | Inspect element HTML/CSS |
+| `tabz_enable_network_capture` | Start capturing network requests |
+| `tabz_get_network_requests` | List captured XHR/fetch requests |
+| `tabz_get_api_response` | Get full response body for a request |
+| `tabz_clear_network_requests` | Clear captured requests |
 
 ### Configure in Settings
 
@@ -339,6 +344,26 @@ Default: `8129` (configured in `backend/.env`)
 | Ctrl+Shift+V | Paste (in terminal) |
 
 Customize at `chrome://extensions/shortcuts`
+
+---
+
+## Backend Configuration
+
+The backend server supports optional environment variables in `backend/.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8129` | HTTP/WebSocket server port |
+| `LOG_LEVEL` | `4` | Logging verbosity: 0=silent, 1=fatal, 2=error, 3=warn, 4=info, 5=debug |
+| `LOG_FILE` | *(none)* | Optional file path to write logs (e.g., `logs/backend.log`) |
+| `CLEANUP_ON_START` | `false` | Kill orphaned tmux sessions on backend start |
+
+**Example `backend/.env`:**
+```bash
+PORT=8129
+LOG_LEVEL=5        # Enable debug logging
+# LOG_FILE=logs/backend.log
+```
 
 ---
 

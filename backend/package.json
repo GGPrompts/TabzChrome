@@ -2,6 +2,7 @@
   "name": "tabz-backend",
   "version": "3.9.1",
   "description": "Backend server for Tabz",
+  "license": "MIT",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

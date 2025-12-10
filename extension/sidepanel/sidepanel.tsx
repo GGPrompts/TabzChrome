@@ -823,7 +823,6 @@ function SidePanelTerminal() {
                 p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').startsWith(profileNameFromId)
               )
               if (matchedProfile) {
-                console.log(`[terminal-spawned] Recovered session ${terminal.id} matched to profile:`, matchedProfile.name)
                 // Update the session with the matched profile
                 setSessions(prev => prev.map(s =>
                   s.id === terminal.id ? { ...s, profile: matchedProfile } : s
@@ -1056,7 +1055,6 @@ function SidePanelTerminal() {
         if (tmuxPane) {
           // Use targeted pane send - goes directly to Claude's pane
           // This prevents sending to TUI tools (like TFE) in other panes
-          console.log(`[ChatSend] Using TARGETED_PANE_SEND to pane ${tmuxPane}`)
           sendMessage({
             type: 'TARGETED_PANE_SEND',
             tmuxPane,
@@ -1067,7 +1065,6 @@ function SidePanelTerminal() {
           // Fallback: Use tmux session name when pane ID isn't available
           // This is safer than PTY for Claude terminals - sends to first pane of session
           // Avoids the bug where content gets executed by bash instead of going to Claude
-          console.log(`[ChatSend] Using TMUX_SESSION_SEND to session ${tmuxSessionName}`)
           sendMessage({
             type: 'TMUX_SESSION_SEND',
             sessionName: tmuxSessionName,
@@ -1344,8 +1341,6 @@ function SidePanelTerminal() {
     const terminal = sessions.find(s => s.id === contextMenu.terminalId)
     if (!terminal) return
 
-    console.log(`[handleDetachSession] Detaching terminal: ${terminal.id} (session: ${terminal.sessionName})`)
-
     try {
       // Use DELETE /api/agents/:id?force=false to remove from registry but preserve tmux session
       // This makes the session appear as "orphaned" in the Ghost Badge
@@ -1355,7 +1350,6 @@ function SidePanelTerminal() {
 
       const data = await response.json()
       if (data.success) {
-        console.log('[handleDetachSession] Terminal detached successfully (tmux session preserved)')
         // UI will update via WebSocket broadcast (terminal-closed event)
         // But also update local state immediately for responsiveness
         setSessions(prev => prev.filter(s => s.id !== terminal.id))
@@ -1435,8 +1429,6 @@ function SidePanelTerminal() {
     const terminal = sessions.find(s => s.id === contextMenu.terminalId)
     if (!terminal?.sessionName) return
 
-    console.log(`[handleKillSession] Killing session: ${terminal.sessionName}`)
-
     try {
       const response = await fetch(`http://localhost:8129/api/tmux/sessions/${terminal.sessionName}`, {
         method: 'DELETE'
@@ -1444,7 +1436,6 @@ function SidePanelTerminal() {
 
       const data = await response.json()
       if (data.success) {
-        console.log('[handleKillSession] Session killed successfully')
         // Remove from UI and session is destroyed
         setSessions(prev => prev.filter(s => s.id !== terminal.id))
         if (currentSession === terminal.id) {

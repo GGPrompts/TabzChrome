@@ -33,29 +33,21 @@ function ExtensionPopup() {
   const [searchValue, setSearchValue] = useState('')
 
   useEffect(() => {
-    console.log('[Popup] Loading data...')
-    console.log('[Popup] spawnOptionsData:', spawnOptionsData)
-    console.log('[Popup] spawnOptions array:', spawnOptionsData.spawnOptions)
-    console.log('[Popup] spawnOptions length:', spawnOptionsData.spawnOptions?.length)
-
     // Clear old active sessions from storage (reset to 0)
     chrome.storage.local.set({ activeSessions: [] })
 
     // Load recent sessions from storage
     getLocal(['recentSessions']).then(({ recentSessions }) => {
-      console.log('[Popup] Recent sessions:', recentSessions)
       setRecentSessions(recentSessions || [])
     })
 
     // Get active session count (should be 0 after clear)
     getActiveSessionCount().then(count => {
-      console.log('[Popup] Active session count:', count)
       setActiveSessionCount(count)
     })
 
     // Load spawn options from imported JSON
     const options = spawnOptionsData.spawnOptions || []
-    console.log('[Popup] Setting spawn options:', options.length, 'options')
     setSpawnOptions(options)
   }, [])
 
@@ -86,14 +78,11 @@ function ExtensionPopup() {
       const lastFocused = windows.find(w => w.focused) || windows[0]
 
       if (lastFocused?.id) {
-        console.log('[Popup] Opening side panel in window:', lastFocused.id)
         await chrome.sidePanel.open({ windowId: lastFocused.id })
         window.close()
-      } else {
-        console.error('[Popup] No browser window found')
       }
     } catch (error) {
-      console.error('[Popup] Failed to open side panel:', error)
+      // Side panel may fail to open in some contexts - silently ignore
     }
   }
 
@@ -105,14 +94,11 @@ function ExtensionPopup() {
       const lastFocused = windows.find(w => w.focused) || windows[0]
 
       if (lastFocused?.id) {
-        console.log('[Popup] Opening side panel in window:', lastFocused.id)
         await chrome.sidePanel.open({ windowId: lastFocused.id })
         window.close()
-      } else {
-        console.error('[Popup] No browser window found')
       }
     } catch (error) {
-      console.error('[Popup] Failed to open side panel:', error)
+      // Side panel may fail to open in some contexts - silently ignore
     }
   }
 
@@ -125,10 +111,6 @@ function ExtensionPopup() {
   const filteredRecentSessions = recentSessions.filter(session =>
     session.name.toLowerCase().includes(searchValue.toLowerCase())
   )
-
-  console.log('[Popup] Render - spawnOptions:', spawnOptions.length)
-  console.log('[Popup] Render - filteredSpawnOptions:', filteredSpawnOptions.length)
-  console.log('[Popup] Render - searchValue:', searchValue)
 
   return (
     <div className="w-[400px] h-[500px] bg-background text-foreground">

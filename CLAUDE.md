@@ -383,7 +383,7 @@ TabzChrome includes a **Tabz MCP Server** that enables Claude Code to programmat
 
 ### Available Tools
 
-**12 MCP tools** for browser automation (see [MCP_TOOLS.md](tabz-mcp-server/MCP_TOOLS.md)):
+**17 MCP tools** for browser automation (see [MCP_TOOLS.md](tabz-mcp-server/MCP_TOOLS.md)):
 - `tabz_list_tabs` - List all open tabs
 - `tabz_switch_tab` - Switch to specific tab
 - `tabz_rename_tab` - Assign custom names to tabs (persist by URL)
@@ -391,11 +391,16 @@ TabzChrome includes a **Tabz MCP Server** that enables Claude Code to programmat
 - `tabz_open_url` - Open allowed URLs (GitHub, GitLab, Vercel, localhost)
 - `tabz_click` - Click elements by CSS selector
 - `tabz_fill` - Fill form inputs
-- `tabz_screenshot` - Capture screenshots to disk
+- `tabz_screenshot` - Capture viewport screenshots to disk
+- `tabz_screenshot_full` - Capture entire scrollable page
 - `tabz_download_image` - Download images from pages
 - `tabz_get_element` - Inspect element HTML/CSS
 - `tabz_execute_script` - Run JavaScript in page
 - `tabz_get_console_logs` - View browser console output
+- `tabz_enable_network_capture` - Start capturing network requests
+- `tabz_get_network_requests` - List captured XHR/fetch requests
+- `tabz_get_api_response` - Get full response body for a request
+- `tabz_clear_network_requests` - Clear captured requests
 
 ### Interactive Command: `/ttmcp`
 

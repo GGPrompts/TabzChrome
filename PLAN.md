@@ -188,14 +188,14 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ### High Priority - TODO
 - [ ] **Add screenshots** - `docs/screenshots/` folder is empty
-- [ ] **Remove debug console.logs** - ~25 logs in popup.tsx and sidepanel.tsx
-- [ ] **Update MCP tool count** - README/CLAUDE say 12, actually 16 with network monitoring
+- [x] **Remove debug console.logs** - Cleaned popup.tsx and sidepanel.tsx
+- [x] **Update MCP tool count** - README/CLAUDE updated to 17 tools
 
 ### Medium Priority - TODO
-- [ ] **Add license to backend/package.json** - Missing `"license": "MIT"` field
-- [ ] **Review manifest permissions** - debugger, cookies, history, bookmarks may be excessive
+- [x] **Add license to backend/package.json** - Added `"license": "MIT"`
+- [x] **Review manifest permissions** - See AUDIT_REPORT.md; unused permissions reserved for Phase 2C
 - [ ] **Clean archived docs** - Personal paths remain in `docs/archived/*` files
-- [ ] **Document backend .env** - No docs for PORT, LOG_LEVEL environment variables
+- [x] **Document backend .env** - Added Backend Configuration section to README
 
 ### Low Priority - TODO
 - [ ] Add homepage/bugs fields to backend/package.json
