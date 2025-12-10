@@ -70,6 +70,7 @@ export interface CategorySettings {
   [categoryName: string]: {
     color: string       // Hex color (e.g., "#22c55e")
     collapsed?: boolean // UI state: is category collapsed in settings
+    order?: number      // Sort order (lower = higher in list)
   }
 }
 
@@ -182,6 +183,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null)
+
+  // Category drag-and-drop state
+  const [draggedCategory, setDraggedCategory] = useState<string | null>(null)
+  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null)
+  const [categoryDropPosition, setCategoryDropPosition] = useState<'above' | 'below' | null>(null)
+
+  // Category rename state
+  const [editingCategory, setEditingCategory] = useState<string | null>(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
+  const categoryInputRef = useRef<HTMLInputElement>(null)
 
   // MCP state - now tracks individual tools instead of groups
   const [mcpEnabledTools, setMcpEnabledTools] = useState<string[]>(PRESETS.standard)
@@ -491,7 +502,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     profiles.forEach(p => {
       if (p.category) categories.add(p.category)
     })
-    return Array.from(categories).sort()
+    // Sort by order from settings, then alphabetically
+    return Array.from(categories).sort((a, b) => {
+      const orderA = categorySettings[a]?.order ?? Infinity
+      const orderB = categorySettings[b]?.order ?? Infinity
+      if (orderA !== orderB) return orderA - orderB
+      return a.localeCompare(b)
+    })
   }
 
   const toggleCategoryCollapsed = (categoryName: string) => {
@@ -524,6 +541,144 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     return categorySettings[categoryName]?.color || DEFAULT_CATEGORY_COLOR
   }
 
+  // Category drag-and-drop handlers
+  const handleCategoryDragStart = (category: string) => {
+    setDraggedCategory(category)
+  }
+
+  const handleCategoryDragOver = (e: React.DragEvent, category: string) => {
+    e.preventDefault()
+    if (draggedCategory === null || draggedCategory === category) return
+
+    // Determine if cursor is in top or bottom half of the element
+    const rect = e.currentTarget.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    const position = e.clientY < midpoint ? 'above' : 'below'
+
+    setDragOverCategory(category)
+    setCategoryDropPosition(position)
+  }
+
+  const handleCategoryDragLeave = () => {
+    setDragOverCategory(null)
+    setCategoryDropPosition(null)
+  }
+
+  const handleCategoryDrop = (targetCategory: string) => {
+    if (draggedCategory === null || draggedCategory === targetCategory) {
+      setDraggedCategory(null)
+      setDragOverCategory(null)
+      setCategoryDropPosition(null)
+      return
+    }
+
+    // Get sorted categories list
+    const sortedCategories = getUniqueCategories()
+
+    // Calculate new orders based on drop position
+    const draggedIndex = sortedCategories.indexOf(draggedCategory)
+    let targetIndex = sortedCategories.indexOf(targetCategory)
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedCategory(null)
+      setDragOverCategory(null)
+      setCategoryDropPosition(null)
+      return
+    }
+
+    // Adjust for drop position
+    if (categoryDropPosition === 'below') {
+      targetIndex += 1
+    }
+    // Adjust if dragging from before the target
+    if (draggedIndex < targetIndex) {
+      targetIndex -= 1
+    }
+
+    // Build new order - remove dragged and insert at new position
+    const newOrder = sortedCategories.filter(c => c !== draggedCategory)
+    newOrder.splice(targetIndex, 0, draggedCategory)
+
+    // Update categorySettings with new orders
+    const newSettings = { ...categorySettings }
+    newOrder.forEach((category, index) => {
+      newSettings[category] = {
+        ...newSettings[category],
+        color: newSettings[category]?.color || DEFAULT_CATEGORY_COLOR,
+        order: index,
+      }
+    })
+
+    setCategorySettings(newSettings)
+    chrome.storage.local.set({ categorySettings: newSettings })
+    window.dispatchEvent(new CustomEvent('categorySettingsChanged', { detail: newSettings }))
+
+    setDraggedCategory(null)
+    setDragOverCategory(null)
+    setCategoryDropPosition(null)
+  }
+
+  const handleCategoryDragEnd = () => {
+    setDraggedCategory(null)
+    setDragOverCategory(null)
+    setCategoryDropPosition(null)
+  }
+
+  // Category rename handlers
+  const startEditingCategory = (category: string) => {
+    setEditingCategory(category)
+    setEditingCategoryName(category)
+    // Focus the input after render
+    setTimeout(() => categoryInputRef.current?.focus(), 0)
+  }
+
+  const cancelEditingCategory = () => {
+    setEditingCategory(null)
+    setEditingCategoryName('')
+  }
+
+  const saveEditingCategory = () => {
+    if (!editingCategory || !editingCategoryName.trim()) {
+      cancelEditingCategory()
+      return
+    }
+
+    const newName = editingCategoryName.trim()
+    const oldName = editingCategory
+
+    // If name didn't change, just cancel
+    if (newName === oldName) {
+      cancelEditingCategory()
+      return
+    }
+
+    // Check if new name already exists
+    const existingCategories = getUniqueCategories()
+    if (existingCategories.includes(newName)) {
+      alert(`Category "${newName}" already exists`)
+      return
+    }
+
+    // Update all profiles with this category
+    const updatedProfiles = profiles.map(p =>
+      p.category === oldName ? { ...p, category: newName } : p
+    )
+    setProfiles(updatedProfiles)
+
+    // Transfer category settings to new name
+    const oldSettings = categorySettings[oldName]
+    const newCategorySettings = { ...categorySettings }
+    delete newCategorySettings[oldName]
+    if (oldSettings) {
+      newCategorySettings[newName] = oldSettings
+    }
+    setCategorySettings(newCategorySettings)
+    chrome.storage.local.set({ categorySettings: newCategorySettings })
+    window.dispatchEvent(new CustomEvent('categorySettingsChanged', { detail: newCategorySettings }))
+
+    cancelEditingCategory()
+  }
+
   // Group profiles by category, filtering by search query
   const getGroupedProfiles = (): { category: string; profiles: { profile: Profile; originalIndex: number }[] }[] => {
     const query = profileSearchQuery.toLowerCase().trim()
@@ -551,10 +706,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       groups.get(category)!.push(item)
     })
 
-    // Sort: categorized first (alphabetically), then uncategorized at the end
+    // Sort: categorized first (by order, then alphabetically), then uncategorized at the end
     const sortedCategories = Array.from(groups.keys()).sort((a, b) => {
       if (!a && b) return 1  // Uncategorized goes last
       if (a && !b) return -1
+      // Use order from settings if available
+      const orderA = categorySettings[a]?.order ?? Infinity
+      const orderB = categorySettings[b]?.order ?? Infinity
+      if (orderA !== orderB) return orderA - orderB
       return a.localeCompare(b)
     })
 
@@ -1023,23 +1182,94 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div key={category || '__uncategorized__'} className="space-y-2">
                         {/* Category Header (only show if category exists) */}
                         {category && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleCategoryCollapsed(category)}
-                              className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                          <div
+                            draggable
+                            onDragStart={() => handleCategoryDragStart(category)}
+                            onDragOver={(e) => handleCategoryDragOver(e, category)}
+                            onDragLeave={handleCategoryDragLeave}
+                            onDrop={() => handleCategoryDrop(category)}
+                            onDragEnd={handleCategoryDragEnd}
+                            className={`
+                              relative flex items-center gap-2 py-1 px-1 -mx-1 rounded transition-all
+                              ${draggedCategory === category ? 'opacity-50' : ''}
+                              ${draggedCategory && draggedCategory !== category ? 'hover:bg-white/5' : ''}
+                            `}
+                          >
+                            {/* Drop indicator line - above */}
+                            {dragOverCategory === category && categoryDropPosition === 'above' && (
+                              <div className="absolute -top-[3px] left-0 right-0 h-[2px] bg-[#00ff88] rounded-full shadow-[0_0_6px_#00ff88]" />
+                            )}
+                            {/* Drop indicator line - below */}
+                            {dragOverCategory === category && categoryDropPosition === 'below' && (
+                              <div className="absolute -bottom-[3px] left-0 right-0 h-[2px] bg-[#00ff88] rounded-full shadow-[0_0_6px_#00ff88]" />
+                            )}
+                            {/* Drag Handle */}
+                            <div
+                              className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 transition-colors"
+                              title="Drag to reorder category"
                             >
-                              {isCollapsed ? (
-                                <ChevronRight className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                              <span
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: categoryColor }}
-                              />
-                              <span>{category}</span>
-                              <span className="text-gray-500 font-normal">({categoryProfiles.length})</span>
-                            </button>
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+
+                            {/* Category name - editable or display */}
+                            {editingCategory === category ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <span
+                                  className="w-3 h-3 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: categoryColor }}
+                                />
+                                <input
+                                  ref={categoryInputRef}
+                                  type="text"
+                                  value={editingCategoryName}
+                                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      saveEditingCategory()
+                                    } else if (e.key === 'Escape') {
+                                      e.preventDefault()
+                                      cancelEditingCategory()
+                                    }
+                                  }}
+                                  onBlur={saveEditingCategory}
+                                  className="flex-1 px-2 py-0.5 bg-black/50 border border-[#00ff88] rounded text-white text-sm focus:outline-none"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => toggleCategoryCollapsed(category)}
+                                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                              >
+                                {isCollapsed ? (
+                                  <ChevronRight className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                                <span
+                                  className="w-3 h-3 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: categoryColor }}
+                                />
+                                <span>{category}</span>
+                                <span className="text-gray-500 font-normal">({categoryProfiles.length})</span>
+                              </button>
+                            )}
+
+                            {/* Edit button (only show when not editing) */}
+                            {editingCategory !== category && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  startEditingCategory(category)
+                                }}
+                                className="p-1 hover:bg-[#00ff88]/10 rounded text-gray-500 hover:text-[#00ff88] transition-colors"
+                                title="Rename category"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+
                             {/* Color picker */}
                             <div className="flex items-center gap-1 ml-auto">
                               {CATEGORY_COLORS.map(color => (

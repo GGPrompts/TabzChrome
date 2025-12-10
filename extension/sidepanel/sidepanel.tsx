@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, FolderOpen, Moon, Sun, History, Keyboard, Volume2, VolumeX } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, ChevronRight, FolderOpen, Moon, Sun, History, Keyboard, Volume2, VolumeX } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile, type AudioSettings, type ProfileAudioOverrides, type AudioMode, type CategorySettings, DEFAULT_CATEGORY_COLOR } from '../components/SettingsModal'
@@ -109,6 +109,7 @@ function SidePanelTerminal() {
   })
   const [audioGlobalMute, setAudioGlobalMute] = useState(false)  // Master mute toggle in header
   const [categorySettings, setCategorySettings] = useState<CategorySettings>({})  // Category colors for tabs
+  const [dropdownCollapsedCategories, setDropdownCollapsedCategories] = useState<Set<string>>(new Set())  // Collapsed categories in profile dropdown
   const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())  // Track previous statuses for transition detection
   const prevToolNamesRef = useRef<Map<string, string>>(new Map())  // Track previous tool names for consecutive tool announcements
   const prevSubagentCountsRef = useRef<Map<string, number>>(new Map())  // Track subagent counts for change detection
@@ -1379,6 +1380,54 @@ function SidePanelTerminal() {
     return categorySettings[category]?.color || DEFAULT_CATEGORY_COLOR
   }
 
+  // Group profiles by category for dropdown display
+  const getGroupedProfilesForDropdown = (): { category: string; profiles: Profile[] }[] => {
+    // Get unique categories from profiles
+    const categoryMap = new Map<string, Profile[]>()
+
+    profiles.forEach(profile => {
+      const category = profile.category || ''
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, [])
+      }
+      categoryMap.get(category)!.push(profile)
+    })
+
+    // Sort categories: use order from categorySettings, then alphabetically, uncategorized last
+    const sortedCategories = Array.from(categoryMap.keys()).sort((a, b) => {
+      if (!a && b) return 1  // Uncategorized goes last
+      if (a && !b) return -1
+      // Use order from settings if available
+      const orderA = categorySettings[a]?.order ?? Infinity
+      const orderB = categorySettings[b]?.order ?? Infinity
+      if (orderA !== orderB) return orderA - orderB
+      return a.localeCompare(b)
+    })
+
+    return sortedCategories.map(category => ({
+      category,
+      profiles: categoryMap.get(category)!
+    }))
+  }
+
+  // Toggle category collapsed state in dropdown
+  const toggleDropdownCategory = (category: string) => {
+    setDropdownCollapsedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }
+
+  // Get category color from settings
+  const getCategoryColor = (category: string): string => {
+    return categorySettings[category]?.color || DEFAULT_CATEGORY_COLOR
+  }
+
   // Handle "Kill Session" from tab menu
   const handleKillSession = async () => {
     if (!contextMenu.terminalId) return
@@ -1858,38 +1907,72 @@ function SidePanelTerminal() {
                 </div>
               </div>
 
-              {/* Profile Dropdown Menu - Aligned to right edge, fixed width */}
+              {/* Profile Dropdown Menu - Aligned to right edge, with collapsible categories */}
               {showProfileDropdown && profiles.length > 0 && (
                 <div
-                  className="absolute top-full right-2 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[220px] z-50 overflow-hidden"
+                  className="absolute top-full right-2 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[240px] z-50 overflow-hidden max-h-[400px] overflow-y-auto"
                 >
-                  {profiles.map((profile) => {
-                    // Get truncated working dir (just folder name with ./ prefix)
-                    const truncatedDir = profile.workingDir
-                      ? './' + profile.workingDir.split('/').filter(Boolean).pop()
-                      : null
+                  {getGroupedProfilesForDropdown().map(({ category, profiles: categoryProfiles }) => {
+                    const isCollapsed = dropdownCollapsedCategories.has(category || '__uncategorized__')
+                    const categoryColor = category ? getCategoryColor(category) : DEFAULT_CATEGORY_COLOR
+                    const hasMultipleCategories = getGroupedProfilesForDropdown().length > 1
+
                     return (
-                      <button
-                        key={profile.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSpawnProfile(profile)
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
-                      >
-                        <div className="font-medium flex items-center gap-2">
-                          <span>{profile.name}</span>
-                          {profile.id === defaultProfileId && (
-                            <span className="text-[9px] bg-[#00ff88]/20 text-[#00ff88] px-1.5 py-0.5 rounded">Default</span>
-                          )}
-                          {truncatedDir && (
-                            <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
-                          )}
-                        </div>
-                        {profile.command && (
-                          <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                      <div key={category || '__uncategorized__'}>
+                        {/* Category Header (only show if there are multiple categories or category exists) */}
+                        {(hasMultipleCategories || category) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleDropdownCategory(category || '__uncategorized__')
+                            }}
+                            className="w-full px-3 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-300 hover:bg-white/5 transition-colors border-b border-gray-800"
+                          >
+                            {isCollapsed ? (
+                              <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                            )}
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: categoryColor }}
+                            />
+                            <span className="truncate">{category || 'Uncategorized'}</span>
+                            <span className="text-gray-500 font-normal ml-auto">({categoryProfiles.length})</span>
+                          </button>
                         )}
-                      </button>
+
+                        {/* Profile items (hidden if category is collapsed) */}
+                        {!isCollapsed && categoryProfiles.map((profile) => {
+                          const truncatedDir = profile.workingDir
+                            ? './' + profile.workingDir.split('/').filter(Boolean).pop()
+                            : null
+                          return (
+                            <button
+                              key={profile.id}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSpawnProfile(profile)
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
+                              style={category ? { paddingLeft: '1.75rem', borderLeftColor: categoryColor, borderLeftWidth: '2px' } : undefined}
+                            >
+                              <div className="font-medium flex items-center gap-2">
+                                <span>{profile.name}</span>
+                                {profile.id === defaultProfileId && (
+                                  <span className="text-[9px] bg-[#00ff88]/20 text-[#00ff88] px-1.5 py-0.5 rounded">Default</span>
+                                )}
+                                {truncatedDir && (
+                                  <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
+                                )}
+                              </div>
+                              {profile.command && (
+                                <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
                     )
                   })}
                 </div>
@@ -1924,32 +2007,67 @@ function SidePanelTerminal() {
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>
-                      {/* Profile Dropdown */}
+                      {/* Profile Dropdown - with collapsible categories */}
                       {showEmptyStateDropdown && profiles.length > 0 && (
-                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[180px] z-50 overflow-hidden">
-                          {profiles.map((profile) => {
-                            const truncatedDir = profile.workingDir
-                              ? './' + profile.workingDir.split('/').filter(Boolean).pop()
-                              : null
+                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[240px] z-50 overflow-hidden max-h-[400px] overflow-y-auto">
+                          {getGroupedProfilesForDropdown().map(({ category, profiles: categoryProfiles }) => {
+                            const isCollapsed = dropdownCollapsedCategories.has(category || '__uncategorized__')
+                            const categoryColor = category ? getCategoryColor(category) : DEFAULT_CATEGORY_COLOR
+                            const hasMultipleCategories = getGroupedProfilesForDropdown().length > 1
+
                             return (
-                              <button
-                                key={profile.id}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleSpawnProfile(profile)
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
-                              >
-                                <div className="font-medium flex items-center gap-2">
-                                  <span>{profile.name}</span>
-                                  {truncatedDir && (
-                                    <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
-                                  )}
-                                </div>
-                                {profile.command && (
-                                  <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                              <div key={category || '__uncategorized__'}>
+                                {/* Category Header (only show if there are multiple categories or category exists) */}
+                                {(hasMultipleCategories || category) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toggleDropdownCategory(category || '__uncategorized__')
+                                    }}
+                                    className="w-full px-3 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-300 hover:bg-white/5 transition-colors border-b border-gray-800"
+                                  >
+                                    {isCollapsed ? (
+                                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                                    ) : (
+                                      <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                                    )}
+                                    <span
+                                      className="w-2 h-2 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: categoryColor }}
+                                    />
+                                    <span className="truncate">{category || 'Uncategorized'}</span>
+                                    <span className="text-gray-500 font-normal ml-auto">({categoryProfiles.length})</span>
+                                  </button>
                                 )}
-                              </button>
+
+                                {/* Profile items (hidden if category is collapsed) */}
+                                {!isCollapsed && categoryProfiles.map((profile) => {
+                                  const truncatedDir = profile.workingDir
+                                    ? './' + profile.workingDir.split('/').filter(Boolean).pop()
+                                    : null
+                                  return (
+                                    <button
+                                      key={profile.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleSpawnProfile(profile)
+                                      }}
+                                      className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
+                                      style={category ? { paddingLeft: '1.75rem', borderLeftColor: categoryColor, borderLeftWidth: '2px' } : undefined}
+                                    >
+                                      <div className="font-medium flex items-center gap-2">
+                                        <span>{profile.name}</span>
+                                        {truncatedDir && (
+                                          <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
+                                        )}
+                                      </div>
+                                      {profile.command && (
+                                        <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
                             )
                           })}
                         </div>
