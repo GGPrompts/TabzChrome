@@ -1,9 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, ChevronRight, FolderOpen, Moon, Sun, History, Keyboard, Volume2, VolumeX } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, ChevronRight, Moon, Sun, History, Keyboard, Volume2, VolumeX } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
-import { SettingsModal, type Profile, DEFAULT_CATEGORY_COLOR } from '../components/SettingsModal'
+import { SettingsModal, type Profile } from '../components/SettingsModal'
+import { ProfileDropdown } from '../components/ProfileDropdown'
+import { SessionContextMenu } from '../components/SessionContextMenu'
+import { GhostBadgeDropdown } from '../components/GhostBadgeDropdown'
+import { WorkingDirDropdown } from '../components/WorkingDirDropdown'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { getLocal, setLocal } from '../shared/storage'
 import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis } from '../hooks/useClaudeStatus'
@@ -1075,139 +1079,19 @@ function SidePanelTerminal() {
           )}
 
           {/* Ghost Badge - Orphaned Sessions */}
-          {wsConnected && orphanedCount > 0 && (
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowGhostDropdown(!showGhostDropdown)
-                  if (!showGhostDropdown) {
-                    refreshOrphaned()
-                    setSelectedOrphans(new Set())
-                  }
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 transition-colors"
-                title={`${orphanedCount} orphaned tmux session(s) - click to manage`}
-              >
-                <span>👻</span>
-                <span>{orphanedCount}</span>
-              </button>
-
-              {showGhostDropdown && (
-                <div
-                  className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[280px] z-50 overflow-hidden"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Header */}
-                  <div className="px-3 py-2 border-b border-gray-800 flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">
-                      Detached Sessions ({orphanedCount})
-                    </span>
-                    <button
-                      onClick={() => refreshOrphaned()}
-                      className="text-xs text-gray-400 hover:text-white transition-colors"
-                      title="Refresh"
-                    >
-                      {orphanedLoading ? '...' : '↻'}
-                    </button>
-                  </div>
-
-                  {/* Select All */}
-                  <button
-                    onClick={() => {
-                      if (selectedOrphans.size === orphanedSessions.length) {
-                        setSelectedOrphans(new Set())
-                      } else {
-                        setSelectedOrphans(new Set(orphanedSessions))
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-left text-xs border-b border-gray-800 text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
-                  >
-                    <span className="w-4">
-                      {selectedOrphans.size === orphanedSessions.length && orphanedSessions.length > 0 ? '☑' : '☐'}
-                    </span>
-                    <span>Select All</span>
-                  </button>
-
-                  {/* Session List */}
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {orphanedSessions.map((session) => {
-                      // Extract display name from session ID (ctt-ProfileName-shortId)
-                      const parts = session.split('-')
-                      const profileName = parts.length >= 2 ? parts[1] : session
-                      const shortId = parts.length >= 3 ? parts.slice(2).join('-') : ''
-
-                      return (
-                        <button
-                          key={session}
-                          onClick={() => {
-                            setSelectedOrphans((prev) => {
-                              const next = new Set(prev)
-                              if (next.has(session)) {
-                                next.delete(session)
-                              } else {
-                                next.add(session)
-                              }
-                              return next
-                            })
-                          }}
-                          className={`w-full px-3 py-2 text-left text-xs transition-colors flex items-center gap-2 ${
-                            selectedOrphans.has(session)
-                              ? 'text-purple-400 bg-purple-500/10'
-                              : 'text-gray-300 hover:bg-white/5'
-                          }`}
-                          title={session}
-                        >
-                          <span className="w-4 flex-shrink-0">
-                            {selectedOrphans.has(session) ? '☑' : '☐'}
-                          </span>
-                          <span className="truncate flex-1 font-mono">
-                            {profileName}
-                            {shortId && <span className="text-gray-500 ml-1">({shortId.slice(0, 6)})</span>}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="px-3 py-2 border-t border-gray-800 flex gap-2">
-                    <button
-                      onClick={async () => {
-                        if (selectedOrphans.size === 0) return
-                        const result = await reattachSessions(Array.from(selectedOrphans))
-                        if (result.success) {
-                          setSelectedOrphans(new Set())
-                          // Keep dropdown open to show updated list
-                        }
-                      }}
-                      disabled={selectedOrphans.size === 0}
-                      className="flex-1 px-3 py-1.5 text-xs rounded bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 hover:bg-[#00ff88]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Reattach
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (selectedOrphans.size === 0) return
-                        const confirmed = window.confirm(
-                          `Kill ${selectedOrphans.size} session(s)? This cannot be undone.`
-                        )
-                        if (confirmed) {
-                          const result = await killSessions(Array.from(selectedOrphans))
-                          if (result.success) {
-                            setSelectedOrphans(new Set())
-                          }
-                        }
-                      }}
-                      disabled={selectedOrphans.size === 0}
-                      className="flex-1 px-3 py-1.5 text-xs rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Kill
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          {wsConnected && (
+            <GhostBadgeDropdown
+              orphanedSessions={orphanedSessions}
+              orphanedCount={orphanedCount}
+              isLoading={orphanedLoading}
+              selectedOrphans={selectedOrphans}
+              setSelectedOrphans={setSelectedOrphans}
+              showDropdown={showGhostDropdown}
+              setShowDropdown={setShowGhostDropdown}
+              onRefresh={refreshOrphaned}
+              onReattach={reattachSessions}
+              onKill={killSessions}
+            />
           )}
 
           {/* Dark/Light Mode Toggle */}
@@ -1224,81 +1108,17 @@ function SidePanelTerminal() {
           </button>
 
           {/* Working Directory Dropdown */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowDirDropdown(!showDirDropdown)
-                setCustomDirInput('')
-              }}
-              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88] max-w-[220px]"
-              title={`Working Directory: ${globalWorkingDir}`}
-            >
-              <FolderOpen className="h-4 w-4 flex-shrink-0" />
-              <span className="text-xs truncate">{globalWorkingDir}</span>
-              <ChevronDown className="h-3 w-3 flex-shrink-0" />
-            </button>
-
-            {showDirDropdown && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl min-w-[220px] z-50 overflow-hidden">
-                {/* Custom input */}
-                <div className="p-2 border-b border-gray-800">
-                  <input
-                    type="text"
-                    value={customDirInput}
-                    onChange={(e) => setCustomDirInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && customDirInput.trim()) {
-                        setGlobalWorkingDir(customDirInput.trim())
-                        addToRecentDirs(customDirInput.trim())
-                        setShowDirDropdown(false)
-                        setCustomDirInput('')
-                      }
-                    }}
-                    placeholder="Type path and press Enter"
-                    className="w-full px-2 py-1.5 bg-black/50 border border-gray-700 rounded text-white text-xs font-mono focus:border-[#00ff88] focus:outline-none"
-                    onClick={(e) => e.stopPropagation()}
-                    autoFocus
-                  />
-                </div>
-                {/* Recent directories */}
-                <div className="max-h-[200px] overflow-y-auto">
-                  {recentDirs.map((dir) => (
-                    <div
-                      key={dir}
-                      className={`flex items-center justify-between px-3 py-2 hover:bg-[#00ff88]/10 transition-colors text-xs font-mono border-b border-gray-800 last:border-b-0 group ${
-                        dir === globalWorkingDir ? 'text-[#00ff88] bg-[#00ff88]/5' : 'text-gray-300'
-                      }`}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setGlobalWorkingDir(dir)
-                          setShowDirDropdown(false)
-                        }}
-                        className="flex-1 text-left truncate"
-                      >
-                        {dir}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setRecentDirs(prev => prev.filter(d => d !== dir))
-                          if (globalWorkingDir === dir) {
-                            setGlobalWorkingDir('~')
-                          }
-                        }}
-                        className="ml-2 p-0.5 rounded hover:bg-red-500/20 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remove from list"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <WorkingDirDropdown
+            globalWorkingDir={globalWorkingDir}
+            setGlobalWorkingDir={setGlobalWorkingDir}
+            recentDirs={recentDirs}
+            setRecentDirs={setRecentDirs}
+            addToRecentDirs={addToRecentDirs}
+            customDirInput={customDirInput}
+            setCustomDirInput={setCustomDirInput}
+            showDropdown={showDirDropdown}
+            setShowDropdown={setShowDirDropdown}
+          />
 
           {/* Keyboard Shortcuts Button */}
           <button
@@ -1477,73 +1297,15 @@ function SidePanelTerminal() {
 
               {/* Profile Dropdown Menu - Aligned to right edge, with collapsible categories */}
               {showProfileDropdown && profiles.length > 0 && (
-                <div
-                  className="absolute top-full right-2 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[240px] z-50 overflow-hidden max-h-[400px] overflow-y-auto"
-                >
-                  {getGroupedProfilesForDropdown().map(({ category, profiles: categoryProfiles }) => {
-                    const isCollapsed = dropdownCollapsedCategories.has(category || '__uncategorized__')
-                    const categoryColor = category ? getCategoryColor(category) : DEFAULT_CATEGORY_COLOR
-                    const hasMultipleCategories = getGroupedProfilesForDropdown().length > 1
-
-                    return (
-                      <div key={category || '__uncategorized__'}>
-                        {/* Category Header (only show if there are multiple categories or category exists) */}
-                        {(hasMultipleCategories || category) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleDropdownCategory(category || '__uncategorized__')
-                            }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-300 hover:bg-white/5 transition-colors border-b border-gray-800"
-                          >
-                            {isCollapsed ? (
-                              <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                            )}
-                            <span
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: categoryColor }}
-                            />
-                            <span className="truncate">{category || 'Uncategorized'}</span>
-                            <span className="text-gray-500 font-normal ml-auto">({categoryProfiles.length})</span>
-                          </button>
-                        )}
-
-                        {/* Profile items (hidden if category is collapsed) */}
-                        {!isCollapsed && categoryProfiles.map((profile) => {
-                          const truncatedDir = profile.workingDir
-                            ? './' + profile.workingDir.split('/').filter(Boolean).pop()
-                            : null
-                          return (
-                            <button
-                              key={profile.id}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleSpawnProfile(profile)
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
-                              style={category ? { paddingLeft: '1.75rem', borderLeftColor: categoryColor, borderLeftWidth: '2px' } : undefined}
-                            >
-                              <div className="font-medium flex items-center gap-2">
-                                <span>{profile.name}</span>
-                                {profile.id === defaultProfileId && (
-                                  <span className="text-[9px] bg-[#00ff88]/20 text-[#00ff88] px-1.5 py-0.5 rounded">Default</span>
-                                )}
-                                {truncatedDir && (
-                                  <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
-                                )}
-                              </div>
-                              {profile.command && (
-                                <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
-                              )}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )
-                  })}
-                </div>
+                <ProfileDropdown
+                  groupedProfiles={getGroupedProfilesForDropdown()}
+                  collapsedCategories={dropdownCollapsedCategories}
+                  onToggleCategory={toggleDropdownCategory}
+                  onSpawnProfile={handleSpawnProfile}
+                  getCategoryColor={getCategoryColor}
+                  defaultProfileId={defaultProfileId}
+                  className="absolute top-full right-2 mt-1 z-50"
+                />
               )}
             </div>
           )}
@@ -1577,68 +1339,14 @@ function SidePanelTerminal() {
                       </button>
                       {/* Profile Dropdown - with collapsible categories */}
                       {showEmptyStateDropdown && profiles.length > 0 && (
-                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[240px] z-50 overflow-hidden max-h-[400px] overflow-y-auto">
-                          {getGroupedProfilesForDropdown().map(({ category, profiles: categoryProfiles }) => {
-                            const isCollapsed = dropdownCollapsedCategories.has(category || '__uncategorized__')
-                            const categoryColor = category ? getCategoryColor(category) : DEFAULT_CATEGORY_COLOR
-                            const hasMultipleCategories = getGroupedProfilesForDropdown().length > 1
-
-                            return (
-                              <div key={category || '__uncategorized__'}>
-                                {/* Category Header (only show if there are multiple categories or category exists) */}
-                                {(hasMultipleCategories || category) && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleDropdownCategory(category || '__uncategorized__')
-                                    }}
-                                    className="w-full px-3 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-300 hover:bg-white/5 transition-colors border-b border-gray-800"
-                                  >
-                                    {isCollapsed ? (
-                                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                    ) : (
-                                      <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                    )}
-                                    <span
-                                      className="w-2 h-2 rounded-full flex-shrink-0"
-                                      style={{ backgroundColor: categoryColor }}
-                                    />
-                                    <span className="truncate">{category || 'Uncategorized'}</span>
-                                    <span className="text-gray-500 font-normal ml-auto">({categoryProfiles.length})</span>
-                                  </button>
-                                )}
-
-                                {/* Profile items (hidden if category is collapsed) */}
-                                {!isCollapsed && categoryProfiles.map((profile) => {
-                                  const truncatedDir = profile.workingDir
-                                    ? './' + profile.workingDir.split('/').filter(Boolean).pop()
-                                    : null
-                                  return (
-                                    <button
-                                      key={profile.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleSpawnProfile(profile)
-                                      }}
-                                      className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
-                                      style={category ? { paddingLeft: '1.75rem', borderLeftColor: categoryColor, borderLeftWidth: '2px' } : undefined}
-                                    >
-                                      <div className="font-medium flex items-center gap-2">
-                                        <span>{profile.name}</span>
-                                        {truncatedDir && (
-                                          <span className="text-gray-500 font-normal text-[10px]">{truncatedDir}</span>
-                                        )}
-                                      </div>
-                                      {profile.command && (
-                                        <div className="text-gray-500 mt-0.5 truncate font-mono">▶ {profile.command}</div>
-                                      )}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )
-                          })}
-                        </div>
+                        <ProfileDropdown
+                          groupedProfiles={getGroupedProfilesForDropdown()}
+                          collapsedCategories={dropdownCollapsedCategories}
+                          onToggleCategory={toggleDropdownCategory}
+                          onSpawnProfile={handleSpawnProfile}
+                          getCategoryColor={getCategoryColor}
+                          className="absolute top-full left-0 mt-1 z-50"
+                        />
                       )}
                     </div>
                   </>
@@ -1913,64 +1621,23 @@ function SidePanelTerminal() {
       />
 
       {/* Tab Context Menu */}
-      {contextMenu.show && contextMenu.terminalId && (
-        <div
-          className="tab-context-menu"
-          style={{
-            position: 'fixed',
-            left: `${contextMenu.x}px`,
-            top: `${contextMenu.y}px`,
-            zIndex: 10000,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {(() => {
-            const terminal = sessions.find(t => t.id === contextMenu.terminalId)
-            // All ctt-* terminals have tmux sessions (the ID is the session name)
-            const isTmuxSession = terminal?.id?.startsWith('ctt-') || terminal?.sessionName
-
-            return (
-              <>
-                <button
-                  className="context-menu-item"
-                  onClick={handleContextRename}
-                >
-                  ✏️ Rename Tab...
-                </button>
-                {isTmuxSession && (
-                  <>
-                    <div className="context-menu-divider" />
-                    <button
-                      className="context-menu-item"
-                      onClick={() => {
-                        const sessionId = terminal?.sessionName || terminal?.id
-                        if (sessionId) {
-                          navigator.clipboard.writeText(sessionId)
-                        }
-                        setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
-                      }}
-                    >
-                      📋 Copy Session ID
-                    </button>
-                    <button
-                      className="context-menu-item"
-                      onClick={handleDetachSession}
-                    >
-                      👻 Detach Session
-                    </button>
-                    <button
-                      className="context-menu-item"
-                      onClick={handleKillSession}
-                    >
-                      ❌ Kill Session
-                    </button>
-                  </>
-                )}
-              </>
-            )
-          })()}
-        </div>
-      )}
+      <SessionContextMenu
+        show={contextMenu.show}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        terminal={sessions.find(t => t.id === contextMenu.terminalId) || null}
+        onRename={handleContextRename}
+        onCopyId={() => {
+          const terminal = sessions.find(t => t.id === contextMenu.terminalId)
+          const sessionId = terminal?.sessionName || terminal?.id
+          if (sessionId) {
+            navigator.clipboard.writeText(sessionId)
+          }
+        }}
+        onDetach={handleDetachSession}
+        onKill={handleKillSession}
+        onClose={() => setContextMenu({ show: false, x: 0, y: 0, terminalId: null })}
+      />
 
     </div>
   )
