@@ -18,6 +18,8 @@ import { useProfiles } from '../hooks/useProfiles'
 import { useAudioNotifications } from '../hooks/useAudioNotifications'
 import { useTerminalSessions, type TerminalSession } from '../hooks/useTerminalSessions'
 import { useChatInput } from '../hooks/useChatInput'
+import { useTabDragDrop } from '../hooks/useTabDragDrop'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import '../styles/globals.css'
 
 function SidePanelTerminal() {
@@ -27,8 +29,6 @@ function SidePanelTerminal() {
   const [profileDropdownLeft, setProfileDropdownLeft] = useState<number | null>(null)
   const profileBtnRef = useRef<HTMLDivElement>(null)
   const [showEmptyStateDropdown, setShowEmptyStateDropdown] = useState(false)
-  const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
-  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
   const [pasteCommand, setPasteCommand] = useState<string | null>(null)  // Command to paste from context menu
   const [showDirDropdown, setShowDirDropdown] = useState(false)
   const [customDirInput, setCustomDirInput] = useState('')
@@ -119,6 +119,38 @@ function SidePanelTerminal() {
 
   const portRef = useRef<chrome.runtime.Port | null>(null)
   const globalWorkingDirRef = useRef<string>('~')
+
+  // Tab drag-and-drop hook - manages drag state and reordering
+  const {
+    draggedTabId,
+    dragOverTabId,
+    handleTabDragStart,
+    handleTabDragOver,
+    handleTabDragLeave,
+    handleTabDrop,
+    handleTabDragEnd,
+    handleEndZoneDragOver,
+    handleEndZoneDrop,
+  } = useTabDragDrop({ sessions, setSessions })
+
+  // Keyboard shortcuts hook - handles keyboard and omnibox actions
+  const {
+    handleKeyboardNewTab,
+    handleKeyboardCloseTab,
+    handleKeyboardNextTab,
+    handleKeyboardPrevTab,
+    handleKeyboardSwitchTab,
+    handleOmniboxSpawnProfile,
+    handleOmniboxRunCommand,
+  } = useKeyboardShortcuts({
+    sessionsRef,
+    currentSessionRef,
+    globalWorkingDirRef,
+    profiles,
+    defaultProfileId,
+    setCurrentSession,
+    addToRecentDirs,
+  })
 
   // Keep globalWorkingDir ref in sync with state (for keyboard handlers)
   useEffect(() => {
@@ -359,193 +391,6 @@ function SidePanelTerminal() {
       const nextSession = sessions[currentIndex === 0 ? 1 : currentIndex - 1]
       setCurrentSession(nextSession.id)
     }
-  }
-
-  // Tab drag-and-drop reordering
-  const handleTabDragStart = (e: React.DragEvent, tabId: string) => {
-    setDraggedTabId(tabId)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', tabId)
-  }
-
-  const handleTabDragOver = (e: React.DragEvent, tabId: string) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (draggedTabId && tabId !== draggedTabId) {
-      setDragOverTabId(tabId)
-    }
-  }
-
-  const handleTabDragLeave = () => {
-    setDragOverTabId(null)
-  }
-
-  const handleTabDrop = (e: React.DragEvent, targetTabId: string) => {
-    e.preventDefault()
-    if (!draggedTabId || draggedTabId === targetTabId) {
-      setDraggedTabId(null)
-      setDragOverTabId(null)
-      return
-    }
-
-    // Reorder sessions
-    const draggedIndex = sessions.findIndex(s => s.id === draggedTabId)
-    const targetIndex = sessions.findIndex(s => s.id === targetTabId)
-
-    if (draggedIndex !== -1 && targetIndex !== -1) {
-      const newSessions = [...sessions]
-      const [draggedSession] = newSessions.splice(draggedIndex, 1)
-      newSessions.splice(targetIndex, 0, draggedSession)
-      setSessions(newSessions)
-
-      // Persist new order to Chrome storage
-      chrome.storage.local.set({ terminalSessions: newSessions })
-    }
-
-    setDraggedTabId(null)
-    setDragOverTabId(null)
-  }
-
-  const handleTabDragEnd = () => {
-    setDraggedTabId(null)
-    setDragOverTabId(null)
-  }
-
-  // Keyboard shortcut handlers (use refs to access current state from callbacks)
-  const handleKeyboardNewTab = () => {
-    // Use ref to get current globalWorkingDir (state might be stale in callback)
-    const currentGlobalWorkingDir = globalWorkingDirRef.current
-
-    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
-      const profiles = (result.profiles as Profile[]) || []
-      const savedDefaultId = (result.defaultProfile as string) || 'default'
-
-      // Validate defaultProfile - ensure it matches an existing profile ID
-      const profileIds = profiles.map(p => p.id)
-      let defaultProfileId = savedDefaultId
-      if (!profileIds.includes(savedDefaultId) && profiles.length > 0) {
-        defaultProfileId = profiles[0].id
-        console.warn(`[KeyboardNewTab] defaultProfile '${savedDefaultId}' not found, auto-fixing to '${defaultProfileId}'`)
-        chrome.storage.local.set({ defaultProfile: defaultProfileId })
-      }
-
-      const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
-
-      if (profile) {
-        // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-        const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-          ? profile.workingDir
-          : currentGlobalWorkingDir
-        sendMessage({
-          type: 'SPAWN_TERMINAL',
-          spawnOption: 'bash',
-          name: profile.name,
-          workingDir: effectiveWorkingDir,
-          command: profile.command,
-          profile: { ...profile, workingDir: effectiveWorkingDir },
-        })
-        addToRecentDirs(effectiveWorkingDir)
-      } else {
-        // Fallback to regular bash
-        sendMessage({
-          type: 'SPAWN_TERMINAL',
-          spawnOption: 'bash',
-          name: 'Bash',
-          workingDir: currentGlobalWorkingDir,
-        })
-      }
-    })
-  }
-
-  const handleKeyboardCloseTab = () => {
-    const current = currentSessionRef.current
-    const allSessions = sessionsRef.current
-    if (!current || allSessions.length === 0) return
-
-    sendMessage({
-      type: 'CLOSE_TERMINAL',
-      terminalId: current,
-    })
-
-    // Switch to another tab
-    if (allSessions.length > 1) {
-      const currentIndex = allSessions.findIndex(s => s.id === current)
-      const nextSession = allSessions[currentIndex === 0 ? 1 : currentIndex - 1]
-      setCurrentSession(nextSession.id)
-    }
-  }
-
-  const handleKeyboardNextTab = () => {
-    const current = currentSessionRef.current
-    const allSessions = sessionsRef.current
-    if (!current || allSessions.length <= 1) return
-
-    const currentIndex = allSessions.findIndex(s => s.id === current)
-    const nextIndex = (currentIndex + 1) % allSessions.length
-    setCurrentSession(allSessions[nextIndex].id)
-  }
-
-  const handleKeyboardPrevTab = () => {
-    const current = currentSessionRef.current
-    const allSessions = sessionsRef.current
-    if (!current || allSessions.length <= 1) return
-
-    const currentIndex = allSessions.findIndex(s => s.id === current)
-    const prevIndex = currentIndex === 0 ? allSessions.length - 1 : currentIndex - 1
-    setCurrentSession(allSessions[prevIndex].id)
-  }
-
-  const handleKeyboardSwitchTab = (tabIndex: number) => {
-    const allSessions = sessionsRef.current
-    if (tabIndex >= 0 && tabIndex < allSessions.length) {
-      setCurrentSession(allSessions[tabIndex].id)
-    }
-  }
-
-  // Omnibox handler: spawn terminal with specific profile
-  const handleOmniboxSpawnProfile = (profile: Profile) => {
-    // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-    const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-      ? profile.workingDir
-      : globalWorkingDir
-    sendMessage({
-      type: 'SPAWN_TERMINAL',
-      spawnOption: 'bash',
-      name: profile.name,
-      workingDir: effectiveWorkingDir,
-      command: profile.command,
-      profile: { ...profile, workingDir: effectiveWorkingDir },
-    })
-    addToRecentDirs(effectiveWorkingDir)
-  }
-
-  // Omnibox handler: spawn terminal and run command
-  const handleOmniboxRunCommand = (command: string) => {
-    // Capture current globalWorkingDir to avoid stale closure in async callback
-    const currentGlobalWorkingDir = globalWorkingDir
-
-    // Get default profile settings
-    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
-      const defaultProfileId = result.defaultProfile || 'default'
-      const profiles = (result.profiles as Profile[]) || []
-      const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
-
-      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-      const effectiveWorkingDir = (profile?.workingDir && profile.workingDir !== '~')
-        ? profile.workingDir
-        : currentGlobalWorkingDir
-      // Spawn terminal with the command
-      // The command will be typed into the terminal after spawn
-      sendMessage({
-        type: 'SPAWN_TERMINAL',
-        spawnOption: 'bash',
-        name: command.split(' ')[0], // Use first word as tab name (e.g., "git", "npm")
-        command: command, // Pass command to execute
-        workingDir: effectiveWorkingDir,
-        profile: profile ? { ...profile, workingDir: effectiveWorkingDir } : undefined,
-      })
-      addToRecentDirs(effectiveWorkingDir)
-    })
   }
 
   // Handle right-click on tab (session-level operations)
@@ -846,28 +691,9 @@ function SidePanelTerminal() {
                 {/* End drop zone - for dropping tab at the end */}
                 {draggedTabId && (
                   <div
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.dataTransfer.dropEffect = 'move'
-                      setDragOverTabId('__end__')
-                    }}
+                    onDragOver={handleEndZoneDragOver}
                     onDragLeave={handleTabDragLeave}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      if (!draggedTabId) return
-
-                      const draggedIndex = sessions.findIndex(s => s.id === draggedTabId)
-                      if (draggedIndex !== -1 && draggedIndex !== sessions.length - 1) {
-                        const newSessions = [...sessions]
-                        const [draggedSession] = newSessions.splice(draggedIndex, 1)
-                        newSessions.push(draggedSession)
-                        setSessions(newSessions)
-                        chrome.storage.local.set({ terminalSessions: newSessions })
-                      }
-
-                      setDraggedTabId(null)
-                      setDragOverTabId(null)
-                    }}
+                    onDrop={handleEndZoneDrop}
                     className={`
                       flex items-center justify-center px-2 py-1.5 rounded-md transition-all
                       ${dragOverTabId === '__end__' ? 'bg-[#00ff88]/20 border-2 border-dashed border-[#00ff88]' : 'bg-white/5 border-2 border-dashed border-gray-600'}
