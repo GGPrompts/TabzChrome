@@ -44,6 +44,12 @@ export function useTerminalSessions({
   // Refs for keyboard shortcut handlers (to access current state from callbacks)
   const sessionsRef = useRef<TerminalSession[]>([])
   const currentSessionRef = useRef<string | null>(null)
+  // Track terminals we've already sent RECONNECT for to prevent duplicates
+  const reconnectedTerminalsRef = useRef<Set<string>>(new Set())
+  // Track if we've received first terminals message after connect (Codex fix)
+  const hasReceivedTerminalsRef = useRef(false)
+  // Track if we've sent LIST_TERMINALS for this connection (prevent duplicate requests)
+  const hasSentListTerminalsRef = useRef(false)
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -80,7 +86,17 @@ export function useTerminalSessions({
   // Request terminal list when WebSocket connects AND storage is loaded
   useEffect(() => {
     if (wsConnected && storageLoaded) {
-      sendMessage({ type: 'LIST_TERMINALS' })
+      // Prevent duplicate LIST_TERMINALS requests (can happen if both deps change near-simultaneously)
+      if (!hasSentListTerminalsRef.current) {
+        hasSentListTerminalsRef.current = true
+        sendMessage({ type: 'LIST_TERMINALS' })
+      }
+    } else if (!wsConnected) {
+      // Clear reconnected terminals set when WebSocket disconnects
+      // so we reconnect fresh when it reconnects
+      reconnectedTerminalsRef.current.clear()
+      hasReceivedTerminalsRef.current = false // Reset for next connect (Codex fix)
+      hasSentListTerminalsRef.current = false // Reset for next connect
     }
   }, [wsConnected, storageLoaded])
 
@@ -97,14 +113,26 @@ export function useTerminalSessions({
           setConnectionCount(data.connectionCount)
         }
 
+        // Codex fix: Clear reconnected set on FIRST terminals message after connect
+        // This handles silent WS reconnects where wsConnected never went false
+        if (!hasReceivedTerminalsRef.current) {
+          hasReceivedTerminalsRef.current = true
+          reconnectedTerminalsRef.current.clear()
+          console.log('[Sessions] First terminals message after connect - cleared reconnect dedup set')
+        }
+
         // Send RECONNECT for each backend terminal to register this connection as owner
         // This is critical after backend restart - without it, terminals freeze because
         // the backend doesn't know to route output to this connection
+        // Skip terminals we've already reconnected to (prevents duplicate reconnects from multiple terminals messages)
         backendTerminals.forEach((t: any) => {
-          sendMessage({
-            type: 'RECONNECT',
-            terminalId: t.id,
-          })
+          if (!reconnectedTerminalsRef.current.has(t.id)) {
+            reconnectedTerminalsRef.current.add(t.id)
+            sendMessage({
+              type: 'RECONNECT',
+              terminalId: t.id,
+            })
+          }
         })
 
         // Get current sessions from state (which may have been restored from Chrome storage)
@@ -233,10 +261,14 @@ export function useTerminalSessions({
 
         // For API-spawned terminals, send reconnect to register this connection as owner
         // This enables chat input to send commands to the terminal
-        sendMessage({
-          type: 'RECONNECT',
-          terminalId: terminal.id,
-        })
+        // Codex fix: Also add to dedup set to prevent duplicate RECONNECT from next terminals list
+        if (!reconnectedTerminalsRef.current.has(terminal.id)) {
+          reconnectedTerminalsRef.current.add(terminal.id)
+          sendMessage({
+            type: 'RECONNECT',
+            terminalId: terminal.id,
+          })
+        }
         break
       case 'terminal-closed':
         // Backend sends: { type: 'terminal-closed', data: { id: terminalId } }

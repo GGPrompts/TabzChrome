@@ -269,15 +269,9 @@ wss.on('connection', (ws) => {
   const malformedMessageCount = { count: 0, lastReset: Date.now() };
   const MAX_MALFORMED_PER_MINUTE = 10;
 
-  // Send initial terminal state (list only - don't auto-register as owner)
-  // Frontend must explicitly reconnect to terminals it wants via 'reconnect' message
-  // This prevents cross-contamination where one sidebar receives output from all terminals
-  const existingTerminals = terminalRegistry.getAllTerminals();
-  ws.send(JSON.stringify({
-    type: 'terminals',
-    data: existingTerminals
-  }));
-
+  // NOTE: We no longer send terminals immediately on connect.
+  // The frontend explicitly requests via LIST_TERMINALS after it's ready.
+  // This prevents duplicate terminals messages and race conditions.
   // NOTE: We intentionally do NOT auto-register as owner of all terminals here.
   // The old code registered this connection as owner of ALL existing terminals,
   // which caused cross-contamination bugs:
@@ -624,6 +618,13 @@ wss.on('connection', (ws) => {
           // Receive console log from Chrome extension
           if (data.entry) {
             browserRouter.addConsoleLog(data.entry);
+            // Log to stdout for debugging visibility
+            const entry = data.entry;
+            const levelColors = { log: '', info: '\x1b[36m', warn: '\x1b[33m', error: '\x1b[31m', debug: '\x1b[90m' };
+            const color = levelColors[entry.level] || '';
+            const reset = '\x1b[0m';
+            const source = entry.source ? `:${entry.source}` : '';
+            log.info(`${color}[Browser${source}] ${entry.message}${reset}`);
           }
           break;
 
@@ -1028,6 +1029,15 @@ server.listen(PORT, async () => {
             }
 
             try {
+              // Get the current working directory from the tmux session
+              let workingDir;
+              try {
+                workingDir = execSync(`tmux display-message -p -t "${sessionName}" "#{pane_current_path}" 2>/dev/null`).toString().trim();
+                log.info(`[Recovery] Got workingDir from tmux for ${sessionName}: ${workingDir}`);
+              } catch (e) {
+                log.debug(`Could not get working dir for ${sessionName}: ${e.message}`);
+              }
+
               // Register the terminal with useTmux - registerTerminal creates PTY internally
               await terminalRegistry.registerTerminal({
                 name: displayName,
@@ -1035,6 +1045,7 @@ server.listen(PORT, async () => {
                 terminalType: 'bash',
                 isChrome: true,
                 useTmux: true,  // Enable tmux reconnection
+                workingDir: workingDir,  // Pass the actual working directory from tmux
               });
 
               log.success(`✅ Recovered: ${sessionName}`);

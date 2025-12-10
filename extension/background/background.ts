@@ -1167,25 +1167,6 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       }
       return true // Keep channel open for async response
 
-    // ============================================
-    // Content Script - Command Queue
-    // ============================================
-    case 'QUEUE_COMMAND':
-      // Content script wants to queue a command to chat input
-      if (message.command) {
-        console.log('📋 Queue command from content script:', message.command.substring(0, 50) + '...')
-        if (connectedClients.size > 0) {
-          broadcastToClients({
-            type: 'QUEUE_COMMAND',
-            command: message.command,
-          })
-        } else {
-          // Store for when sidebar connects
-          pendingQueueCommand = message.command
-        }
-      }
-      break
-
     default:
       // Forward other messages to WebSocket
       sendToWebSocket(message)

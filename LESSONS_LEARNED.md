@@ -1381,4 +1381,224 @@ backendTerminals.forEach(terminal => {
 **Files:**
 - `backend/server.js:268-286` - Removed auto-registration, added comment explaining why
 
-**Last Updated**: December 9, 2025
+---
+
+## Chrome Extension Reconnection & State Sync
+
+### Lesson: Read Chrome Storage Directly for Race-Prone Values (Dec 10, 2025)
+
+**Problem:** Spawning terminals used wrong working directory - always `~` instead of header dropdown value.
+
+**What Happened:**
+1. User sets header working directory to `~/projects/TabzChrome`
+2. User clicks + to spawn terminal
+3. `handleSpawnDefaultProfile()` reads `globalWorkingDir` from React state
+4. But React state hasn't loaded from Chrome storage yet!
+5. `globalWorkingDir` is still `''` (initial state) or stale
+6. Terminal spawns in `~` instead of selected directory
+
+**Root Cause:** React state hydration from Chrome storage is async. If user acts before hydration completes, state values are stale.
+
+**Wrong Approach:**
+```typescript
+// ❌ BROKEN - React state may not be hydrated yet
+const handleSpawnDefaultProfile = () => {
+  const effectiveWorkingDir = profile.workingDir || globalWorkingDir || '~'
+  // globalWorkingDir might be '' if storage hasn't loaded!
+}
+```
+
+**Right Approach:**
+```typescript
+// ✅ CORRECT - Read from Chrome storage directly
+const handleSpawnDefaultProfile = () => {
+  chrome.storage.local.get(['globalWorkingDir'], (result) => {
+    const currentGlobalWorkingDir = (result.globalWorkingDir as string) || globalWorkingDir || '~'
+    // Now we have the actual saved value, even if React state is stale
+  })
+}
+```
+
+**Key Insight:**
+- Chrome storage is the source of truth, React state is a cache
+- For user actions that depend on persisted values, read storage directly
+- Use React state as fallback, not primary source
+
+**Files:**
+- `extension/sidepanel/sidepanel.tsx:328-393` - Both spawn functions read from storage
+
+---
+
+### Lesson: Deduplicate WebSocket Message Handlers (Dec 10, 2025)
+
+**Problem:** Terminals appearing 2-3 times in the sidebar after spawn or reconnect.
+
+**What Happened - Multiple Issues:**
+
+1. **Backend sent terminals 3x on connect:**
+   - Once immediately on WebSocket open
+   - Once from session recovery broadcast
+   - Once in response to LIST_TERMINALS
+
+2. **Frontend sent LIST_TERMINALS 2x:**
+   - Once from initial effect
+   - Once after port reconnection
+
+3. **Duplicate RECONNECT messages:**
+   - Sent when receiving terminal-spawned
+   - Sent again when reconciling stored sessions
+
+**Solution - Deduplication at Multiple Levels:**
+
+```typescript
+// 1. Backend: Don't auto-send terminals on connect
+// Let frontend explicitly request via LIST_TERMINALS
+// Removed from server.js WebSocket onopen handler
+
+// 2. Frontend: Track if we've sent LIST_TERMINALS
+const hasSentListTerminalsRef = useRef(false)
+
+if (wsConnected && !hasSentListTerminalsRef.current) {
+  hasSentListTerminalsRef.current = true
+  sendMessage({ type: 'LIST_TERMINALS' })
+}
+
+// 3. Frontend: Track reconnected terminals
+const reconnectedTerminalsRef = useRef<Set<string>>(new Set())
+
+if (!reconnectedTerminalsRef.current.has(terminal.id)) {
+  reconnectedTerminalsRef.current.add(terminal.id)
+  sendMessage({ type: 'RECONNECT', terminalId: terminal.id })
+}
+```
+
+**Key Insight:**
+- WebSocket reconnection triggers multiple initialization paths
+- Each path may send the same messages
+- Use refs to track "already done" state across re-renders
+- Clear tracking refs appropriately (on disconnect, not on every message)
+
+**Files:**
+- `backend/server.js:268-286` - Removed auto-send on connect
+- `extension/hooks/useTerminalSessions.ts:47-50,117-125,265-271` - Dedup refs
+
+---
+
+### Lesson: Tmux refresh-client Requires Attached Client (Dec 10, 2025)
+
+**Problem:** "Can't find client" errors in tmux hooks after certain operations.
+
+**What Happened:**
+1. `.tmux-terminal-tabs.conf` had hooks that ran `refresh-client`
+2. `refresh-client` needs an attached tmux client
+3. PTY terminals (xterm.js via WebSocket) aren't "attached" in tmux's view
+4. Error: `refresh-client: can't find client`
+
+**Wrong Approach:**
+```bash
+# ❌ BROKEN - no attached client for PTY terminals
+set-hook -g after-split-window 'refresh-client -S'
+```
+
+**Right Approach:**
+```bash
+# ✅ CORRECT - send empty keys to trigger redraw without client
+set-hook -g after-split-window 'send-keys ""'
+
+# Or suppress errors if refresh is truly needed:
+set-hook -g after-split-window 'run-shell "tmux refresh-client -S 2>/dev/null || true"'
+```
+
+**Key Insight:**
+- Tmux "clients" are terminal emulators attached via `tmux attach`
+- PTY connections via node-pty are NOT tmux clients
+- Use `send-keys ""` to trigger redraw without requiring attached client
+
+**Files:**
+- `.tmux-terminal-tabs.conf` - Updated hooks
+- `backend/routes/api.js` - Changed refresh-client to send-keys
+
+---
+
+### Lesson: Gate Audio on File Freshness, Not Just Content (Dec 10, 2025)
+
+**Problem:** "Ready" audio announcements playing repeatedly, sometimes for terminals that weren't even active.
+
+**What Happened:**
+1. Claude Code writes status to `~/.claude-status/{sessionName}.json`
+2. Chrome extension polls `/api/claude-status` endpoint
+3. Backend reads status file and returns `awaiting_input` (ready state)
+4. Extension sees transition to "ready" → plays audio
+5. But file might be **hours old** from previous session!
+6. Result: Stale files trigger announcements for inactive terminals
+
+**Solution - Check file freshness:**
+
+```typescript
+// Backend: Include last_updated in response
+const stats = fs.statSync(statusFile)
+const lastUpdated = stats.mtimeMs
+
+return {
+  status: statusData.status,
+  last_updated: lastUpdated,
+  // ... other fields
+}
+
+// Frontend: Only announce if file is fresh (< 30 seconds old)
+const isFileFresh = Date.now() - status.last_updated < 30000
+
+if (audioSettings.events.ready && isFileFresh && isNewlyReady) {
+  playAudio('ready', session)
+}
+```
+
+**Key Insight:**
+- Status files persist across sessions
+- "Current" status might be from hours/days ago
+- Always gate time-sensitive actions on data freshness
+- File mtime is a reliable freshness indicator
+
+**Files:**
+- `extension/hooks/useAudioNotifications.ts` - Added last_updated check
+- `backend/routes/api.js` - Added last_updated to response
+
+---
+
+## Dev Environment & Debugging
+
+### Lesson: Named Tmux Sessions Enable Claude Log Capture (Dec 10, 2025)
+
+**Problem:** Debugging Chrome extension issues required manual copy-paste of logs from browser console.
+
+**Solution:** Create dev script that runs backend in named tmux session:
+
+```bash
+# scripts/dev.sh creates:
+# - tabz-chrome:backend - Backend server with logs
+# - tabz-chrome:logs (optional) - Auto-refreshing log view
+
+# Claude can now capture logs directly:
+tmux capture-pane -t tabz-chrome:backend -p -S -100
+```
+
+**Also added "Backend Logs" profile:**
+```json
+{
+  "id": "backend-logs",
+  "name": "Backend Logs",
+  "command": "watch -n1 'tmux capture-pane -t tabz-chrome:backend -p -S -50 2>/dev/null || echo \"Start backend: ./scripts/dev.sh\"'"
+}
+```
+
+**Key Insight:**
+- Named tmux sessions are capturable by Claude
+- Browser console forwarding to backend makes logs available in one place
+- Dev scripts should create predictable session names for tooling
+
+**Files:**
+- `scripts/dev.sh` - Dev environment launcher
+- `extension/profiles.json` - Backend Logs profile
+- `backend/server.js:617-628` - Browser console → stdout with [Browser] prefix
+
+**Last Updated**: December 10, 2025

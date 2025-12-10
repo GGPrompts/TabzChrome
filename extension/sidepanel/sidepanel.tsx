@@ -326,10 +326,12 @@ function SidePanelTerminal() {
   }
 
   const handleSpawnDefaultProfile = () => {
-    // Capture current globalWorkingDir to avoid stale closure in async callback
-    const currentGlobalWorkingDir = globalWorkingDir
+    // Read profiles AND globalWorkingDir together from storage to avoid race conditions
+    // This ensures we use the saved header value even if React state hasn't loaded yet
+    chrome.storage.local.get(['profiles', 'defaultProfile', 'globalWorkingDir'], (result) => {
+      // Use stored value, fall back to React state, then default
+      const currentGlobalWorkingDir = (result.globalWorkingDir as string) || globalWorkingDir || '~'
 
-    chrome.storage.local.get(['profiles', 'defaultProfile'], (result) => {
       const profiles = (result.profiles as Profile[]) || []
       const savedDefaultId = (result.defaultProfile as string) || 'default'
 
@@ -371,19 +373,24 @@ function SidePanelTerminal() {
   }
 
   const handleSpawnProfile = (profile: Profile) => {
-    // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-    const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-      ? profile.workingDir
-      : globalWorkingDir
-    sendMessage({
-      type: 'SPAWN_TERMINAL',
-      spawnOption: 'bash',
-      name: profile.name,
-      workingDir: effectiveWorkingDir,
-      command: profile.command,
-      profile: { ...profile, workingDir: effectiveWorkingDir },
+    // Read globalWorkingDir from storage to avoid race condition where React state hasn't loaded yet
+    chrome.storage.local.get(['globalWorkingDir'], (result) => {
+      const currentGlobalWorkingDir = (result.globalWorkingDir as string) || globalWorkingDir || '~'
+
+      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
+      const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
+        ? profile.workingDir
+        : currentGlobalWorkingDir
+      sendMessage({
+        type: 'SPAWN_TERMINAL',
+        spawnOption: 'bash',
+        name: profile.name,
+        workingDir: effectiveWorkingDir,
+        command: profile.command,
+        profile: { ...profile, workingDir: effectiveWorkingDir },
+      })
+      addToRecentDirs(effectiveWorkingDir)
     })
-    addToRecentDirs(effectiveWorkingDir)
     setShowProfileDropdown(false)
     setShowEmptyStateDropdown(false)
   }
@@ -526,7 +533,7 @@ function SidePanelTerminal() {
               variant="secondary"
               className="text-xs bg-red-500/20 text-red-500 border-red-500/30 cursor-pointer hover:bg-red-500/30 transition-colors"
               onClick={async () => {
-                await navigator.clipboard.writeText('cd ~/projects/TabzChrome/backend && npm start')
+                await navigator.clipboard.writeText('./scripts/dev.sh')
                 // Brief visual feedback - badge text changes temporarily
                 const badge = document.querySelector('[data-disconnected-badge]') as HTMLElement
                 if (badge) {
@@ -534,7 +541,7 @@ function SidePanelTerminal() {
                   setTimeout(() => { badge.textContent = 'Disconnected' }, 1500)
                 }
               }}
-              title="Click to copy backend start command"
+              title="Click to copy: ./scripts/dev.sh (runs backend in tmux)"
               data-disconnected-badge
             >
               Disconnected
@@ -800,7 +807,7 @@ function SidePanelTerminal() {
                     <p className="text-sm mb-4 text-center px-4">Start the backend server to use terminals</p>
                     <button
                       onClick={async () => {
-                        await navigator.clipboard.writeText('cd ~/projects/TabzChrome/backend && npm start')
+                        await navigator.clipboard.writeText('./scripts/dev.sh')
                         // Visual feedback
                         const btn = document.querySelector('[data-copy-start-btn]') as HTMLElement
                         if (btn) {
@@ -814,7 +821,8 @@ function SidePanelTerminal() {
                       <span className="inline-block mr-2">📋</span>
                       Copy Start Command
                     </button>
-                    <p className="text-xs mt-3 text-gray-500 font-mono">cd backend && npm start</p>
+                    <p className="text-xs mt-3 text-gray-500 font-mono">./scripts/dev.sh</p>
+                    <p className="text-xs mt-1 text-gray-600">or: cd backend && npm start</p>
                   </>
                 )}
               </div>

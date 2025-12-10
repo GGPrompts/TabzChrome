@@ -526,12 +526,20 @@ See **[docs/README.md](docs/README.md)** for navigation guide.
 
 ## 🔍 Debugging & Monitoring
 
-### Checking Backend Logs
+### Starting the Dev Environment
 
-**Running the backend:**
+**Recommended: Use the dev script (creates named tmux session):**
 ```bash
-cd backend
-npm start
+./scripts/dev.sh
+```
+
+This creates a tmux session named `tabz-chrome` with:
+- `tabz-chrome:backend` - Backend server window
+- `tabz-chrome:logs` - Optional live logs window (refreshes every 1s)
+
+**Alternative: Manual start:**
+```bash
+cd backend && npm start
 ```
 
 **Check if backend is running:**
@@ -540,6 +548,15 @@ ps aux | grep "node server.js" | grep -v grep
 ```
 
 **Backend listens on:** `http://localhost:8129`
+
+### Backend Logs Profile
+
+The extension includes a "Backend Logs" profile that shows live backend output:
+1. Start backend with `./scripts/dev.sh`
+2. In the extension, click the + dropdown → "Backend Logs"
+3. Watch live logs update every second
+
+The profile uses `tmux capture-pane -t tabz-chrome:backend` - no hardcoded paths needed.
 
 ### Check Active Tmux Sessions
 ```bash
@@ -620,7 +637,9 @@ cd backend && npm start
 
 **Claude can capture logs directly**:
 ```bash
-# Claude runs these via Bash tool after making changes:
+# Capture backend logs (when started with ./scripts/dev.sh):
+tmux capture-pane -t tabz-chrome:backend -p -S -100
+
 # Check backend logs for WebSocket activity
 ps aux | grep "node server.js" | grep -v grep
 
