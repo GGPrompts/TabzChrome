@@ -6,7 +6,7 @@
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-<!-- Screenshot: Use Win+Shift+S to capture the sidebar + webpage, save to docs/screenshots/sidebar-demo.png -->
+![TabzChrome - Terminal sidebar with Claude Code, lazygit, and system monitoring](docs/screenshots/hero-dark.png)
 
 ## What Is This?
 
