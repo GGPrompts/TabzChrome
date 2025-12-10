@@ -339,6 +339,12 @@ function detectPackageCommands() {
             // Strip common prompt prefixes like "$ " or "> "
             let command = text.trim()
             command = command.replace(/^\$\s+/, '').replace(/^>\s+/, '')
+            // Convert newlines to && for multi-line commands (input doesn't support newlines)
+            // Filter out comment-only lines (# ...) but keep inline comments (cmd # comment)
+            command = command.split('\n')
+              .map(line => line.trim())
+              .filter(line => line && !line.startsWith('#'))
+              .join(' && ')
             chrome.runtime.sendMessage({
               type: 'QUEUE_COMMAND',
               command: command,

@@ -112,7 +112,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.ts-BtKgXyZa.js"
+        "assets/content.ts-BaTbZibm.js"
       ],
       "matches": [
         "<all_urls>"
@@ -133,7 +133,7 @@
         "spawn-options.json",
         "profiles.json",
         "icons/tabz-logo-light.png",
-        "assets/content.ts-BtKgXyZa.js"
+        "assets/content.ts-BaTbZibm.js"
       ],
       "use_dynamic_url": false
     }
