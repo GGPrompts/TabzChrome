@@ -1445,7 +1445,19 @@ router.post('/tmux/cleanup', asyncHandler(async (req, res) => {
 /**
  * POST /api/console-log - Receive browser console logs
  * Claude-optimized: Structured, compact logs for tmux capture-pane debugging
+ * Writes to logs/browser.log for separate viewing in logs window
  */
+const browserLogPath = require('path').join(__dirname, '../logs/browser.log');
+const browserLogDir = require('path').dirname(browserLogPath);
+
+// Ensure logs directory exists
+if (!require('fs').existsSync(browserLogDir)) {
+  require('fs').mkdirSync(browserLogDir, { recursive: true });
+}
+
+// Create/clear browser log file on startup
+require('fs').writeFileSync(browserLogPath, `--- Browser Console Log Started: ${new Date().toISOString()} ---\n`);
+
 router.post('/console-log', asyncHandler(async (req, res) => {
   const { logs } = req.body;
 
@@ -1453,29 +1465,17 @@ router.post('/console-log', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Expected logs array' });
   }
 
-  const { logger } = require('../modules/logger');
+  const fs = require('fs');
 
   logs.forEach(({ level, message, source, timestamp }) => {
-    // Format: [Browser] [source] message
-    const prefix = source ? `[Browser:${source}]` : '[Browser]';
-    const msg = `${prefix} ${message}`;
+    // Format: [HH:MM:SS] [LEVEL] [source] message
+    const time = new Date(timestamp).toLocaleTimeString('en-US', { hour12: false });
+    const levelTag = level.toUpperCase().padEnd(5);
+    const sourceTag = source ? `[${source}]` : '';
+    const line = `[${time}] ${levelTag} ${sourceTag} ${message}\n`;
 
-    switch(level) {
-      case 'error':
-        logger.error(msg);
-        break;
-      case 'warn':
-        logger.warn(msg);
-        break;
-      case 'debug':
-        logger.debug(msg);
-        break;
-      case 'info':
-        logger.info(msg);
-        break;
-      default:
-        logger.info(msg);  // Consola uses .info() not .log()
-    }
+    // Append to browser log file
+    fs.appendFileSync(browserLogPath, line);
   });
 
   res.json({ success: true, received: logs.length });

@@ -38,8 +38,17 @@
       "command": "watch -n1 -c 'tmux capture-pane -t tabz-chrome:backend -p -S -50 2>/dev/null || echo \"Start backend with: ./scripts/dev.sh\"'",
       "workingDir": "",
       "fontFamily": "JetBrains Mono, monospace",
-      "fontSize": 12,
+      "fontSize": 16,
       "themeName": "matrix"
+    },
+    {
+      "id": "browser-logs",
+      "name": "Browser Logs",
+      "command": "tail -f ~/projects/TabzChrome/backend/logs/browser.log 2>/dev/null || echo 'No browser logs yet. Reload extension to start logging.'",
+      "workingDir": "",
+      "fontFamily": "JetBrains Mono, monospace",
+      "fontSize": 16,
+      "themeName": "ocean"
     }
   ],
   "defaultProfile": "default"

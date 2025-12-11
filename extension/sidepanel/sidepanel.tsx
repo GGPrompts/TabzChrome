@@ -10,6 +10,7 @@ import { GhostBadgeDropdown } from '../components/GhostBadgeDropdown'
 import { WorkingDirDropdown } from '../components/WorkingDirDropdown'
 import { ChatInputBar } from '../components/ChatInputBar'
 import { connectToBackground, sendMessage } from '../shared/messaging'
+import { setupConsoleForwarding } from '../shared/consoleForwarder'
 import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis } from '../hooks/useClaudeStatus'
 import { useCommandHistory } from '../hooks/useCommandHistory'
 import { useOrphanedSessions } from '../hooks/useOrphanedSessions'
@@ -21,6 +22,9 @@ import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import '../styles/globals.css'
+
+// Setup console forwarding to backend for Claude debugging
+setupConsoleForwarding()
 
 function SidePanelTerminal() {
   const [wsConnected, setWsConnected] = useState(false)

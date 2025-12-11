@@ -98,8 +98,13 @@ tmux send-keys -t $SESSION_NAME:backend "npm start" C-m
 
 # Create logs window if enabled
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
+  BROWSER_LOG="$BACKEND_DIR/logs/browser.log"
+  # Ensure log file exists
+  mkdir -p "$(dirname "$BROWSER_LOG")"
+  touch "$BROWSER_LOG"
+
   tmux new-window -t $SESSION_NAME -n logs -c "$SCRIPT_DIR"
-  tmux send-keys -t $SESSION_NAME:logs "echo 'Backend Logs (updating every 1s) - Ctrl+C to stop'; sleep 1; while true; do clear; tmux capture-pane -t $SESSION_NAME:backend -p -S -100; sleep 1; done" C-m
+  tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Browser Console Logs${NC} - tail -f $BROWSER_LOG'; echo '(Reload extension to start seeing logs)'; echo ''; tail -f $BROWSER_LOG" C-m
 fi
 
 # Select the backend window
@@ -123,14 +128,15 @@ echo -e "  Backend:  ${YELLOW}http://localhost:8129${NC}"
 echo ""
 echo -e "${BLUE}Log Level: ${YELLOW}$LOG_LEVEL${NC} ${NC}(0=silent, 1=fatal, 2=error, 3=warn, 4=info, 5=debug)"
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
-  echo -e "${BLUE}Live Logs: ${GREEN}Enabled${NC}"
+  echo -e "${BLUE}Browser Logs: ${GREEN}Enabled${NC} (window 1)"
 else
-  echo -e "${BLUE}Live Logs: ${YELLOW}Disabled${NC} (logs visible in backend window)"
+  echo -e "${BLUE}Browser Logs: ${YELLOW}Disabled${NC}"
 fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${BLUE}Claude can capture logs:${NC}"
-echo -e "  ${YELLOW}tmux capture-pane -t $SESSION_NAME:backend -p -S -100${NC}"
+echo -e "  Backend:  ${YELLOW}tmux capture-pane -t $SESSION_NAME:backend -p -S -50${NC}"
+echo -e "  Browser:  ${YELLOW}tail -50 $BACKEND_DIR/logs/browser.log${NC}"
 echo ""
 echo -e "${YELLOW}Attaching to tmux session...${NC}"
 echo ""
