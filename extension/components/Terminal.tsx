@@ -66,32 +66,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const resizeDeferCountRef = useRef(0) // Track deferrals to prevent infinite loop
   const MAX_RESIZE_DEFERRALS = 10 // Max times to defer before forcing resize (5 seconds with 500ms period)
 
-  // Track recent writes for duplicate detection (DEBUG)
-  const recentWritesRef = useRef<{ hash: string; count: number; time: number }[]>([])
-
   // Safe write function that queues data during resize operations
   // CRITICAL: xterm.js write() is async - data gets queued internally and parsed later
   // If resize happens while data is queued, the parser crashes with "Cannot set isWrapped"
   // This function queues data during resize and flushes after resize completes
   const safeWrite = (data: string) => {
     if (!xtermRef.current) return
-
-    // DEBUG: Detect duplicate writes
-    const hash = data.slice(0, 100) // Use first 100 chars as fingerprint
-    const now = Date.now()
-    const recentDupe = recentWritesRef.current.find(w => w.hash === hash && now - w.time < 2000)
-    if (recentDupe) {
-      recentDupe.count++
-      if (recentDupe.count === 5) {
-        console.error(`[Terminal] ⚠️ DUPLICATE WRITE DETECTED (5x): "${hash.slice(0, 50)}..."`)
-      }
-    } else {
-      recentWritesRef.current.push({ hash, count: 1, time: now })
-      // Keep only last 20 entries
-      if (recentWritesRef.current.length > 20) {
-        recentWritesRef.current.shift()
-      }
-    }
 
     // If resize is in progress, queue the data instead of writing
     if (isResizingRef.current) {
@@ -175,8 +155,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         setTimeout(() => triggerResizeTrick(), OUTPUT_QUIET_PERIOD)
         return
       } else {
-        console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick FORCING (max deferrals reached)`)
+        // CRITICAL: Abort entirely instead of forcing resize during continuous output
+        // Forcing resize during active Claude streaming causes massive corruption
+        // (same line repeated dozens of times). Terminal dimensions are likely fine.
+        console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick ABORTED (max deferrals ${MAX_RESIZE_DEFERRALS} reached - continuous output)`)
         resizeDeferCountRef.current = 0
+        return
       }
     } else {
       resizeDeferCountRef.current = 0
@@ -222,12 +206,19 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           }
         }
         isResizingRef.current = false
-        flushWriteQueue()  // Flush any data queued during resize
+        // CRITICAL: Clear write queue instead of flushing after resize trick
+        // The two-step resize triggers TWO tmux redraws (one per SIGWINCH).
+        // Both redraws get queued, and flushing them causes duplicate content
+        // (same lines appear twice - the corruption bug).
+        // Since resize trick is purely for visual refresh, discard the queued
+        // redraw data - it's just tmux redrawing what's already on screen.
+        writeQueueRef.current = []
       }, 100)
     } catch (e) {
       console.warn('[Terminal] Resize trick step 1 failed:', e)
       isResizingRef.current = false
-      flushWriteQueue()  // Flush any data queued during resize
+      // Also clear queue on error - don't flush partial redraw data
+      writeQueueRef.current = []
     }
   }
 
@@ -235,6 +226,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // This prevents issues with hidden terminals having 0 dimensions
   useEffect(() => {
     // Skip if not active, already initialized, no ref, or xterm already exists
+    console.log(`[Terminal] ${terminalId.slice(-8)} init check: isActive=${isActive}, isInitialized=${isInitialized}, hasRef=${!!terminalRef.current}, hasXterm=${!!xtermRef.current}`)
     if (!isActive || isInitialized || !terminalRef.current || xtermRef.current) return
 
     console.log('[Terminal] Initializing xterm for terminal:', terminalId, '(now active)')
@@ -576,17 +568,36 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         const staggerDelay = 50 + Math.random() * 500
         console.log(`[Terminal] ${terminalId.slice(-8)} received REFRESH_TERMINALS, staggering ${Math.round(staggerDelay)}ms`)
         setTimeout(() => {
+          // CRITICAL: Re-check output time AFTER stagger delay
+          // More output may have arrived during the delay - if so, abort entirely
+          // The terminal dimensions are probably fine; corruption risk isn't worth it
+          const timeSinceOutputNow = Date.now() - lastOutputTimeRef.current
+          if (timeSinceOutputNow < OUTPUT_QUIET_PERIOD) {
+            console.log(`[Terminal] ${terminalId.slice(-8)} ABORTING REFRESH_TERMINALS (output arrived during stagger, ${timeSinceOutputNow}ms ago)`)
+            return
+          }
           triggerResizeTrick()
         }, staggerDelay)
       }
     })
 
-    // NOTE: Removed redundant post-connection triggerResizeTrick() call
-    // The useTerminalSessions hook sends REFRESH_TERMINALS after reconnect,
-    // which triggers triggerResizeTrick() via the message handler above.
-    // Having both caused "redraw storms" - multiple rapid resizes made tmux
-    // send the same screen content many times, corrupting the display.
-    //
+    // Fit terminal after port connects to ensure proper dimensions
+    // This is a fallback in case REFRESH_TERMINALS arrives too early
+    setTimeout(() => {
+      if (fitAddonRef.current && xtermRef.current && terminalRef.current) {
+        const containerWidth = terminalRef.current.offsetWidth
+        const containerHeight = terminalRef.current.offsetHeight
+        if (containerWidth > 0 && containerHeight > 0 && !isResizingRef.current) {
+          try {
+            fitAddonRef.current.fit()
+            xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+          } catch (e) {
+            // Ignore fit errors
+          }
+        }
+      }
+    }, 200)
+
     // Focus terminal after initialization completes
     setTimeout(() => {
       if (xtermRef.current) {
@@ -771,8 +782,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // 2. Clear stale scrollback for tmux sessions (prevents phantom lines)
   // 3. Focus the terminal
   useEffect(() => {
+    console.log(`[Terminal] ${terminalId.slice(-8)} tab activation: isActive=${isActive}, isInitialized=${isInitialized}`)
     if (!isActive || !isInitialized) return
-    if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
+    if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) {
+      console.log(`[Terminal] ${terminalId.slice(-8)} missing refs: fit=${!!fitAddonRef.current}, xterm=${!!xtermRef.current}, container=${!!terminalRef.current}`)
+      return
+    }
 
     // Small delay to ensure element is visible and has dimensions
     const timeoutId = setTimeout(() => {
@@ -780,6 +795,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
       const containerWidth = terminalRef.current.offsetWidth
       const containerHeight = terminalRef.current.offsetHeight
+      console.log(`[Terminal] ${terminalId.slice(-8)} dimensions: ${containerWidth}x${containerHeight}, resizing=${isResizingRef.current}`)
 
       // Skip if still hidden (0 dimensions)
       if (containerWidth <= 0 || containerHeight <= 0) return

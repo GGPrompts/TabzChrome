@@ -472,7 +472,7 @@ function connectWebSocket() {
     // be counted, preventing false "duplicate output" warnings for users
     sendToWebSocket({ type: 'identify', clientType: 'sidebar' })
 
-    updateBadge()
+    updateBadge('ws.onopen')
     broadcastToClients({ type: 'WS_CONNECTED' })
   }
 
@@ -580,8 +580,28 @@ function connectWebSocket() {
   }
 
   ws.onclose = (event) => {
+    // Close codes: https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/code
+    // 1000 = normal, 1001 = going away, 1006 = abnormal (no close frame), 1011 = server error
+    const codeDescriptions: Record<number, string> = {
+      1000: 'Normal closure',
+      1001: 'Going away (page navigating or server shutting down)',
+      1002: 'Protocol error',
+      1003: 'Unsupported data',
+      1005: 'No status received',
+      1006: 'Abnormal closure (connection lost without close frame)',
+      1007: 'Invalid frame payload data',
+      1008: 'Policy violation',
+      1009: 'Message too big',
+      1010: 'Missing extension',
+      1011: 'Internal server error',
+      1012: 'Service restart',
+      1013: 'Try again later',
+      1014: 'Bad gateway',
+      1015: 'TLS handshake failure',
+    }
     console.log('WebSocket closed:', {
       code: event.code,
+      codeDescription: codeDescriptions[event.code] || 'Unknown',
       reason: event.reason || '(no reason provided)',
       wasClean: event.wasClean,
       url: WS_URL,
@@ -623,9 +643,10 @@ function broadcastToClients(message: ExtensionMessage) {
 
 // Update extension badge with active terminal count
 // This queries the backend for the actual terminal count
-async function updateBadge() {
+async function updateBadge(source: string = 'unknown') {
   // Request terminal list from backend
   if (ws?.readyState === WebSocket.OPEN) {
+    console.log(`[Badge] Requesting list-terminals (source: ${source})`)
     sendToWebSocket({ type: 'list-terminals' })
     // Badge will be updated when we receive the 'terminals' response
   } else {
@@ -682,6 +703,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     console.log('⏰ Session health check alarm triggered')
     // Request terminal list to verify sessions are still alive
     if (ws?.readyState === WebSocket.OPEN) {
+      console.log('[Badge] Requesting list-terminals (source: health-check-alarm)')
       sendToWebSocket({ type: 'list-terminals' })
     } else {
       console.log('⚠️ WebSocket not connected during health check, attempting reconnect')
@@ -1054,11 +1076,12 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       break
 
     case 'UPDATE_BADGE':
-      updateBadge()
+      updateBadge('UPDATE_BADGE-message')
       break
 
     case 'LIST_TERMINALS':
       // Request terminal list from backend
+      console.log('[Badge] Requesting list-terminals (source: sidepanel-message)')
       sendToWebSocket({ type: 'list-terminals' })
       break
 

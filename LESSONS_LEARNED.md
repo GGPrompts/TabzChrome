@@ -1781,4 +1781,92 @@ if (Date.now() - lastOutputTimeRef.current < 100) {
 
 ---
 
+### Update: Write Queue Causing Duplicate Content (Dec 11, 2025)
+
+**Problem:** Terminal corruption even during IDLE - same content appeared twice, not just during active Claude output.
+
+**Symptoms:**
+- Bug screenshots showed "DUPLICATE WRITE DETECTED" errors in browser console
+- Same line repeated many times even when Claude wasn't actively streaming
+- Corruption happened during WebSocket reconnect/health check alarm
+
+**Root Cause Discovery:** The `triggerResizeTrick()` function does a TWO-STEP resize:
+
+```typescript
+// Step 1: Resize down by 1 column → sends SIGWINCH
+xtermRef.current.resize(currentCols - 1, currentRows)
+
+// Step 2: 100ms later, resize back → sends ANOTHER SIGWINCH
+setTimeout(() => {
+  xtermRef.current.resize(currentCols, currentRows)
+}, 100)
+```
+
+Each SIGWINCH causes tmux to redraw the ENTIRE screen. But between steps, the write queue was collecting data:
+
+1. Step 1: `isResizingRef.current = true` (starts queueing)
+2. SIGWINCH #1 → tmux redraws → output queued
+3. Step 2: SIGWINCH #2 → tmux redraws AGAIN → MORE output queued
+4. `isResizingRef.current = false`
+5. `flushWriteQueue()` → writes BOTH redraws concatenated!
+
+**Result:** The queue contained TWO full screen redraws. When flushed to xterm, both rendered sequentially → duplicate content!
+
+**Solution:** Clear the write queue instead of flushing after resize trick:
+
+```typescript
+// BEFORE (buggy):
+isResizingRef.current = false
+flushWriteQueue()  // ❌ Writes both redraws!
+
+// AFTER (fixed):
+isResizingRef.current = false
+// CRITICAL: Clear write queue instead of flushing after resize trick
+// The two-step resize triggers TWO tmux redraws (one per SIGWINCH).
+// Both redraws get queued, and flushing them causes duplicate content.
+// Since resize trick is purely for visual refresh, discard the queued
+// redraw data - it's just tmux redrawing what's already on screen.
+writeQueueRef.current = []
+```
+
+**Why This is Safe:**
+- `triggerResizeTrick()` is purely for visual refresh (fixing stale content)
+- Any data queued during it is just tmux redrawing existing content
+- Discarding it doesn't lose any user input or new output
+- Real output that arrives AFTER resize trick will be written directly (not queued)
+
+**Also Fixed: Abort instead of force after max deferrals:**
+
+Previously, after 10 deferrals (5 seconds of continuous output), the code would FORCE the resize anyway:
+
+```typescript
+// BEFORE (buggy):
+} else {
+  console.log(`... FORCING (max deferrals reached)`)
+  resizeDeferCountRef.current = 0
+  // Falls through to execute resize!
+}
+
+// AFTER (fixed):
+} else {
+  // CRITICAL: Abort entirely instead of forcing resize during continuous output
+  // Forcing resize during active Claude streaming causes massive corruption
+  console.log(`... ABORTED (max deferrals reached - continuous output)`)
+  resizeDeferCountRef.current = 0
+  return  // ← Don't execute resize!
+}
+```
+
+**Key Insights:**
+- Write queues are powerful but can accumulate unwanted data
+- Two rapid SIGWINCHs = two full screen redraws = doubled content
+- "Refresh" operations should discard queued data, not flush it
+- Never force potentially destructive operations after timeout during active streaming
+
+**Files:**
+- `extension/components/Terminal.tsx:157-164` - Abort after max deferrals
+- `extension/components/Terminal.tsx:208-221` - Clear queue instead of flush
+
+---
+
 **Last Updated**: December 11, 2025

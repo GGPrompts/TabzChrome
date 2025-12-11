@@ -197,13 +197,16 @@ class PTYHandler extends EventEmitter {
             log.warn(`Failed to set remain-on-exit for ${sessionName}:`, err.message);
           }
 
-          // CRITICAL FIX: Clean up any old PTY for this session (even if disconnect is in progress)
-          log.debug(`Searching for old PTYs with session: ${sessionName}`);
+          // CRITICAL FIX: Clean up any old PTY for this EXACT session (even if disconnect is in progress)
+          // Only match on the SAME terminal ID to prevent cross-terminal interference
+          log.debug(`Searching for old PTYs with session: ${sessionName}, new terminal ID: ${id}`);
           for (const [existingId, existingPty] of this.processes.entries()) {
             log.debug(`Checking PTY ${existingId.slice(-8)}: session=${existingPty.tmuxSession}, status=${existingPty.status}`);
 
+            // IMPORTANT: Only supersede if it's the SAME tmux session AND different PTY ID
+            // This prevents Terminal A from superseding Terminal B during parallel reconnects
             if (existingPty.tmuxSession === sessionName && existingId !== id) {
-              log.info(`🧹 Found old PTY for session ${sessionName}, cleaning up...`);
+              log.info(`🧹 Found old PTY ${existingId.slice(-8)} for session ${sessionName}, cleaning up...`);
 
               // Cancel grace period timer if it exists
               if (this.disconnectedProcesses.has(existingId)) {
@@ -212,7 +215,13 @@ class PTYHandler extends EventEmitter {
                 log.debug('Canceled grace period timer');
               }
 
+              // CRITICAL: Mark old PTY as superseded to prevent duplicate output
+              // The onData handler checks this flag and skips emitting if true
+              existingPty.superseded = true;
+              log.debug(`Old PTY ${existingId.slice(-8)} marked as superseded`);
+
               // Remove the old PTY attachment (but tmux session stays alive)
+              // Don't kill the process - let it die naturally when detached
               this.processes.delete(existingId);
               log.debug('Old PTY removed from processes');
             }
@@ -427,6 +436,11 @@ class PTYHandler extends EventEmitter {
 
     // Create named handler functions so we can remove them later
     const dataHandler = (data) => {
+      // Skip emitting if this PTY has been superseded by a newer one
+      // This prevents duplicate output when reconnecting to the same tmux session
+      if (ptyInfo.superseded) {
+        return;
+      }
       this.emit('pty-output', {
         terminalId: id,
         agentName: name,

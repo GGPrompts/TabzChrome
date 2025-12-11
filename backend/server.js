@@ -5,13 +5,44 @@
 require('dotenv').config({ override: true });
 
 // Global error handlers to prevent crashes from unhandled rejections/exceptions
-// These are especially important for edge-tts network failures
+// These are especially important for edge-tts network failures (ETIMEDOUT, ENETUNREACH)
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Server] Unhandled Promise Rejection (caught, not crashing):', reason?.message || reason);
+  // Extract meaningful message from AggregateError or regular Error
+  let message = 'Unknown rejection';
+  if (reason instanceof Error) {
+    message = reason.message;
+    // AggregateError contains multiple errors - log first one
+    if (reason.errors && reason.errors.length > 0) {
+      message = `${reason.message}: ${reason.errors[0]?.message || reason.errors[0]}`;
+    }
+  } else if (reason) {
+    message = String(reason);
+  }
+  // Suppress noisy network errors from edge-tts (TTS service timeouts are expected)
+  if (message.includes('ETIMEDOUT') || message.includes('ENETUNREACH') || message.includes('edge-tts')) {
+    // Silent - these are expected when TTS service is slow/unavailable
+    return;
+  }
+  console.error('[Server] Unhandled Promise Rejection:', message);
 });
 process.on('uncaughtException', (err) => {
   // Only log, don't exit - allows server to keep running
-  console.error('[Server] Uncaught Exception (caught, not crashing):', err?.message || err);
+  // Extract meaningful message from AggregateError or regular Error
+  let message = 'Unknown error';
+  if (err instanceof Error) {
+    message = err.message;
+    if (err.errors && err.errors.length > 0) {
+      message = `${err.message}: ${err.errors[0]?.message || err.errors[0]}`;
+    }
+  } else if (err) {
+    message = String(err);
+  }
+  // Suppress noisy network errors from edge-tts (TTS service timeouts are expected)
+  if (message.includes('ETIMEDOUT') || message.includes('ENETUNREACH') || message.includes('edge-tts')) {
+    // Silent - these are expected when TTS service is slow/unavailable
+    return;
+  }
+  console.error('[Server] Uncaught Exception:', message);
 });
 
 /**
@@ -154,8 +185,11 @@ app.post('/api/audio/generate', async (req, res) => {
       res.status(500).json({ success: false, error: 'Audio generation failed' });
     }
   } catch (err) {
-    console.error('[Audio] edge-tts error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    // Only log non-network errors (timeouts are expected and noisy)
+    if (!err.message?.includes('ETIMEDOUT') && !err.message?.includes('ENETUNREACH')) {
+      console.error('[Audio] edge-tts error:', err.message);
+    }
+    res.status(500).json({ success: false, error: 'TTS generation failed' });
   }
 });
 // app.use('/api/workspace', workspaceRouter); // Archived - workspace-manager removed
@@ -477,7 +511,13 @@ wss.on('connection', (ws) => {
           terminalOwners.get(data.terminalId).add(ws);
           connectionTerminals.add(data.terminalId);
 
-          await terminalRegistry.resizeTerminal(data.terminalId, data.cols, data.rows);
+          // Gracefully handle resize for terminals that don't exist yet
+          // This happens during backend restart before recovery completes
+          try {
+            await terminalRegistry.resizeTerminal(data.terminalId, data.cols, data.rows);
+          } catch (resizeErr) {
+            // Silent - terminal will be resized after recovery completes
+          }
 
           // NOTE: Removed "send empty key on first resize" logic (was causing corruption)
           // SIGWINCH from resize already triggers tmux redraw - send-keys was redundant

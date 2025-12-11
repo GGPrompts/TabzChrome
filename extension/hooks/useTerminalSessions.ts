@@ -50,6 +50,8 @@ export function useTerminalSessions({
   const hasReceivedTerminalsRef = useRef(false)
   // Track if we've sent LIST_TERMINALS for this connection (prevent duplicate requests)
   const hasSentListTerminalsRef = useRef(false)
+  // Track if we've already scheduled REFRESH_TERMINALS (prevent redraw storms)
+  const hasScheduledRefreshRef = useRef(false)
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -97,6 +99,7 @@ export function useTerminalSessions({
       reconnectedTerminalsRef.current.clear()
       hasReceivedTerminalsRef.current = false // Reset for next connect (Codex fix)
       hasSentListTerminalsRef.current = false // Reset for next connect
+      hasScheduledRefreshRef.current = false // Reset refresh dedup for next connect
     }
   }, [wsConnected, storageLoaded])
 
@@ -142,7 +145,13 @@ export function useTerminalSessions({
           // triggerResizeTrick() which properly handles resize with locks
           // NOTE: Only send ONCE - sending multiple times caused resize oscillation and tmux
           // redraw storms that corrupted the terminal output (same line repeated many times)
-          setTimeout(() => sendMessage({ type: 'REFRESH_TERMINALS' }), 500)
+          // CRITICAL: Use hasScheduledRefreshRef to prevent multiple REFRESH_TERMINALS
+          // when multiple 'terminals' messages arrive (e.g., from updateBadge + LIST_TERMINALS)
+          if (!hasScheduledRefreshRef.current) {
+            hasScheduledRefreshRef.current = true
+            // Delay 1500ms to ensure all terminals have initialized (init guard is 1000ms)
+            setTimeout(() => sendMessage({ type: 'REFRESH_TERMINALS' }), 1500)
+          }
         }, 300)
 
         // Get current sessions from state (which may have been restored from Chrome storage)
