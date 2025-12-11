@@ -690,11 +690,12 @@ tmux ls | grep "^ctt-"
 tmux capture-pane -t Bash -p -S -20
 ```
 
-**User can view logs manually:**
+**Live log monitoring** (user can run in a separate terminal):
 ```bash
-# Backend logs appear in the terminal where you ran `npm start`
-# Look for [Browser] prefixed lines for frontend logs
+# Watch backend + browser logs in real-time (refreshes every 1s)
+watch -n 1 'tmux capture-pane -t tabz-chrome:backend -p | tail -70'
 ```
+This shows both backend server logs AND forwarded browser console logs in one view.
 
 **Format (optimized for Claude Code):**
 ```
@@ -775,6 +776,9 @@ tmux capture-pane -t Bash -p -S -20
 - ✅ Verify changes work before committing
 - ✅ Debug race conditions by capturing exact timing
 - ✅ See both browser + backend logs in one capture
+
+**⚠️ Tabz MCP Screenshot Limitation:**
+The `tabz_screenshot` tool captures the **main browser viewport only** - it cannot screenshot the Chrome sidebar (where Tabz lives). This is a Chrome limitation; the sidebar runs in a separate context that CDP cannot access. Ask the user to describe what they see or manually verify sidebar UI changes.
 
 ### Sending Prompts to Other Claude Sessions (Tmux Workflow)
 

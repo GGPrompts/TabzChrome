@@ -868,12 +868,14 @@ chrome.omnibox.onInputEntered.addListener(async (text, disposition) => {
   const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
   const currentWindow = windows.find(w => w.focused) || windows[0]
 
-  // Open sidebar first (for terminal-related commands)
+  // Try to open sidebar - may fail if Chrome doesn't consider omnibox a "user gesture"
+  // The spawn will still work regardless
   if (currentWindow?.id) {
     try {
       await chrome.sidePanel.open({ windowId: currentWindow.id })
-    } catch (err) {
-      console.error('Failed to open sidebar from omnibox:', err)
+    } catch {
+      // Chrome sometimes rejects sidePanel.open() from omnibox as "not a user gesture"
+      // This is fine - the terminal spawns anyway, user can click extension icon to see it
     }
   }
 
