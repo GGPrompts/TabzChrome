@@ -326,6 +326,27 @@ function detectPackageCommands() {
           htmlBlock.style.position = 'relative'
         }
 
+        // Inject CSS for hover behavior (once per page)
+        if (!document.getElementById('tabz-hover-styles')) {
+          const style = document.createElement('style')
+          style.id = 'tabz-hover-styles'
+          style.textContent = `
+            .tabz-code-block .terminal-tabs-run-btn {
+              opacity: 0;
+              pointer-events: none;
+              transition: opacity 0.2s ease-in-out;
+            }
+            .tabz-code-block:hover .terminal-tabs-run-btn {
+              opacity: 1;
+              pointer-events: auto;
+            }
+          `
+          document.head.appendChild(style)
+        }
+
+        // Mark this block for CSS hover
+        htmlBlock.classList.add('tabz-code-block')
+
         // Add a "Send to Tabz" button to this specific code block
         const btn = document.createElement('button')
         btn.className = 'terminal-tabs-run-btn'
@@ -342,9 +363,6 @@ function detectPackageCommands() {
           border-radius: 3px;
           cursor: pointer;
           z-index: 1000;
-          opacity: 0;
-          transition: opacity 0.2s ease-in-out;
-          pointer-events: none;
         `
         btn.onclick = (e) => {
           e.preventDefault()
@@ -367,16 +385,6 @@ function detectPackageCommands() {
 
         // Append button directly to the code block element
         htmlBlock.appendChild(btn)
-
-        // Show button on hover of this specific block
-        htmlBlock.addEventListener('mouseenter', () => {
-          btn.style.opacity = '1'
-          btn.style.pointerEvents = 'auto'
-        })
-        htmlBlock.addEventListener('mouseleave', () => {
-          btn.style.opacity = '0'
-          btn.style.pointerEvents = 'none'
-        })
 
         break
       }

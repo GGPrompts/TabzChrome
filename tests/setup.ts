@@ -99,3 +99,132 @@ global.IntersectionObserver = class IntersectionObserver {
 
 // Mock fetch for API calls
 global.fetch = vi.fn()
+
+// Mock Chrome APIs
+const chromeStorageData: Record<string, any> = {}
+const storageChangeListeners: ((changes: { [key: string]: chrome.storage.StorageChange }) => void)[] = []
+
+const mockChromeStorage = {
+  local: {
+    get: vi.fn((keys: string | string[] | null, callback?: (result: Record<string, any>) => void) => {
+      const result: Record<string, any> = {}
+      if (keys === null) {
+        Object.assign(result, chromeStorageData)
+      } else {
+        const keyArray = Array.isArray(keys) ? keys : [keys]
+        keyArray.forEach(key => {
+          if (key in chromeStorageData) {
+            result[key] = chromeStorageData[key]
+          }
+        })
+      }
+      if (callback) {
+        callback(result)
+      }
+      return Promise.resolve(result)
+    }),
+    set: vi.fn((items: Record<string, any>, callback?: () => void) => {
+      const changes: { [key: string]: chrome.storage.StorageChange } = {}
+      Object.entries(items).forEach(([key, newValue]) => {
+        const oldValue = chromeStorageData[key]
+        chromeStorageData[key] = newValue
+        changes[key] = { oldValue, newValue }
+      })
+      // Notify listeners
+      storageChangeListeners.forEach(listener => listener(changes))
+      if (callback) {
+        callback()
+      }
+      return Promise.resolve()
+    }),
+    remove: vi.fn((keys: string | string[], callback?: () => void) => {
+      const keyArray = Array.isArray(keys) ? keys : [keys]
+      const changes: { [key: string]: chrome.storage.StorageChange } = {}
+      keyArray.forEach(key => {
+        if (key in chromeStorageData) {
+          changes[key] = { oldValue: chromeStorageData[key], newValue: undefined }
+          delete chromeStorageData[key]
+        }
+      })
+      // Notify listeners
+      if (Object.keys(changes).length > 0) {
+        storageChangeListeners.forEach(listener => listener(changes))
+      }
+      if (callback) {
+        callback()
+      }
+      return Promise.resolve()
+    }),
+    clear: vi.fn((callback?: () => void) => {
+      const changes: { [key: string]: chrome.storage.StorageChange } = {}
+      Object.keys(chromeStorageData).forEach(key => {
+        changes[key] = { oldValue: chromeStorageData[key], newValue: undefined }
+        delete chromeStorageData[key]
+      })
+      // Notify listeners
+      if (Object.keys(changes).length > 0) {
+        storageChangeListeners.forEach(listener => listener(changes))
+      }
+      if (callback) {
+        callback()
+      }
+      return Promise.resolve()
+    }),
+  },
+  onChanged: {
+    addListener: vi.fn((listener: (changes: { [key: string]: chrome.storage.StorageChange }) => void) => {
+      storageChangeListeners.push(listener)
+    }),
+    removeListener: vi.fn((listener: (changes: { [key: string]: chrome.storage.StorageChange }) => void) => {
+      const index = storageChangeListeners.indexOf(listener)
+      if (index > -1) {
+        storageChangeListeners.splice(index, 1)
+      }
+    }),
+  },
+}
+
+const mockChromeRuntime = {
+  getURL: vi.fn((path: string) => `chrome-extension://mock-id/${path}`),
+  sendMessage: vi.fn(() => {
+    // Return a proper Promise that has .catch() method
+    return Promise.resolve(undefined)
+  }),
+  onMessage: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  },
+  connect: vi.fn(() => ({
+    onMessage: { addListener: vi.fn() },
+    onDisconnect: { addListener: vi.fn() },
+    postMessage: vi.fn(),
+    disconnect: vi.fn(),
+  })),
+}
+
+// Create global chrome object
+;(global as any).chrome = {
+  storage: mockChromeStorage,
+  runtime: mockChromeRuntime,
+}
+
+// Helper to reset chrome storage between tests
+export function resetChromeStorage() {
+  Object.keys(chromeStorageData).forEach(key => delete chromeStorageData[key])
+  storageChangeListeners.length = 0
+}
+
+// Helper to set initial storage data for tests
+export function setChromeStorageData(data: Record<string, any>) {
+  Object.assign(chromeStorageData, data)
+}
+
+// Helper to get current storage data
+export function getChromeStorageData() {
+  return { ...chromeStorageData }
+}
+
+// Clear chrome storage after each test
+afterEach(() => {
+  resetChromeStorage()
+})

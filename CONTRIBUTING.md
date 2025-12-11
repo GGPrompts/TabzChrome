@@ -135,10 +135,32 @@ From [CLAUDE.md](CLAUDE.md):
 
 ### Testing
 
-- Run `npm test` before submitting PRs
-- Test the extension manually in Chrome
-- Verify WebSocket communication works
-- Test on multiple screen sizes (sidebar responsiveness)
+**Run the test suite before submitting PRs:**
+```bash
+npm test -- --run  # Run all 174 tests
+```
+
+**Test categories:**
+| Category | Command | Coverage |
+|----------|---------|----------|
+| All tests | `npm test -- --run` | Full suite |
+| Hooks | `npm test -- --run tests/unit/hooks/` | useProfiles, useWorkingDirectory, useTerminalSessions |
+| Content Script | `npm test -- --run tests/unit/content/` | Send to Tabz button, command patterns |
+| Integration | `npm test -- --run tests/integration/` | Terminal lifecycle, profile inheritance |
+
+**Writing tests:**
+- Add unit tests for new hooks in `tests/unit/hooks/`
+- Add integration tests for new user flows in `tests/integration/`
+- Use existing Chrome API mocks from `tests/setup.ts`
+- See [CLAUDE.md](CLAUDE.md#testing) for detailed testing guidelines
+
+**Manual testing checklist:**
+- [ ] Extension loads without console errors
+- [ ] Terminals spawn and accept input
+- [ ] WebSocket reconnects after backend restart
+- [ ] Sessions persist when sidebar closes/reopens
+- [ ] Profiles save and load correctly
+- [ ] Test on multiple screen sizes (sidebar responsiveness)
 
 ## Project Structure
 

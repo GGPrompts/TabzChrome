@@ -622,6 +622,49 @@ cd backend && npm start
 - **WebSocket**: ws://localhost:8129
 - **Chrome Extension**: Loads from WSL path or Windows Desktop
 
+### Testing
+
+**Run all tests:**
+```bash
+npm test           # Watch mode
+npm test -- --run  # Single run
+```
+
+**Run specific test files:**
+```bash
+npm test -- --run tests/unit/hooks/           # All hook tests
+npm test -- --run tests/unit/content/         # Content script tests
+npm test -- --run tests/integration/          # Integration tests
+```
+
+**Test Structure:**
+```
+tests/
+├── setup.ts                          # Global mocks (Chrome APIs, WebSocket, etc.)
+├── smoke.test.ts                     # Basic infrastructure tests
+├── unit/
+│   ├── hooks/
+│   │   ├── useProfiles.test.ts       # Profile CRUD, defaults (18 tests)
+│   │   ├── useWorkingDirectory.test.ts  # Directory inheritance (21 tests)
+│   │   └── useTerminalSessions.test.ts  # Session lifecycle (30 tests)
+│   └── content/
+│       └── content.test.ts           # Send to Tabz button, patterns (66 tests)
+└── integration/
+    ├── terminal-lifecycle.test.ts    # Spawn → persist → reconnect (15 tests)
+    └── profile-inheritance.test.ts   # Working dir inheritance flow (19 tests)
+```
+
+**Total: 174 tests** covering:
+- **Hooks**: Profile management, working directory, terminal sessions
+- **Content Script**: Command pattern matching, button injection, GitHub/GitLab detection
+- **Integration**: End-to-end state flows for critical user journeys
+
+**Writing New Tests:**
+- Use existing mocks from `tests/setup.ts` (Chrome storage, runtime, WebSocket)
+- For async hooks, use `waitFor()` from `@testing-library/react`
+- Avoid mixing `vi.useFakeTimers()` with `waitFor()` - they don't play well together
+- See `tests/unit/hooks/useTerminalSessions.test.ts` for complex async patterns
+
 ### Browser Console Forwarding (Claude Debugging)
 
 **Automatic in dev mode!** Browser console logs are automatically forwarded to the backend terminal for easy debugging.
