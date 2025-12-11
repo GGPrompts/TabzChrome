@@ -261,136 +261,6 @@ function detectCustomCommands() {
   })
 }
 
-// Detect runnable commands in code blocks
-function detectPackageCommands() {
-  // Look for code blocks with runnable commands
-  // Include plain <pre> for sites like npm that don't wrap in <code>
-  const codeBlocks = document.querySelectorAll('pre code, pre, code')
-
-  codeBlocks.forEach(block => {
-    // Skip <pre> elements that contain <code> (handled by 'pre code' selector)
-    if (block.tagName === 'PRE' && block.querySelector('code')) return
-
-    // Skip if already processed
-    if (block.hasAttribute('data-tabz-processed')) return
-
-    const text = block.textContent || ''
-
-    // Check for runnable commands - package managers, installers, CLI tools
-    const commandPatterns = [
-      // Package managers
-      /^npm (install|run|test|start|build)/m,
-      /^yarn (install|add|run|test|start|build)/m,
-      /^pnpm (install|add|run|test|start|build)/m,
-      /^bun (install|add|run|test|start|build)/m,
-      // System package managers
-      /^brew install/m,
-      /^apt install/m,
-      /^apt-get install/m,
-      /^sudo apt/m,
-      /^cargo install/m,
-      /^pip install/m,
-      /^pip3 install/m,
-      /^go install/m,
-      // Git commands
-      /^git (clone|pull|push|checkout|status|log|diff|add|commit)/m,
-      // Common CLI tools
-      /^curl /m,
-      /^wget /m,
-      /^docker /m,
-      /^docker-compose /m,
-      /^kubectl /m,
-      /^terraform /m,
-      // AI CLI tools
-      /^claude /m,
-      /^gemini /m,
-      /^codex /m,
-      // TUI tools (direct invocation)
-      /^(lazygit|htop|btop|yazi|ranger|k9s|lazydocker)$/m,
-      // Shell commands that look runnable
-      /^(cd|ls|mkdir|rm|cp|mv|cat|echo|export|source) /m,
-      // Commands starting with $ or > prompt (strip the prompt)
-      /^\$ .+/m,
-      /^> .+/m,
-    ]
-
-    for (const pattern of commandPatterns) {
-      if (pattern.test(text)) {
-        // Mark as processed to avoid duplicate buttons
-        block.setAttribute('data-tabz-processed', 'true')
-
-        // Make the block a positioning context for the button
-        const htmlBlock = block as HTMLElement
-        const originalPosition = window.getComputedStyle(htmlBlock).position
-        if (originalPosition === 'static') {
-          htmlBlock.style.position = 'relative'
-        }
-
-        // Inject CSS for hover behavior (once per page)
-        if (!document.getElementById('tabz-hover-styles')) {
-          const style = document.createElement('style')
-          style.id = 'tabz-hover-styles'
-          style.textContent = `
-            .tabz-code-block .terminal-tabs-run-btn {
-              opacity: 0;
-              pointer-events: none;
-              transition: opacity 0.2s ease-in-out;
-            }
-            .tabz-code-block:hover .terminal-tabs-run-btn {
-              opacity: 1;
-              pointer-events: auto;
-            }
-          `
-          document.head.appendChild(style)
-        }
-
-        // Mark this block for CSS hover
-        htmlBlock.classList.add('tabz-code-block')
-
-        // Add a "Send to Tabz" button to this specific code block
-        const btn = document.createElement('button')
-        btn.className = 'terminal-tabs-run-btn'
-        btn.textContent = '▶ Send to Tabz'
-        btn.style.cssText = `
-          position: absolute;
-          bottom: 2px;
-          right: 2px;
-          padding: 2px 6px;
-          font-size: 11px;
-          background: #4CAF50;
-          color: white;
-          border: none;
-          border-radius: 3px;
-          cursor: pointer;
-          z-index: 1000;
-        `
-        btn.onclick = (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          // Queue command to chat input - lets user choose which terminal
-          // Strip common prompt prefixes like "$ " or "> "
-          let command = text.trim()
-          command = command.replace(/^\$\s+/, '').replace(/^>\s+/, '')
-          // Convert newlines to && for multi-line commands (input doesn't support newlines)
-          // Filter out comment-only lines (# ...) but keep inline comments (cmd # comment)
-          command = command.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'))
-            .join(' && ')
-          chrome.runtime.sendMessage({
-            type: 'QUEUE_COMMAND',
-            command: command,
-          })
-        }
-
-        // Append button directly to the code block element
-        htmlBlock.appendChild(btn)
-
-        break
-      }
-    }
-  })
-}
 
 // Setup keyboard shortcut listener (Cmd/Ctrl+K to open popup)
 function setupKeyboardShortcuts() {
@@ -408,13 +278,11 @@ function init() {
   setupConsoleCapture()  // Browser MCP - capture console logs
   setupContextMenus()
   setupErrorMonitoring()
-  detectPackageCommands()
   detectCustomCommands()  // Custom data-terminal-command elements
   setupKeyboardShortcuts()
 
-  // Re-detect commands when DOM changes
+  // Re-detect custom command elements when DOM changes
   const observer = new MutationObserver(() => {
-    detectPackageCommands()
     detectCustomCommands()
   })
 

@@ -142,10 +142,11 @@
 
         <section class="status-legend">
             <h2>Claude Code Status Indicators</h2>
+            <p class="section-description">Tab names show real-time Claude status with the file being worked on</p>
             <div class="status-grid">
                 <div class="status-item">
                     <span class="status-emoji">🤖✅</span>
-                    <span class="status-label">Ready / Idle</span>
+                    <span class="status-label">Ready</span>
                 </div>
                 <div class="status-item">
                     <span class="status-emoji">🤖⏳</span>
@@ -153,7 +154,81 @@
                 </div>
                 <div class="status-item">
                     <span class="status-emoji">🤖🔧</span>
-                    <span class="status-label">Using Tool</span>
+                    <span class="status-label">Tool Use</span>
+                </div>
+            </div>
+            <div class="status-examples">
+                <h4>Example Tab Names</h4>
+                <div class="example-tabs">
+                    <code>🤖🔧 Edit: src/index.ts</code>
+                    <code>🤖🔧 Read: package.json</code>
+                    <code>🤖⏳ Bash: npm test</code>
+                    <code>🤖✅ Claude Worker</code>
+                </div>
+            </div>
+        </section>
+
+        <section class="audio-section">
+            <h2>Audio Notifications</h2>
+            <p class="section-description">Neural TTS announces Claude status through Chrome</p>
+            <div class="audio-features">
+                <div class="audio-feature">
+                    <h4>🔊 Status Events</h4>
+                    <ul>
+                        <li><strong>Ready</strong> - "Claude Worker ready"</li>
+                        <li><strong>Tool Use</strong> - "Edit index.ts", "Read config"</li>
+                        <li><strong>Session Start</strong> - "Projects started"</li>
+                        <li><strong>Subagents</strong> - "3 agents running"</li>
+                    </ul>
+                </div>
+                <div class="audio-feature">
+                    <h4>⚙️ Per-Profile Settings</h4>
+                    <ul>
+                        <li>Audio Mode: Default / Enabled / Disabled</li>
+                        <li>Custom voice per profile</li>
+                        <li>Speech rate override</li>
+                        <li>Master mute button in header</li>
+                    </ul>
+                </div>
+                <div class="audio-feature">
+                    <h4>🎤 Voice Options</h4>
+                    <ul>
+                        <li>20+ neural voices (edge-tts)</li>
+                        <li>Random voice per terminal</li>
+                        <li>Adjustable speech rate</li>
+                        <li>Volume control</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="omnibox-section">
+            <h2>Omnibox Commands</h2>
+            <p class="section-description">Type <kbd>term</kbd> in Chrome's address bar, then Space or Tab</p>
+            <div class="omnibox-commands">
+                <div class="omnibox-cmd">
+                    <code>term new</code>
+                    <span>Open new terminal with default profile</span>
+                </div>
+                <div class="omnibox-cmd">
+                    <code>term profile:Projects</code>
+                    <span>Spawn terminal with specific profile</span>
+                </div>
+                <div class="omnibox-cmd">
+                    <code>term git status</code>
+                    <span>Run command in new terminal</span>
+                </div>
+                <div class="omnibox-cmd">
+                    <code>term github.com/user/repo</code>
+                    <span>Open allowed URL in browser</span>
+                </div>
+                <div class="omnibox-cmd">
+                    <code>term localhost:3000</code>
+                    <span>Open dev server</span>
+                </div>
+                <div class="omnibox-cmd">
+                    <code>term help</code>
+                    <span>Show available commands</span>
                 </div>
             </div>
         </section>

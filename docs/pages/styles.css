@@ -363,6 +363,118 @@ kbd {
     font-size: 0.9rem;
 }
 
+.section-description {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.status-examples {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.status-examples h4 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.example-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.example-tabs code {
+    background: var(--bg-tertiary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+/* Audio Section */
+.audio-section {
+    margin-top: 3rem;
+}
+
+.audio-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.audio-feature {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.audio-feature h4 {
+    color: var(--accent);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.audio-feature ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.audio-feature li {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 0.35rem 0;
+}
+
+.audio-feature li strong {
+    color: var(--text-primary);
+}
+
+/* Omnibox Section */
+.omnibox-section {
+    margin-top: 3rem;
+}
+
+.omnibox-section kbd {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border: none;
+    box-shadow: none;
+}
+
+.omnibox-commands {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.omnibox-cmd {
+    background: var(--bg-secondary);
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.omnibox-cmd code {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.9rem;
+}
+
+.omnibox-cmd span {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
 /* Footer */
 footer {
     margin-left: var(--sidebar-width);
