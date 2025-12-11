@@ -1601,4 +1601,62 @@ tmux capture-pane -t tabz-chrome:backend -p -S -100
 - `extension/profiles.json` - Backend Logs profile
 - `backend/server.js:617-628` - Browser console → stdout with [Browser] prefix
 
+---
+
+### Lesson: Use Terminal ID as Fallback for Session Matching (Dec 10, 2025)
+
+**Problem:** When multiple Claude terminals shared the same working directory, their status got confused - both terminals showed the same status, and audio announcements played for the wrong terminal.
+
+**What Happened:**
+1. Spawned two Claude terminals in `/home/matt/projects/TabzChrome`
+2. `useClaudeStatus` polled `/api/claude-status` for each terminal
+3. Neither terminal had `sessionName` populated (was `undefined`)
+4. Backend fell back to matching by `working_dir` only
+5. Returned whichever status file was updated most recently
+6. Both terminals got the SAME status → confusion, wrong audio
+
+**Root Cause:** The `sessionName` field wasn't being passed through the data pipeline:
+- Terminal registry set `sessionName` during spawn (line 366)
+- `getAllTerminals()` included `sessionName` (line 407)
+- But frontend sessions often had `sessionName: undefined`
+- `useClaudeStatus` only sent sessionName if defined → sent nothing
+
+**Key Insight:** For `ctt-` prefixed terminals (Chrome extension), the terminal ID IS the tmux session name:
+- Terminal ID: `ctt-opustrator-6acc9833`
+- Tmux session: `ctt-opustrator-6acc9833`
+- They're identical!
+
+**Solution:** Fall back to terminal ID when sessionName is undefined:
+
+```typescript
+// Before (broken):
+const sessionParam = terminal.sessionName
+  ? `&sessionName=${encodeURIComponent(terminal.sessionName)}`
+  : ''  // Sends nothing → backend matches by workingDir only!
+
+// After (fixed):
+const effectiveSessionName = terminal.sessionName ||
+  (terminal.id?.startsWith('ctt-') ? terminal.id : null)
+const sessionParam = effectiveSessionName
+  ? `&sessionName=${encodeURIComponent(effectiveSessionName)}`
+  : ''
+```
+
+**Why This Works:**
+- Backend uses sessionName to get tmux pane ID via `tmux list-panes -t "ctt-xxx"`
+- Each terminal gets unique pane ID (`%25`, `%26`, etc.)
+- Status files are matched by pane ID → no confusion even with same workingDir
+- External Claudes (different pane IDs) can't interfere
+
+**Prevention Checklist:**
+- [ ] Are multiple terminals sharing the same working directory?
+- [ ] Is sessionName being passed through the entire data pipeline?
+- [ ] Can terminal ID be used as fallback for tmux session matching?
+
+**Files:**
+- `extension/hooks/useClaudeStatus.ts:84-89` - Fallback to terminal ID
+- `backend/routes/api.js:970-986` - Pane ID matching logic
+
+---
+
 **Last Updated**: December 10, 2025

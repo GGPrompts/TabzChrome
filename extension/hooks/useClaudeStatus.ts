@@ -81,8 +81,11 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
         terminalsWithDir.map(async (terminal) => {
           try {
             const encodedDir = encodeURIComponent(terminal.workingDir!)
-            const sessionParam = terminal.sessionName
-              ? `&sessionName=${encodeURIComponent(terminal.sessionName)}`
+            // Use sessionName if available, otherwise fall back to terminal ID for ctt- terminals
+            // This fixes status confusion when multiple terminals share the same working directory
+            const effectiveSessionName = terminal.sessionName || (terminal.id?.startsWith('ctt-') ? terminal.id : null)
+            const sessionParam = effectiveSessionName
+              ? `&sessionName=${encodeURIComponent(effectiveSessionName)}`
               : ''
 
             const response = await fetch(
@@ -91,7 +94,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
             const result = await response.json()
 
             // Debug: log status fetches
-            console.log(`[ClaudeStatus] ${terminal.id} (session: ${terminal.sessionName || 'none'}) → ${result.status}`, result.current_tool ? `(${result.current_tool})` : '')
+            console.log(`[ClaudeStatus] ${terminal.id.slice(-8)} (session: ${effectiveSessionName || 'none'}) → ${result.status}`, result.current_tool ? `(${result.current_tool})` : '')
 
             if (result.success && result.status !== 'unknown') {
               return {
