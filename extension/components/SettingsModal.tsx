@@ -213,6 +213,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [pendingImportProfiles, setPendingImportProfiles] = useState<Profile[]>([])
+  const [pendingImportCategorySettings, setPendingImportCategorySettings] = useState<CategorySettings | undefined>(undefined)
   const [importWarnings, setImportWarnings] = useState<string[]>([])
 
   // Audio settings state (full settings object)
@@ -235,6 +236,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setMcpConfigSaved(false)
       setShowImportDialog(false)
       setPendingImportProfiles([])
+      setPendingImportCategorySettings(undefined)
       setImportWarnings([])
       setProfileSearchQuery('')  // Reset search when modal opens
       // Don't reset activeTab - let user stay on their last tab
@@ -730,9 +732,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Export/Import handlers
   const handleExportProfiles = () => {
     const exportData = {
-      version: 1,
+      version: 2,  // Bumped to 2 - includes categorySettings
       exported: new Date().toISOString(),
       profiles: profiles,
+      categorySettings: categorySettings,  // Include category colors and order
     }
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
@@ -774,7 +777,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             warnings.push(`Profile ${i + 1}: Missing required fields (id, name) - skipped`)
             return
           }
-          // Ensure required fields have defaults
+          // Ensure required fields have defaults, preserve optional fields
           validProfiles.push({
             id: p.id,
             name: p.name,
@@ -783,8 +786,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             fontSize: p.fontSize ?? 16,
             fontFamily: p.fontFamily ?? 'monospace',
             themeName: p.themeName ?? 'high-contrast',
+            category: p.category,  // Preserve category assignment
+            audioOverrides: p.audioOverrides,  // Preserve audio settings
           })
         })
+
+        // Import categorySettings if present (version 2+)
+        const importedCategorySettings = json.categorySettings as CategorySettings | undefined
 
         if (validProfiles.length === 0) {
           alert('No valid profiles found in file')
@@ -792,6 +800,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
 
         setPendingImportProfiles(validProfiles)
+        setPendingImportCategorySettings(importedCategorySettings)
         setImportWarnings(warnings)
         setShowImportDialog(true)
       } catch (err) {
@@ -806,10 +815,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleImportConfirm = (mode: 'merge' | 'replace') => {
     let newProfiles: Profile[]
+    let newCategorySettings: CategorySettings = categorySettings
     const skipped: string[] = []
 
     if (mode === 'replace') {
       newProfiles = pendingImportProfiles
+      // Replace categorySettings completely if provided
+      if (pendingImportCategorySettings) {
+        newCategorySettings = pendingImportCategorySettings
+      }
     } else {
       // Merge: keep existing, add new ones (skip duplicates by ID)
       const existingIds = new Set(profiles.map(p => p.id))
@@ -821,9 +835,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         return true
       })
       newProfiles = [...profiles, ...toAdd]
+      // Merge categorySettings: imported settings take precedence for new categories
+      if (pendingImportCategorySettings) {
+        newCategorySettings = { ...categorySettings, ...pendingImportCategorySettings }
+      }
     }
 
     setProfiles(newProfiles)
+    setCategorySettings(newCategorySettings)
 
     // Update default profile if needed (when replacing and old default no longer exists)
     const newIds = new Set(newProfiles.map(p => p.id))
@@ -838,6 +857,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
     setShowImportDialog(false)
     setPendingImportProfiles([])
+    setPendingImportCategorySettings(undefined)
     setImportWarnings([])
   }
 
@@ -982,7 +1002,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="bg-[#1a1a1a] border border-gray-700 rounded-lg max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-lg font-semibold text-white mb-4">Import Profiles</h3>
             <p className="text-sm text-gray-400 mb-2">
-              Found {pendingImportProfiles.length} profile{pendingImportProfiles.length !== 1 ? 's' : ''} to import.
+              Found {pendingImportProfiles.length} profile{pendingImportProfiles.length !== 1 ? 's' : ''} to import
+              {pendingImportCategorySettings && Object.keys(pendingImportCategorySettings).length > 0
+                ? ` with ${Object.keys(pendingImportCategorySettings).length} category setting${Object.keys(pendingImportCategorySettings).length !== 1 ? 's' : ''}`
+                : ''}.
             </p>
             {importWarnings.length > 0 && (
               <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
@@ -1012,6 +1035,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onClick={() => {
                   setShowImportDialog(false)
                   setPendingImportProfiles([])
+                  setPendingImportCategorySettings(undefined)
                   setImportWarnings([])
                 }}
                 className="w-full px-4 py-2 bg-transparent hover:bg-white/5 text-gray-400 rounded text-sm transition-colors"

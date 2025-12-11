@@ -1,5 +1,4 @@
 {
-  "updatedAt": "2025-12-10T16:59:51.538Z",
   "enabledTools": [
     "tabz_list_tabs",
     "tabz_switch_tab",
@@ -8,20 +7,12 @@
     "tabz_click",
     "tabz_fill",
     "tabz_screenshot",
+    "tabz_screenshot_full",
     "tabz_open_url",
     "tabz_get_console_logs",
-    "tabz_execute_script",
-    "tabz_get_element",
-    "tabz_download_image",
     "tabz_enable_network_capture",
-    "tabz_get_network_requests",
-    "tabz_get_api_response",
-    "tabz_clear_network_requests",
-    "tabz_screenshot_full",
-    "tabz_download_file",
-    "tabz_get_downloads",
-    "tabz_cancel_download"
+    "tabz_get_network_requests"
   ],
-  "allowAllUrls": true,
+  "allowAllUrls": false,
   "customDomains": ""
 }
