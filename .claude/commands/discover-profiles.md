@@ -79,6 +79,28 @@ mcp-cli call tabz/tabz_get_downloads '{"limit": 5, "state": "complete", "respons
 
 Then parse the JSON to see which commands are already configured. Match by the `command` field.
 
+## Profile Schema
+
+Each profile has these fields:
+
+```typescript
+{
+  id: string           // Unique ID (lowercase, use slug of name + random suffix)
+  name: string         // Display name
+  category?: string    // Category for grouping (e.g., "AI Assistants", "TUI Tools")
+  command?: string     // Starting command (empty = just bash)
+  workingDir: string   // Working directory (empty = inherit from header)
+  fontSize: number     // Font size (14-20 typical)
+  fontFamily: string   // Font family (e.g., "JetBrains Mono, monospace")
+  themeName: string    // Theme: "high-contrast", "dracula", "ocean", "neon", "amber", "matrix"
+  audioOverrides?: {   // Optional per-profile audio settings
+    mode?: string      // "default" | "enabled" | "disabled"
+    voice?: string     // Voice override
+    rate?: string      // Rate override (e.g., "+20%")
+  }
+}
+```
+
 ## Example Output Format
 
 ```json
@@ -87,12 +109,11 @@ Then parse the JSON to see which commands are already configured. Match by the `
     "id": "claude-code-12345",
     "name": "Claude Code",
     "category": "AI Assistants",
-    "command": "claude",
+    "command": "claude --dangerously-skip-permissions",
     "workingDir": "",
     "fontSize": 16,
-    "fontFamily": "JetBrains Mono",
-    "themeName": "high-contrast",
-    "isDark": true
+    "fontFamily": "JetBrains Mono, monospace",
+    "themeName": "high-contrast"
   },
   {
     "id": "lazygit-12346",
@@ -101,9 +122,8 @@ Then parse the JSON to see which commands are already configured. Match by the `
     "command": "lazygit",
     "workingDir": "",
     "fontSize": 16,
-    "fontFamily": "JetBrains Mono",
-    "themeName": "high-contrast",
-    "isDark": true
+    "fontFamily": "JetBrains Mono, monospace",
+    "themeName": "dracula"
   }
 ]
 ```
