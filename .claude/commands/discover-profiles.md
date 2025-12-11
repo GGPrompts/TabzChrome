@@ -134,6 +134,7 @@ Each profile has these fields:
 - **TUI Tools** work best with monospace fonts like JetBrains Mono or Fira Code
 - Leave `workingDir` empty to inherit from the header dropdown
 - Profiles can be customized further in Settings after import
+- **Emojis in names**: Add a space after emojis (e.g., "📻 PyRadio" not "📻PyRadio") - emoji widths can hide the first letter otherwise
 
 ## Useful Resources
 
