@@ -256,6 +256,23 @@ Right-click anywhere on a webpage to access terminal actions:
 
 **Paste to Terminal** works with tmux - text goes to the focused pane without auto-executing.
 
+### GitHub Repository Quick Actions
+
+When browsing GitHub repository pages, a floating action button appears in the bottom-right corner:
+
+![GitHub FAB showing Clone and Fork buttons on a repository page](docs/screenshots/github-fab.png)
+
+| Button | Action |
+|--------|--------|
+| **Clone** | Queues `git clone <url> && cd <repo>` to the sidebar chat bar |
+| **Fork** | Opens the repository's fork page in a new tab |
+
+**Features:**
+- Only appears on repo root and code pages (not on issues, PRs, or settings)
+- Glassmorphism styling matching the extension theme
+- Dismissible per-repo (X button) - remembers for the session
+- Clone command includes `cd` to enter the cloned directory
+
 ### Omnibox Quick Launch
 
 Spawn terminals directly from Chrome's address bar using the `term` keyword:

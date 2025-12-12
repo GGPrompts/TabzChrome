@@ -33,6 +33,8 @@ export type MessageType =
   | 'TMUX_SESSION_SEND'
   // Reconnect to terminal (register ownership for API-spawned terminals)
   | 'RECONNECT'
+  // Open URL in new tab (content script FAB)
+  | 'OPEN_TAB'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -267,6 +269,12 @@ export interface ReconnectMessage extends BaseMessage {
   terminalId: string;
 }
 
+// Open a URL in a new tab (used by content script FAB)
+export interface OpenTabMessage extends BaseMessage {
+  type: 'OPEN_TAB';
+  url: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -296,6 +304,7 @@ export type ExtensionMessage =
   | TargetedPaneSendMessage
   | TmuxSessionSendMessage
   | ReconnectMessage
+  | OpenTabMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage

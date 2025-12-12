@@ -475,6 +475,115 @@ kbd {
     font-size: 0.85rem;
 }
 
+/* GitHub FAB Section */
+.github-fab-section {
+    margin-top: 3rem;
+}
+
+.github-fab-features {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.fab-preview {
+    display: flex;
+    justify-content: center;
+}
+
+.fab-mockup {
+    background: rgba(30, 30, 30, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 160px;
+    position: relative;
+}
+
+.fab-close {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+}
+
+.fab-repo {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding-right: 20px;
+}
+
+.fab-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.fab-clone, .fab-fork {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: default;
+}
+
+.fab-clone {
+    background: linear-gradient(135deg, #238636, #2ea043);
+    color: #fff;
+}
+
+.fab-fork {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fab-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fab-action h4 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.fab-action p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.fab-action code {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.8rem;
+}
+
+.fab-note {
+    margin-top: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .github-fab-features {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Footer */
 footer {
     margin-left: var(--sidebar-width);

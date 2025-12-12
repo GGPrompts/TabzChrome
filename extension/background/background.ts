@@ -1012,6 +1012,15 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       }, 300)
       break
 
+    case 'OPEN_TAB':
+      // Open URL in a new tab (used by content script FAB)
+      try {
+        chrome.tabs.create({ url: message.url })
+      } catch (err) {
+        console.error('[Background] Failed to open tab:', err)
+      }
+      break
+
     case 'CLOSE_SESSION':
       sendToWebSocket({
         type: 'close-terminal',

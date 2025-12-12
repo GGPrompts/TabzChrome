@@ -10,13 +10,13 @@
     "name": "modulepreload-polyfill"
   },
   "background/background.ts": {
-    "file": "assets/background.ts-CqOsmFNT.js",
+    "file": "assets/background.ts-CHUKYmIe.js",
     "name": "background.ts",
     "src": "background/background.ts",
     "isEntry": true
   },
   "content/content.ts": {
-    "file": "assets/content.ts-DG9ZP5c0.js",
+    "file": "assets/content.ts-BHXcxDWY.js",
     "name": "content.ts",
     "src": "content/content.ts",
     "isEntry": true

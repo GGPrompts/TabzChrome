@@ -273,6 +273,231 @@ function setupKeyboardShortcuts() {
   })
 }
 
+// ============================================
+// GitHub Floating Action Button (FAB)
+// ============================================
+
+// Track dismissed repos in this session
+const dismissedRepos = new Set<string>()
+
+// Check if we're on a repo page where FAB should show (root or code pages only)
+function isGitHubRepoCodePage(): boolean {
+  if (window.location.hostname !== 'github.com') return false
+
+  const path = window.location.pathname
+
+  // Match repo root: /user/repo (exactly 2 segments)
+  const segments = path.split('/').filter(s => s.length > 0)
+  if (segments.length === 2) return true
+
+  // Match code browsing: /user/repo/tree/... or /user/repo/blob/...
+  if (segments.length >= 3 && (segments[2] === 'tree' || segments[2] === 'blob')) {
+    return true
+  }
+
+  return false
+}
+
+// Create and inject the GitHub FAB
+function setupGitHubFAB() {
+  const repo = detectGitHubRepo()
+  if (!repo) return
+
+  // Only show on repo root and code pages
+  if (!isGitHubRepoCodePage()) return
+
+  // Check if already dismissed this session
+  if (dismissedRepos.has(repo.fullName)) return
+
+  // Check if FAB already exists
+  if (document.getElementById('tabz-github-fab')) return
+
+  // Create FAB container
+  const fab = document.createElement('div')
+  fab.id = 'tabz-github-fab'
+  fab.innerHTML = `
+    <div class="tabz-fab-content">
+      <button class="tabz-fab-close" title="Dismiss">×</button>
+      <div class="tabz-fab-repo">${repo.repo}</div>
+      <div class="tabz-fab-actions">
+        <button class="tabz-fab-btn tabz-fab-clone" title="Clone to terminal">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/>
+          </svg>
+          Clone
+        </button>
+        <button class="tabz-fab-btn tabz-fab-fork" title="Fork repository">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/>
+          </svg>
+          Fork
+        </button>
+      </div>
+    </div>
+  `
+
+  // Apply styles
+  const styles = `
+    #tabz-github-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    .tabz-fab-content {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 160px;
+      position: relative;
+    }
+
+    .tabz-fab-close {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .tabz-fab-close:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tabz-fab-repo {
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding-right: 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .tabz-fab-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tabz-fab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tabz-fab-clone {
+      background: linear-gradient(135deg, #238636, #2ea043);
+      color: #fff;
+    }
+
+    .tabz-fab-clone:hover {
+      background: linear-gradient(135deg, #2ea043, #3fb950);
+      transform: translateY(-1px);
+    }
+
+    .tabz-fab-fork {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .tabz-fab-fork:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .tabz-fab-btn:active {
+      transform: translateY(0);
+    }
+  `
+
+  // Inject styles
+  const styleEl = document.createElement('style')
+  styleEl.id = 'tabz-github-fab-styles'
+  styleEl.textContent = styles
+  document.head.appendChild(styleEl)
+
+  // Inject FAB
+  document.body.appendChild(fab)
+
+  // Wire up event handlers
+  const closeBtn = fab.querySelector('.tabz-fab-close') as HTMLButtonElement
+  const cloneBtn = fab.querySelector('.tabz-fab-clone') as HTMLButtonElement
+  const forkBtn = fab.querySelector('.tabz-fab-fork') as HTMLButtonElement
+
+  closeBtn.addEventListener('click', () => {
+    dismissedRepos.add(repo.fullName)
+    fab.remove()
+    styleEl.remove()
+  })
+
+  cloneBtn.addEventListener('click', () => {
+    const command = `git clone https://github.com/${repo.fullName}.git && cd ${repo.repo}`
+    chrome.runtime.sendMessage({
+      type: 'QUEUE_COMMAND',
+      command,
+    })
+
+    // Visual feedback
+    const originalText = cloneBtn.innerHTML
+    cloneBtn.innerHTML = '✓ Queued!'
+    cloneBtn.style.background = '#238636'
+    setTimeout(() => {
+      cloneBtn.innerHTML = originalText
+      cloneBtn.style.background = ''
+    }, 1500)
+  })
+
+  forkBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({
+      type: 'OPEN_TAB',
+      url: `https://github.com/${repo.fullName}/fork`,
+    })
+  })
+}
+
+// Remove FAB if navigating away from code pages
+function cleanupGitHubFAB() {
+  if (!isGitHubRepoCodePage()) {
+    const fab = document.getElementById('tabz-github-fab')
+    const styles = document.getElementById('tabz-github-fab-styles')
+    if (fab) fab.remove()
+    if (styles) styles.remove()
+  }
+}
+
 // Initialize content script
 function init() {
   setupConsoleCapture()  // Browser MCP - capture console logs
@@ -280,10 +505,14 @@ function init() {
   setupErrorMonitoring()
   detectCustomCommands()  // Custom data-terminal-command elements
   setupKeyboardShortcuts()
+  setupGitHubFAB()  // GitHub repo FAB
 
   // Re-detect custom command elements when DOM changes
   const observer = new MutationObserver(() => {
     detectCustomCommands()
+    // Re-check FAB on navigation (GitHub uses client-side routing)
+    cleanupGitHubFAB()
+    setupGitHubFAB()
   })
 
   observer.observe(document.body, {
