@@ -301,12 +301,26 @@ Install the `tabz-mcp` skill for guided browser automation. The skill dynamicall
 
 **Location:** `~/.claude/skills/tabz-mcp/`
 
-### Setup (WSL2)
+### What Requires Remote Debugging?
+
+| Feature | Remote Debugging Required? |
+|---------|---------------------------|
+| Terminal sidebar | No |
+| Profiles, audio, themes | No |
+| Ghost badge, session persistence | No |
+| **MCP tools** (screenshots, clicks, fill) | **Yes** |
+| **Network capture** | **Yes** |
+
+If you only use Tabz for terminals, you don't need remote debugging. For MCP browser automation, see setup below.
+
+### MCP Setup (WSL2)
 
 1. **Start Chrome with remote debugging:**
    ```cmd
    "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:\Temp\chrome-debug
    ```
+
+   > **Tip:** Create a desktop shortcut for this command so you don't forget the flag.
 
 2. **Configure MCP** in your project's `.mcp.json`:
    ```json
