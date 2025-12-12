@@ -214,14 +214,14 @@ The chat input bar includes command history:
 
 ### Custom Terminal Triggers
 
-Add `data-terminal-command` to any HTML element to make it trigger "Run in Terminal":
+Add `data-terminal-command` to any HTML element to create clickable command buttons:
 
 ```html
 <button data-terminal-command="npm run dev">Start Dev</button>
 <div data-terminal-command="lazygit">Open Lazygit</div>
 ```
 
-Clicking the element queues the command to the sidebar chat input.
+Clicking the element queues the command to the sidebar chat input bar. Press Enter or click Send to execute.
 
 ### Context Menu Actions
 
