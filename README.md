@@ -6,7 +6,9 @@
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![TabzChrome - Terminal sidebar with Claude Code, lazygit, and system monitoring](docs/screenshots/hero-dark.png)
+![Claude, Gemini, Codex, and Solitaire in a quad-split terminal sidebar - do some shopping while you code](docs/screenshots/hero-dark.png)
+
+> **[Watch: Subagent chaos with audio announcements](https://youtu.be/uY-YbAW7yg4)** - Multiple Claude subagents running with different voice status updates
 
 ## What Is This?
 
@@ -90,12 +92,23 @@ npm start  # Runs on port 8129
 
 Click the **+** dropdown to spawn terminals from saved profiles:
 
+![Profile settings form with all configuration options](docs/screenshots/profile-settings.png)
+
 - **Name** - Display name for the profile
 - **Category** - Optional grouping (e.g., "Claude Code", "TUI Tools") with color coding
 - **Working Directory** - Optional (inherits from header if empty)
 - **Startup Command** - Optional command to run on spawn (e.g., `lazygit`, `htop`)
 - **Font Size** - 12-24px per profile
-- **Theme** - 6 color schemes (high-contrast, dracula, ocean, neon, amber, matrix) + dark/light toggle
+- **Theme** - 6 color schemes + dark/light toggle (toggle in header bar)
+
+<details>
+<summary>🎨 Color Themes & Fonts</summary>
+
+| Color Themes | Font Families |
+|:------------:|:-------------:|
+| ![6 color schemes: high-contrast, dracula, ocean, neon, amber, matrix](docs/screenshots/color-themes.png) | ![Font options: monospace, JetBrains Mono, Fira Code, Consolas, etc.](docs/screenshots/font-options.png) |
+
+</details>
 
 #### Profile Categories
 
@@ -120,6 +133,8 @@ Backup and share your profile configurations:
 
 The folder icon in the header sets a global working directory. Profiles without an explicit directory inherit this, enabling:
 
+![Working directory dropdown with recent paths](docs/screenshots/working-directory-dropdown.png)
+
 - One "lazygit" profile that works for any project
 - One "npm run dev" profile for any Node project
 - Just change the header directory to switch projects
@@ -134,6 +149,8 @@ The folder icon in the header sets a global working directory. Profiles without 
 ### Ghost Badge - Detached Sessions Manager
 
 The 👻 badge appears in the header when orphaned tmux sessions exist (sessions running in tmux but not attached to the UI).
+
+![Ghost badge popup showing detached sessions with reattach/kill options](docs/screenshots/ghost-badge.png)
 
 **Use cases:**
 - Detach long-running sessions to free up tab space
@@ -166,6 +183,8 @@ Terminal tabs show live Claude Code status with emoji indicators:
 ### Claude Code Audio Announcements
 
 Get voice announcements for Claude Code activity using Edge TTS:
+
+![Audio settings tab with voice selection and event toggles](docs/screenshots/audio-settings.png)
 
 ```bash
 # Enable audio for a session
@@ -244,11 +263,42 @@ Add `data-terminal-command` to any HTML element to make it trigger "Run in Termi
 
 Clicking the element queues the command to the sidebar chat input.
 
+### Context Menu Actions
+
+Right-click anywhere on a webpage to access terminal actions:
+
+![Context menu showing "Send to Tabz" and "Paste to Terminal" options](docs/screenshots/context-menu.png)
+
+| Action | When Available | What It Does |
+|--------|----------------|--------------|
+| **Toggle Terminal Sidebar** | Always | Opens or focuses the Tabz sidebar |
+| **Paste to Terminal** | Text selected | Pastes selection to active terminal at cursor position |
+| **Send to Tabz** | Text selected | Sends selection to the sidebar chat input bar |
+
+**Paste to Terminal** works with tmux - text goes to the focused pane without auto-executing.
+
+### Omnibox Quick Launch
+
+Spawn terminals directly from Chrome's address bar using the `term` keyword:
+
+![Chrome omnibox showing "term github.com/user/repo" command](docs/screenshots/omnibox.png)
+
+**Usage:** Type `term` + space + URL
+
+**Examples:**
+- `term github.com/user/repo` - Open GitHub repository
+- `term localhost:3000` - Open local dev server
+- `term my-app.vercel.app` - Open Vercel deployment
+
+The URL opens in a new tab and the sidebar activates automatically.
+
 ---
 
 ## Tabz MCP Integration
 
 Tabz includes an **MCP server** with 20 tools that let Claude Code control your browser:
+
+![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/screenshots/mcp-dalle-demo.png)
 
 | Tool | Description |
 |------|-------------|
@@ -275,11 +325,15 @@ Tabz includes an **MCP server** with 20 tools that let Claude Code control your 
 
 ### Configure in Settings
 
-Click ⚙️ → **MCP Tools** tab to:
+Click ⚙️ → **MCP Tools** tab to configure which tools Claude can use:
+
+![MCP Tools settings tab with tool toggles, token estimates, and 0-token experimental mode](docs/screenshots/mcp-settings.png)
+
 - Toggle individual tools on/off
-- See token usage estimates
+- See token usage estimates per tool
 - Add custom allowed domains for `tabz_open_url`
 - Apply presets (Minimal, Standard, Full)
+- **0-Token Mode** (experimental) - Removes tool definitions from context, uses GitHub-hosted descriptions
 
 ### Claude Skill: `tabz-mcp`
 
