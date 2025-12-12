@@ -89,6 +89,34 @@
   display: none; /* Chrome/Safari/Opera */
 }
 
+/* Dark scrollbars for all UI elements */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Context Menu Styles */
 .tab-context-menu {
   background: rgba(30, 30, 30, 0.98);

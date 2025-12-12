@@ -690,11 +690,11 @@ function SidePanelTerminal() {
                     {/* Tab content: show Claude status if detected, otherwise session name */}
                     {/* Using consistent structure to prevent DOM thrashing */}
                     {/* Robot emojis multiply based on active subagent count: 🤖🤖🤖 */}
-                    <span className="flex-1 flex items-center gap-1 text-xs truncate min-w-0">
+                    <span className="flex-1 flex items-center gap-1 text-xs min-w-0 overflow-hidden">
                       {claudeStatuses.has(session.id) && (
                         <span className="flex-shrink-0">{getRobotEmojis(claudeStatuses.get(session.id))}</span>
                       )}
-                      <span className="truncate">
+                      <span className="flex-1 min-w-0 truncate">
                         {claudeStatuses.has(session.id)
                           ? getStatusText(claudeStatuses.get(session.id), session.profile?.name)
                           : session.name

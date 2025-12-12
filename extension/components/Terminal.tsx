@@ -659,6 +659,26 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           }
           triggerResizeTrick()
         }, staggerDelay)
+      } else if (message.type === 'TERMINAL_RECONNECTED' && message.terminalId === terminalId) {
+        // Terminal reconnected after backend restart - clear old content and resize
+        // This prevents "two sessions in one" appearance where old content remains
+        console.log(`[Terminal] ${terminalId.slice(-8)} RECONNECTED - clearing and resizing`)
+        if (xtermRef.current) {
+          // Clear terminal content - tmux will send fresh scrollback
+          xtermRef.current.clear()
+          xtermRef.current.reset()
+          // Trigger resize after a short delay to let things settle
+          setTimeout(() => {
+            if (fitAddonRef.current && xtermRef.current) {
+              try {
+                fitAddonRef.current.fit()
+                xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+              } catch (e) {
+                console.warn('[Terminal] Fit after reconnect failed:', e)
+              }
+            }
+          }, 100)
+        }
       }
     })
 

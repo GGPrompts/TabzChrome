@@ -602,6 +602,55 @@ router.get('/active-tab', async (req, res) => {
   }
 });
 
+// GET /api/browser/settings - Get essential settings for external integrations
+// Lighter than /profiles - just returns what integrations need
+router.get('/settings', async (req, res) => {
+  log.debug('GET /settings');
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-get-settings',
+      requestId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('get-settings error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/browser/profiles - Get all terminal profiles from Chrome storage
 router.get('/profiles', async (req, res) => {
   log.debug('GET /profiles');

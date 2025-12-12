@@ -390,6 +390,38 @@ async function handleBrowserGetProfiles(message: { requestId: string }) {
   }
 }
 
+/**
+ * Get lightweight settings for external integrations (like GGPrompts)
+ * Returns just globalWorkingDir and default profile name - no full profiles array
+ */
+async function handleBrowserGetSettings(message: { requestId: string }) {
+  try {
+    const result = await chrome.storage.local.get(['profiles', 'defaultProfile', 'globalWorkingDir'])
+    const profiles = (result.profiles || []) as Array<{ id: string; name: string }>
+    const defaultProfileId = result.defaultProfile as string | undefined
+    const globalWorkingDir = (result.globalWorkingDir as string) || '~'
+
+    // Find default profile name
+    const defaultProfile = profiles.find(p => p.id === defaultProfileId)
+    const defaultProfileName = defaultProfile?.name || 'Bash'
+
+    sendToWebSocket({
+      type: 'browser-settings-result',
+      requestId: message.requestId,
+      success: true,
+      globalWorkingDir,
+      defaultProfileName
+    })
+  } catch (err) {
+    sendToWebSocket({
+      type: 'browser-settings-result',
+      requestId: message.requestId,
+      success: false,
+      error: (err as Error).message
+    })
+  }
+}
+
 // ============================================
 // BROWSER MCP - Download Handlers
 // ============================================
@@ -881,6 +913,13 @@ function connectWebSocket() {
             chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
           }
         })
+      } else if (message.type === 'terminal-reconnected') {
+        // Terminal reconnected after backend restart - broadcast to terminals
+        // Terminal component will clear content and resize
+        broadcastToClients({
+          type: 'TERMINAL_RECONNECTED',
+          terminalId: message.data?.id,
+        })
       }
       // ============================================
       // BROWSER MCP - Handle requests from backend
@@ -913,6 +952,10 @@ function connectWebSocket() {
         // Get all terminal profiles
         console.log('📋 Browser MCP: get-profiles request', message.requestId)
         handleBrowserGetProfiles(message)
+      } else if (message.type === 'browser-get-settings') {
+        // Get lightweight settings for external integrations
+        console.log('⚙️ Browser MCP: get-settings request', message.requestId)
+        handleBrowserGetSettings(message)
       }
       // ============================================
       // BROWSER MCP - Download handlers

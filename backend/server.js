@@ -744,6 +744,18 @@ wss.on('connection', (ws) => {
           }
           break;
 
+        case 'browser-settings-result':
+          // Receive settings from Chrome extension (lightweight endpoint for integrations)
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              globalWorkingDir: data.globalWorkingDir,
+              defaultProfileName: data.defaultProfileName,
+              error: data.error
+            });
+          }
+          break;
+
         case 'browser-download-result':
           // Receive download result from Chrome extension
           if (data.requestId) {
