@@ -1938,4 +1938,75 @@ The original code disabled the resize trick because it affected tmux splits (SIG
 
 ---
 
+### Lesson: Sidebar Narrowing Corruption - Multiple Root Causes (Dec 11, 2025)
+
+**Problem:** Terminal text gets corrupted specifically when making the Chrome sidebar narrower, even after the post-resize cleanup fix.
+
+**What Happened:**
+1. User drags sidebar narrower
+2. ResizeObserver fires, `fitTerminal()` runs
+3. xterm shows new (narrower) dimensions immediately
+4. But backend/tmux doesn't know about new dimensions for **1000ms** (debounce)
+5. Any output during that window is formatted for old (wider) width
+6. Displayed in narrower container = wrapping corruption
+
+**Root Causes Found:**
+
+1. **1000ms debounce on `debouncedSendResize` was too long:**
+   ```typescript
+   // OLD - 1 second gap between xterm and tmux dimensions
+   const debounceMs = isFirstResize ? 100 : 1000
+
+   // NEW - Keep them in sync within ~300ms
+   const debounceMs = isFirstResize ? 100 : 150
+   ```
+   The 1000ms was intended to avoid interrupting tmux split drag, but Chrome sidebar resize is different - we need responsive dimension sync.
+
+2. **`triggerResizeTrick()` didn't update `prevDimensionsRef`:**
+   ```typescript
+   // OLD - triggerResizeTrick sends resize(cols) but doesn't track it
+   sendMessage({ type: 'TERMINAL_RESIZE', cols: currentCols, rows: currentRows })
+   // debouncedSendResize later sees "dimension changed" and sends AGAIN
+
+   // NEW - Update tracking so debouncedSendResize skips redundant send
+   sendMessage({ type: 'TERMINAL_RESIZE', cols: currentCols, rows: currentRows })
+   prevDimensionsRef.current = { cols: currentCols, rows: currentRows }
+   ```
+   Without this, dimensions were sent 3 times: cols-1, cols (resize trick), cols (debounced) - the third one caused extra SIGWINCH.
+
+3. **Deferred timeouts weren't tracked:**
+   ```typescript
+   // OLD - Orphaned timeout from previous resize can still fire
+   setTimeout(() => triggerResizeTrick(), OUTPUT_QUIET_PERIOD)
+
+   // NEW - Track and clear on new resize events
+   if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
+   deferredResizeTrickRef.current = setTimeout(() => {
+     deferredResizeTrickRef.current = null
+     triggerResizeTrick()
+   }, OUTPUT_QUIET_PERIOD)
+   ```
+   Same pattern applied to `fitTerminal` deferrals. ResizeObserver now clears all pending deferred operations on new events.
+
+**Why Narrowing Is Worse Than Widening:**
+- **Narrowing:** Long lines must wrap → requires recalculating all line breaks
+- **Widening:** Wrapped lines unwrap → simpler operation
+- During the xterm/tmux dimension mismatch window, narrowing causes visible corruption because content formatted for wide display is shoved into narrow container.
+
+**Key Insights:**
+- Keep xterm and tmux dimensions in sync ASAP (short debounce)
+- Every resize operation that sends dimensions must update the tracking ref
+- Track ALL deferred timeouts so they can be canceled on new resize events
+- Reset deferral counters when new resize events come in (fresh sequence)
+
+**Files:**
+- `extension/components/Terminal.tsx:281-288` - Reduced debounce from 1000ms to 150ms
+- `extension/components/Terminal.tsx:213-216` - triggerResizeTrick updates prevDimensionsRef
+- `extension/components/Terminal.tsx:78-82` - New refs for deferred timeout tracking
+- `extension/components/Terminal.tsx:170-175` - Tracked deferredResizeTrickRef
+- `extension/components/Terminal.tsx:353-358` - Tracked deferredFitTerminalRef
+- `extension/components/Terminal.tsx:511-515` - ResizeObserver clears all deferred timeouts
+
+---
+
 **Last Updated**: December 11, 2025

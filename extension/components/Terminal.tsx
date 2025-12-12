@@ -75,6 +75,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const isActiveRef = useRef(isActive)
   isActiveRef.current = isActive
 
+  // Track deferred resize timeouts so they can be cleared on new resize events
+  // Without this, orphaned deferred timeouts can fire after new resize events,
+  // causing multiple resize operations at different times
+  const deferredFitTerminalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deferredResizeTrickRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Safe write function that queues data during resize operations
   // CRITICAL: xterm.js write() is async - data gets queued internally and parsed later
   // If resize happens while data is queued, the parser crashes with "Cannot set isWrapped"
@@ -161,7 +167,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
         resizeDeferCountRef.current++
         console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick DEFERRED (active output, ${timeSinceOutput}ms ago, attempt ${resizeDeferCountRef.current})`)
-        setTimeout(() => triggerResizeTrick(), OUTPUT_QUIET_PERIOD)
+        // Clear any existing deferred timeout to prevent orphaned timeouts
+        if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
+        deferredResizeTrickRef.current = setTimeout(() => {
+          deferredResizeTrickRef.current = null
+          triggerResizeTrick()
+        }, OUTPUT_QUIET_PERIOD)
         return
       } else {
         // CRITICAL: Abort entirely instead of forcing resize during continuous output
@@ -210,6 +221,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
               cols: currentCols,
               rows: currentRows,
             })
+            // CRITICAL: Update prevDimensionsRef so debouncedSendResize skips redundant send
+            // Without this, debouncedSendResize fires later and sends the same dimensions again,
+            // triggering another SIGWINCH → tmux redraw → potential corruption
+            prevDimensionsRef.current = { cols: currentCols, rows: currentRows }
           } catch (e) {
             console.warn('[Terminal] Resize trick step 2 failed:', e)
           }
@@ -220,7 +235,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         // Both redraws get queued, and flushing them causes duplicate content
         // (same lines appear twice - the corruption bug).
         // Since resize trick is purely for visual refresh, discard the queued
-        // redraw data - it's just tmux redrawing what's already on screen.
+        // redraw data - it is just tmux redrawing what's already on screen.
         writeQueueRef.current = []
       }, 100)
     } catch (e) {
@@ -281,8 +296,11 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       // Check if this is first resize (dimensions were at initial 0,0)
       const isFirstResize = prevDimensionsRef.current.cols === 0 && prevDimensionsRef.current.rows === 0
 
-      // First resize uses shorter delay for fast init; subsequent resizes use longer debounce
-      const debounceMs = isFirstResize ? 100 : 1000
+      // First resize uses shorter delay for fast init; subsequent resizes use moderate debounce
+      // NOTE: 1000ms was too long - during that time xterm shows new dimensions but tmux uses old ones
+      // Any output during that window is formatted for wrong width = corruption
+      // 150ms is enough to batch rapid resize events while keeping xterm/tmux in sync
+      const debounceMs = isFirstResize ? 100 : 150
 
       resizeTimeout = setTimeout(() => {
         if (xtermRef.current) {
@@ -332,7 +350,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       const timeSinceOutput = Date.now() - lastOutputTimeRef.current
       if (timeSinceOutput < OUTPUT_QUIET_PERIOD && resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
         resizeDeferCountRef.current++
-        setTimeout(() => fitTerminal(retryCount), OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+        // Clear any existing deferred timeout to prevent orphaned timeouts
+        if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
+        deferredFitTerminalRef.current = setTimeout(() => {
+          deferredFitTerminalRef.current = null
+          fitTerminal(retryCount)
+        }, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
         return
       }
 
@@ -485,6 +508,11 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     const resizeObserver = new ResizeObserver((entries) => {
       if (resizeObserverTimeoutRef.current) clearTimeout(resizeObserverTimeoutRef.current)
       if (postResizeCleanupRef.current) clearTimeout(postResizeCleanupRef.current)
+      // Clear deferred timeouts from previous resize events to prevent orphaned operations
+      if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
+      if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
+      // Reset deferral counter since we're starting a fresh resize sequence
+      resizeDeferCountRef.current = 0
 
       // Capture dimensions before this resize event for comparison
       const entry = entries[0]
@@ -550,6 +578,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       currentResizeObserver.disconnect()
       if (currentTimeoutRef.current) clearTimeout(currentTimeoutRef.current)
       if (currentPostResizeRef.current) clearTimeout(currentPostResizeRef.current)
+      // Clear deferred timeouts to prevent orphaned operations after unmount
+      if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
+      if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
     }
   }, [terminalId, isInitialized]) // Init on mount, re-run if terminalId changes
 
