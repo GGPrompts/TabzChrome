@@ -75,6 +75,14 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Initialization guard - filter device queries during first 1000ms (from terminal-tabs pattern)
   const isInitializingRef = useRef(true)
 
+  // Output guard - buffer output during first 300ms to prevent escape sequence corruption on reconnect
+  // When page refreshes while tmux is outputting, partial escape sequences can cause:
+  // - Copy mode entry (escape sequences misinterpreted as prefix+key)
+  // - Display corruption (partial CSI sequences)
+  // We buffer output briefly and flush after terminal is stable
+  const isOutputGuardedRef = useRef(true)
+  const outputGuardBufferRef = useRef<string[]>([])
+
   // Resize lock - prevents concurrent resize operations that can corrupt xterm.js buffer
   // The isWrapped error occurs when resize() is called while data is being written
   const isResizingRef = useRef(false)
@@ -182,7 +190,8 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Resize trick to force complete redraw (used for theme/font changes and manual refresh)
   // CRITICAL: Uses resize lock and try/catch to prevent buffer corruption
   // Also uses time-based debounce to prevent "redraw storms" from multiple rapid calls
-  const triggerResizeTrick = () => {
+  // @param force - Skip output quiet period check (used for initial connection fix)
+  const triggerResizeTrick = (force = false) => {
     if (!xtermRef.current || !fitAddonRef.current) return
 
     // Skip if already resizing
@@ -195,8 +204,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     // Skip if there's active output (prevents corruption during Claude output)
     // Resize during output causes tmux to redraw while content is streaming,
     // resulting in duplicated/interleaved lines
+    // Exception: force=true skips this check (used for initial connection fix)
     const timeSinceOutput = now - lastOutputTimeRef.current
-    if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+    if (!force && timeSinceOutput < OUTPUT_QUIET_PERIOD) {
       // Defer the resize trick - schedule retry after quiet period
       if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
         resizeDeferCountRef.current++
@@ -221,8 +231,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
 
     // Debounce: skip if we ran recently (prevents redraw storms)
+    // Exception: force=true skips this check (used for initial connection fix)
     const timeSinceLast = now - lastResizeTrickTimeRef.current
-    if (timeSinceLast < RESIZE_TRICK_DEBOUNCE_MS) {
+    if (!force && timeSinceLast < RESIZE_TRICK_DEBOUNCE_MS) {
       console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick DEBOUNCED (${timeSinceLast}ms since last)`)
       return
     }
@@ -504,6 +515,33 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       console.log('[Terminal] Initialization guard lifted for:', terminalId)
     }, 1000)
 
+    // Lift output guard after 1000ms and flush buffered output
+    // This prevents escape sequence corruption when reconnecting while tmux is actively outputting
+    // 1000ms is long enough to buffer the initial flood of output during reconnection
+    setTimeout(() => {
+      isOutputGuardedRef.current = false
+      console.log('[Terminal] Output guard lifted for:', terminalId, 'buffered:', outputGuardBufferRef.current.length, 'chunks')
+      // Flush buffered output if any
+      if (outputGuardBufferRef.current.length > 0 && xtermRef.current) {
+        const buffered = outputGuardBufferRef.current.join('')
+        outputGuardBufferRef.current = []
+        // Write buffered data - it's now safe
+        try {
+          xtermRef.current.write(buffered)
+        } catch (e) {
+          console.warn('[Terminal] Failed to flush output guard buffer:', e)
+        }
+      }
+      // Trigger resize trick after output guard lifts to fix any copy mode issues
+      // Resizing sends SIGWINCH to tmux which forces a redraw and exits copy mode
+      // This fixes the issue where refreshing during active output causes copy mode entry
+      // Use force=true to bypass output quiet period and debounce checks
+      setTimeout(() => {
+        console.log('[Terminal] Post-guard FORCED resize trick for:', terminalId)
+        triggerResizeTrick(true)  // force=true to run even during active output
+      }, 100)
+    }, 1000)
+
     // Enable Shift+Ctrl+C/V for copy/paste
     // Important: Return true to allow all other keys (including tmux Ctrl+B) to pass through
     xterm.attachCustomKeyEventHandler((event) => {
@@ -655,6 +693,13 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           // when it sees emoji+VS16, corrupting scroll regions and hiding status bar
           // The emoji still renders correctly without VS16, just uses default presentation
           const sanitizedData = message.data.replace(/\uFE0F/g, '')
+
+          // Output guard - buffer output during first 300ms after init to prevent
+          // escape sequence corruption on reconnect (copy mode, display corruption)
+          if (isOutputGuardedRef.current) {
+            outputGuardBufferRef.current.push(sanitizedData)
+            return
+          }
 
           // Use safeWrite to queue data during resize operations
           // Direct write() is async - xterm queues data and parses later

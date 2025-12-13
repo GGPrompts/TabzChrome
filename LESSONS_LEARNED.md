@@ -2009,4 +2009,135 @@ The original code disabled the resize trick because it affected tmux splits (SIG
 
 ---
 
-**Last Updated**: December 11, 2025
+### Lesson: Page Refresh During Active Output Causes Copy Mode / Corruption (Dec 13, 2025)
+
+**Problem:** Refreshing the Chrome sidebar while Claude Code is actively outputting causes:
+- Terminal enters tmux copy mode
+- Screen is missing content / scroll region corruption
+- ANSI escape sequences printed as raw text
+
+**What Happened:**
+1. User refreshes sidebar while Claude is streaming output
+2. Old xterm.js instance disconnects mid-stream
+3. New xterm.js instance connects
+4. Tmux continues outputting to PTY
+5. Escape sequences from mid-stream output get misinterpreted
+6. Terminal enters copy mode and/or display corruption
+
+**Root Causes Found:**
+
+1. **Tmux hooks sending `refresh-client` during reconnection:**
+   ```bash
+   # OLD (buggy) - .tmux-terminal-tabs.conf
+   set-hook -g client-attached 'run-shell "tmux refresh-client -c 2>/dev/null || true"'
+   set-hook -g after-select-pane 'run-shell "tmux refresh-client -c 2>/dev/null || true"'
+   ```
+   When the page refreshes, these hooks fire and send escape sequences while xterm.js isn't fully ready to interpret them.
+
+2. **No output buffering during initialization:**
+   - Output started flowing immediately when terminal connected
+   - Partial escape sequences from tmux redraw got misinterpreted
+   - Could trigger copy mode or corrupt scroll regions
+
+3. **Resize trick was deferred/aborted during active output:**
+   - `OUTPUT_QUIET_PERIOD` (500ms) prevented resize during streaming
+   - Resize trick (SIGWINCH) is what fixes copy mode / scroll regions
+   - With continuous output, resize was deferred 10 times then aborted entirely
+
+**Solution - Three Fixes:**
+
+1. **Disable tmux hooks that send refresh-client:**
+   ```bash
+   # .tmux-terminal-tabs.conf - commented out
+   # set-hook -g client-attached 'run-shell "tmux refresh-client -c 2>/dev/null || true"'
+   # set-hook -g after-select-pane 'run-shell "tmux refresh-client -c 2>/dev/null || true"'
+   ```
+
+2. **Add 1000ms output guard to buffer initial output:**
+   ```typescript
+   // Terminal.tsx - New refs
+   const isOutputGuardedRef = useRef(true)
+   const outputGuardBufferRef = useRef<string[]>([])
+
+   // In output handler - buffer during guard period
+   if (isOutputGuardedRef.current) {
+     outputGuardBufferRef.current.push(sanitizedData)
+     return
+   }
+
+   // Lift guard after 1000ms and flush buffer
+   setTimeout(() => {
+     isOutputGuardedRef.current = false
+     if (outputGuardBufferRef.current.length > 0 && xtermRef.current) {
+       const buffered = outputGuardBufferRef.current.join('')
+       outputGuardBufferRef.current = []
+       xtermRef.current.write(buffered)
+     }
+   }, 1000)
+   ```
+
+3. **Force resize trick after guard lifts (bypass output checks):**
+   ```typescript
+   // Add force parameter to triggerResizeTrick
+   const triggerResizeTrick = (force = false) => {
+     // Skip output quiet period check if force=true
+     if (!force && timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+       // defer...
+     }
+     // Skip debounce check if force=true
+     if (!force && timeSinceLast < RESIZE_TRICK_DEBOUNCE_MS) {
+       return
+     }
+     // ... execute resize trick
+   }
+
+   // Call with force=true after output guard lifts
+   setTimeout(() => {
+     triggerResizeTrick(true)  // Force run even during active output
+   }, 100)  // 100ms after guard lifts
+   ```
+
+**Why 1000ms Guard:**
+- 300ms wasn't long enough - corruption still happened
+- 500ms is the `OUTPUT_QUIET_PERIOD` - still race conditions
+- 1000ms gives plenty of time for:
+  - xterm.js to fully initialize
+  - Initial flood of output to be buffered
+  - Resize trick to run and send SIGWINCH to fix tmux state
+
+**Why Force Resize Trick:**
+- During continuous Claude output, `lastOutputTimeRef` keeps updating
+- Normal resize trick gets deferred repeatedly (up to 10 times)
+- Then it aborts entirely to prevent corruption
+- But we NEED the resize (SIGWINCH) to exit copy mode and fix scroll regions
+- `force=true` bypasses these safety checks for the post-init fix
+
+**Why Manual Sidebar Resize Fixed It:**
+- User resizing sidebar triggers resize events
+- Eventually sends SIGWINCH to tmux
+- SIGWINCH forces tmux to redraw and exit copy mode
+- This is exactly what `triggerResizeTrick(true)` now does automatically
+
+**Key Insights:**
+- Escape sequences mid-stream can be misinterpreted as tmux commands
+- Buffering output during init gives terminal time to stabilize
+- SIGWINCH (resize signal) forces tmux to reset its state
+- Sometimes you need to bypass safety checks for initialization fixes
+- The fix that "forcing resize during output causes corruption" is true for normal operation, but necessary for post-init recovery
+
+**Prevention Checklist:**
+- [ ] Does the terminal connect while active output is streaming?
+- [ ] Are there tmux hooks that send commands during attach/reconnect?
+- [ ] Is there an output guard to buffer initial data?
+- [ ] Does a forced resize happen after initialization to fix tmux state?
+
+**Files:**
+- `.tmux-terminal-tabs.conf:170-181` - Disabled client-attached and after-select-pane hooks
+- `extension/components/Terminal.tsx:78-84` - Output guard refs
+- `extension/components/Terminal.tsx:193-194` - force parameter for triggerResizeTrick
+- `extension/components/Terminal.tsx:209,236` - Skip checks when force=true
+- `extension/components/Terminal.tsx:518-543` - 1000ms guard with forced resize after
+
+---
+
+**Last Updated**: December 13, 2025
