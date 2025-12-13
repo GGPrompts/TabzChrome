@@ -94,9 +94,14 @@ npm run build
 ### Start Backend
 
 ```bash
-cd backend
-npm start  # Runs on port 8129
+# Recommended: interactive setup with tmux session
+./scripts/dev.sh
+
+# Or simple start:
+cd backend && npm start  # Runs on port 8129
 ```
+
+The dev script creates a `tabz-chrome` tmux session with optional browser logs window - useful for AI debugging workflows.
 
 ### Open Sidebar
 

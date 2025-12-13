@@ -44,7 +44,7 @@
     {
       "id": "browser-logs",
       "name": "Browser Logs",
-      "command": "tail -f ~/projects/TabzChrome/backend/logs/browser.log 2>/dev/null || echo 'No browser logs yet. Reload extension to start logging.'",
+      "command": "watch -n1 -c 'tmux capture-pane -t tabz-chrome:logs -p -S -50 2>/dev/null || echo \"Start backend with: ./scripts/dev.sh (enable logs window)\"'",
       "workingDir": "",
       "fontFamily": "JetBrains Mono, monospace",
       "fontSize": 16,
