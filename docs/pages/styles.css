@@ -475,6 +475,50 @@ kbd {
     font-size: 0.85rem;
 }
 
+/* Developer Quality Section */
+.developer-quality {
+    margin-top: 3rem;
+}
+
+.quality-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.quality-item {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+}
+
+.quality-item:hover {
+    border-color: var(--accent);
+}
+
+.quality-item h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.quality-item p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.quality-item code {
+    color: var(--cyan);
+    font-size: 0.8rem;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+}
+
 /* GitHub FAB Section */
 .github-fab-section {
     margin-top: 3rem;

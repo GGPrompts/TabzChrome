@@ -377,17 +377,17 @@ cd backend && npm audit fix
 - Clean dev/prod separation
 - Reasonable bundle: ~940KB uncompressed, ~200KB gzipped
 
-### Missing Production Infrastructure ❌
+### Missing Production Infrastructure ⚠️
 
 | Item | Status | Priority |
 |------|--------|----------|
-| Health check endpoint | Missing | High |
-| Graceful shutdown (SIGTERM) | Missing | High |
-| PM2/systemd config | Missing | High |
+| Health check endpoint | ✅ Enhanced (`GET /api/health`) | High |
+| Graceful shutdown (SIGTERM) | ✅ Present (server.js:1088-1132) | High |
+| PM2/systemd config | ✅ Added (`ecosystem.config.js`) | High |
 | Log rotation | Missing | Medium |
 | Dockerfile | Missing | Medium |
 | Rate limiting | Missing | Medium |
-| Metrics endpoint | Missing | Low |
+| Metrics endpoint | ✅ Health endpoint provides basic metrics | Low |
 
 ---
 
@@ -408,21 +408,21 @@ cd backend && npm audit fix
 
 - [x] Add path traversal validation for workingDir ✅ *2025-12-12*
 - [x] Add ARIA labels to interactive elements ✅ *2025-12-12*
-- [ ] Add health check endpoint (`GET /api/health`)
-- [ ] Add graceful shutdown handler (SIGTERM/SIGINT)
-- [ ] Create PM2 ecosystem config or systemd unit
+- [x] Enhance health check endpoint (`GET /api/health`) ✅ *2025-12-12* (already existed, improved format)
+- [x] Add graceful shutdown handler (SIGTERM/SIGINT) ✅ *2025-12-12* (already existed)
+- [x] Create PM2 ecosystem config or systemd unit ✅ *2025-12-12*
 - [ ] Add toast notifications for user feedback
 - [x] Remove unused permissions (cookies, history, bookmarks) ✅ *2025-12-12*
 
 ### MEDIUM PRIORITY (Before Wider Distribution)
 
-- [ ] Add JSDoc to React components
+- [x] Add JSDoc to React components ✅ *2025-12-12* (Terminal, SettingsModal, ProfileDropdown, WorkingDirDropdown, GhostBadgeDropdown, ChatInputBar, SessionContextMenu)
 - [x] Create CHANGELOG-archive.md and rotate old entries ✅ *2025-12-12*
-- [ ] Add keyboard navigation to dropdowns
-- [ ] Add React error boundaries
-- [ ] Create deployment documentation
-- [ ] Implement log rotation
-- [ ] Add rate limiting to REST endpoints
+- [x] Add keyboard navigation to dropdowns ✅ *2025-12-12* (ProfileDropdown, WorkingDirDropdown, GhostBadgeDropdown: Arrow keys, Enter/Space, Escape, Home/End)
+- [x] Add React error boundaries ✅ *2025-12-12* (ErrorBoundary component wraps SidePanelTerminal)
+- [x] Create deployment documentation ✅ *2025-12-12*
+- [x] Implement log rotation ✅ *2025-12-12* (pm2-logrotate + logrotate.d documented in ecosystem.config.js)
+- [x] Add rate limiting to REST endpoints ✅ *2025-12-12* (express-rate-limit: 10/min spawn, 30/min audio)
 
 ### LOW PRIORITY (Quality Improvements)
 

@@ -7,6 +7,9 @@ import '@xterm/xterm/css/xterm.css'
 import { sendMessage, connectToBackground } from '../shared/messaging'
 import { getThemeColors, getBackgroundGradient } from '../styles/themes'
 
+/**
+ * Props for the Terminal component
+ */
 interface TerminalProps {
   terminalId: string
   sessionName?: string
@@ -23,6 +26,37 @@ interface TerminalProps {
 }
 // NOTE: ClaudeStatus interface removed - status polling handled by sidepanel's useClaudeStatus hook
 
+/**
+ * Terminal - xterm.js terminal emulator component
+ *
+ * Renders a fully-featured terminal using xterm.js with:
+ * - WebSocket communication to backend PTY via Chrome extension messaging
+ * - Automatic resizing via ResizeObserver and FitAddon
+ * - Theme support with dark/light mode toggle
+ * - Copy/paste support (Ctrl+Shift+C/V)
+ * - Tmux session persistence (terminals survive sidebar close)
+ * - Protection against buffer corruption during resize operations
+ *
+ * The component handles complex scenarios like:
+ * - Resize during active output (defers to prevent corruption)
+ * - Tab switching with deferred resize tricks
+ * - Backend reconnection with terminal state recovery
+ *
+ * @param props - Terminal configuration and callbacks
+ * @param props.terminalId - Unique identifier for this terminal (ctt-* format)
+ * @param props.sessionName - Display name for the terminal tab
+ * @param props.terminalType - Shell type (default: 'bash')
+ * @param props.workingDir - Starting directory for the terminal
+ * @param props.tmuxSession - Tmux session name for persistence
+ * @param props.fontSize - Font size in pixels (default: 16)
+ * @param props.fontFamily - Font family name (default: 'JetBrains Mono NF')
+ * @param props.themeName - Theme family name (default: 'high-contrast')
+ * @param props.isDark - Dark mode toggle (default: true)
+ * @param props.isActive - Whether this terminal is the active tab
+ * @param props.pasteCommand - Command to paste from context menu
+ * @param props.onClose - Callback when terminal is closed
+ * @returns Terminal container with xterm.js instance
+ */
 export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'JetBrains Mono NF', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)

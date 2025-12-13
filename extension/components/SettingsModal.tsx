@@ -30,11 +30,37 @@ export {
   DEFAULT_CATEGORY_COLOR,
 } from './settings/types'
 
+/**
+ * Props for the SettingsModal component
+ */
 interface SettingsModalProps {
+  /** Whether the modal is currently open */
   isOpen: boolean
+  /** Callback to close the modal */
   onClose: () => void
 }
 
+/**
+ * SettingsModal - Main settings interface for Tabz
+ *
+ * A tabbed modal dialog that provides configuration for:
+ * - **Profiles Tab**: Create, edit, delete terminal profiles with customization
+ *   options for theme, font, working directory, and startup commands
+ * - **MCP Tools Tab**: Enable/disable MCP tools, configure URL permissions
+ * - **Audio Tab**: Configure Claude Code status audio notifications
+ *
+ * Features:
+ * - Import/export profiles as JSON for backup and sharing
+ * - Drag-and-drop profile reordering
+ * - Category-based profile organization with color coding
+ * - Per-profile audio notification overrides
+ * - Real-time sync with Chrome storage and backend API
+ *
+ * @param props - Modal configuration
+ * @param props.isOpen - Controls modal visibility
+ * @param props.onClose - Called when user closes the modal
+ * @returns Modal dialog or null if not open
+ */
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('profiles')

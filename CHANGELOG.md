@@ -35,6 +35,11 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 - **Added semantic roles** - dialog, menu, menuitem, listbox, option, tablist, tab, tabpanel
 - **Added aria-expanded/aria-selected** - Proper state indicators for interactive elements
 
+#### Production Infrastructure
+- **Enhanced health check endpoint** (`GET /api/health`) - Now returns human-readable memory sizes (MB), proper package version, timestamps
+- **Added PM2 ecosystem config** (`ecosystem.config.js`) - Production-ready process management with logging, graceful shutdown, auto-restart
+- **Created logs directory** - `backend/logs/` for PM2 log output with .gitignore
+
 #### Tests & Maintenance
 - **Fixed test failures** - Updated fetch mock in setup.ts, fixed assertions in useProfiles.test.ts and useWorkingDirectory.test.ts
 - **CHANGELOG rotation** - Moved v1.0.0-2.5.0 to CHANGELOG-archive.md (743→218 lines)

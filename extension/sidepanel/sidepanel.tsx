@@ -26,6 +26,25 @@ import '../styles/globals.css'
 // Setup console forwarding to backend for Claude debugging
 setupConsoleForwarding()
 
+/**
+ * SidePanelTerminal - Main Chrome extension side panel component
+ *
+ * This is the root component for the Tabz terminal sidebar. It orchestrates:
+ * - Terminal session management (spawn, close, switch tabs)
+ * - WebSocket connection to backend (port 8129)
+ * - Profile management and working directory inheritance
+ * - Claude Code status tracking and display
+ * - Audio notifications for terminal events
+ * - Tab drag-and-drop reordering
+ * - Keyboard shortcuts and omnibox commands
+ *
+ * The component uses a hybrid state management approach:
+ * - Chrome storage for UI state (sessions, profiles, settings)
+ * - Tmux for process persistence (terminals survive sidebar close)
+ * - Backend API for shared state (working directory sync)
+ *
+ * @returns The complete terminal sidebar UI
+ */
 function SidePanelTerminal() {
   const [wsConnected, setWsConnected] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -802,6 +821,7 @@ function SidePanelTerminal() {
                   getCategoryColor={getCategoryColor}
                   defaultProfileId={defaultProfileId}
                   className="absolute top-full right-2 mt-1 z-50"
+                  onClose={() => setShowProfileDropdown(false)}
                 />
               )}
             </div>
@@ -854,6 +874,7 @@ function SidePanelTerminal() {
                           getCategoryColor={getCategoryColor}
                           defaultProfileId={defaultProfileId}
                           className="absolute top-full left-0 mt-1 z-50"
+                          onClose={() => setShowEmptyStateDropdown(false)}
                         />
                       )}
                     </div>
@@ -1012,9 +1033,19 @@ function SidePanelTerminal() {
   )
 }
 
-// Mount the sidepanel
+// Import ErrorBoundary for graceful error handling
+import { ErrorBoundary } from '../components/ErrorBoundary'
+
+// Mount the sidepanel with error boundary wrapper
 ReactDOM.createRoot(document.getElementById('sidepanel-root')!).render(
   <React.StrictMode>
-    <SidePanelTerminal />
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('[SidePanel] Uncaught error:', error.message)
+        console.error('[SidePanel] Component stack:', errorInfo.componentStack)
+      }}
+    >
+      <SidePanelTerminal />
+    </ErrorBoundary>
   </React.StrictMode>
 )

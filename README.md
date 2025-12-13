@@ -523,11 +523,29 @@ npm test
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/spawn` | Spawn terminal |
+| GET | `/api/health` | Health check (uptime, memory, version, Node.js version) |
+| POST | `/api/spawn` | Spawn terminal (rate limited: 10/min) |
 | GET | `/api/tmux/sessions` | List sessions |
 | GET | `/api/settings/working-dir` | Get working directory settings |
 | POST | `/api/settings/working-dir` | Update working directory settings |
+
+**Health Endpoint Response:**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "data": {
+    "uptime": 3600,
+    "activeTerminals": 3,
+    "totalTerminals": 5,
+    "memoryUsage": { "heapUsed": 45, "heapTotal": 65, "rss": 120, "unit": "MB" },
+    "version": "2.7.4",
+    "nodeVersion": "v20.10.0",
+    "platform": "linux",
+    "timestamp": "2025-12-12T12:00:00.000Z"
+  }
+}
+```
 
 ### Spawn Terminal via API
 
@@ -540,6 +558,21 @@ curl -X POST http://localhost:8129/api/spawn \
     "command": "lazygit"
   }'
 ```
+
+---
+
+## Developer Quality
+
+Recent improvements for stability and maintainability:
+
+- **Rate Limiting** - Spawn endpoint limited to 10 requests/minute per IP to prevent DoS
+- **Error Boundaries** - React error boundary catches crashes, shows recovery UI, preserves terminal sessions
+- **JSDoc Documentation** - Key React components documented with prop types and usage examples
+- **Keyboard Navigation** - Full arrow key, Enter, Escape, Home/End support in dropdowns
+- **Graceful Shutdown** - SIGTERM/SIGINT handlers for clean process termination
+- **PM2 Configuration** - `ecosystem.config.js` with cluster mode, log rotation, and auto-restart
+- **Input Validation** - Joi schemas validate all API inputs with clear error messages
+- **Health Monitoring** - Enhanced `/api/health` endpoint with Node.js version, platform, detailed memory stats
 
 ---
 

@@ -4,19 +4,51 @@ import type { UseChatInputReturn } from '../hooks/useChatInput'
 import type { TerminalSession } from '../hooks/useTerminalSessions'
 import type { ClaudeStatus } from '../hooks/useClaudeStatus'
 
+/**
+ * Props for the ChatInputBar component
+ */
 interface ChatInputBarProps {
+  /** Chat input state and handlers from useChatInput hook */
   chatInput: UseChatInputReturn
+  /** Command history state and handlers */
   commandHistory: {
     history: string[]
     removeFromHistory: (cmd: string) => void
   }
+  /** List of terminal sessions for target selection */
   sessions: TerminalSession[]
+  /** Map of terminal ID to Claude Code status */
   claudeStatuses: Map<string, ClaudeStatus>
+  /** Function to get status emoji for a terminal */
   getStatusEmoji: (status: ClaudeStatus | undefined) => string
+  /** Function to get status text for a terminal */
   getStatusText: (status: ClaudeStatus | undefined, profileName?: string) => string
+  /** Function to get full status text with details */
   getFullStatusText: (status: ClaudeStatus | undefined) => string
 }
 
+/**
+ * ChatInputBar - Multi-target command input component
+ *
+ * Provides a command input bar at the bottom of the sidebar for
+ * sending commands or text to one or more terminal sessions.
+ *
+ * Features:
+ * - **Command History**: Up/down arrows to navigate history, history dropdown
+ * - **Target Selection**: Send to current tab, specific tabs, or all tabs
+ * - **Send Modes**:
+ *   - Execute: Sends command + Enter (runs immediately)
+ *   - Send: Sends text only (for AI prompts, doesn't execute)
+ * - **Claude Detection**: Shows robot emoji for Claude Code sessions
+ *
+ * This is particularly useful for:
+ * - Sending the same command to multiple Claude Code instances
+ * - Quick terminal commands without switching tabs
+ * - Reviewing and reusing command history
+ *
+ * @param props - Input state, history, and session info
+ * @returns Command input bar component
+ */
 export function ChatInputBar({
   chatInput,
   commandHistory,

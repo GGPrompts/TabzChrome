@@ -1,6 +1,6 @@
 /**
  * Tabz API Routes - Simplified & Explicit
- * 
+ *
  * Key principles:
  * - Minimal API surface (reduced from 120+ to ~15 endpoints)
  * - terminal-registry.js as single source of truth
@@ -10,10 +10,36 @@
 
 const express = require('express');
 const Joi = require('joi');
+const rateLimit = require('express-rate-limit');
 const terminalRegistry = require('../modules/terminal-registry');
 const unifiedSpawn = require('../modules/unified-spawn');
 
 const router = express.Router();
+
+// =============================================================================
+// RATE LIMITING CONFIGURATION
+// =============================================================================
+
+/**
+ * Rate limiter for spawn endpoint (POST /api/agents)
+ * Prevents DoS attacks by limiting terminal spawning
+ * 10 spawns per minute per IP is reasonable for normal use
+ */
+const spawnRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10, // 10 requests per minute
+  standardHeaders: true, // Return rate limit info in RateLimit-* headers
+  legacyHeaders: false, // Disable X-RateLimit-* headers
+  message: {
+    error: 'Too many spawn requests',
+    message: 'Rate limit exceeded. Maximum 10 terminal spawns per minute.',
+    retryAfter: 60
+  },
+  keyGenerator: (req) => {
+    // Use IP address for rate limiting
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  }
+});
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -209,11 +235,13 @@ router.put('/spawn-options', asyncHandler(async (req, res) => {
 
 /**
  * POST /api/agents - Spawn new agent with explicit terminal type
- * 
+ *
  * Required: terminalType (explicit - no guessing!)
  * Optional: name, platform, workingDir, env, etc.
+ *
+ * Rate limited: 10 requests per minute per IP (DoS prevention)
  */
-router.post('/agents', validateBody(spawnAgentSchema), asyncHandler(async (req, res) => {
+router.post('/agents', spawnRateLimiter, validateBody(spawnAgentSchema), asyncHandler(async (req, res) => {
   const config = req.body;
   
   // Spawn agent using UnifiedSpawn for validation and rate limiting
@@ -452,20 +480,29 @@ router.get('/spawn-stats', asyncHandler(async (req, res) => {
 }));
 
 /**
- * GET /api/health - Health check
+ * GET /api/health - Health check for load balancers, monitoring, PM2
  */
 router.get('/health', asyncHandler(async (req, res) => {
   const terminals = terminalRegistry.getAllTerminals();
+  const memUsage = process.memoryUsage();
 
   res.json({
     success: true,
     status: 'healthy',
     data: {
-      uptime: process.uptime(),
+      uptime: Math.floor(process.uptime()),
       activeTerminals: terminals.filter(t => t.state === 'active').length,
       totalTerminals: terminals.length,
-      memoryUsage: process.memoryUsage(),
-      version: '3.0.0'
+      memoryUsage: {
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+        rss: Math.round(memUsage.rss / 1024 / 1024),
+        unit: 'MB'
+      },
+      version: require('../package.json').version,
+      nodeVersion: process.version,
+      platform: process.platform,
+      timestamp: new Date().toISOString()
     }
   });
 }));

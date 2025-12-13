@@ -137,6 +137,9 @@
                             <tr><td>WebSocket URL</td><td class="mono">ws://localhost:8129</td></tr>
                             <tr><td>Version</td><td id="sys-version">-</td></tr>
                             <tr><td>Node.js</td><td id="sys-node">-</td></tr>
+                            <tr><td>Platform</td><td id="sys-platform">-</td></tr>
+                            <tr><td>Memory (Heap)</td><td id="sys-heap">-</td></tr>
+                            <tr><td>Memory (RSS)</td><td id="sys-rss">-</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -188,10 +191,15 @@
             Dashboard.$('#stat-uptime').textContent = Dashboard.formatUptime(health.uptime || 0);
 
             if (health.memoryUsage) {
-                Dashboard.$('#stat-memory').textContent = Dashboard.formatMemory(health.memoryUsage.heapUsed || 0);
+                const mem = health.memoryUsage;
+                Dashboard.$('#stat-memory').textContent = `${mem.heapUsed} MB`;
+                Dashboard.$('#sys-heap').textContent = `${mem.heapUsed} / ${mem.heapTotal} MB`;
+                Dashboard.$('#sys-rss').textContent = `${mem.rss} MB`;
             }
 
             Dashboard.$('#sys-version').textContent = health.version || '-';
+            Dashboard.$('#sys-node').textContent = health.nodeVersion || '-';
+            Dashboard.$('#sys-platform').textContent = health.platform || '-';
         }
 
         // Update terminals preview

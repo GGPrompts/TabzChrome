@@ -57,12 +57,38 @@ process.on('uncaughtException', (err) => {
 
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const { createModuleLogger } = require('./modules/logger');
+
+// =============================================================================
+// RATE LIMITING CONFIGURATION
+// =============================================================================
+
+/**
+ * Rate limiter for audio generation endpoint (POST /api/audio/generate)
+ * Prevents abuse of the TTS service
+ * 30 requests per minute per IP is reasonable for audio generation
+ */
+const audioRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 30, // 30 requests per minute
+  standardHeaders: true, // Return rate limit info in RateLimit-* headers
+  legacyHeaders: false, // Disable X-RateLimit-* headers
+  message: {
+    success: false,
+    error: 'Rate limit exceeded',
+    message: 'Too many audio generation requests. Maximum 30 per minute.',
+    retryAfter: 60
+  },
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  }
+});
 
 // =============================================================================
 // WEBSOCKET AUTHENTICATION
@@ -161,7 +187,8 @@ app.get('/api/audio/list', (req, res) => {
 
 // Generate audio using edge-tts (with caching)
 // POST /api/audio/generate { text: string, voice?: string, rate?: string }
-app.post('/api/audio/generate', async (req, res) => {
+// Rate limited: 30 requests per minute per IP
+app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
   const { execFile } = require('child_process');
   const { promisify } = require('util');
   const execFileAsync = promisify(execFile);
