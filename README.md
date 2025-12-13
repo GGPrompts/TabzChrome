@@ -247,8 +247,7 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 **Pages:**
 | Page | URL | Features |
 |------|-----|----------|
-| **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector |
-| **AI Launcher** | `/launcher.html` | Spawn Claude/AI sessions with custom prompts and settings |
+| **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector, quick spawn |
 | **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
 
 **Features:**

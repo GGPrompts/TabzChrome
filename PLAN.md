@@ -1,7 +1,7 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 9, 2025
-**Current Version**: 2.7.0
+**Last Updated**: December 13, 2025
+**Current Version**: 2.7.4
 **Status**: Profile Organization Complete | Next: Power Tools
 
 ---
@@ -189,7 +189,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - [x] Created CONTRIBUTING.md
 
 ### High Priority - TODO
-- [ ] **Add screenshots** - `docs/screenshots/` folder is empty
+- [x] **Add screenshots** - Screenshots in `docs/pages/screenshots/`
 - [x] **Remove debug console.logs** - Cleaned popup.tsx and sidepanel.tsx
 - [x] **Update MCP tool count** - README/CLAUDE updated to 17 tools
 
