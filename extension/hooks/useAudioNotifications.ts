@@ -388,12 +388,14 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
       }
 
       // EVENT: Tool announcements
-      // Trigger when: tool_use status, OR processing/tool_use with a NEW tool name
-      // This catches tools even if we poll during 'processing' state (post-tool)
-      const prevToolName = prevToolNamesRef.current.get(terminalId) || ''
+      // Trigger when: tool_use status with a NEW tool invocation
+      // Track by tool name + description/file_path to catch consecutive same-tool calls (e.g., multiple Bash)
+      const prevToolKey = prevToolNamesRef.current.get(terminalId) || ''
       const currentToolName = status.current_tool || ''
+      const toolDetail = status.details?.args?.description || status.details?.args?.file_path || status.details?.args?.pattern || ''
+      const currentToolKey = `${currentToolName}:${toolDetail}`
       const isActiveStatus = currentStatus === 'tool_use' || currentStatus === 'processing'
-      const isNewTool = currentToolName !== '' && currentToolName !== prevToolName
+      const isNewTool = currentToolName !== '' && currentToolKey !== prevToolKey
 
       // Skip internal Claude session files (session memory updates)
       // Only applies to file operations (Read/Edit/Write), not Bash/Grep/etc.
@@ -426,14 +428,17 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
           } else if (args.pattern && (currentToolName === 'Glob' || currentToolName === 'Grep')) {
             // Add search pattern for search tools
             announcement += ` for ${args.pattern}`
+          } else if (currentToolName === 'Bash' && args.description) {
+            // Add command description for Bash (Claude provides a short description)
+            announcement = args.description
           }
         }
 
         playAudio(announcement, session, true)
       }
 
-      // Update previous tool name
-      prevToolNamesRef.current.set(terminalId, currentToolName)
+      // Update previous tool key (name + detail)
+      prevToolNamesRef.current.set(terminalId, currentToolKey)
 
       // EVENT: Subagent count changes
       if (audioSettings.events.subagents && currentSubagentCount !== prevSubagentCount) {

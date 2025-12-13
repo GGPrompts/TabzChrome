@@ -270,6 +270,83 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
     res.status(500).json({ success: false, error: 'TTS generation failed' });
   }
 });
+
+// POST /api/audio/speak - Generate audio AND broadcast to extension to play it
+// This allows CLI/slash commands to trigger audio playback through the browser
+app.post('/api/audio/speak', async (req, res) => {
+  const {
+    text,
+    voice = 'en-US-AndrewMultilingualNeural',
+    rate = '+0%',
+    volume = 0.7
+  } = req.body;
+
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing text parameter' });
+  }
+
+  // Validate voice parameter (alphanumeric, hyphens, underscores only)
+  if (!/^[a-zA-Z0-9_-]+$/.test(voice)) {
+    return res.status(400).json({ success: false, error: 'Invalid voice parameter' });
+  }
+
+  // Validate rate parameter (format: +N% or -N% where N is 0-100)
+  if (!/^[+-]?\d{1,3}%$/.test(rate)) {
+    return res.status(400).json({ success: false, error: 'Invalid rate parameter' });
+  }
+
+  const audioDir = '/tmp/claude-audio-cache';
+
+  // Ensure directory exists
+  if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir, { recursive: true });
+  }
+
+  // Generate cache key from voice + rate + text
+  const cacheKey = crypto.createHash('md5').update(`${voice}:${rate}:${text}`).digest('hex');
+  const cacheFile = path.join(audioDir, `${cacheKey}.mp3`);
+  const audioUrl = `http://localhost:8129/audio/${cacheKey}.mp3`;
+
+  // Check if cached, if not generate
+  if (!fs.existsSync(cacheFile)) {
+    try {
+      const outputBase = path.join(audioDir, cacheKey);
+      const args = ['synthesize', '-v', voice];
+      if (rate && rate !== '+0%') {
+        args.push('-r', rate);
+      }
+      args.push('-t', text, '-o', outputBase);
+
+      await execFileAsync('edge-tts', args, { timeout: 10000 });
+
+      if (fs.existsSync(`${outputBase}.mp3`)) {
+        fs.renameSync(`${outputBase}.mp3`, cacheFile);
+      }
+
+      if (!fs.existsSync(cacheFile)) {
+        return res.status(500).json({ success: false, error: 'Audio generation failed' });
+      }
+    } catch (err) {
+      console.error('[Audio] edge-tts error:', err.message);
+      return res.status(500).json({ success: false, error: 'TTS generation failed' });
+    }
+  }
+
+  // Broadcast to all WebSocket clients to play this audio
+  broadcast({
+    type: 'audio-speak',
+    url: audioUrl,
+    volume: Math.max(0, Math.min(1, volume)),
+    text: text.slice(0, 100) // Include truncated text for logging
+  });
+
+  res.json({
+    success: true,
+    message: 'Audio broadcast to extension',
+    url: audioUrl
+  });
+});
+
 // app.use('/api/workspace', workspaceRouter); // Archived - workspace-manager removed
 
 // TUI Tools endpoints

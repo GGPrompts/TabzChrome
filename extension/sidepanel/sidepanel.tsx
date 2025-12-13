@@ -217,6 +217,12 @@ function SidePanelTerminal() {
         if (message.data?.type === 'terminal-spawned' || message.data?.type === 'terminal-closed') {
           refreshOrphaned()
         }
+        // Play audio from /api/audio/speak endpoint (for slash commands, etc.)
+        if (message.data?.type === 'audio-speak' && message.data?.url) {
+          const audio = new Audio(message.data.url)
+          audio.volume = message.data.volume ?? 0.7
+          audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+        }
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
       } else if (message.type === 'PASTE_COMMAND') {
