@@ -143,7 +143,7 @@
         <section>
             <h2>WebSocket QUEUE_COMMAND API</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Send commands directly from CLI tools or scripts using WebSocket:
+                Send commands directly from CLI tools or scripts using WebSocket. Requires authentication token.
             </p>
 
             <div class="terminal-window">
@@ -158,11 +158,11 @@
 <span class="prompt">$</span> cargo install websocat
 <span class="comment"># or: brew install websocat</span>
 
-<span class="comment"># Send a command</span>
-<span class="prompt">$</span> echo '{"type":"QUEUE_COMMAND","command":"npm run dev"}' | websocat ws://localhost:8129
+<span class="comment"># Get auth token (generated on backend startup)</span>
+<span class="prompt">$</span> TOKEN=$(cat /tmp/tabz-auth-token)
 
-<span class="comment"># One-liner</span>
-<span class="prompt">$</span> websocat ws://localhost:8129 <<< '{"type":"QUEUE_COMMAND","command":"git status"}'</code></pre>
+<span class="comment"># Send a command with token</span>
+<span class="prompt">$</span> echo '{"type":"QUEUE_COMMAND","command":"npm run dev"}' | websocat "ws://localhost:8129?token=$TOKEN"</code></pre>
                 </div>
             </div>
         </section>
@@ -184,13 +184,17 @@
                     <pre><code><span class="comment"># Queue command/prompt to TabzChrome sidebar</span>
 tabz() {
   local cmd="$*"
-  echo "{\"type\":\"QUEUE_COMMAND\",\"command\":$(echo "$cmd" | jq -Rs .)}" | websocat ws://localhost:8129
+  local token=$(cat /tmp/tabz-auth-token 2>/dev/null)
+  if [[ -z "$token" ]]; then
+    echo "Error: TabzChrome backend not running (no auth token found)"
+    return 1
+  fi
+  echo "{\"type\":\"QUEUE_COMMAND\",\"command\":$(echo "$cmd" | jq -Rs .)}" | websocat "ws://localhost:8129?token=$token"
 }
 
 <span class="comment"># Usage:</span>
 <span class="prompt">$</span> tabz npm run dev
-<span class="prompt">$</span> tabz "Explain this error and suggest a fix"
-<span class="prompt">$</span> tabz git status && git diff</code></pre>
+<span class="prompt">$</span> tabz "Explain this error and suggest a fix"</code></pre>
                 </div>
             </div>
         </section>
@@ -209,7 +213,8 @@ tabz() {
                     <span class="terminal-title">Multi-line prompt</span>
                 </div>
                 <div class="terminal-body">
-                    <pre><code><span class="prompt">$</span> cat &lt;&lt;'EOF' | jq -Rs '{type:"QUEUE_COMMAND",command:.}' | websocat ws://localhost:8129
+                    <pre><code><span class="prompt">$</span> TOKEN=$(cat /tmp/tabz-auth-token)
+<span class="prompt">$</span> cat &lt;&lt;'EOF' | jq -Rs '{type:"QUEUE_COMMAND",command:.}' | websocat "ws://localhost:8129?token=$TOKEN"
 Implement a new feature that:
 1. Adds user authentication
 2. Uses JWT tokens
@@ -220,33 +225,33 @@ EOF</code></pre>
         </section>
 
         <section>
-            <h2>JavaScript API</h2>
+            <h2>JavaScript API (localhost only)</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                For dynamic web apps (prompt libraries, dashboards, etc.):
+                For web apps running on localhost (prompt libraries, dashboards, etc.):
             </p>
 
             <div class="code-block">
-                <code><span class="comment">// Connect to TabzChrome backend</span>
-<span class="keyword">const</span> ws = <span class="keyword">new</span> WebSocket(<span class="string">'ws://localhost:8129'</span>);
-
-<span class="comment">// Queue a command to the chat input</span>
-<span class="keyword">function</span> <span class="function">queueToTabz</span>(command) {
-  <span class="keyword">if</span> (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: <span class="string">'QUEUE_COMMAND'</span>,
-      command: command
-    }));
-  }
+                <code><span class="comment">// Fetch auth token (localhost only due to CORS)</span>
+<span class="keyword">async function</span> <span class="function">connectToTabz</span>() {
+  <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:8129/api/auth/token'</span>);
+  <span class="keyword">const</span> { token } = <span class="keyword">await</span> res.json();
+  <span class="keyword">return new</span> WebSocket(<span class="string">`ws://localhost:8129?token=${token}`</span>);
 }
 
-<span class="comment">// Example: Send a prompt template</span>
-<span class="keyword">const</span> filledPrompt = <span class="string">`
-Refactor the ${selectedFile} to:
-- Use ${framework} patterns
-- Add error handling for ${errorCases}
-`</span>;
-queueToTabz(filledPrompt);</code>
+<span class="comment">// Queue a command to the chat input</span>
+<span class="keyword">let</span> ws;
+<span class="keyword">async function</span> <span class="function">queueToTabz</span>(command) {
+  <span class="keyword">if</span> (!ws || ws.readyState !== WebSocket.OPEN) {
+    ws = <span class="keyword">await</span> connectToTabz();
+    <span class="keyword">await new</span> Promise(r => ws.onopen = r);
+  }
+  ws.send(JSON.stringify({ type: <span class="string">'QUEUE_COMMAND'</span>, command }));
+}</code>
             </div>
+
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                <strong>Note:</strong> For remote web pages (like GitHub Pages), use <code>data-terminal-command</code> instead - the content script handles auth automatically.
+            </p>
         </section>
 
         <section>
@@ -271,7 +276,7 @@ queueToTabz(filledPrompt);</code>
                             <option value="Best Practices">Best Practices</option>
                         </select>
                     </label>
-                    <button onclick="sendReviewPrompt()">
+                    <button id="reviewSendBtn" data-terminal-command="">
                         Send to TabzChrome
                     </button>
                 </div>
@@ -291,7 +296,7 @@ queueToTabz(filledPrompt);</code>
                         Affected file
                         <input type="text" id="errorFile" value="src/components/List.tsx" placeholder="src/file.ts">
                     </label>
-                    <button onclick="sendBugFixPrompt()">
+                    <button id="bugFixSendBtn" data-terminal-command="">
                         Send to TabzChrome
                     </button>
                 </div>
@@ -339,38 +344,39 @@ queueToTabz(filledPrompt);</code>
         <section>
             <h2>Architecture</h2>
             <div class="code-block">
-                <code>┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Web Page     │     │   CLI/Script    │     │   Prompt App    │
-│ data-terminal-  │     │   (websocat)    │     │   (templates)   │
-│     command     │     │                 │     │                 │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         │ content script        │ WebSocket             │ WebSocket
-         │ click handler         │                       │
-         ▼                       ▼                       ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                       TabzChrome Backend                          │
-│                       ws://localhost:8129                         │
-│                                                                   │
-│  case 'QUEUE_COMMAND':                                            │
-│    broadcast({ type: 'QUEUE_COMMAND', command: data.command });   │
-└─────────────────────────────────┬─────────────────────────────────┘
-                                  │ broadcast to extension
-                                  ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                 Chrome Extension (background.ts)                  │
-│                                                                   │
-│  → Opens sidebar if closed                                        │
-│  → Forwards QUEUE_COMMAND to sidepanel                            │
-└─────────────────────────────────┬─────────────────────────────────┘
-                                  │
-                                  ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                        Sidepanel (React)                          │
-│                                                                   │
-│  → Populates chat input with command                              │
-│  → User picks terminal tab and sends                              │
-└───────────────────────────────────────────────────────────────────┘</code>
+                <code>  +------------------+    +------------------+    +------------------+
+  |    Web Page      |    |   CLI / Script   |    |  Localhost App   |
+  | data-terminal-   |    |   (websocat)     |    |   (templates)    |
+  |     command      |    |                  |    |                  |
+  +--------+---------+    +--------+---------+    +--------+---------+
+           |                       |                       |
+           | content script        | token from            | token from
+           | (no auth needed)      | /tmp/tabz-auth-token  | /api/auth/token
+           v                       v                       v
+  +------------------------------------------------------------------------+
+  |                         TabzChrome Backend                             |
+  |                  ws://localhost:8129?token=AUTH_TOKEN                  |
+  |                                                                        |
+  |  case 'QUEUE_COMMAND':                                                 |
+  |    broadcast({ type: 'QUEUE_COMMAND', command: data.command });        |
+  +-----------------------------------+------------------------------------+
+                                      |
+                                      | broadcast to extension
+                                      v
+  +------------------------------------------------------------------------+
+  |                   Chrome Extension (background.ts)                     |
+  |                                                                        |
+  |  - Opens sidebar if closed                                             |
+  |  - Forwards QUEUE_COMMAND to sidepanel                                 |
+  +-----------------------------------+------------------------------------+
+                                      |
+                                      v
+  +------------------------------------------------------------------------+
+  |                          Sidepanel (React)                             |
+  |                                                                        |
+  |  - Populates chat input with command                                   |
+  |  - User picks terminal tab and sends                                   |
+  +------------------------------------------------------------------------+</code>
             </div>
         </section>
 
@@ -379,8 +385,9 @@ queueToTabz(filledPrompt);</code>
             <ul style="color: var(--text-secondary); list-style: disc; padding-left: 1.5rem;">
                 <li>TabzChrome extension installed and enabled</li>
                 <li>Backend running on <code>localhost:8129</code></li>
-                <li>For CLI usage: <code>websocat</code> installed (<code>cargo install websocat</code>)</li>
-                <li>MutationObserver watches for dynamically added elements</li>
+                <li>For CLI/WebSocket: Auth token from <code>/tmp/tabz-auth-token</code></li>
+                <li>For CLI usage: <code>websocat</code> installed (<code>cargo install websocat</code> or <code>brew install websocat</code>)</li>
+                <li><code>data-terminal-command</code>: No auth needed - content script handles it</li>
             </ul>
         </section>
     </main>
@@ -390,80 +397,26 @@ queueToTabz(filledPrompt);</code>
     </footer>
 
     <script>
-        // WebSocket connection for demos
-        let ws = null;
+        // Demo buttons use data-terminal-command - content script handles clicks automatically
 
-        function connectWS() {
-            if (ws && ws.readyState === WebSocket.OPEN) return;
-            try {
-                ws = new WebSocket('ws://localhost:8129');
-                ws.onopen = () => console.log('Connected to TabzChrome');
-                ws.onerror = (e) => console.log('WebSocket error:', e);
-            } catch (e) {
-                console.log('Could not connect to TabzChrome');
-            }
-        }
-
-        function queueToTabz(command) {
-            connectWS();
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'QUEUE_COMMAND', command }));
-                return true;
-            }
-            return false;
-        }
-
-        // Demo buttons with data-terminal-command
-        document.querySelectorAll('[data-terminal-command]').forEach(el => {
-            el.addEventListener('click', function(e) {
-                e.preventDefault();
-                const cmd = this.getAttribute('data-terminal-command');
-                const success = queueToTabz(cmd);
-
-                if (success) {
-                    this.classList.add('success');
-                    const originalText = this.innerHTML;
-                    this.innerHTML = '✓ Queued!';
-                    setTimeout(() => {
-                        this.classList.remove('success');
-                        this.innerHTML = originalText;
-                    }, 1500);
-                } else {
-                    alert('Could not connect to TabzChrome. Is the backend running?');
-                }
-            });
-        });
-
-        // Prompt templates
+        // Prompt templates - update button data-terminal-command on input change
         function updateReviewPreview() {
             const file = document.getElementById('reviewFile').value;
             const focus = document.getElementById('reviewFocus').value;
-            document.getElementById('reviewPreview').textContent =
-                `Review ${file} with focus on ${focus}.\n\nProvide specific suggestions for improvement with code examples.`;
+            const prompt = `Review ${file} with focus on ${focus}.\n\nProvide specific suggestions for improvement with code examples.`;
+            document.getElementById('reviewPreview').textContent = prompt;
+            document.getElementById('reviewSendBtn').setAttribute('data-terminal-command', prompt);
         }
 
         function updateBugFixPreview() {
             const error = document.getElementById('errorMsg').value;
             const file = document.getElementById('errorFile').value;
-            document.getElementById('bugFixPreview').textContent =
-                `I'm getting this error in ${file}:\n\n${error}\n\nPlease explain why this is happening and suggest a fix.`;
-        }
-
-        function sendReviewPrompt() {
-            const file = document.getElementById('reviewFile').value;
-            const focus = document.getElementById('reviewFocus').value;
-            const prompt = `Review ${file} with focus on ${focus}.\n\nProvide specific suggestions for improvement with code examples.`;
-            queueToTabz(prompt);
-        }
-
-        function sendBugFixPrompt() {
-            const error = document.getElementById('errorMsg').value;
-            const file = document.getElementById('errorFile').value;
             const prompt = `I'm getting this error in ${file}:\n\n${error}\n\nPlease explain why this is happening and suggest a fix.`;
-            queueToTabz(prompt);
+            document.getElementById('bugFixPreview').textContent = prompt;
+            document.getElementById('bugFixSendBtn').setAttribute('data-terminal-command', prompt);
         }
 
-        // Initialize previews
+        // Initialize previews and attach listeners
         document.getElementById('reviewFile').addEventListener('input', updateReviewPreview);
         document.getElementById('reviewFocus').addEventListener('change', updateReviewPreview);
         document.getElementById('errorMsg').addEventListener('input', updateBugFixPreview);
@@ -471,9 +424,6 @@ queueToTabz(filledPrompt);</code>
 
         updateReviewPreview();
         updateBugFixPreview();
-
-        // Try to connect on load
-        connectWS();
     </script>
 </body>
 </html>

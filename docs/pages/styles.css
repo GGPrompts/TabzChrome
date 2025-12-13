@@ -893,6 +893,36 @@ td code {
     width: fit-content;
 }
 
+/* Clickable terminal commands - data-terminal-command attribute */
+[data-terminal-command] {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+[data-terminal-command]:hover {
+    background: var(--accent) !important;
+    color: var(--bg-primary) !important;
+    transform: translateX(2px);
+}
+
+[data-terminal-command]::after {
+    content: "→";
+    opacity: 0;
+    margin-left: 0.5rem;
+    transition: opacity 0.2s;
+}
+
+[data-terminal-command]:hover::after {
+    opacity: 1;
+}
+
+/* Feedback when clicked (content script adds this class) */
+[data-terminal-command].queued {
+    background: var(--green) !important;
+    color: var(--bg-primary) !important;
+}
+
 /* Featured TUI Card */
 .tui-card.featured {
     border-color: var(--accent);

@@ -366,9 +366,9 @@
 
         <!-- Quick Reference -->
         <section>
-            <h2>Quick Copy Commands</h2>
+            <h2>Quick Commands</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Click any command to send it to the TabzChrome chat bar:
+                Click any command to send it to your TabzChrome sidebar chat (requires extension installed):
             </p>
             <div class="command-grid">
                 <code class="clickable-command" data-terminal-command="claude --dangerously-skip-permissions">claude --dangerously-skip-permissions</code>
@@ -395,65 +395,9 @@
             background: var(--bg-tertiary);
             padding: 0.75rem 1rem;
             border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
             font-size: 0.9rem;
         }
-        .clickable-command:hover {
-            background: var(--accent);
-            color: var(--bg-primary);
-        }
     </style>
-
-    <script>
-        // WebSocket connection for sending commands to TabzChrome
-        let ws = null;
-
-        function connectWS() {
-            if (ws && ws.readyState === WebSocket.OPEN) return;
-            try {
-                ws = new WebSocket('ws://localhost:8129');
-                ws.onopen = () => console.log('Connected to TabzChrome');
-                ws.onerror = (e) => console.log('WebSocket error:', e);
-            } catch (e) {
-                console.log('Could not connect to TabzChrome');
-            }
-        }
-
-        function queueToTabz(command) {
-            connectWS();
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'QUEUE_COMMAND', command }));
-                return true;
-            }
-            return false;
-        }
-
-        // Handle data-terminal-command clicks
-        document.querySelectorAll('[data-terminal-command]').forEach(el => {
-            el.addEventListener('click', function(e) {
-                e.preventDefault();
-                const cmd = this.getAttribute('data-terminal-command');
-                const success = queueToTabz(cmd);
-
-                if (success) {
-                    const originalBg = this.style.background;
-                    const originalColor = this.style.color;
-                    this.style.background = 'var(--green)';
-                    this.style.color = 'var(--bg-primary)';
-                    const originalText = this.innerHTML;
-                    this.innerHTML = '✓ Sent!';
-                    setTimeout(() => {
-                        this.style.background = originalBg;
-                        this.style.color = originalColor;
-                        this.innerHTML = originalText;
-                    }, 1500);
-                }
-            });
-        });
-
-        // Try to connect on load
-        connectWS();
-    </script>
+    <!-- Commands use data-terminal-command attribute - content script handles clicks -->
 </body>
 </html>

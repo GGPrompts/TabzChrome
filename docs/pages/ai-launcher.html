@@ -245,30 +245,6 @@
             display: block;
         }
 
-        /* Connection status */
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 1.5rem;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--red);
-        }
-
-        .status-dot.connected {
-            background: var(--green);
-        }
-
         /* Info note */
         .info-note {
             background: rgba(88, 166, 255, 0.1);
@@ -321,11 +297,6 @@
             </div>
         </header>
 
-        <!-- Connection Status -->
-        <div class="connection-status">
-            <span class="status-dot" id="status-dot"></span>
-            <span id="status-text">Checking backend...</span>
-        </div>
 
         <!-- Tab Navigation -->
         <nav class="tab-nav">
@@ -425,10 +396,7 @@
                 </div>
 
                 <div class="button-row">
-                    <button class="btn-primary" onclick="spawnTerminal('claude')">
-                        &#128640; Spawn Terminal
-                    </button>
-                    <button class="btn-secondary" onclick="sendToChat('claude')">
+                    <button class="btn-secondary" id="claude-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
                     <button class="btn-tertiary" onclick="copyCommand('claude')">
@@ -525,10 +493,7 @@
                 </div>
 
                 <div class="button-row">
-                    <button class="btn-primary" onclick="spawnTerminal('codex')">
-                        &#128640; Spawn Terminal
-                    </button>
-                    <button class="btn-secondary" onclick="sendToChat('codex')">
+                    <button class="btn-secondary" id="codex-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
                     <button class="btn-tertiary" onclick="copyCommand('codex')">
@@ -628,10 +593,7 @@
                 </div>
 
                 <div class="button-row">
-                    <button class="btn-primary" onclick="spawnTerminal('gemini')">
-                        &#128640; Spawn Terminal
-                    </button>
-                    <button class="btn-secondary" onclick="sendToChat('gemini')">
+                    <button class="btn-secondary" id="gemini-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
                     <button class="btn-tertiary" onclick="copyCommand('gemini')">
@@ -675,8 +637,8 @@
 
         <!-- Info Note -->
         <div class="info-note">
-            <strong>Note:</strong> Spawning terminals requires the TabzChrome backend running on <code>localhost:8129</code>.
-            The "Send to Chat" button uses WebSocket to queue the command in your sidebar chat bar.
+            <strong>Send to Chat:</strong> Requires TabzChrome extension installed. Click queues the command to your sidebar chat input.<br>
+            <strong>Spawn Terminals:</strong> Use the <a href="http://localhost:8129" style="color: var(--accent);">local dashboard</a> at <code>localhost:8129</code> for spawning new terminal tabs.
         </div>
     </main>
 
@@ -685,53 +647,6 @@
     </footer>
 
     <script>
-        // ========================================
-        // WebSocket Connection
-        // ========================================
-        let ws = null;
-        let wsConnected = false;
-
-        function connectWebSocket() {
-            try {
-                ws = new WebSocket('ws://localhost:8129');
-
-                ws.onopen = () => {
-                    wsConnected = true;
-                    updateConnectionStatus(true);
-                };
-
-                ws.onclose = () => {
-                    wsConnected = false;
-                    updateConnectionStatus(false);
-                    // Reconnect after 3s
-                    setTimeout(connectWebSocket, 3000);
-                };
-
-                ws.onerror = () => {
-                    wsConnected = false;
-                    updateConnectionStatus(false);
-                };
-            } catch (e) {
-                updateConnectionStatus(false);
-            }
-        }
-
-        function updateConnectionStatus(connected) {
-            const dot = document.getElementById('status-dot');
-            const text = document.getElementById('status-text');
-
-            if (connected) {
-                dot.classList.add('connected');
-                text.textContent = 'Connected to TabzChrome backend';
-            } else {
-                dot.classList.remove('connected');
-                text.textContent = 'Backend not connected - start backend on localhost:8129';
-            }
-        }
-
-        // Initialize WebSocket
-        connectWebSocket();
-
         // ========================================
         // Tab Navigation
         // ========================================
@@ -821,6 +736,9 @@
             document.getElementById('claude-name-preview').textContent = name;
             document.getElementById('claude-curl-preview').textContent = buildCurl(name, workingDir, command);
 
+            // Update data-terminal-command attribute on Send to Chat button
+            document.getElementById('claude-send-btn').setAttribute('data-terminal-command', command);
+
             // Show/hide custom agent input
             const agentSelect = document.getElementById('claude-agent').value;
             document.getElementById('claude-custom-agent-wrapper').style.display =
@@ -862,6 +780,9 @@
             document.getElementById('codex-command-preview').textContent = command;
             document.getElementById('codex-name-preview').textContent = name;
             document.getElementById('codex-curl-preview').textContent = buildCurl(name, workingDir, command);
+
+            // Update data-terminal-command attribute on Send to Chat button
+            document.getElementById('codex-send-btn').setAttribute('data-terminal-command', command);
         }
 
         // ========================================
@@ -910,6 +831,9 @@
             document.getElementById('gemini-command-preview').textContent = command;
             document.getElementById('gemini-name-preview').textContent = name;
             document.getElementById('gemini-curl-preview').textContent = buildCurl(name, workingDir, command);
+
+            // Update data-terminal-command attribute on Send to Chat button
+            document.getElementById('gemini-send-btn').setAttribute('data-terminal-command', command);
         }
 
         // ========================================
@@ -923,76 +847,6 @@
     "workingDir": "${workingDir}",
     "command": "${command}"
   }'`;
-        }
-
-        async function spawnTerminal(cli) {
-            let name, workingDir, command;
-
-            if (cli === 'claude') {
-                name = buildClaudeName();
-                workingDir = document.getElementById('claude-workingDir').value || '~/projects';
-                command = buildClaudeCommand();
-            } else if (cli === 'codex') {
-                name = buildCodexName();
-                workingDir = document.getElementById('codex-workingDir').value || '~/projects';
-                command = buildCodexCommand();
-            } else if (cli === 'gemini') {
-                name = buildGeminiName();
-                workingDir = document.getElementById('gemini-workingDir').value || '~/projects';
-                command = buildGeminiCommand();
-            }
-
-            const resultDiv = document.getElementById(`${cli}-result`);
-            resultDiv.className = 'result-message pending';
-            resultDiv.innerHTML = '&#9203; Spawning terminal...';
-
-            try {
-                const response = await fetch('http://localhost:8129/api/spawn', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, workingDir, command })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    resultDiv.className = 'result-message success';
-                    resultDiv.innerHTML = `&#10003; Terminal spawned!<br><small>ID: ${data.terminal?.id || 'N/A'}</small>`;
-                } else {
-                    resultDiv.className = 'result-message error';
-                    resultDiv.innerHTML = `&#10007; Failed: ${data.error || 'Unknown error'}`;
-                }
-            } catch (err) {
-                resultDiv.className = 'result-message error';
-                resultDiv.innerHTML = `&#10007; Error: ${err.message}<br><small>Is the backend running on localhost:8129?</small>`;
-            }
-        }
-
-        function sendToChat(cli) {
-            let command;
-            if (cli === 'claude') command = buildClaudeCommand();
-            else if (cli === 'codex') command = buildCodexCommand();
-            else if (cli === 'gemini') command = buildGeminiCommand();
-
-            const resultDiv = document.getElementById(`${cli}-result`);
-
-            if (!wsConnected || !ws) {
-                resultDiv.className = 'result-message error';
-                resultDiv.innerHTML = '&#10007; Not connected to backend. Start TabzChrome backend first.';
-                return;
-            }
-
-            try {
-                ws.send(JSON.stringify({
-                    type: 'QUEUE_COMMAND',
-                    command: command
-                }));
-                resultDiv.className = 'result-message success';
-                resultDiv.innerHTML = '&#10003; Command sent to sidebar chat!';
-            } catch (err) {
-                resultDiv.className = 'result-message error';
-                resultDiv.innerHTML = `&#10007; Failed to send: ${err.message}`;
-            }
         }
 
         function copyCommand(cli) {
