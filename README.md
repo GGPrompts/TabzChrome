@@ -6,7 +6,7 @@
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Claude, Gemini, Codex, and Solitaire in a quad-split terminal sidebar - do some shopping while you code](docs/screenshots/hero-dark.png)
+![Claude, Gemini, Codex, and Solitaire in a quad-split terminal sidebar - do some shopping while you code](docs/pages/screenshots/hero-dark.png)
 
 > **[Watch: Subagent chaos with audio announcements](https://youtu.be/uY-YbAW7yg4)** - Multiple Claude subagents running with different voice status updates
 
@@ -49,7 +49,7 @@ TabzChrome is designed to work seamlessly with Claude Code:
 
 **⚡ 0 Token Cost Up Front** - MCP tools with no context overhead!
 
-![MCP settings](docs/screenshots/mcp-settings.png)
+![MCP settings](docs/pages/screenshots/mcp-settings.png)
 
 Using Anthropic's experimental dynamic tool loading, Claude fetches tool schemas on-demand instead of loading all 20 definitions into context. Enable with the `--dynamic-tool-discovery` flag when adding the MCP server.
 
@@ -114,7 +114,7 @@ npm start  # Runs on port 8129
 
 Click the **+** dropdown to spawn terminals from saved profiles:
 
-![Profile settings form with all configuration options](docs/screenshots/profile-settings.png)
+![Profile settings form with all configuration options](docs/pages/screenshots/profile-settings.png)
 
 - **Name** - Display name for the profile
 - **Category** - Optional grouping (e.g., "Claude Code", "TUI Tools") with color coding
@@ -128,7 +128,7 @@ Click the **+** dropdown to spawn terminals from saved profiles:
 
 | Color Themes | Font Families |
 |:------------:|:-------------:|
-| ![6 color schemes: high-contrast, dracula, ocean, neon, amber, matrix](docs/screenshots/color-themes.png) | ![Font options: monospace, JetBrains Mono, Fira Code, Consolas, etc.](docs/screenshots/font-options.png) |
+| ![6 color schemes: high-contrast, dracula, ocean, neon, amber, matrix](docs/pages/screenshots/color-themes.png) | ![Font options: monospace, JetBrains Mono, Fira Code, Consolas, etc.](docs/pages/screenshots/font-options.png) |
 
 </details>
 
@@ -155,7 +155,7 @@ Backup and share your profile configurations:
 
 The folder icon in the header sets a global working directory. Profiles without an explicit directory inherit this, enabling:
 
-![Working directory dropdown with recent paths](docs/screenshots/working-directory-dropdown.png)
+![Working directory dropdown with recent paths](docs/pages/screenshots/working-directory-dropdown.png)
 
 - One "lazygit" profile that works for any project
 - One "npm run dev" profile for any Node project
@@ -172,7 +172,7 @@ The folder icon in the header sets a global working directory. Profiles without 
 
 The 👻 badge appears in the header when orphaned tmux sessions exist (sessions running in tmux but not attached to the UI).
 
-![Ghost badge popup showing detached sessions with reattach/kill options](docs/screenshots/ghost-badge.png)
+![Ghost badge popup showing detached sessions with reattach/kill options](docs/pages/screenshots/ghost-badge.png)
 
 **Use cases:**
 - Detach long-running sessions to free up tab space
@@ -210,7 +210,7 @@ Terminal tabs show live Claude Code status with emoji indicators:
 
 Get voice announcements for Claude Code activity. Configure in **Settings → Claude Audio**:
 
-![Audio settings tab with voice selection and event toggles](docs/screenshots/audio-settings.png)
+![Audio settings tab with voice selection and event toggles](docs/pages/screenshots/audio-settings.png)
 
 **Settings:**
 - **Voice** - Choose a specific voice or "Random (unique per terminal)" to distinguish multiple Claude sessions
@@ -242,7 +242,7 @@ The chat input bar includes command history:
 
 Access a web-based dashboard at `http://localhost:8129` for terminal management:
 
-<img src="docs/screenshots/dashboard-button.svg" alt="Dashboard icon" width="24" height="24" /> Click this icon in the sidebar header to open the dashboard.
+<img src="docs/pages/screenshots/dashboard-button.svg" alt="Dashboard icon" width="24" height="24" /> Click this icon in the sidebar header to open the dashboard.
 
 **Pages:**
 | Page | URL | Features |
@@ -277,7 +277,7 @@ Add `data-terminal-command` to any HTML element to create clickable command butt
 
 Right-click anywhere on a webpage to access terminal actions:
 
-![Context menu showing "Send to Tabz" and "Paste to Terminal" options](docs/screenshots/context-menu.png)
+![Context menu showing "Send to Tabz" and "Paste to Terminal" options](docs/pages/screenshots/context-menu.png)
 
 | Action | When Available | Destination |
 |--------|----------------|-------------|
@@ -296,7 +296,7 @@ Neither "Send to Tabz" nor "Paste to Terminal" auto-executes - press Enter to ru
 
 When browsing GitHub repository pages, a floating action button appears in the bottom-right corner:
 
-![GitHub FAB showing Clone and Fork buttons on a repository page](docs/screenshots/github-fab.png)
+![GitHub FAB showing Clone and Fork buttons on a repository page](docs/pages/screenshots/github-fab.png)
 
 | Button | Action |
 |--------|--------|
@@ -314,7 +314,7 @@ When browsing GitHub repository pages, a floating action button appears in the b
 
 Spawn terminals directly from Chrome's address bar using the `term` keyword:
 
-![Chrome omnibox showing "term github.com/user/repo" command](docs/screenshots/omnibox.png)
+![Chrome omnibox showing "term github.com/user/repo" command](docs/pages/screenshots/omnibox.png)
 
 **Usage:** Type `term` + space + URL
 
@@ -331,7 +331,7 @@ The URL opens in a new tab and the sidebar activates automatically.
 
 Tabz includes an **MCP server** with 20 tools that let Claude Code control your browser:
 
-![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/screenshots/mcp-dalle-demo.png)
+![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/pages/screenshots/mcp-dalle-demo.png)
 
 | Tool | Description |
 |------|-------------|
@@ -360,7 +360,7 @@ Tabz includes an **MCP server** with 20 tools that let Claude Code control your 
 
 Click ⚙️ → **MCP Tools** tab to configure which tools Claude can use:
 
-![MCP Tools settings tab with tool toggles and token estimates](docs/screenshots/mcp-settings.png)
+![MCP Tools settings tab with tool toggles and token estimates](docs/pages/screenshots/mcp-settings.png)
 
 - Toggle individual tools on/off
 - See token usage estimates per tool
@@ -469,7 +469,7 @@ Default: `8129` (configured in `backend/.env`)
 
 ### Keyboard Shortcuts
 
-![Keyboard shortcuts configuration in Chrome](docs/screenshots/keyboard-shortcuts.png)
+![Keyboard shortcuts configuration in Chrome](docs/pages/screenshots/keyboard-shortcuts.png)
 
 **Extension shortcuts (set in Chrome):**
 
