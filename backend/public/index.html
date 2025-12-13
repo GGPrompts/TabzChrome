@@ -255,23 +255,18 @@
             }
         }
 
-        // Quick spawn terminal
+        // Quick spawn terminal (uses Dashboard helper which handles auth token)
         async function spawnQuickTerminal(type) {
-            const result = await fetch('http://localhost:8129/api/spawn', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: type === 'bash' ? 'Bash' : type,
-                    workingDir: currentWorkingDir,
-                }),
+            const result = await Dashboard.spawnTerminal({
+                name: type === 'bash' ? 'Bash' : type,
+                workingDir: currentWorkingDir,
             });
 
-            const data = await result.json();
-            if (data.success) {
+            if (result.success) {
                 // Refresh terminals list
                 Dashboard.refresh();
             } else {
-                alert('Failed to spawn terminal: ' + (data.error || 'Unknown error'));
+                alert('Failed to spawn terminal: ' + (result.data?.error || result.error || 'Unknown error'));
             }
         }
 

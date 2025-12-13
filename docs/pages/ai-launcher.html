@@ -848,9 +848,27 @@
         // ========================================
         // Shared Utilities
         // ========================================
+
+        // Cache auth token
+        let authToken = null;
+        async function getAuthToken() {
+            if (authToken) return authToken;
+            try {
+                const res = await fetch('http://localhost:8129/api/auth/token');
+                const data = await res.json();
+                authToken = data.token;
+                return authToken;
+            } catch (err) {
+                console.error('Failed to get auth token:', err);
+                return null;
+            }
+        }
+
         function buildCurl(name, workingDir, command) {
-            return `curl -X POST http://localhost:8129/api/spawn \\
+            return `TOKEN=$(cat /tmp/tabz-auth-token)
+curl -X POST http://localhost:8129/api/spawn \\
   -H "Content-Type: application/json" \\
+  -H "X-Auth-Token: $TOKEN" \\
   -d '{
     "name": "${name}",
     "workingDir": "${workingDir}",
@@ -880,9 +898,13 @@
             resultDiv.innerHTML = '&#9203; Spawning terminal...';
 
             try {
+                const token = await getAuthToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['X-Auth-Token'] = token;
+
                 const response = await fetch('http://localhost:8129/api/spawn', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ name, workingDir, command })
                 });
 

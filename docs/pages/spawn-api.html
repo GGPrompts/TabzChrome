@@ -45,6 +45,9 @@
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                 Spawn a new terminal tab with optional custom name, working directory, and startup command.
             </p>
+            <div class="alert" style="background: rgba(255, 193, 7, 0.1); border: 1px solid var(--yellow); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <strong>⚠️ Authentication Required:</strong> This endpoint requires an <code>X-Auth-Token</code> header with the token from <code>/tmp/tabz-auth-token</code>.
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -55,6 +58,12 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <td><code>X-Auth-Token</code> (header)</td>
+                        <td>string</td>
+                        <td><strong>Yes</strong></td>
+                        <td>Auth token from <code>/tmp/tabz-auth-token</code></td>
+                    </tr>
                     <tr>
                         <td><code>name</code></td>
                         <td>string</td>
@@ -167,14 +176,19 @@
                     <span class="terminal-title">curl examples</span>
                 </div>
                 <div class="terminal-body">
-                    <pre><code><span class="comment"># Simple terminal</span>
+                    <pre><code><span class="comment"># Get auth token first</span>
+<span class="prompt">$</span> TOKEN=$(cat /tmp/tabz-auth-token)
+
+<span class="comment"># Simple terminal</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{}'
 
 <span class="comment"># Named terminal with directory</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Project Work",
     "workingDir": "~/projects/myapp"
@@ -183,6 +197,7 @@
 <span class="comment"># Terminal with startup command</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Git UI",
     "workingDir": "~/projects/myapp",
@@ -202,9 +217,13 @@
                     <span class="terminal-title">Claude Code spawn commands</span>
                 </div>
                 <div class="terminal-body">
-                    <pre><code><span class="comment"># Basic Claude Code</span>
+                    <pre><code><span class="comment"># Get auth token first</span>
+<span class="prompt">$</span> TOKEN=$(cat /tmp/tabz-auth-token)
+
+<span class="comment"># Basic Claude Code</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Claude",
     "workingDir": "~/projects/myapp",
@@ -214,6 +233,7 @@
 <span class="comment"># Claude Code with full permissions</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Claude (Auto)",
     "workingDir": "~/projects/myapp",
@@ -223,20 +243,14 @@
 <span class="comment"># Claude Code explore agent</span>
 <span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Claude Explore",
     "workingDir": "~/projects/myapp",
     "command": "claude --agent explore --dangerously-skip-permissions"
   }'
 
-<span class="comment"># Claude Code with voice</span>
-<span class="prompt">$</span> curl -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Claude + Voice",
-    "workingDir": "~/projects/myapp",
-    "command": "claude --voice jenny --dangerously-skip-permissions"
-  }'</code></pre>
+</code></pre>
                 </div>
             </div>
         </section>
@@ -276,16 +290,6 @@
                         </select>
                     </label>
 
-                    <label>
-                        Voice
-                        <select id="voice">
-                            <option value="">None</option>
-                            <option value="--voice jenny">Jenny</option>
-                            <option value="--voice guy">Guy</option>
-                            <option value="--voice en-GB-SoniaNeural">Sonia (UK)</option>
-                            <option value="--voice en-AU-WilliamNeural">William (AU)</option>
-                        </select>
-                    </label>
                 </div>
 
                 <div class="demo-controls">
@@ -419,9 +423,16 @@ tabz-spawn() {
   local name="${1:-Terminal}"
   local dir="${2:-$PWD}"
   local cmd="${3:-}"
+  local token=$(cat /tmp/tabz-auth-token 2>/dev/null)
+
+  if [[ -z "$token" ]]; then
+    echo "Error: TabzChrome backend not running (no auth token)"
+    return 1
+  fi
 
   curl -s -X POST http://localhost:8129/api/spawn \
     -H "Content-Type: application/json" \
+    -H "X-Auth-Token: $token" \
     -d "{\"name\": \"$name\", \"workingDir\": \"$dir\", \"command\": \"$cmd\"}"
 }
 
@@ -442,11 +453,22 @@ tabz-claude() {
         <section>
             <h2>JavaScript / Web Page Integration</h2>
             <div class="code-block">
-                <code><span class="comment">// Spawn terminal from web page</span>
+                <code><span class="comment">// Get auth token (works from localhost only)</span>
+<span class="keyword">async function</span> <span class="function">getAuthToken</span>() {
+  <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:8129/api/auth/token'</span>);
+  <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+  <span class="keyword">return</span> data.token;
+}
+
+<span class="comment">// Spawn terminal from web page</span>
 <span class="keyword">async function</span> <span class="function">spawnTerminal</span>(name, workingDir, command) {
+  <span class="keyword">const</span> token = <span class="keyword">await</span> getAuthToken();
   <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:8129/api/spawn'</span>, {
     method: <span class="string">'POST'</span>,
-    headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+    headers: {
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+      <span class="string">'X-Auth-Token'</span>: token
+    },
     body: JSON.stringify({ name, workingDir, command })
   });
   <span class="keyword">return</span> response.json();
@@ -482,13 +504,11 @@ spawnTerminal(
             const parts = ['claude'];
             const agent = document.getElementById('agent').value;
             const model = document.getElementById('model').value;
-            const voice = document.getElementById('voice').value;
             const skip = document.getElementById('skipPermissions').checked;
             const cont = document.getElementById('continueSession').checked;
 
             if (agent) parts.push(agent);
             if (model) parts.push(model);
-            if (voice) parts.push(voice);
             if (skip) parts.push('--dangerously-skip-permissions');
             if (cont) parts.push('--continue');
 
@@ -498,7 +518,6 @@ spawnTerminal(
         function buildName() {
             const parts = ['Claude'];
             const agent = document.getElementById('agent').value;
-            const voice = document.getElementById('voice').value;
             const model = document.getElementById('model').value;
 
             if (agent) {
@@ -507,10 +526,6 @@ spawnTerminal(
             }
             if (model) {
                 parts.push(model.replace('--model ', ''));
-            }
-            if (voice) {
-                const voiceName = voice.replace('--voice ', '');
-                parts.push(voiceName.split('-')[0]);
             }
 
             return parts.join(' + ');
@@ -521,8 +536,10 @@ spawnTerminal(
             const name = buildName();
             const command = buildCommand();
 
-            return `curl -X POST http://localhost:8129/api/spawn \\
+            return `TOKEN=$(cat /tmp/tabz-auth-token)
+curl -X POST http://localhost:8129/api/spawn \\
   -H "Content-Type: application/json" \\
+  -H "X-Auth-Token: $TOKEN" \\
   -d '{
     "name": "${name}",
     "workingDir": "${workingDir}",
@@ -536,6 +553,21 @@ spawnTerminal(
             document.getElementById('curlPreview').textContent = buildCurl();
         }
 
+        // Cache auth token
+        let authToken = null;
+        async function getAuthToken() {
+            if (authToken) return authToken;
+            try {
+                const res = await fetch('http://localhost:8129/api/auth/token');
+                const data = await res.json();
+                authToken = data.token;
+                return authToken;
+            } catch (err) {
+                console.error('Failed to get auth token:', err);
+                return null;
+            }
+        }
+
         async function spawnTerminal() {
             const workingDir = document.getElementById('workingDir').value || '~/projects';
             const name = buildName();
@@ -546,9 +578,13 @@ spawnTerminal(
             resultDiv.innerHTML = '<span style="color: var(--yellow);">Spawning terminal...</span>';
 
             try {
+                const token = await getAuthToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['X-Auth-Token'] = token;
+
                 const response = await fetch('http://localhost:8129/api/spawn', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ name, workingDir, command })
                 });
 
@@ -592,9 +628,13 @@ spawnTerminal(
             resultDiv.innerHTML = `<span style="color: var(--yellow);">Launching ${name}...</span>`;
 
             try {
+                const token = await getAuthToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['X-Auth-Token'] = token;
+
                 const response = await fetch('http://localhost:8129/api/spawn', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ name, workingDir, command })
                 });
 

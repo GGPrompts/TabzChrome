@@ -25,6 +25,7 @@ const Dashboard = (function() {
         terminals: [],
         health: null,
         lastUpdate: null,
+        authToken: null,
     };
 
     const listeners = {
@@ -174,13 +175,34 @@ const Dashboard = (function() {
     // ==========================================================================
     // API Helpers
     // ==========================================================================
+    async function getAuthToken() {
+        if (state.authToken) return state.authToken;
+        try {
+            const res = await fetch(`${API_BASE}/api/auth/token`);
+            const data = await res.json();
+            state.authToken = data.token;
+            return state.authToken;
+        } catch (err) {
+            console.error('[Dashboard] Failed to get auth token:', err);
+            return null;
+        }
+    }
+
     async function apiRequest(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;
-        const defaultOptions = {
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        const headers = {
+            'Content-Type': 'application/json',
         };
+
+        // Add auth token for protected endpoints
+        if (endpoint === '/api/spawn') {
+            const token = await getAuthToken();
+            if (token) {
+                headers['X-Auth-Token'] = token;
+            }
+        }
+
+        const defaultOptions = { headers };
 
         try {
             const response = await fetch(url, { ...defaultOptions, ...options });

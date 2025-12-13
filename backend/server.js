@@ -371,7 +371,14 @@ app.post('/api/tui-tools/spawn', async (req, res) => {
 
 // Simple terminal spawn endpoint for Claude/automation
 // POST /api/spawn { name, workingDir, command }
+// Requires auth token (header X-Auth-Token or query param ?token=)
 app.post('/api/spawn', async (req, res) => {
+  // Require auth token to prevent malicious websites from spawning terminals
+  const token = req.headers['x-auth-token'] || req.query.token;
+  if (token !== WS_AUTH_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized - valid token required' });
+  }
+
   const { name, workingDir, command } = req.body;
   try {
     // registerTerminal creates the PTY internally with useTmux: true

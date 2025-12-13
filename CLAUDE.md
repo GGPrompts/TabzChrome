@@ -221,10 +221,16 @@ npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/T
 
 Spawn a terminal programmatically (useful for Claude/automation workflows).
 
+**⚠️ Authentication Required:** This endpoint requires the auth token to prevent malicious websites from spawning terminals with arbitrary commands.
+
 **Request:**
 ```bash
+# Get token first
+TOKEN=$(cat /tmp/tabz-auth-token)
+
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "My Terminal",
     "workingDir": "/home/user/projects",
@@ -235,6 +241,7 @@ curl -X POST http://localhost:8129/api/spawn \
 **Parameters:**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `X-Auth-Token` | header | **Yes** | Auth token from `/tmp/tabz-auth-token` |
 | `name` | string | No | Display name for the tab (default: "Claude Terminal") |
 | `workingDir` | string | No | Starting directory (default: `$HOME`) |
 | `command` | string | No | Command to execute after spawn (e.g., `claude`, `lazygit`) |
@@ -263,8 +270,10 @@ curl -X POST http://localhost:8129/api/spawn \
 
 **Example: Spawn Claude Code session**
 ```bash
+TOKEN=$(cat /tmp/tabz-auth-token)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{"name": "Claude Worker", "workingDir": "~/projects/myapp", "command": "claude --dangerously-skip-permissions"}'
 ```
 

@@ -1,6 +1,12 @@
 Build the extension and copy to Windows for Chrome reload.
 
-**Note**: This command requires `TABZ_WIN_PATH` environment variable to be set, or defaults to `~/Desktop/TabzChrome/dist-extension/` on the Windows mount.
+**Setup**: Copy this file to `rebuild.md` and customize the path:
+
+```bash
+cp .claude/commands/rebuild.md.template .claude/commands/rebuild.md
+```
+
+Then edit `rebuild.md` with your Windows path, or set the `TABZ_WIN_PATH` environment variable.
 
 ```bash
 # Use env var if set, otherwise try common Windows desktop location

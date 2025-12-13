@@ -233,10 +233,12 @@ code, pre, kbd, .terminal-body {
     padding: 1.25rem;
     font-size: 0.9rem;
     line-height: 1.7;
+    overflow-x: auto;
 }
 
 .terminal-body pre {
     margin: 0;
+    white-space: pre;
 }
 
 .terminal-body .prompt {
@@ -570,7 +572,7 @@ kbd {
     gap: 8px;
 }
 
-.fab-clone, .fab-fork {
+.fab-star, .fab-clone, .fab-fork {
     flex: 1;
     padding: 8px 12px;
     border: none;
@@ -827,10 +829,9 @@ td code {
     padding: 1rem;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
-    white-space: pre-wrap;
-    word-break: break-all;
+    white-space: pre;
     max-height: 300px;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 /* Checkbox styling */

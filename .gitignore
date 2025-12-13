@@ -41,3 +41,7 @@ PERSISTENCE_*.txt
 PERSISTENCE_*.md
 test-colors.sh
 xterm-js.zip
+
+# Local Claude commands (may contain user-specific paths)
+.claude/commands/rebuild.md
+.claude/settings.local.json
