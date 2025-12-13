@@ -18,7 +18,8 @@ const { createModuleLogger } = require('./logger');
 const log = createModuleLogger('PTY');
 
 /**
- * Expand tilde (~) in file paths to actual home directory
+ * Expand tilde (~) in file paths and validate path is within allowed directories
+ * Prevents path traversal attacks (e.g., ../../../etc/passwd)
  */
 function expandTilde(filepath) {
   if (!filepath || typeof filepath !== 'string') {
@@ -26,11 +27,27 @@ function expandTilde(filepath) {
   }
 
   // Expand ~ or ~/something
+  let expanded = filepath;
   if (filepath.startsWith('~/') || filepath === '~') {
-    return filepath.replace(/^~/, os.homedir());
+    expanded = filepath.replace(/^~/, os.homedir());
   }
 
-  return filepath;
+  // Resolve to absolute path (handles ../ sequences)
+  const resolved = path.resolve(expanded);
+  const homeDir = os.homedir();
+
+  // SECURITY: Validate path is within allowed directories
+  // Allow home directory and /tmp (for legitimate temp file access)
+  const allowedPrefixes = [homeDir, '/tmp'];
+  const isAllowed = allowedPrefixes.some(prefix => resolved.startsWith(prefix + '/') || resolved === prefix);
+
+  if (!isAllowed) {
+    log.warn(`Path traversal blocked: "${filepath}" resolved to "${resolved}" (outside allowed dirs)`);
+    // Return home directory as safe fallback
+    return homeDir;
+  }
+
+  return resolved;
 }
 
 class PTYHandler extends EventEmitter {

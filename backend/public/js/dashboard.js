@@ -65,13 +65,28 @@ const Dashboard = (function() {
     // ==========================================================================
     // WebSocket Connection
     // ==========================================================================
-    function connectWebSocket() {
+    async function connectWebSocket() {
         if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
             return;
         }
 
+        // Fetch auth token before connecting
+        let wsUrl = WS_URL;
+        try {
+            const tokenResponse = await fetch('/api/auth/token');
+            if (tokenResponse.ok) {
+                const { token } = await tokenResponse.json();
+                if (token) {
+                    wsUrl = `${WS_URL}?token=${token}`;
+                    console.log('[Dashboard] Got auth token for WebSocket');
+                }
+            }
+        } catch (e) {
+            console.log('[Dashboard] No auth token available, connecting without authentication');
+        }
+
         console.log('[Dashboard] Connecting to WebSocket...');
-        ws = new WebSocket(WS_URL);
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
             console.log('[Dashboard] WebSocket connected');

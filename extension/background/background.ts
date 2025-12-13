@@ -820,7 +820,7 @@ async function handleBrowserCaptureImage(message: {
 console.log('Terminal Tabs background service worker starting...')
 
 // WebSocket connection management
-function connectWebSocket() {
+async function connectWebSocket() {
   // Already connected
   if (ws?.readyState === WebSocket.OPEN) {
     console.log('WebSocket already connected')
@@ -843,8 +843,24 @@ function connectWebSocket() {
     ws = null
   }
 
+  // Fetch auth token from backend before connecting
+  let wsUrl = WS_URL
+  try {
+    const tokenResponse = await fetch('http://localhost:8129/api/auth/token')
+    if (tokenResponse.ok) {
+      const { token } = await tokenResponse.json()
+      if (token) {
+        wsUrl = `${WS_URL}?token=${token}`
+        console.log('Got auth token for WebSocket connection')
+      }
+    }
+  } catch (e) {
+    // Backend might not require auth (older version) - continue without token
+    console.log('No auth token available, connecting without authentication')
+  }
+
   console.log('Connecting to backend WebSocket:', WS_URL)
-  ws = new WebSocket(WS_URL)
+  ws = new WebSocket(wsUrl)
 
   ws.onopen = () => {
     console.log('✅ Background WebSocket connected')
@@ -1562,7 +1578,7 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       return true // Keep channel open for async response
 
     case 'BROWSER_EXECUTE_SCRIPT':
-      // Execute script in browser tab
+      // Execute script in browser tab using safe predefined operations (no eval)
       try {
         const targetTabId = message.tabId || (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id
         if (!targetTabId) {
@@ -1574,8 +1590,82 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
           target: { tabId: targetTabId, allFrames: message.allFrames || false },
           func: (code: string) => {
             try {
-              // eslint-disable-next-line no-eval
-              return { success: true, result: eval(code) }
+              // Safe predefined operations - NO eval() for security
+              // These cover common browser automation use cases
+
+              // Get all links
+              if (code === 'document.links' || code.includes('document.links')) {
+                const links = [...document.links].map(a => ({
+                  text: a.textContent?.trim() || '',
+                  href: a.href
+                }))
+                return { success: true, result: links }
+              }
+
+              // Get page title
+              if (code === 'document.title') {
+                return { success: true, result: document.title }
+              }
+
+              // Get page HTML (truncated)
+              if (code.includes('outerHTML') || code.includes('innerHTML')) {
+                return { success: true, result: document.documentElement.outerHTML.slice(0, 10000) }
+              }
+
+              // Get all images
+              if (code.includes('document.images')) {
+                const images = [...document.images].map(img => ({
+                  src: img.src,
+                  alt: img.alt
+                }))
+                return { success: true, result: images }
+              }
+
+              // Get text content
+              if (code.includes('textContent') || code.includes('innerText')) {
+                return { success: true, result: document.body.innerText.slice(0, 10000) }
+              }
+
+              // Query selector - extract selector from code
+              const selectorMatch = code.match(/querySelector\(['"]([^'"]+)['"]\)/)
+              if (selectorMatch) {
+                const el = document.querySelector(selectorMatch[1])
+                if (el) {
+                  return { success: true, result: {
+                    tagName: el.tagName,
+                    text: el.textContent?.trim(),
+                    html: el.outerHTML.slice(0, 1000)
+                  }}
+                }
+                return { success: false, error: `Element not found: ${selectorMatch[1]}` }
+              }
+
+              // Query selector all
+              const selectorAllMatch = code.match(/querySelectorAll\(['"]([^'"]+)['"]\)/)
+              if (selectorAllMatch) {
+                const els = document.querySelectorAll(selectorAllMatch[1])
+                const results = [...els].slice(0, 100).map(el => ({
+                  tagName: el.tagName,
+                  text: el.textContent?.trim()
+                }))
+                return { success: true, result: results }
+              }
+
+              // localStorage
+              if (code.includes('localStorage')) {
+                const storage: Record<string, string> = {}
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i)
+                  if (key) storage[key] = localStorage.getItem(key) || ''
+                }
+                return { success: true, result: storage }
+              }
+
+              // For any other code, return an error explaining the limitation
+              return {
+                success: false,
+                error: 'Arbitrary code execution is disabled for security. Supported operations: document.links, document.title, document.images, querySelector("selector"), querySelectorAll("selector"), localStorage, textContent, outerHTML'
+              }
             } catch (e) {
               return { success: false, error: (e as Error).message }
             }

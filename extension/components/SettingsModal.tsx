@@ -387,7 +387,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
       {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
@@ -395,6 +395,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         accept=".json"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Import profiles from JSON file"
       />
 
       {/* Import Confirmation Dialog */}
@@ -412,18 +413,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-white">Settings</h2>
+            <h2 id="settings-modal-title" className="text-xl font-semibold text-white">Settings</h2>
           </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white"
+            aria-label="Close settings"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-800 px-6">
+        <div className="flex border-b border-gray-800 px-6" role="tablist" aria-label="Settings sections">
           <button
             onClick={() => setActiveTab('profiles')}
             className={`
@@ -433,8 +435,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
               }
             `}
+            role="tab"
+            aria-selected={activeTab === 'profiles'}
+            aria-controls="profiles-panel"
+            id="profiles-tab"
           >
-            <TerminalIcon className="h-4 w-4" />
+            <TerminalIcon className="h-4 w-4" aria-hidden="true" />
             Profiles
             {profiles.length > 0 && (
               <span className="px-1.5 py-0.5 text-xs rounded bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30">
@@ -451,8 +457,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
               }
             `}
+            role="tab"
+            aria-selected={activeTab === 'mcp'}
+            aria-controls="mcp-panel"
+            id="mcp-tab"
           >
-            <Wrench className="h-4 w-4" />
+            <Wrench className="h-4 w-4" aria-hidden="true" />
             MCP Tools
           </button>
           <button
@@ -464,8 +474,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
               }
             `}
+            role="tab"
+            aria-selected={activeTab === 'audio'}
+            aria-controls="audio-panel"
+            id="audio-tab"
           >
-            <Volume2 className="h-4 w-4" />
+            <Volume2 className="h-4 w-4" aria-hidden="true" />
             Claude Audio
           </button>
         </div>
@@ -474,6 +488,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Profiles Tab */}
           {activeTab === 'profiles' && (
+            <div role="tabpanel" id="profiles-panel" aria-labelledby="profiles-tab">
             <ProfilesTab
               profiles={profiles}
               setProfiles={setProfiles}
@@ -485,10 +500,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               onExportProfiles={handleExportProfiles}
               onImportClick={handleImportClick}
             />
+            </div>
           )}
 
           {/* MCP Tools Tab */}
           {activeTab === 'mcp' && (
+            <div role="tabpanel" id="mcp-panel" aria-labelledby="mcp-tab">
             <McpToolsTab
               mcpEnabledTools={mcpEnabledTools}
               setMcpEnabledTools={setMcpEnabledTools}
@@ -503,15 +520,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               setCustomDomains={setCustomDomains}
               onSave={handleMcpSave}
             />
+            </div>
           )}
 
           {/* Audio Tab */}
           {activeTab === 'audio' && (
+            <div role="tabpanel" id="audio-panel" aria-labelledby="audio-tab">
             <AudioTab
               audioSettings={audioSettings}
               updateAudioSettings={updateAudioSettings}
               updateAudioEvents={updateAudioEvents}
             />
+            </div>
           )}
         </div>
 

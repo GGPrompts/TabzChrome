@@ -97,8 +97,14 @@ global.IntersectionObserver = class IntersectionObserver {
   disconnect = vi.fn()
 }
 
-// Mock fetch for API calls
-global.fetch = vi.fn()
+// Mock fetch for API calls - returns Promise with proper .catch() support
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ success: true, data: {} }),
+    text: () => Promise.resolve(''),
+  } as Response)
+)
 
 // Mock Chrome APIs
 const chromeStorageData: Record<string, any> = {}

@@ -173,7 +173,7 @@ describe('useProfiles', () => {
       })
 
       expect(result.current.profiles[0].fontSize).toBe(16)
-      expect(result.current.profiles[0].fontFamily).toBe('monospace')
+      expect(result.current.profiles[0].fontFamily).toBe('JetBrains Mono NF')
       expect(result.current.profiles[0].themeName).toBe('high-contrast')
     })
 

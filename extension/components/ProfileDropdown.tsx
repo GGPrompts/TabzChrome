@@ -51,12 +51,12 @@ export function ProfileDropdown({
   const totalProfiles = groupedProfiles.reduce((sum, g) => sum + g.profiles.length, 0)
 
   return (
-    <div className={`bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[300px] overflow-hidden flex flex-col max-h-[70vh] ${className}`}>
+    <div className={`bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl w-[300px] overflow-hidden flex flex-col max-h-[70vh] ${className}`} role="menu" aria-label="Terminal profiles">
       {/* Search input - always visible if more than 5 profiles */}
       {totalProfiles > 5 && (
         <div className="p-2 border-b border-gray-800 flex-shrink-0">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" aria-hidden="true" />
             <input
               ref={searchInputRef}
               type="text"
@@ -76,6 +76,7 @@ export function ProfileDropdown({
                 }
                 e.stopPropagation()
               }}
+              aria-label="Search profiles"
             />
             {searchQuery && (
               <button
@@ -85,8 +86,9 @@ export function ProfileDropdown({
                   searchInputRef.current?.focus()
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                aria-label="Clear search"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -113,15 +115,18 @@ export function ProfileDropdown({
                   onToggleCategory(category || '__uncategorized__')
                 }}
                 className="w-full px-3 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-300 hover:bg-white/5 transition-colors border-b border-gray-800"
+                aria-expanded={!isCollapsed}
+                aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${category || 'Uncategorized'} category with ${categoryProfiles.length} profiles`}
               >
                 {isCollapsed ? (
-                  <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                  <ChevronRight className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
                 ) : (
-                  <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                  <ChevronDown className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
                 )}
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: categoryColor }}
+                  aria-hidden="true"
                 />
                 <span className="truncate">{category || 'Uncategorized'}</span>
                 <span className="text-gray-500 font-normal ml-auto">({categoryProfiles.length})</span>
@@ -142,6 +147,8 @@ export function ProfileDropdown({
                   }}
                   className="w-full px-3 py-2 text-left hover:bg-[#00ff88]/10 transition-colors text-white hover:text-[#00ff88] text-xs border-b border-gray-800 last:border-b-0"
                   style={category ? { paddingLeft: '1.75rem', borderLeftColor: categoryColor, borderLeftWidth: '2px' } : undefined}
+                  role="menuitem"
+                  aria-label={`Spawn ${profile.name} terminal${profile.command ? ` with command: ${profile.command}` : ''}`}
                 >
                   <div className="font-medium flex items-center gap-2">
                     <span>{profile.name}</span>
@@ -153,7 +160,7 @@ export function ProfileDropdown({
                     )}
                   </div>
                   {profile.command && (
-                    <div className="text-[#00ff88]/70 mt-0.5 truncate font-mono">▶ {profile.command}</div>
+                    <div className="text-[#00ff88]/70 mt-0.5 truncate font-mono" aria-hidden="true">▶ {profile.command}</div>
                   )}
                 </button>
               )

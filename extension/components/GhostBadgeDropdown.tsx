@@ -40,8 +40,11 @@ export function GhostBadgeDropdown({
         }}
         className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 transition-colors"
         title={`${orphanedCount} orphaned tmux session(s) - click to manage`}
+        aria-label={`${orphanedCount} orphaned tmux sessions. Click to manage.`}
+        aria-expanded={showDropdown}
+        aria-haspopup="menu"
       >
-        <span>👻</span>
+        <span aria-hidden="true">👻</span>
         <span>{orphanedCount}</span>
       </button>
 
@@ -59,6 +62,7 @@ export function GhostBadgeDropdown({
               onClick={() => onRefresh()}
               className="text-xs text-gray-400 hover:text-white transition-colors"
               title="Refresh"
+              aria-label="Refresh orphaned sessions list"
             >
               {isLoading ? '...' : '↻'}
             </button>
@@ -74,8 +78,10 @@ export function GhostBadgeDropdown({
               }
             }}
             className="w-full px-3 py-2 text-left text-xs border-b border-gray-800 text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+            aria-label={selectedOrphans.size === orphanedSessions.length ? 'Deselect all sessions' : 'Select all sessions'}
+            aria-pressed={selectedOrphans.size === orphanedSessions.length && orphanedSessions.length > 0}
           >
-            <span className="w-4">
+            <span className="w-4" aria-hidden="true">
               {selectedOrphans.size === orphanedSessions.length && orphanedSessions.length > 0 ? '☑' : '☐'}
             </span>
             <span>Select All</span>
@@ -109,8 +115,12 @@ export function GhostBadgeDropdown({
                       : 'text-gray-300 hover:bg-white/5'
                   }`}
                   title={session}
+                  aria-label={`${selectedOrphans.has(session) ? 'Deselect' : 'Select'} session ${profileName}`}
+                  aria-pressed={selectedOrphans.has(session)}
+                  role="checkbox"
+                  aria-checked={selectedOrphans.has(session)}
                 >
-                  <span className="w-4 flex-shrink-0">
+                  <span className="w-4 flex-shrink-0" aria-hidden="true">
                     {selectedOrphans.has(session) ? '☑' : '☐'}
                   </span>
                   <span className="truncate flex-1 font-mono">
@@ -135,6 +145,7 @@ export function GhostBadgeDropdown({
               }}
               disabled={selectedOrphans.size === 0}
               className="flex-1 px-3 py-1.5 text-xs rounded bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 hover:bg-[#00ff88]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label={`Reattach ${selectedOrphans.size} selected session${selectedOrphans.size !== 1 ? 's' : ''}`}
             >
               Reattach
             </button>
@@ -153,6 +164,7 @@ export function GhostBadgeDropdown({
               }}
               disabled={selectedOrphans.size === 0}
               className="flex-1 px-3 py-1.5 text-xs rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label={`Kill ${selectedOrphans.size} selected session${selectedOrphans.size !== 1 ? 's' : ''}`}
             >
               Kill
             </button>

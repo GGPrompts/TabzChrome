@@ -580,6 +580,7 @@ function SidePanelTerminal() {
                 : 'hover:bg-orange-500/10 text-gray-400 hover:text-orange-400'
             }`}
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
@@ -602,6 +603,7 @@ function SidePanelTerminal() {
             onClick={() => chrome.tabs.create({ url: 'http://localhost:8129' })}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Open Dashboard"
+            aria-label="Open Dashboard"
           >
             <LayoutDashboard className="h-4 w-4" />
           </button>
@@ -611,6 +613,7 @@ function SidePanelTerminal() {
             onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Keyboard Shortcuts"
+            aria-label="Configure keyboard shortcuts"
           >
             <Keyboard className="h-4 w-4" />
           </button>
@@ -626,6 +629,8 @@ function SidePanelTerminal() {
                   : 'text-gray-400 hover:bg-[#00ff88]/10 hover:text-[#00ff88]'
             }`}
             title={audioGlobalMute ? 'Audio muted (click to unmute)' : 'Audio enabled (click to mute)'}
+            aria-label={audioGlobalMute ? 'Unmute audio notifications' : 'Mute audio notifications'}
+            aria-pressed={!audioGlobalMute}
           >
             {audioGlobalMute ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
@@ -635,6 +640,7 @@ function SidePanelTerminal() {
             onClick={() => window.location.reload()}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Refresh sidebar"
+            aria-label="Refresh sidebar"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -644,6 +650,7 @@ function SidePanelTerminal() {
             onClick={() => setIsSettingsOpen(true)}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Settings"
+            aria-label="Open settings"
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -732,6 +739,7 @@ function SidePanelTerminal() {
                       onClick={(e) => handleCloseTab(e, session.id)}
                       className="flex-shrink-0 ml-1 p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
                       title="Close tab"
+                      aria-label={`Close ${session.name} terminal`}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -759,6 +767,7 @@ function SidePanelTerminal() {
                     onClick={handleSpawnDefaultProfile}
                     className="flex items-center justify-center px-2 py-1.5 rounded-l-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
                     title="New tab (default profile)"
+                    aria-label="Create new terminal tab with default profile"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -774,6 +783,9 @@ function SidePanelTerminal() {
                     }}
                     className="flex items-center justify-center px-1 py-1.5 rounded-r-md text-sm font-medium transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border-l border-gray-700"
                     title="Select profile"
+                    aria-label="Select profile to spawn"
+                    aria-expanded={showProfileDropdown}
+                    aria-haspopup="menu"
                   >
                     <ChevronDown className="h-3 w-3" />
                   </button>
@@ -814,6 +826,7 @@ function SidePanelTerminal() {
                       <button
                         onClick={handleSpawnDefaultProfile}
                         className="px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00c8ff] text-black rounded-l-md hover:opacity-90 transition-opacity font-medium flex items-center"
+                        aria-label="Create new terminal with default profile"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         New Terminal
@@ -825,6 +838,9 @@ function SidePanelTerminal() {
                         }}
                         className="px-2 py-2 bg-gradient-to-r from-[#00c8ff] to-[#00a8ff] text-black rounded-r-md hover:opacity-90 transition-opacity font-medium border-l border-black/20"
                         title="Select profile"
+                        aria-label="Select profile to spawn"
+                        aria-expanded={showEmptyStateDropdown}
+                        aria-haspopup="menu"
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>

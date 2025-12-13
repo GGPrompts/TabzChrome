@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabz - Chrome Edition",
-  "version": "2.7.0",
+  "version": "2.7.4",
   "description": "Full-featured terminal manager in your browser with xterm.js, tmux integration, and multi-window support",
   "permissions": [
     "storage",
@@ -16,20 +16,20 @@
     "alarms",
     "debugger",
     "downloads",
-    "webRequest",
-    "cookies",
-    "history",
-    "bookmarks"
+    "webRequest"
   ],
   "omnibox": {
     "keyword": "term"
   },
   "host_permissions": [
-    "<all_urls>",
     "http://localhost:8129/*",
     "ws://localhost:8129/*",
     "http://127.0.0.1:8129/*",
-    "ws://127.0.0.1:8129/*"
+    "ws://127.0.0.1:8129/*",
+    "https://github.com/*",
+    "https://gitlab.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'",
@@ -114,7 +114,12 @@
   "devtools_page": "devtools/devtools.html",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://github.com/*",
+        "https://gitlab.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
       "js": ["content/content.ts"]
     }
   ],
@@ -126,13 +131,18 @@
   "web_accessible_resources": [
     {
       "resources": ["spawn-options.json", "profiles.json", "icons/tabz-logo-light.png"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "https://github.com/*",
+        "https://gitlab.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ]
     }
   ],
   "externally_connectable": {
     "matches": [
-      "http://localhost:*/*",
-      "http://127.0.0.1:*/*",
+      "http://localhost:8129/*",
+      "http://127.0.0.1:8129/*",
       "https://personal-homepage-virid.vercel.app/*"
     ]
   }

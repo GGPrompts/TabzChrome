@@ -399,11 +399,6 @@ Located at `extension/manifest.json`:
 - `downloads` - Download MCP tools
 - `webRequest` - Network capture MCP tools
 
-**Reserved for Phase 2C (not yet implemented):**
-- `cookies` - Future cookie inspection/management MCP tools
-- `history` - Future browser history MCP tools
-- `bookmarks` - Future bookmark management MCP tools
-
 **Keyboard Shortcuts:**
 - `Ctrl+Shift+9` - Toggle sidebar (configurable in chrome://extensions/shortcuts)
 

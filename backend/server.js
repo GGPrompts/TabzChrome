@@ -60,7 +60,25 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
 const { createModuleLogger } = require('./modules/logger');
+
+// =============================================================================
+// WEBSOCKET AUTHENTICATION
+// Generate a random token on startup to prevent unauthorized local processes
+// from connecting to the WebSocket server (local privilege escalation mitigation)
+// =============================================================================
+const WS_AUTH_TOKEN = crypto.randomBytes(32).toString('hex');
+const WS_AUTH_TOKEN_FILE = '/tmp/tabz-auth-token';
+
+// Write token to file so Chrome extension can read it
+try {
+  fs.writeFileSync(WS_AUTH_TOKEN_FILE, WS_AUTH_TOKEN, { mode: 0o600 }); // Owner read/write only
+  console.log(`[Auth] WebSocket auth token written to ${WS_AUTH_TOKEN_FILE}`);
+} catch (err) {
+  console.error(`[Auth] Failed to write auth token file: ${err.message}`);
+}
 
 // Core modules
 const terminalRegistry = require('./modules/terminal-registry');
@@ -88,6 +106,17 @@ app.use(express.json());
 app.use('/api', apiRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/browser', browserRouter);
+
+// Auth token endpoint - Chrome extension fetches this to connect to WebSocket
+// Only accessible from localhost (CORS and network isolation)
+app.get('/api/auth/token', (req, res) => {
+  // Additional security: only respond to requests from localhost
+  const remoteAddr = req.ip || req.connection.remoteAddress;
+  if (!remoteAddr || (!remoteAddr.includes('127.0.0.1') && !remoteAddr.includes('::1') && remoteAddr !== '::ffff:127.0.0.1')) {
+    return res.status(403).json({ error: 'Forbidden - localhost only' });
+  }
+  res.json({ token: WS_AUTH_TOKEN });
+});
 
 // Serve cached audio files from edge-tts
 // Used by Chrome extension for audio playback (better Windows audio than WSL mpv)
@@ -133,9 +162,9 @@ app.get('/api/audio/list', (req, res) => {
 // Generate audio using edge-tts (with caching)
 // POST /api/audio/generate { text: string, voice?: string, rate?: string }
 app.post('/api/audio/generate', async (req, res) => {
-  const { exec } = require('child_process');
+  const { execFile } = require('child_process');
   const { promisify } = require('util');
-  const execAsync = promisify(exec);
+  const execFileAsync = promisify(execFile);
   const fs = require('fs');
   const crypto = require('crypto');
 
@@ -147,6 +176,16 @@ app.post('/api/audio/generate', async (req, res) => {
 
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing text parameter' });
+  }
+
+  // Validate voice parameter (alphanumeric, hyphens, underscores only)
+  if (!/^[a-zA-Z0-9_-]+$/.test(voice)) {
+    return res.status(400).json({ success: false, error: 'Invalid voice parameter' });
+  }
+
+  // Validate rate parameter (format: +N% or -N% where N is 0-100)
+  if (!/^[+-]?\d{1,3}%$/.test(rate)) {
+    return res.status(400).json({ success: false, error: 'Invalid rate parameter' });
   }
 
   const audioDir = '/tmp/claude-audio-cache';
@@ -169,14 +208,18 @@ app.post('/api/audio/generate', async (req, res) => {
     });
   }
 
-  // Generate with edge-tts (async to not block event loop)
+  // Generate with edge-tts using execFile (prevents command injection)
+  // execFile passes arguments as array, not through shell
   try {
     const outputBase = path.join(audioDir, cacheKey);
-    // Build command with rate flag
-    const rateFlag = rate && rate !== '+0%' ? `-r "${rate}"` : '';
-    const command = `edge-tts synthesize -v "${voice}" ${rateFlag} -t "${text.replace(/"/g, '\\"')}" -o "${outputBase}"`;
+    // Build args array - no shell interpretation
+    const args = ['synthesize', '-v', voice];
+    if (rate && rate !== '+0%') {
+      args.push('-r', rate);
+    }
+    args.push('-t', text, '-o', outputBase);
 
-    await execAsync(command, { timeout: 10000 }); // 10 second timeout
+    await execFileAsync('edge-tts', args, { timeout: 10000 }); // 10 second timeout
 
     // edge-tts adds .mp3 extension
     if (fs.existsSync(`${outputBase}.mp3`)) {
@@ -312,8 +355,21 @@ const terminalOwners = new Map();
 const recentSpawnRequests = new Set();
 const SPAWN_DEDUP_WINDOW_MS = 5000; // 5 second window
 
-wss.on('connection', (ws) => {
-  log.success('WebSocket client connected');
+wss.on('connection', (ws, req) => {
+  // ==========================================================================
+  // WEBSOCKET AUTHENTICATION
+  // Require valid token in query string to prevent unauthorized connections
+  // ==========================================================================
+  const url = new URL(req.url, 'http://localhost');
+  const token = url.searchParams.get('token');
+
+  if (!token || token !== WS_AUTH_TOKEN) {
+    log.warn('WebSocket connection rejected: invalid or missing auth token');
+    ws.close(1008, 'Unauthorized'); // 1008 = Policy Violation
+    return;
+  }
+
+  log.success('WebSocket client connected (authenticated)');
 
   // Add to active connections
   activeConnections.add(ws);

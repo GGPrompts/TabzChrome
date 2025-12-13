@@ -176,8 +176,8 @@ describe('useWorkingDirectory', () => {
       expect(result.current.recentDirs).toEqual(['~/projects'])
     })
 
-    it('should limit recent directories to 10', async () => {
-      const initialDirs = Array.from({ length: 10 }, (_, i) => `~/dir-${i}`)
+    it('should limit recent directories to 15', async () => {
+      const initialDirs = Array.from({ length: 15 }, (_, i) => `~/dir-${i}`)
       setChromeStorageData({
         recentDirs: initialDirs,
       })
@@ -185,32 +185,33 @@ describe('useWorkingDirectory', () => {
       const { result } = renderHook(() => useWorkingDirectory())
 
       await waitFor(() => {
-        expect(result.current.recentDirs).toHaveLength(10)
+        expect(result.current.recentDirs).toHaveLength(15)
       })
 
-      // Add an 11th directory
+      // Add a 16th directory
       act(() => {
         result.current.addToRecentDirs('~/new-dir')
       })
 
-      expect(result.current.recentDirs).toHaveLength(10)
+      expect(result.current.recentDirs).toHaveLength(15)
       expect(result.current.recentDirs[0]).toBe('~/new-dir')
       // Last one should be dropped
-      expect(result.current.recentDirs).not.toContain('~/dir-9')
+      expect(result.current.recentDirs).not.toContain('~/dir-14')
     })
 
     it('should remove duplicates when adding', async () => {
+      // Note: The hook deduplicates on load when merging with API data
       setChromeStorageData({
-        recentDirs: ['~/a', '~/b', '~/c', '~/a'],  // duplicate
+        recentDirs: ['~/a', '~/b', '~/c'],
       })
 
       const { result } = renderHook(() => useWorkingDirectory())
 
       await waitFor(() => {
-        expect(result.current.recentDirs).toEqual(['~/a', '~/b', '~/c', '~/a'])
+        expect(result.current.recentDirs).toEqual(['~/a', '~/b', '~/c'])
       })
 
-      // Adding ~/b should result in no duplicates
+      // Adding ~/b should move it to front and remove the old position
       act(() => {
         result.current.addToRecentDirs('~/b')
       })
@@ -218,6 +219,7 @@ describe('useWorkingDirectory', () => {
       // Should be at front, with old position removed
       expect(result.current.recentDirs[0]).toBe('~/b')
       expect(result.current.recentDirs.filter(d => d === '~/b')).toHaveLength(1)
+      expect(result.current.recentDirs).toEqual(['~/b', '~/a', '~/c'])
     })
   })
 
