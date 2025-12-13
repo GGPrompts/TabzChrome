@@ -1,7 +1,7 @@
 {
   "name": "tabz-chrome",
-  "version": "2.7.3",
-  "description": "Browser automation, terminal management, and Claude Code integration for TabzChrome - includes MCP tools, Claude status tracking hooks, and specialized skills for xterm.js development",
+  "version": "2.7.5",
+  "description": "Browser automation, terminal management, and Claude Code integration for TabzChrome - includes MCP tools, terminal integration commands, and specialized skills for xterm.js development",
   "author": {
     "name": "Matt",
     "url": "https://github.com/GGPrompts"
@@ -12,12 +12,12 @@
   "keywords": [
     "browser-automation",
     "terminal",
+    "terminal-integration",
     "chrome-extension",
     "mcp",
     "xterm",
     "claude-code",
-    "status-tracking",
-    "audio-notifications"
+    "spawn-api"
   ],
   "mcpServers": {
     "tabz": {
