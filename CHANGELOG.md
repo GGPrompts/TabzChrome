@@ -20,11 +20,13 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 ### Fixed
 
 #### Terminal Corruption During Refresh While Working
-- **Fixed scroll region corruption when refreshing sidebar while Claude is working** - Updated `.tmux-terminal-tabs.conf` to match Windows Terminal settings:
-  - Changed `default-terminal` from `screen-256color-bce` to `tmux-256color`
-  - Added `setw -g xterm-keys on` for proper key handling
-  - Removed `window-size smallest` (now uses default `latest`)
-- **Root cause**: The previous terminal type and window-size settings caused scroll region miscalculations when xterm.js reconnected during active Claude output with dynamic statusline
+- **Fixed copy mode and corruption when refreshing sidebar during active Claude output** - Three-part fix:
+  - Disabled tmux `client-attached` and `after-select-pane` hooks that sent `refresh-client` during reconnection (escape sequences arrived before xterm.js was ready)
+  - Added 1000ms output guard to buffer initial output flood during reconnection
+  - Added forced resize trick after guard lifts (sends SIGWINCH to exit copy mode and fix scroll regions)
+- **Root cause**: When page refreshed during active output, partial escape sequences were misinterpreted as tmux commands (entering copy mode) or corrupted scroll regions
+- **Why manual resize fixed it**: Resizing the sidebar sent SIGWINCH which forced tmux to redraw - now done automatically after init
+- **Also added**: Consistent status bar styling (dark gray) to project tmux config
 
 #### Ghost Badge Instant Updates
 - **Ghost badge now updates immediately** on terminal spawn/close/detach instead of waiting for 30-second poll
