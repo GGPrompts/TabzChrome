@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TabzChrome</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <span class="nav-title">TabzChrome</span>
+        </div>
+        <div class="nav-links">
+            <a href="/index.html" class="nav-link active">Dashboard</a>
+            <a href="/launcher.html" class="nav-link">AI Launcher</a>
+            <a href="/terminals.html" class="nav-link">Terminals</a>
+        </div>
+        <div class="nav-status">
+            <div class="status-indicator"></div>
+            <span class="status-text">Connecting...</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">TabzChrome backend status and quick stats</p>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value green" id="stat-active">-</div>
+                <div class="stat-label">Active Terminals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value accent" id="stat-uptime">-</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value purple" id="stat-memory">-</div>
+                <div class="stat-label">Memory Usage</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value yellow" id="stat-orphaned">-</div>
+                <div class="stat-label">Orphaned Sessions</div>
+            </div>
+        </div>
+
+        <!-- Working Directory Section -->
+        <div class="card card-with-dropdown" id="dir-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-icon">📁</span>
+                    Working Directory
+                </h2>
+                <div class="dir-selector" id="dir-selector">
+                    <button class="dir-selector-btn" id="dir-selector-btn">
+                        <span id="current-dir">~</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dir-dropdown" id="dir-dropdown">
+                        <div class="dir-dropdown-header">
+                            <input type="text" class="form-input" id="dir-input" placeholder="Enter custom path...">
+                        </div>
+                        <div class="dir-dropdown-list" id="dir-list">
+                            <!-- Recent directories populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Select the default working directory for new terminals spawned from the dashboard.</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-icon">⚡</span>
+                    Quick Actions
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="flex gap-2" style="flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="spawnQuickTerminal('bash')">
+                        New Bash Terminal
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/launcher.html'">
+                        AI Launcher
+                    </button>
+                    <button class="btn btn-ghost" onclick="Dashboard.refresh()">
+                        Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-icon">📋</span>
+                    Active Terminals
+                </h2>
+                <a href="/terminals.html" class="btn btn-sm btn-ghost">View All →</a>
+            </div>
+            <div class="card-body">
+                <div id="terminals-preview" class="activity-feed">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading terminals...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-icon">🖥️</span>
+                    System Information
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table>
+                        <tbody id="system-info">
+                            <tr><td>Backend URL</td><td class="mono">http://localhost:8129</td></tr>
+                            <tr><td>WebSocket URL</td><td class="mono">ws://localhost:8129</td></tr>
+                            <tr><td>Version</td><td id="sys-version">-</td></tr>
+                            <tr><td>Node.js</td><td id="sys-node">-</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // Working directory state
+        let currentWorkingDir = '~';
+        let recentDirs = ['~', '~/projects'];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load settings from backend API (synced with extension)
+            try {
+                const response = await fetch('http://localhost:8129/api/settings/working-dir');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    currentWorkingDir = result.data.globalWorkingDir || '~';
+                    recentDirs = result.data.recentDirs || ['~', '~/projects'];
+                }
+            } catch (e) {
+                console.warn('Failed to load settings from API, using defaults');
+            }
+
+            updateDirDisplay();
+            updateDirList();
+
+            // Setup directory selector
+            setupDirSelector();
+        });
+
+        // Listen for Dashboard events
+        Dashboard.on('terminals', updateTerminalsPreview);
+        Dashboard.on('health', updateHealth);
+        Dashboard.on('connection', (data) => {
+            if (data.connected) {
+                fetchOrphanedCount();
+            }
+        });
+
+        // Update stats from health data
+        function updateHealth(health) {
+            if (!health) return;
+
+            Dashboard.$('#stat-active').textContent = health.activeTerminals || 0;
+            Dashboard.$('#stat-uptime').textContent = Dashboard.formatUptime(health.uptime || 0);
+
+            if (health.memoryUsage) {
+                Dashboard.$('#stat-memory').textContent = Dashboard.formatMemory(health.memoryUsage.heapUsed || 0);
+            }
+
+            Dashboard.$('#sys-version').textContent = health.version || '-';
+        }
+
+        // Update terminals preview
+        function updateTerminalsPreview(terminals) {
+            const container = Dashboard.$('#terminals-preview');
+
+            if (!terminals || terminals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🖥️</div>
+                        <div class="empty-state-title">No Active Terminals</div>
+                        <div class="empty-state-text">Spawn a new terminal to get started</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show first 5 terminals
+            const preview = terminals.slice(0, 5);
+            container.innerHTML = preview.map(t => `
+                <div class="activity-item ${t.state === 'active' ? 'success' : ''}">
+                    <div class="activity-time">${Dashboard.formatRelativeTime(t.createdAt)}</div>
+                    <div class="activity-content">
+                        <strong>${Dashboard.escapeHtml(t.name || t.id)}</strong>
+                        <span class="text-muted"> - ${t.terminalType || 'bash'}</span>
+                        ${t.workingDir ? `<br><span class="mono text-muted" style="font-size: 0.8rem;">${Dashboard.shortenPath(t.workingDir)}</span>` : ''}
+                    </div>
+                    <span class="badge ${t.state === 'active' ? 'badge-green' : 'badge-yellow'}">${t.state || 'unknown'}</span>
+                </div>
+            `).join('');
+
+            if (terminals.length > 5) {
+                container.innerHTML += `
+                    <div style="text-align: center; padding: 0.5rem;">
+                        <a href="/terminals.html" class="text-accent">View all ${terminals.length} terminals →</a>
+                    </div>
+                `;
+            }
+        }
+
+        // Fetch orphaned session count
+        async function fetchOrphanedCount() {
+            const result = await Dashboard.fetchOrphanedSessions();
+            if (result.success && result.data && result.data.data) {
+                Dashboard.$('#stat-orphaned').textContent = result.data.data.count || 0;
+            }
+        }
+
+        // Quick spawn terminal
+        async function spawnQuickTerminal(type) {
+            const result = await fetch('http://localhost:8129/api/spawn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: type === 'bash' ? 'Bash' : type,
+                    workingDir: currentWorkingDir,
+                }),
+            });
+
+            const data = await result.json();
+            if (data.success) {
+                // Refresh terminals list
+                Dashboard.refresh();
+            } else {
+                alert('Failed to spawn terminal: ' + (data.error || 'Unknown error'));
+            }
+        }
+
+        // Directory selector
+        function setupDirSelector() {
+            const btn = Dashboard.$('#dir-selector-btn');
+            const dropdown = Dashboard.$('#dir-dropdown');
+            const input = Dashboard.$('#dir-input');
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+                if (dropdown.classList.contains('open')) {
+                    input.focus();
+                }
+            });
+
+            document.addEventListener('click', () => {
+                dropdown.classList.remove('open');
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const dir = input.value.trim();
+                    if (dir) {
+                        selectDir(dir);
+                        input.value = '';
+                        dropdown.classList.remove('open');
+                    }
+                }
+            });
+        }
+
+        function updateDirDisplay() {
+            Dashboard.$('#current-dir').textContent = Dashboard.shortenPath(currentWorkingDir, 30);
+        }
+
+        function updateDirList() {
+            const list = Dashboard.$('#dir-list');
+            list.innerHTML = recentDirs.map(dir => `
+                <div class="dir-dropdown-item ${dir === currentWorkingDir ? 'selected' : ''}"
+                     onclick="selectDir('${Dashboard.escapeHtml(dir)}')">
+                    <span>${Dashboard.escapeHtml(dir)}</span>
+                    ${dir === currentWorkingDir ? '<span>✓</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        async function selectDir(dir) {
+            currentWorkingDir = dir;
+
+            // Add to recent if not present
+            if (!recentDirs.includes(dir)) {
+                recentDirs.unshift(dir);
+                recentDirs = recentDirs.slice(0, 15); // Keep max 15
+            }
+
+            // Save to backend API (syncs with extension)
+            try {
+                await fetch('http://localhost:8129/api/settings/working-dir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ globalWorkingDir: dir, recentDirs })
+                });
+            } catch (e) {
+                console.warn('Failed to save settings to API');
+            }
+
+            updateDirDisplay();
+            updateDirList();
+
+            Dashboard.$('#dir-dropdown').classList.remove('open');
+        }
+
+        // Initial orphaned count fetch
+        setTimeout(fetchOrphanedCount, 1000);
+    </script>
+</body>
+</html>

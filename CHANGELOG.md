@@ -13,6 +13,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.4] - 2025-12-12
+
+### ✨ New Features
+
+#### Local Dashboard (localhost:8129)
+- **Modular dashboard structure** - New multi-page dashboard at `http://localhost:8129`
+- **Dashboard home** (`index.html`) - Quick stats, active terminals, working directory selector
+- **Terminals page** (`terminals.html`) - Full terminal list with kill/reattach, orphan management
+- **Shared CSS/JS** - `css/dashboard.css` (dark theme) and `js/dashboard.js` (WebSocket, API helpers)
+- **Updated AI Launcher** - Now includes nav bar consistent with other dashboard pages
+- **Dashboard button in sidebar** - New grid icon in header opens dashboard in browser tab
+
+#### Working Directory Sync API
+- **New `/api/settings/working-dir` endpoint** - GET/POST for working directory settings
+- **Extension ↔ Dashboard sync** - Working directory and recent dirs shared between extension and dashboard
+- **Persisted to disk** - Settings stored in `backend/.settings.json`
+
+### 🐛 Bug Fixes
+
+#### Tab Name Bug (API Spawn)
+- **Fixed profile matching** - Terminals spawned via API now keep their custom names
+- **Root cause**: Profile matching used `startsWith()` which incorrectly matched "Claude & TFE" to any "Claude: ..." terminal
+- **Fix**: Changed to exact match with full sanitized name extraction from terminal ID
+
+#### Dashboard z-index
+- **Fixed dropdown z-index** - Working directory dropdown no longer appears behind other cards
+- **Added `.card-with-dropdown` class** - Ensures proper stacking context
+
+Files changed:
+- `backend/routes/api.js` - Added settings API endpoints
+- `backend/public/index.html` - New dashboard home page
+- `backend/public/terminals.html` - New terminals management page
+- `backend/public/css/dashboard.css` - Shared dashboard styles
+- `backend/public/js/dashboard.js` - Shared WebSocket/API helpers
+- `backend/public/launcher.html` - Updated with nav header
+- `extension/hooks/useWorkingDirectory.ts` - Syncs with backend API
+- `extension/hooks/useTerminalSessions.ts` - Fixed profile matching
+- `extension/sidepanel/sidepanel.tsx` - Added dashboard button
+
+---
+
 ## [2.7.3] - 2025-12-12
 
 ### ✨ Enhancements

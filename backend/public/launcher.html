@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/dashboard.css">
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -39,6 +40,14 @@
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
+            padding: 0;
+        }
+
+        body.has-nav {
+            padding-top: 0;
+        }
+
+        .launcher-content {
             padding: 2rem;
         }
 
@@ -497,7 +506,24 @@
         }
     </style>
 </head>
-<body>
+<body class="has-nav">
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <span class="nav-title">TabzChrome</span>
+        </div>
+        <div class="nav-links">
+            <a href="/index.html" class="nav-link">Dashboard</a>
+            <a href="/launcher.html" class="nav-link active">AI Launcher</a>
+            <a href="/terminals.html" class="nav-link">Terminals</a>
+        </div>
+        <div class="nav-status">
+            <div class="status-indicator" id="ws-indicator"></div>
+            <span class="status-text" id="ws-status">Connecting...</span>
+        </div>
+    </nav>
+
+    <div class="launcher-content">
     <div class="container">
         <header class="hero">
             <h1>AI Terminal Launcher</h1>
@@ -564,9 +590,10 @@
                         <label>
                             Model
                             <select id="claude-model">
-                                <option value="">Sonnet (default)</option>
-                                <option value="opus">Opus 4.5 - Most capable</option>
-                                <option value="haiku">Haiku - Fast & efficient</option>
+                                <option value="">Default</option>
+                                <option value="opus">Opus</option>
+                                <option value="sonnet">Sonnet</option>
+                                <option value="haiku">Haiku</option>
                             </select>
                         </label>
                         <label>
@@ -588,6 +615,13 @@
                         <label class="checkbox-label">
                             <input type="checkbox" id="claude-verbose">
                             Verbose output (--verbose)
+                        </label>
+                    </div>
+
+                    <div class="demo-controls">
+                        <label style="flex: 2;">
+                            Append System Prompt (--append-system-prompt)
+                            <input type="text" id="claude-system-prompt" placeholder="Additional instructions to append to system prompt...">
                         </label>
                     </div>
 
@@ -743,10 +777,6 @@
                         </div>
                     </div>
 
-                    <div class="info-note">
-                        <strong>Note:</strong> Codex CLI requires OpenAI API key. Set <code>OPENAI_API_KEY</code> environment variable before using.
-                    </div>
-
                     <!-- Collapsible curl section -->
                     <div class="collapsible" id="codex-curl-section">
                         <div class="collapsible-header" onclick="toggleCollapsible('codex-curl-section')">
@@ -853,10 +883,6 @@
                         </div>
                     </div>
 
-                    <div class="info-note">
-                        <strong>Note:</strong> Gemini CLI requires Google API credentials. Run <code>gcloud auth login</code> or set up Application Default Credentials.
-                    </div>
-
                     <!-- Collapsible curl section -->
                     <div class="collapsible" id="gemini-curl-section">
                         <div class="collapsible-header" onclick="toggleCollapsible('gemini-curl-section')">
@@ -887,7 +913,7 @@
                 Backend must be running on <code>localhost:8129</code>
             </p>
         </footer>
-    </div>
+    </div> <!-- /container -->
 
     <script>
         // ========================================
@@ -926,6 +952,7 @@
             const permissionMode = document.getElementById('claude-permission-mode').value;
             const continueSession = document.getElementById('claude-continue').checked;
             const verbose = document.getElementById('claude-verbose').checked;
+            const systemPrompt = document.getElementById('claude-system-prompt').value.trim();
 
             if (agent === 'custom' && customAgent) {
                 parts.push(`--agent ${customAgent}`);
@@ -944,6 +971,7 @@
 
             if (continueSession) parts.push('--continue');
             if (verbose) parts.push('--verbose');
+            if (systemPrompt) parts.push(`--append-system-prompt "${systemPrompt}"`);
 
             return parts.join(' ');
         }
@@ -1251,7 +1279,7 @@
         function init() {
             // Attach change listeners to Claude controls
             ['claude-name', 'claude-workingDir', 'claude-agent', 'claude-custom-agent',
-             'claude-model', 'claude-permission-mode', 'claude-continue', 'claude-verbose'].forEach(id => {
+             'claude-model', 'claude-permission-mode', 'claude-continue', 'claude-verbose', 'claude-system-prompt'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
                     el.addEventListener('change', updateClaudePreview);
@@ -1290,6 +1318,24 @@
         } else {
             init();
         }
+    </script>
+    </div> <!-- /launcher-content -->
+
+    <!-- Shared Dashboard JS for WebSocket status -->
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // Update connection indicator using Dashboard module
+        Dashboard.on('connection', (data) => {
+            const indicator = document.getElementById('ws-indicator');
+            const status = document.getElementById('ws-status');
+            if (data.connected) {
+                indicator.classList.add('connected');
+                status.textContent = 'Connected';
+            } else {
+                indicator.classList.remove('connected');
+                status.textContent = 'Disconnected';
+            }
+        });
     </script>
 </body>
 </html>

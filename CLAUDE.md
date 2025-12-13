@@ -190,6 +190,11 @@ npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/T
 ✅ **Context Menu** - Right-click → "Toggle Terminal Sidebar" or "Paste to Terminal"
 ✅ **Connection Status** - WebSocket connection indicator in header
 ✅ **HTTP Spawn API** - Spawn terminals programmatically via REST endpoint
+✅ **Local Dashboard** - Web dashboard at http://localhost:8129:
+  - Dashboard home with quick stats, active terminals
+  - Terminals page for kill/reattach/orphan management
+  - AI Launcher page for spawning Claude sessions
+  - Working directory synced with extension sidebar
 
 ---
 
@@ -244,6 +249,33 @@ curl -X POST http://localhost:8129/api/spawn \
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -d '{"name": "Claude Worker", "workingDir": "~/projects/myapp", "command": "claude --dangerously-skip-permissions"}'
+```
+
+### GET/POST /api/settings/working-dir
+
+Sync working directory settings between extension and dashboard.
+
+**Get current settings:**
+```bash
+curl http://localhost:8129/api/settings/working-dir
+```
+
+**Update settings:**
+```bash
+curl -X POST http://localhost:8129/api/settings/working-dir \
+  -H "Content-Type: application/json" \
+  -d '{"globalWorkingDir": "~/projects", "recentDirs": ["~", "~/projects", "~/Documents"]}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "globalWorkingDir": "~/projects",
+    "recentDirs": ["~", "~/projects", "~/Documents"]
+  }
+}
 ```
 
 ---

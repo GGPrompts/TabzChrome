@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, LayoutDashboard } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
@@ -596,6 +596,15 @@ function SidePanelTerminal() {
             showDropdown={showDirDropdown}
             setShowDropdown={setShowDirDropdown}
           />
+
+          {/* Dashboard Button */}
+          <button
+            onClick={() => chrome.tabs.create({ url: 'http://localhost:8129' })}
+            className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
+            title="Open Dashboard"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+          </button>
 
           {/* Keyboard Shortcuts Button */}
           <button

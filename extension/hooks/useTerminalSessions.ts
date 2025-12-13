@@ -131,13 +131,18 @@ export function useTerminalSessions({
         // Skip terminals we've already reconnected to (prevents duplicate reconnects from multiple terminals messages)
         // Add small delay to let backend fully initialize after recovery broadcast
         setTimeout(() => {
-          backendTerminals.forEach((t: any) => {
+          // Stagger reconnections to prevent race conditions when multiple terminals
+          // try to attach to tmux sessions simultaneously (3rd terminal often fails)
+          backendTerminals.forEach((t: any, index: number) => {
             if (!reconnectedTerminalsRef.current.has(t.id)) {
               reconnectedTerminalsRef.current.add(t.id)
-              sendMessage({
-                type: 'RECONNECT',
-                terminalId: t.id,
-              })
+              // 150ms delay between each reconnection to serialize tmux attachments
+              setTimeout(() => {
+                sendMessage({
+                  type: 'RECONNECT',
+                  terminalId: t.id,
+                })
+              }, index * 150)
             }
           })
           // Trigger terminal refresh after reconnects to fix terminal dimensions
@@ -235,18 +240,29 @@ export function useTerminalSessions({
         }
 
         // For recovered sessions (no profile), try to find matching profile from session ID
-        // Session ID format: ctt-ProfileName-shortId (e.g., ctt-bash-a1b2c3d4)
+        // Session ID format: ctt-{sanitizedProfileName}-{shortId} (e.g., ctt-bash-a1b2c3d4)
+        // The sanitizedProfileName can contain hyphens (e.g., "claude-tfe" from "Claude & TFE")
+        // and shortId is always 8 hex characters at the end
         let effectiveTerminalProfile = terminal.profile
         if (!effectiveTerminalProfile) {
-          const parts = terminal.id.split('-')
-          if (parts.length >= 2) {
-            const profileNameFromId = parts[1].toLowerCase()
-            // Look up profile by name (case-insensitive match)
+          // Extract the full sanitized profile name from the ID
+          // ID format: ctt-{sanitizedName}-{8-char-hex}
+          // We need to find everything between "ctt-" and the last "-{8chars}"
+          const idMatch = terminal.id.match(/^ctt-(.+)-([a-f0-9]{8})$/)
+          if (idMatch) {
+            const sanitizedNameFromId = idMatch[1].toLowerCase()  // e.g., "claude-tfe" or "bash"
+            // Look up profile by exact sanitized name match (not startsWith!)
             chrome.storage.local.get(['profiles'], (result) => {
               const storedProfiles = (result.profiles as Profile[]) || []
-              const matchedProfile = storedProfiles.find(p =>
-                p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').startsWith(profileNameFromId)
-              )
+              const matchedProfile = storedProfiles.find(p => {
+                const sanitizedProfileName = p.name
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-+|-+$/g, '')
+                  .substring(0, 20)
+                // Exact match required to prevent false positives
+                return sanitizedProfileName === sanitizedNameFromId
+              })
               if (matchedProfile) {
                 // Update the session with the matched profile
                 setSessions(prev => prev.map(s =>

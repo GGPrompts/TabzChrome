@@ -1641,6 +1641,70 @@ router.post('/mcp-config', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// SETTINGS API - Sync between extension and dashboard
+// =============================================================================
+
+const fsSync = require('fs');
+const settingsPath = require('path').join(__dirname, '../.settings.json');
+
+// Load settings from disk
+function loadSettings() {
+  try {
+    if (fsSync.existsSync(settingsPath)) {
+      return JSON.parse(fsSync.readFileSync(settingsPath, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Settings] Failed to load:', e.message);
+  }
+  return { globalWorkingDir: '~', recentDirs: ['~', '~/projects'] };
+}
+
+// Save settings to disk
+function saveSettings(settings) {
+  try {
+    fsSync.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    return true;
+  } catch (e) {
+    console.error('[Settings] Failed to save:', e.message);
+    return false;
+  }
+}
+
+// GET /api/settings/working-dir - Get current working directory settings
+router.get('/settings/working-dir', asyncHandler(async (req, res) => {
+  const settings = loadSettings();
+  res.json({
+    success: true,
+    data: {
+      globalWorkingDir: settings.globalWorkingDir || '~',
+      recentDirs: settings.recentDirs || ['~', '~/projects']
+    }
+  });
+}));
+
+// POST /api/settings/working-dir - Update working directory settings
+router.post('/settings/working-dir', asyncHandler(async (req, res) => {
+  const { globalWorkingDir, recentDirs } = req.body;
+  const settings = loadSettings();
+
+  if (globalWorkingDir !== undefined) {
+    settings.globalWorkingDir = globalWorkingDir;
+  }
+  if (recentDirs !== undefined && Array.isArray(recentDirs)) {
+    settings.recentDirs = recentDirs.slice(0, 15); // Max 15 recent dirs
+  }
+
+  const saved = saveSettings(settings);
+  res.json({
+    success: saved,
+    data: {
+      globalWorkingDir: settings.globalWorkingDir,
+      recentDirs: settings.recentDirs
+    }
+  });
+}));
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 

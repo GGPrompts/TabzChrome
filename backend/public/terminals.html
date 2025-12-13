@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminals - TabzChrome</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        .terminal-row {
+            transition: background-color 0.2s;
+        }
+        .terminal-row:hover .terminal-actions {
+            opacity: 1;
+        }
+        .terminal-actions {
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .orphan-warning {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--red);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .orphan-warning-title {
+            color: var(--red);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+        .checkbox-cell input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .bulk-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .bulk-actions.hidden {
+            display: none;
+        }
+        .selection-count {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <span class="nav-title">TabzChrome</span>
+        </div>
+        <div class="nav-links">
+            <a href="/index.html" class="nav-link">Dashboard</a>
+            <a href="/launcher.html" class="nav-link">AI Launcher</a>
+            <a href="/terminals.html" class="nav-link active">Terminals</a>
+        </div>
+        <div class="nav-status">
+            <div class="status-indicator"></div>
+            <span class="status-text">Connecting...</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="page-header">
+            <h1 class="page-title">Terminal Management</h1>
+            <p class="page-subtitle">View, manage, and kill terminal sessions</p>
+        </header>
+
+        <!-- Orphaned Sessions Warning -->
+        <div id="orphan-warning" class="orphan-warning" style="display: none;">
+            <div class="orphan-warning-title">👻 Orphaned Sessions Detected</div>
+            <p class="text-muted mb-3">These tmux sessions exist but are not connected to any tab. They may be from browser crashes or closed sidebars.</p>
+            <div id="orphan-actions" class="flex gap-2">
+                <button class="btn btn-primary btn-sm" onclick="reattachAllOrphans()">
+                    Reattach All
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="killAllOrphans()">
+                    Kill All Orphans
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Terminals Section -->
+        <div class="card">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>🖥️</span>
+                    Active Terminals
+                    <span class="badge badge-green" id="active-count">0</span>
+                </h2>
+                <button class="btn btn-ghost btn-sm" onclick="Dashboard.refresh()">
+                    ↻ Refresh
+                </button>
+            </div>
+
+            <!-- Bulk Actions Bar -->
+            <div id="bulk-actions" class="bulk-actions hidden">
+                <div class="selection-count">
+                    <span id="selection-count">0</span> selected
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="killSelected()">
+                    Kill Selected
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="clearSelection()">
+                    Clear Selection
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                            </th>
+                            <th>Name</th>
+                            <th>Session ID</th>
+                            <th>Type</th>
+                            <th>State</th>
+                            <th>Working Directory</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="terminals-table">
+                        <tr>
+                            <td colspan="8" class="table-empty">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    Loading terminals...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Orphaned Sessions Section -->
+        <div class="card" id="orphans-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>👻</span>
+                    Orphaned Sessions
+                    <span class="badge badge-red" id="orphan-count">0</span>
+                </h2>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="select-all-orphans" onchange="toggleSelectAllOrphans()">
+                            </th>
+                            <th>Session Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orphans-table">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3 flex gap-2">
+                <button class="btn btn-primary btn-sm" onclick="reattachSelectedOrphans()">
+                    Reattach Selected
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="killSelectedOrphans()">
+                    Kill Selected
+                </button>
+            </div>
+        </div>
+
+        <!-- All Tmux Sessions Section -->
+        <div class="card">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>📋</span>
+                    All Tmux Sessions
+                    <span class="badge badge-accent" id="tmux-count">0</span>
+                </h2>
+                <button class="btn btn-ghost btn-sm" onclick="refreshTmuxSessions()">
+                    ↻ Refresh
+                </button>
+            </div>
+            <p class="text-muted mb-3">All tmux sessions on this system, including non-Tabz sessions.</p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Session Name</th>
+                            <th>Windows</th>
+                            <th>AI Tool</th>
+                            <th>Working Dir</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tmux-table">
+                        <tr>
+                            <td colspan="6" class="table-empty">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    Loading tmux sessions...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // State
+        let selectedTerminals = new Set();
+        let selectedOrphans = new Set();
+        let orphanedSessions = [];
+        let allTmuxSessions = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            Dashboard.on('terminals', updateTerminalsTable);
+            Dashboard.on('connection', (data) => {
+                if (data.connected) {
+                    refreshOrphans();
+                    refreshTmuxSessions();
+                }
+            });
+        });
+
+        // Update active terminals table
+        function updateTerminalsTable(terminals) {
+            const tbody = Dashboard.$('#terminals-table');
+            Dashboard.$('#active-count').textContent = terminals.length;
+
+            if (!terminals || terminals.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="table-empty">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🖥️</div>
+                                <div class="empty-state-title">No Active Terminals</div>
+                                <div class="empty-state-text">Spawn a new terminal from the sidebar or AI Launcher</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = terminals.map(t => `
+                <tr class="terminal-row">
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               data-id="${t.id}"
+                               ${selectedTerminals.has(t.id) ? 'checked' : ''}
+                               onchange="toggleTerminalSelection('${t.id}')">
+                    </td>
+                    <td>
+                        <strong>${Dashboard.escapeHtml(t.name || 'Unnamed')}</strong>
+                    </td>
+                    <td>
+                        <code class="mono" style="font-size: 0.8rem;">${Dashboard.shortenPath(t.id, 25)}</code>
+                    </td>
+                    <td>${t.terminalType || 'bash'}</td>
+                    <td>
+                        <span class="badge ${t.state === 'active' ? 'badge-green' : 'badge-yellow'}">
+                            ${t.state || 'unknown'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="mono text-muted" style="font-size: 0.85rem;">
+                            ${Dashboard.shortenPath(t.workingDir || '-', 30)}
+                        </span>
+                    </td>
+                    <td>${Dashboard.formatRelativeTime(t.createdAt)}</td>
+                    <td class="terminal-actions">
+                        <button class="btn btn-danger btn-sm" onclick="killTerminal('${t.id}')">
+                            Kill
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            updateBulkActionsVisibility();
+        }
+
+        // Selection management
+        function toggleTerminalSelection(id) {
+            if (selectedTerminals.has(id)) {
+                selectedTerminals.delete(id);
+            } else {
+                selectedTerminals.add(id);
+            }
+            updateBulkActionsVisibility();
+        }
+
+        function toggleSelectAll() {
+            const checkbox = Dashboard.$('#select-all');
+            const terminals = Dashboard.state.terminals;
+
+            if (checkbox.checked) {
+                terminals.forEach(t => selectedTerminals.add(t.id));
+            } else {
+                selectedTerminals.clear();
+            }
+
+            // Update all checkboxes
+            Dashboard.$$('#terminals-table input[type="checkbox"]').forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+
+            updateBulkActionsVisibility();
+        }
+
+        function clearSelection() {
+            selectedTerminals.clear();
+            Dashboard.$('#select-all').checked = false;
+            Dashboard.$$('#terminals-table input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateBulkActionsVisibility();
+        }
+
+        function updateBulkActionsVisibility() {
+            const bulkActions = Dashboard.$('#bulk-actions');
+            const count = selectedTerminals.size;
+
+            if (count > 0) {
+                bulkActions.classList.remove('hidden');
+                Dashboard.$('#selection-count').textContent = count;
+            } else {
+                bulkActions.classList.add('hidden');
+            }
+        }
+
+        // Kill operations
+        async function killTerminal(id) {
+            if (!confirm('Are you sure you want to kill this terminal?')) return;
+
+            const result = await Dashboard.killTerminal(id);
+            if (!result.success) {
+                alert('Failed to kill terminal: ' + (result.error || 'Unknown error'));
+            }
+        }
+
+        async function killSelected() {
+            if (selectedTerminals.size === 0) return;
+
+            if (!confirm(`Are you sure you want to kill ${selectedTerminals.size} terminal(s)?`)) return;
+
+            const ids = Array.from(selectedTerminals);
+            for (const id of ids) {
+                await Dashboard.killTerminal(id);
+            }
+            selectedTerminals.clear();
+            updateBulkActionsVisibility();
+        }
+
+        // Orphaned sessions
+        async function refreshOrphans() {
+            const result = await Dashboard.fetchOrphanedSessions();
+
+            if (result.success && result.data && result.data.data) {
+                orphanedSessions = result.data.data.orphanedSessions || [];
+                updateOrphansUI();
+            }
+        }
+
+        function updateOrphansUI() {
+            const warning = Dashboard.$('#orphan-warning');
+            const section = Dashboard.$('#orphans-section');
+            const countBadge = Dashboard.$('#orphan-count');
+            const tbody = Dashboard.$('#orphans-table');
+
+            if (orphanedSessions.length === 0) {
+                warning.style.display = 'none';
+                section.style.display = 'none';
+                return;
+            }
+
+            warning.style.display = 'block';
+            section.style.display = 'block';
+            countBadge.textContent = orphanedSessions.length;
+
+            tbody.innerHTML = orphanedSessions.map(name => `
+                <tr>
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               data-orphan="${name}"
+                               ${selectedOrphans.has(name) ? 'checked' : ''}
+                               onchange="toggleOrphanSelection('${name}')">
+                    </td>
+                    <td>
+                        <code class="mono">${Dashboard.escapeHtml(name)}</code>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="reattachOrphan('${name}')">
+                            Reattach
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="killOrphan('${name}')">
+                            Kill
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleOrphanSelection(name) {
+            if (selectedOrphans.has(name)) {
+                selectedOrphans.delete(name);
+            } else {
+                selectedOrphans.add(name);
+            }
+        }
+
+        function toggleSelectAllOrphans() {
+            const checkbox = Dashboard.$('#select-all-orphans');
+
+            if (checkbox.checked) {
+                orphanedSessions.forEach(name => selectedOrphans.add(name));
+            } else {
+                selectedOrphans.clear();
+            }
+
+            Dashboard.$$('#orphans-table input[type="checkbox"]').forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+        }
+
+        async function reattachOrphan(name) {
+            const result = await Dashboard.reattachSessions([name]);
+            if (result.success) {
+                await refreshOrphans();
+                await Dashboard.refresh();
+            } else {
+                alert('Failed to reattach: ' + (result.error || 'Unknown error'));
+            }
+        }
+
+        async function killOrphan(name) {
+            if (!confirm(`Kill orphaned session "${name}"?`)) return;
+
+            const result = await Dashboard.killOrphanedSessions([name]);
+            if (result.success) {
+                await refreshOrphans();
+            } else {
+                alert('Failed to kill: ' + (result.error || 'Unknown error'));
+            }
+        }
+
+        async function reattachAllOrphans() {
+            if (orphanedSessions.length === 0) return;
+
+            const result = await Dashboard.reattachSessions(orphanedSessions);
+            if (result.success) {
+                await refreshOrphans();
+                await Dashboard.refresh();
+            }
+        }
+
+        async function killAllOrphans() {
+            if (orphanedSessions.length === 0) return;
+            if (!confirm(`Kill all ${orphanedSessions.length} orphaned sessions?`)) return;
+
+            const result = await Dashboard.killOrphanedSessions(orphanedSessions);
+            if (result.success) {
+                await refreshOrphans();
+            }
+        }
+
+        async function reattachSelectedOrphans() {
+            if (selectedOrphans.size === 0) return;
+
+            const result = await Dashboard.reattachSessions(Array.from(selectedOrphans));
+            if (result.success) {
+                selectedOrphans.clear();
+                await refreshOrphans();
+                await Dashboard.refresh();
+            }
+        }
+
+        async function killSelectedOrphans() {
+            if (selectedOrphans.size === 0) return;
+            if (!confirm(`Kill ${selectedOrphans.size} selected orphaned sessions?`)) return;
+
+            const result = await Dashboard.killOrphanedSessions(Array.from(selectedOrphans));
+            if (result.success) {
+                selectedOrphans.clear();
+                await refreshOrphans();
+            }
+        }
+
+        // All tmux sessions
+        async function refreshTmuxSessions() {
+            const result = await Dashboard.fetchTmuxSessions();
+
+            if (result.success && result.data && result.data.data) {
+                allTmuxSessions = result.data.data.sessions || [];
+                updateTmuxTable();
+            }
+        }
+
+        function updateTmuxTable() {
+            const tbody = Dashboard.$('#tmux-table');
+            Dashboard.$('#tmux-count').textContent = allTmuxSessions.length;
+
+            if (allTmuxSessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="table-empty">No tmux sessions found</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = allTmuxSessions.map(s => {
+                const isTabz = s.name.startsWith('ctt-');
+                const sourceLabel = isTabz ? 'Tabz' : (s.aiTool ? s.aiTool : 'External');
+                const sourceBadge = isTabz ? 'badge-green' : (s.aiTool ? 'badge-purple' : 'badge-accent');
+
+                return `
+                    <tr>
+                        <td>
+                            <code class="mono" style="font-size: 0.85rem;">${Dashboard.escapeHtml(s.name)}</code>
+                        </td>
+                        <td>${s.windowCount || 1}</td>
+                        <td>
+                            ${s.aiTool ? `<span class="badge badge-purple">${s.aiTool}</span>` : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td>
+                            <span class="mono text-muted" style="font-size: 0.8rem;">
+                                ${Dashboard.shortenPath(s.workingDir || '-', 25)}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge ${sourceBadge}">${sourceLabel}</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="killTmuxSession('${s.name}')">
+                                Kill
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function killTmuxSession(name) {
+            if (!confirm(`Kill tmux session "${name}"? This cannot be undone.`)) return;
+
+            const result = await Dashboard.killTmuxSession(name);
+            if (result.success) {
+                await refreshTmuxSessions();
+                await refreshOrphans();
+                await Dashboard.refresh();
+            } else {
+                alert('Failed to kill session: ' + (result.error || 'Unknown error'));
+            }
+        }
+
+        // Initial load
+        setTimeout(() => {
+            refreshOrphans();
+            refreshTmuxSessions();
+        }, 500);
+    </script>
+</body>
+</html>

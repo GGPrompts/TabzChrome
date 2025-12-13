@@ -220,8 +220,19 @@ class PTYHandler extends EventEmitter {
               existingPty.superseded = true;
               log.debug(`Old PTY ${existingId.slice(-8)} marked as superseded`);
 
-              // Remove the old PTY attachment (but tmux session stays alive)
-              // Don't kill the process - let it die naturally when detached
+              // Kill the old PTY process to prevent double-cursor issues
+              // Previously we let it "die naturally" but that can cause state corruption
+              // when reconnecting while Claude is actively outputting
+              try {
+                if (existingPty.process && !existingPty.process.killed) {
+                  existingPty.process.kill('SIGHUP');
+                  log.debug(`Sent SIGHUP to old PTY ${existingId.slice(-8)}`);
+                }
+              } catch (killErr) {
+                log.debug(`Failed to kill old PTY: ${killErr.message}`);
+              }
+
+              // Remove the old PTY attachment (tmux session stays alive)
               this.processes.delete(existingId);
               log.debug('Old PTY removed from processes');
             }

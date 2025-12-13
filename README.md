@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-2.7.3-blue)
+![Version](https://img.shields.io/badge/version-2.7.4-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -34,6 +34,7 @@ Browse the web with your terminals always visible - no window juggling, no Alt+T
 - **Profiles system** - Save configurations for different tools (Claude Code, lazygit, htop)
 - **Category organization** - Color-coded groups for easy identification
 - **Smart directory inheritance** - Set a global working directory, profiles inherit it
+- **Local dashboard** - Web UI at `localhost:8129` for terminal management and quick stats
 - **Tabz MCP tools** - Let Claude Code control your browser (screenshots, clicks, form filling)
 - **Keyboard shortcuts** - Quick access to paste text, send to chat, spawn terminals
 
@@ -230,6 +231,27 @@ The chat input bar includes command history:
 - **↑/↓ arrows** - Navigate through previous commands
 - **Clock icon** - Open history dropdown with remove buttons
 - Commands persist in Chrome storage
+
+### Local Dashboard
+
+Access a web-based dashboard at `http://localhost:8129` for terminal management:
+
+![Dashboard button in sidebar header](docs/screenshots/dashboard-button.png)
+
+**Pages:**
+| Page | URL | Features |
+|------|-----|----------|
+| **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector |
+| **AI Launcher** | `/launcher.html` | Spawn Claude/AI sessions with custom prompts and settings |
+| **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
+
+**Features:**
+- **Working directory sync** - Changes in dashboard sync to extension sidebar and vice versa
+- **Real-time stats** - Active terminals, backend uptime, memory usage
+- **Orphan cleanup** - Find and kill detached tmux sessions
+- **Quick spawn** - Launch new terminals directly from the dashboard
+
+Click the grid icon (📊) in the sidebar header to open the dashboard in a new tab.
 
 ### Custom Terminal Triggers
 
@@ -504,6 +526,8 @@ npm test
 | GET | `/api/health` | Health check |
 | POST | `/api/spawn` | Spawn terminal |
 | GET | `/api/tmux/sessions` | List sessions |
+| GET | `/api/settings/working-dir` | Get working directory settings |
+| POST | `/api/settings/working-dir` | Update working directory settings |
 
 ### Spawn Terminal via API
 
