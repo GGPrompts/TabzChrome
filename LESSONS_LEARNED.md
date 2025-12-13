@@ -2140,4 +2140,77 @@ The original code disabled the resize trick because it affected tmux splits (SIG
 
 ---
 
+### Lesson: fitTerminal vs triggerResizeTrick Inconsistent Abort Behavior (Dec 13, 2025)
+
+**Problem:** Sidebar resize during continuous Claude output still caused corruption after all the previous fixes.
+
+**What Happened:**
+1. User resizes sidebar while Claude is streaming output
+2. ResizeObserver resets deferral counter to 0
+3. After resize settles, `fitTerminal()` is called (150ms later)
+4. Claude still outputting → fitTerminal defers (counter = 1)
+5. After 10 deferrals (5 seconds of continuous output), `fitTerminal()` **forces** the fit
+6. `fit()` + `refresh()` during active output causes "redraw storms"
+
+**Root Cause:** Inconsistency between `fitTerminal()` and `triggerResizeTrick()`:
+
+```typescript
+// triggerResizeTrick() - CORRECTLY aborts after max deferrals
+if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+  if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
+    // defer...
+  } else {
+    // ABORT entirely - don't force during continuous output
+    console.log(`triggerResizeTrick ABORTED`)
+    resizeDeferCountRef.current = 0
+    return  // EXIT - don't proceed
+  }
+}
+
+// fitTerminal() - INCORRECTLY proceeded after max deferrals
+if (timeSinceOutput < OUTPUT_QUIET_PERIOD && resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
+  // defer...
+} else {
+  // PROCEEDS with fit - even during active output!
+  // This was the bug
+}
+```
+
+**Solution:** Make `fitTerminal()` also abort after max deferrals:
+
+```typescript
+// fitTerminal() - Fixed to match triggerResizeTrick behavior
+if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+  if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
+    resizeDeferCountRef.current++
+    // defer...
+    return
+  } else {
+    // ABORT entirely like triggerResizeTrick does
+    console.log(`fitTerminal ABORTED (max deferrals reached - continuous output)`)
+    resizeDeferCountRef.current = 0
+    return  // EXIT - don't proceed
+  }
+}
+// Only reach here if output has been quiet
+resizeDeferCountRef.current = 0
+// ... proceed with fit
+```
+
+**Key Insights:**
+- When two functions share a counter (`resizeDeferCountRef`), their behavior should be consistent
+- After max deferrals during active output, BOTH should abort - not one abort and one force
+- "Force after timeout" logic can cause more problems than it solves during continuous streaming
+- Terminal dimensions are "likely fine" if Claude has been continuously outputting - the resize isn't critical
+
+**Prevention Checklist:**
+- [ ] When adding deferral logic to a function, check if other functions share the same counter
+- [ ] Ensure consistent behavior (all abort OR all force) across related functions
+- [ ] During continuous output, prefer aborting resize operations over forcing them
+
+**Files:**
+- `extension/components/Terminal.tsx:396-418` - fitTerminal abort logic (matches triggerResizeTrick)
+
+---
+
 **Last Updated**: December 13, 2025

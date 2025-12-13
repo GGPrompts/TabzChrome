@@ -28,6 +28,12 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 - **Why manual resize fixed it**: Resizing the sidebar sent SIGWINCH which forced tmux to redraw - now done automatically after init
 - **Also added**: Consistent status bar styling (dark gray) to project tmux config
 
+#### Sidebar Resize Corruption During Active Output
+- **Fixed terminal corruption when resizing sidebar while Claude is outputting** - Made `fitTerminal()` abort after max deferrals instead of forcing fit during continuous output
+- **Root cause**: Inconsistency between `fitTerminal()` and `triggerResizeTrick()` - the latter correctly aborted after MAX_RESIZE_DEFERRALS (10), but fitTerminal proceeded anyway
+- After 5+ seconds of continuous Claude output during sidebar resize, `fit()` + `refresh()` would run during active output causing "redraw storms" (same line repeated many times)
+- Now both functions abort and reset deferral counter during continuous output
+
 #### Ghost Badge Instant Updates
 - **Ghost badge now updates immediately** on terminal spawn/close/detach instead of waiting for 30-second poll
 - Added `refreshOrphaned()` call in WebSocket message handler for `terminal-spawned` and `terminal-closed` events

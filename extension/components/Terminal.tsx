@@ -393,15 +393,25 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       // Skip if output happened recently - prevents tmux status bar corruption
       // But limit deferrals to prevent infinite loop (Claude outputs constantly)
       const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-      if (timeSinceOutput < OUTPUT_QUIET_PERIOD && resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
-        resizeDeferCountRef.current++
-        // Clear any existing deferred timeout to prevent orphaned timeouts
-        if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
-        deferredFitTerminalRef.current = setTimeout(() => {
-          deferredFitTerminalRef.current = null
-          fitTerminal(retryCount)
-        }, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
-        return
+      if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
+        if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
+          resizeDeferCountRef.current++
+          // Clear any existing deferred timeout to prevent orphaned timeouts
+          if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
+          deferredFitTerminalRef.current = setTimeout(() => {
+            deferredFitTerminalRef.current = null
+            fitTerminal(retryCount)
+          }, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
+          return
+        } else {
+          // CRITICAL: Abort entirely instead of forcing fit during continuous output
+          // Forcing fit during active Claude streaming causes massive corruption
+          // (same line repeated dozens of times). Terminal dimensions are likely fine.
+          // This matches triggerResizeTrick() abort behavior.
+          console.log(`[Terminal] ${terminalId.slice(-8)} fitTerminal ABORTED (max deferrals ${MAX_RESIZE_DEFERRALS} reached - continuous output)`)
+          resizeDeferCountRef.current = 0
+          return
+        }
       }
 
       // Reset deferral counter on successful resize attempt
