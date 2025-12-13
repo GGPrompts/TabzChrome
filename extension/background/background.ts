@@ -936,6 +936,28 @@ async function connectWebSocket() {
           type: 'TERMINAL_RECONNECTED',
           terminalId: message.data?.id,
         })
+      } else if (message.type === 'QUEUE_COMMAND') {
+        // Queue command to chat bar (from external WebSocket clients like ggprompts)
+        // Opens sidebar and populates chat input
+        console.log('[WS] QUEUE_COMMAND received:', message.command?.slice(0, 50))
+        ;(async () => {
+          try {
+            const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+            const targetWindow = windows.find(w => w.focused) || windows[0]
+            if (targetWindow?.id) {
+              await chrome.sidePanel.open({ windowId: targetWindow.id })
+            }
+          } catch {
+            // Silently ignore - sidebar may already be open
+          }
+          // Broadcast to sidepanel after brief delay for sidebar to open
+          setTimeout(() => {
+            broadcastToClients({
+              type: 'QUEUE_COMMAND',
+              command: message.command,
+            })
+          }, 300)
+        })()
       }
       // ============================================
       // BROWSER MCP - Handle requests from backend
