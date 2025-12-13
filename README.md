@@ -53,9 +53,18 @@ TabzChrome is designed to work seamlessly with Claude Code:
 
 Using Anthropic's experimental dynamic tool loading, Claude fetches tool schemas on-demand instead of loading all 20 definitions into context. Enable with the `--dynamic-tool-discovery` flag when adding the MCP server.
 
-**🎭 Power Features:**
-- `conductor` agent - Spawn multiple Claude sessions, delegate tasks, coordinate parallel work
-- `tabz-mcp` skill - Guided browser automation with dynamic tool discovery
+**🎭 Power Features (Claude Code Integration):**
+
+TabzChrome includes a [Claude Code plugin](.claude-plugin/plugin.json) with agents, skills, and MCP tools:
+
+| Component | Description |
+|-----------|-------------|
+| [**conductor**](agents/conductor.md) agent | Orchestrate multi-session workflows - spawn Claude workers, send prompts via tmux, coordinate parallel tasks |
+| [**tabz-mcp**](skills/tabz-mcp/SKILL.md) skill | Guided browser automation with dynamic tool discovery and workflow patterns |
+| [**xterm-js**](skills/xterm-js/SKILL.md) skill | 13 battle-tested patterns for terminal development (resize handling, WebSocket, React hooks, tmux integration) |
+| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | 20 browser control tools (screenshots, clicks, network capture, downloads) |
+
+**Quick setup:** The plugin auto-loads when you run Claude Code in the TabzChrome directory.
 
 ---
 
