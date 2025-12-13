@@ -70,6 +70,8 @@ Using Anthropic's experimental dynamic tool loading, Claude fetches tool schemas
 | tmux | 3.0+ | Session persistence |
 | OS | WSL2 / Linux / macOS | Backend requires Unix shell |
 
+> **Not on Chrome Web Store** - This is a local developer tool that requires running a backend server. Install via "Load unpacked" in Chrome's developer mode.
+
 ### Installation
 
 ```bash
