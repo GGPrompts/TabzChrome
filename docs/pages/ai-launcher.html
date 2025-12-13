@@ -396,6 +396,9 @@
                 </div>
 
                 <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('claude')">
+                        &#128640; Spawn Terminal
+                    </button>
                     <button class="btn-secondary" id="claude-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
@@ -493,6 +496,9 @@
                 </div>
 
                 <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('codex')">
+                        &#128640; Spawn Terminal
+                    </button>
                     <button class="btn-secondary" id="codex-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
@@ -593,6 +599,9 @@
                 </div>
 
                 <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('gemini')">
+                        &#128640; Spawn Terminal
+                    </button>
                     <button class="btn-secondary" id="gemini-send-btn" data-terminal-command="">
                         &#128172; Send to Chat
                     </button>
@@ -637,8 +646,8 @@
 
         <!-- Info Note -->
         <div class="info-note">
-            <strong>Send to Chat:</strong> Requires TabzChrome extension installed. Click queues the command to your sidebar chat input.<br>
-            <strong>Spawn Terminals:</strong> Use the <a href="http://localhost:8129" style="color: var(--accent);">local dashboard</a> at <code>localhost:8129</code> for spawning new terminal tabs.
+            <strong>Spawn Terminal:</strong> Requires TabzChrome backend running on <code>localhost:8129</code>.<br>
+            <strong>Send to Chat:</strong> Requires TabzChrome extension installed. Click queues the command to your sidebar chat input.
         </div>
     </main>
 
@@ -847,6 +856,49 @@
     "workingDir": "${workingDir}",
     "command": "${command}"
   }'`;
+        }
+
+        async function spawnTerminal(cli) {
+            let name, workingDir, command;
+
+            if (cli === 'claude') {
+                name = buildClaudeName();
+                workingDir = document.getElementById('claude-workingDir').value || '~/projects';
+                command = buildClaudeCommand();
+            } else if (cli === 'codex') {
+                name = buildCodexName();
+                workingDir = document.getElementById('codex-workingDir').value || '~/projects';
+                command = buildCodexCommand();
+            } else if (cli === 'gemini') {
+                name = buildGeminiName();
+                workingDir = document.getElementById('gemini-workingDir').value || '~/projects';
+                command = buildGeminiCommand();
+            }
+
+            const resultDiv = document.getElementById(`${cli}-result`);
+            resultDiv.className = 'result-message pending';
+            resultDiv.innerHTML = '&#9203; Spawning terminal...';
+
+            try {
+                const response = await fetch('http://localhost:8129/api/spawn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, workingDir, command })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result-message success';
+                    resultDiv.innerHTML = `&#10003; Terminal spawned! Tab: ${name}`;
+                } else {
+                    resultDiv.className = 'result-message error';
+                    resultDiv.innerHTML = `&#10007; Failed: ${data.error || 'Unknown error'}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `&#10007; Backend not running. Start TabzChrome backend on localhost:8129`;
+            }
         }
 
         function copyCommand(cli) {

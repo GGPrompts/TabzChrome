@@ -120,6 +120,7 @@
       "matches": [
         "https://github.com/*",
         "https://gitlab.com/*",
+        "https://ggprompts.github.io/*",
         "http://localhost/*",
         "http://127.0.0.1/*"
       ]
@@ -135,6 +136,7 @@
       "matches": [
         "http://127.0.0.1/*",
         "http://localhost/*",
+        "https://ggprompts.github.io/*",
         "https://github.com/*",
         "https://gitlab.com/*"
       ],
