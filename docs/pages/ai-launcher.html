@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Terminal Launcher - TabzChrome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-btn.claude.active { color: var(--orange); border-bottom-color: var(--orange); }
+        .tab-btn.codex.active { color: var(--green); border-bottom-color: var(--green); }
+        .tab-btn.gemini.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .tab-icon {
+            font-size: 1.25rem;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Checkbox styling */
+        .checkbox-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .checkbox-label:hover {
+            color: var(--text-primary);
+        }
+
+        /* Preview section */
+        .preview-section {
+            margin-top: 1.5rem;
+        }
+
+        .preview-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .button-row button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-tertiary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-tertiary:hover {
+            background: var(--border);
+        }
+
+        /* Result message */
+        .result-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .result-message.success {
+            display: block;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+
+        .result-message.error {
+            display: block;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+
+        .result-message.pending {
+            display: block;
+            background: rgba(210, 153, 34, 0.1);
+            border: 1px solid var(--yellow);
+            color: var(--yellow);
+        }
+
+        /* Quick presets */
+        .presets {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .presets h4 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        /* Collapsible curl section */
+        .collapsible {
+            margin-top: 1rem;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+        }
+
+        .collapsible-header:hover {
+            color: var(--text-primary);
+        }
+
+        .collapsible-arrow {
+            transition: transform 0.2s;
+        }
+
+        .collapsible.open .collapsible-arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-content {
+            display: none;
+        }
+
+        .collapsible.open .collapsible-content {
+            display: block;
+        }
+
+        /* Connection status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+        }
+
+        /* Info note */
+        .info-note {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .info-note strong {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <img src="icon.png" alt="Tabz" class="logo-icon-img">
+            <span class="logo-text">Tabz</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="ai-launcher.html" class="active">AI Launcher</a></li>
+            <li><a href="mcp-tools.html">MCP Tools</a></li>
+            <li><a href="cli-tools.html">CLI Reference</a></li>
+            <li><a href="tui-tools.html">TUI Tools</a></li>
+            <li><a href="spawn-api.html">Spawn API</a></li>
+            <li><a href="terminal-commands.html">Terminal Commands</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="https://github.com/GGPrompts/TabzChrome" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="hero" style="padding: 2rem 0 3rem;">
+            <h1>AI Terminal Launcher</h1>
+            <p class="tagline">Build and spawn AI coding assistant sessions</p>
+            <div class="hero-badges">
+                <span class="badge" style="border-color: var(--orange); color: var(--orange);">Claude Code</span>
+                <span class="badge" style="border-color: var(--green); color: var(--green);">Codex CLI</span>
+                <span class="badge" style="border-color: var(--accent); color: var(--accent);">Gemini CLI</span>
+            </div>
+        </header>
+
+        <!-- Connection Status -->
+        <div class="connection-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Checking backend...</span>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn claude active" data-tab="claude">
+                <span class="tab-icon">&#129302;</span>
+                Claude Code
+            </button>
+            <button class="tab-btn codex" data-tab="codex">
+                <span class="tab-icon">&#128161;</span>
+                Codex CLI
+            </button>
+            <button class="tab-btn gemini" data-tab="gemini">
+                <span class="tab-icon">&#9733;</span>
+                Gemini CLI
+            </button>
+        </nav>
+
+        <!-- Claude Code Panel -->
+        <div class="tab-panel active" id="claude-panel">
+            <div class="demo-section">
+                <h3>Configure Claude Code Session</h3>
+
+                <div class="demo-controls">
+                    <label>
+                        Tab Name
+                        <input type="text" id="claude-name" placeholder="Claude Worker" value="Claude">
+                    </label>
+                    <label>
+                        Working Directory
+                        <input type="text" id="claude-workingDir" placeholder="~/projects/myapp" value="~/projects">
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label>
+                        Agent
+                        <select id="claude-agent">
+                            <option value="">None (default)</option>
+                            <option value="explore">Explore - Fast codebase exploration</option>
+                            <option value="plan">Plan - Architecture planning</option>
+                            <option value="code-reviewer">Code Reviewer</option>
+                            <option value="general-purpose">General Purpose</option>
+                            <option value="custom">Custom agent...</option>
+                        </select>
+                    </label>
+                    <label id="claude-custom-agent-wrapper" style="display: none;">
+                        Custom Agent Name
+                        <input type="text" id="claude-custom-agent" placeholder="my-custom-agent">
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label>
+                        Model
+                        <select id="claude-model">
+                            <option value="">Default</option>
+                            <option value="opus">Opus</option>
+                            <option value="sonnet">Sonnet</option>
+                            <option value="haiku">Haiku</option>
+                        </select>
+                    </label>
+                    <label>
+                        Permission Mode
+                        <select id="claude-permission-mode">
+                            <option value="bypass">YOLO (--dangerously-skip-permissions)</option>
+                            <option value="">Default (ask for approval)</option>
+                            <option value="acceptEdits">Accept Edits (auto-approve file changes)</option>
+                            <option value="plan">Plan Mode (planning only)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="checkbox-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="claude-continue">
+                        Continue previous session (-c)
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="claude-verbose">
+                        Verbose output (--verbose)
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label style="flex: 2;">
+                        Append System Prompt (--append-system-prompt)
+                        <input type="text" id="claude-system-prompt" placeholder="Additional instructions to append to system prompt...">
+                    </label>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-label">Generated Command:</div>
+                    <div class="demo-output" id="claude-command-preview">claude</div>
+
+                    <div class="preview-label" style="margin-top: 1rem;">Tab Name:</div>
+                    <div class="demo-output" id="claude-name-preview">Claude</div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('claude')">
+                        &#128640; Spawn Terminal
+                    </button>
+                    <button class="btn-secondary" onclick="sendToChat('claude')">
+                        &#128172; Send to Chat
+                    </button>
+                    <button class="btn-tertiary" onclick="copyCommand('claude')">
+                        &#128203; Copy Command
+                    </button>
+                </div>
+
+                <div class="result-message" id="claude-result"></div>
+
+                <!-- Quick Presets -->
+                <div class="presets">
+                    <h4>Quick Presets:</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="applyPreset('claude', 'yolo')">YOLO Mode</button>
+                        <button class="preset-btn" onclick="applyPreset('claude', 'explore')">Explorer</button>
+                        <button class="preset-btn" onclick="applyPreset('claude', 'planner')">Planner</button>
+                        <button class="preset-btn" onclick="applyPreset('claude', 'reviewer')">Code Review</button>
+                        <button class="preset-btn" onclick="applyPreset('claude', 'opus')">Opus Power</button>
+                    </div>
+                </div>
+
+                <!-- Collapsible curl section -->
+                <div class="collapsible" id="claude-curl-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible('claude-curl-section')">
+                        <span class="collapsible-arrow">&#9654;</span>
+                        Show curl command
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="terminal-window" style="max-width: 100%; margin-top: 0.5rem;">
+                            <div class="terminal-header">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                                <span class="terminal-title">curl</span>
+                            </div>
+                            <div class="terminal-body">
+                                <pre id="claude-curl-preview"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Codex CLI Panel -->
+        <div class="tab-panel" id="codex-panel">
+            <div class="demo-section">
+                <h3>Configure Codex CLI Session</h3>
+
+                <div class="demo-controls">
+                    <label>
+                        Tab Name
+                        <input type="text" id="codex-name" placeholder="Codex Worker" value="Codex">
+                    </label>
+                    <label>
+                        Working Directory
+                        <input type="text" id="codex-workingDir" placeholder="~/projects/myapp" value="~/projects">
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label>
+                        Model
+                        <select id="codex-model">
+                            <option value="">Default</option>
+                            <option value="o3">o3</option>
+                            <option value="o4-mini">o4-mini</option>
+                        </select>
+                    </label>
+                    <label>
+                        Approval Policy (-a)
+                        <select id="codex-approval">
+                            <option value="">Default</option>
+                            <option value="suggest">Suggest (model decides)</option>
+                            <option value="auto-edit">Auto Edit (auto-approve edits)</option>
+                            <option value="full-auto">Full Auto (auto-approve all)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="checkbox-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="codex-full-auto" checked>
+                        Full Auto (--full-auto) - Low-friction sandboxed execution
+                    </label>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-label">Generated Command:</div>
+                    <div class="demo-output" id="codex-command-preview">codex</div>
+
+                    <div class="preview-label" style="margin-top: 1rem;">Tab Name:</div>
+                    <div class="demo-output" id="codex-name-preview">Codex</div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('codex')">
+                        &#128640; Spawn Terminal
+                    </button>
+                    <button class="btn-secondary" onclick="sendToChat('codex')">
+                        &#128172; Send to Chat
+                    </button>
+                    <button class="btn-tertiary" onclick="copyCommand('codex')">
+                        &#128203; Copy Command
+                    </button>
+                </div>
+
+                <div class="result-message" id="codex-result"></div>
+
+                <div class="presets">
+                    <h4>Quick Presets:</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="applyPreset('codex', 'full-auto')">Full Auto</button>
+                        <button class="preset-btn" onclick="applyPreset('codex', 'o3')">o3 Model</button>
+                    </div>
+                </div>
+
+                <!-- Collapsible curl section -->
+                <div class="collapsible" id="codex-curl-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible('codex-curl-section')">
+                        <span class="collapsible-arrow">&#9654;</span>
+                        Show curl command
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="terminal-window" style="max-width: 100%; margin-top: 0.5rem;">
+                            <div class="terminal-header">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                                <span class="terminal-title">curl</span>
+                            </div>
+                            <div class="terminal-body">
+                                <pre id="codex-curl-preview"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gemini CLI Panel -->
+        <div class="tab-panel" id="gemini-panel">
+            <div class="demo-section">
+                <h3>Configure Gemini CLI Session</h3>
+
+                <div class="demo-controls">
+                    <label>
+                        Tab Name
+                        <input type="text" id="gemini-name" placeholder="Gemini Worker" value="Gemini">
+                    </label>
+                    <label>
+                        Working Directory
+                        <input type="text" id="gemini-workingDir" placeholder="~/projects/myapp" value="~/projects">
+                    </label>
+                </div>
+
+                <div class="demo-controls">
+                    <label>
+                        Model (-m)
+                        <select id="gemini-model">
+                            <option value="">Default</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        </select>
+                    </label>
+                    <label>
+                        Approval Mode
+                        <select id="gemini-approval-mode">
+                            <option value="yolo">YOLO (-y, auto-approve all)</option>
+                            <option value="">Default (prompt for approval)</option>
+                            <option value="auto_edit">Auto Edit (auto-approve edits)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="checkbox-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gemini-sandbox">
+                        Sandbox Mode (-s) - Run in isolated environment
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gemini-debug">
+                        Debug Mode (-d) - Show detailed output
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gemini-resume">
+                        Resume latest session (-r latest)
+                    </label>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-label">Generated Command:</div>
+                    <div class="demo-output" id="gemini-command-preview">gemini</div>
+
+                    <div class="preview-label" style="margin-top: 1rem;">Tab Name:</div>
+                    <div class="demo-output" id="gemini-name-preview">Gemini</div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-primary" onclick="spawnTerminal('gemini')">
+                        &#128640; Spawn Terminal
+                    </button>
+                    <button class="btn-secondary" onclick="sendToChat('gemini')">
+                        &#128172; Send to Chat
+                    </button>
+                    <button class="btn-tertiary" onclick="copyCommand('gemini')">
+                        &#128203; Copy Command
+                    </button>
+                </div>
+
+                <div class="result-message" id="gemini-result"></div>
+
+                <div class="presets">
+                    <h4>Quick Presets:</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="applyPreset('gemini', 'yolo')">YOLO Mode</button>
+                        <button class="preset-btn" onclick="applyPreset('gemini', 'safe')">Safe Mode</button>
+                        <button class="preset-btn" onclick="applyPreset('gemini', 'debug')">Debug</button>
+                    </div>
+                </div>
+
+                <!-- Collapsible curl section -->
+                <div class="collapsible" id="gemini-curl-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible('gemini-curl-section')">
+                        <span class="collapsible-arrow">&#9654;</span>
+                        Show curl command
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="terminal-window" style="max-width: 100%; margin-top: 0.5rem;">
+                            <div class="terminal-header">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                                <span class="terminal-title">curl</span>
+                            </div>
+                            <div class="terminal-body">
+                                <pre id="gemini-curl-preview"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Note -->
+        <div class="info-note">
+            <strong>Note:</strong> Spawning terminals requires the TabzChrome backend running on <code>localhost:8129</code>.
+            The "Send to Chat" button uses WebSocket to queue the command in your sidebar chat bar.
+        </div>
+    </main>
+
+    <footer>
+        <p>Built with React, TypeScript, xterm.js | <a href="https://github.com/GGPrompts/TabzChrome">GitHub</a></p>
+    </footer>
+
+    <script>
+        // ========================================
+        // WebSocket Connection
+        // ========================================
+        let ws = null;
+        let wsConnected = false;
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket('ws://localhost:8129');
+
+                ws.onopen = () => {
+                    wsConnected = true;
+                    updateConnectionStatus(true);
+                };
+
+                ws.onclose = () => {
+                    wsConnected = false;
+                    updateConnectionStatus(false);
+                    // Reconnect after 3s
+                    setTimeout(connectWebSocket, 3000);
+                };
+
+                ws.onerror = () => {
+                    wsConnected = false;
+                    updateConnectionStatus(false);
+                };
+            } catch (e) {
+                updateConnectionStatus(false);
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = 'Connected to TabzChrome backend';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = 'Backend not connected - start backend on localhost:8129';
+            }
+        }
+
+        // Initialize WebSocket
+        connectWebSocket();
+
+        // ========================================
+        // Tab Navigation
+        // ========================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+
+                // Update active tab button
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update active panel
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(`${tabId}-panel`).classList.add('active');
+            });
+        });
+
+        // ========================================
+        // Collapsible Sections
+        // ========================================
+        function toggleCollapsible(id) {
+            document.getElementById(id).classList.toggle('open');
+        }
+
+        // ========================================
+        // Claude Code Configuration
+        // ========================================
+        function buildClaudeCommand() {
+            const parts = ['claude'];
+
+            const agent = document.getElementById('claude-agent').value;
+            const customAgent = document.getElementById('claude-custom-agent').value;
+            const model = document.getElementById('claude-model').value;
+            const permissionMode = document.getElementById('claude-permission-mode').value;
+            const continueSession = document.getElementById('claude-continue').checked;
+            const verbose = document.getElementById('claude-verbose').checked;
+            const systemPrompt = document.getElementById('claude-system-prompt').value.trim();
+
+            if (agent === 'custom' && customAgent) {
+                parts.push(`--agent ${customAgent}`);
+            } else if (agent && agent !== 'custom') {
+                parts.push(`--agent ${agent}`);
+            }
+
+            if (model) parts.push(`--model ${model}`);
+
+            if (permissionMode === 'bypass') {
+                parts.push('--dangerously-skip-permissions');
+            } else if (permissionMode) {
+                parts.push(`--permission-mode ${permissionMode}`);
+            }
+
+            if (continueSession) parts.push('--continue');
+            if (verbose) parts.push('--verbose');
+            if (systemPrompt) parts.push(`--append-system-prompt "${systemPrompt}"`);
+
+            return parts.join(' ');
+        }
+
+        function buildClaudeName() {
+            const baseName = document.getElementById('claude-name').value || 'Claude';
+            const agent = document.getElementById('claude-agent').value;
+            const customAgent = document.getElementById('claude-custom-agent').value;
+            const model = document.getElementById('claude-model').value;
+
+            const parts = [baseName];
+
+            if (agent === 'custom' && customAgent) {
+                parts.push(customAgent);
+            } else if (agent && agent !== 'custom') {
+                parts.push(agent.charAt(0).toUpperCase() + agent.slice(1).replace('-', ' '));
+            }
+
+            if (model) {
+                parts.push(`(${model})`);
+            }
+
+            return parts.join(' ');
+        }
+
+        function updateClaudePreview() {
+            const command = buildClaudeCommand();
+            const name = buildClaudeName();
+            const workingDir = document.getElementById('claude-workingDir').value || '~/projects';
+
+            document.getElementById('claude-command-preview').textContent = command;
+            document.getElementById('claude-name-preview').textContent = name;
+            document.getElementById('claude-curl-preview').textContent = buildCurl(name, workingDir, command);
+
+            // Show/hide custom agent input
+            const agentSelect = document.getElementById('claude-agent').value;
+            document.getElementById('claude-custom-agent-wrapper').style.display =
+                agentSelect === 'custom' ? 'flex' : 'none';
+        }
+
+        // ========================================
+        // Codex CLI Configuration
+        // ========================================
+        function buildCodexCommand() {
+            const parts = ['codex'];
+
+            const model = document.getElementById('codex-model').value;
+            const approval = document.getElementById('codex-approval').value;
+            const fullAuto = document.getElementById('codex-full-auto').checked;
+
+            if (model) parts.push(`--model ${model}`);
+            if (fullAuto) parts.push('--full-auto');
+            if (approval) parts.push(`-a ${approval}`);
+
+            return parts.join(' ');
+        }
+
+        function buildCodexName() {
+            const baseName = document.getElementById('codex-name').value || 'Codex';
+            const model = document.getElementById('codex-model').value;
+
+            if (model) {
+                return `${baseName} (${model})`;
+            }
+            return baseName;
+        }
+
+        function updateCodexPreview() {
+            const command = buildCodexCommand();
+            const name = buildCodexName();
+            const workingDir = document.getElementById('codex-workingDir').value || '~/projects';
+
+            document.getElementById('codex-command-preview').textContent = command;
+            document.getElementById('codex-name-preview').textContent = name;
+            document.getElementById('codex-curl-preview').textContent = buildCurl(name, workingDir, command);
+        }
+
+        // ========================================
+        // Gemini CLI Configuration
+        // ========================================
+        function buildGeminiCommand() {
+            const parts = ['gemini'];
+
+            const model = document.getElementById('gemini-model').value;
+            const approvalMode = document.getElementById('gemini-approval-mode').value;
+            const sandbox = document.getElementById('gemini-sandbox').checked;
+            const debug = document.getElementById('gemini-debug').checked;
+            const resume = document.getElementById('gemini-resume').checked;
+
+            if (model) parts.push(`-m ${model}`);
+
+            if (approvalMode === 'yolo') {
+                parts.push('-y');
+            } else if (approvalMode) {
+                parts.push(`--approval-mode ${approvalMode}`);
+            }
+
+            if (sandbox) parts.push('-s');
+            if (debug) parts.push('-d');
+            if (resume) parts.push('-r latest');
+
+            return parts.join(' ');
+        }
+
+        function buildGeminiName() {
+            const baseName = document.getElementById('gemini-name').value || 'Gemini';
+            const model = document.getElementById('gemini-model').value;
+
+            if (model) {
+                const shortModel = model.replace('gemini-', '').replace('-', ' ');
+                return `${baseName} (${shortModel})`;
+            }
+            return baseName;
+        }
+
+        function updateGeminiPreview() {
+            const command = buildGeminiCommand();
+            const name = buildGeminiName();
+            const workingDir = document.getElementById('gemini-workingDir').value || '~/projects';
+
+            document.getElementById('gemini-command-preview').textContent = command;
+            document.getElementById('gemini-name-preview').textContent = name;
+            document.getElementById('gemini-curl-preview').textContent = buildCurl(name, workingDir, command);
+        }
+
+        // ========================================
+        // Shared Utilities
+        // ========================================
+        function buildCurl(name, workingDir, command) {
+            return `curl -X POST http://localhost:8129/api/spawn \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "${name}",
+    "workingDir": "${workingDir}",
+    "command": "${command}"
+  }'`;
+        }
+
+        async function spawnTerminal(cli) {
+            let name, workingDir, command;
+
+            if (cli === 'claude') {
+                name = buildClaudeName();
+                workingDir = document.getElementById('claude-workingDir').value || '~/projects';
+                command = buildClaudeCommand();
+            } else if (cli === 'codex') {
+                name = buildCodexName();
+                workingDir = document.getElementById('codex-workingDir').value || '~/projects';
+                command = buildCodexCommand();
+            } else if (cli === 'gemini') {
+                name = buildGeminiName();
+                workingDir = document.getElementById('gemini-workingDir').value || '~/projects';
+                command = buildGeminiCommand();
+            }
+
+            const resultDiv = document.getElementById(`${cli}-result`);
+            resultDiv.className = 'result-message pending';
+            resultDiv.innerHTML = '&#9203; Spawning terminal...';
+
+            try {
+                const response = await fetch('http://localhost:8129/api/spawn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, workingDir, command })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result-message success';
+                    resultDiv.innerHTML = `&#10003; Terminal spawned!<br><small>ID: ${data.terminal?.id || 'N/A'}</small>`;
+                } else {
+                    resultDiv.className = 'result-message error';
+                    resultDiv.innerHTML = `&#10007; Failed: ${data.error || 'Unknown error'}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `&#10007; Error: ${err.message}<br><small>Is the backend running on localhost:8129?</small>`;
+            }
+        }
+
+        function sendToChat(cli) {
+            let command;
+            if (cli === 'claude') command = buildClaudeCommand();
+            else if (cli === 'codex') command = buildCodexCommand();
+            else if (cli === 'gemini') command = buildGeminiCommand();
+
+            const resultDiv = document.getElementById(`${cli}-result`);
+
+            if (!wsConnected || !ws) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = '&#10007; Not connected to backend. Start TabzChrome backend first.';
+                return;
+            }
+
+            try {
+                ws.send(JSON.stringify({
+                    type: 'QUEUE_COMMAND',
+                    command: command
+                }));
+                resultDiv.className = 'result-message success';
+                resultDiv.innerHTML = '&#10003; Command sent to sidebar chat!';
+            } catch (err) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `&#10007; Failed to send: ${err.message}`;
+            }
+        }
+
+        function copyCommand(cli) {
+            let command;
+            if (cli === 'claude') command = buildClaudeCommand();
+            else if (cli === 'codex') command = buildCodexCommand();
+            else if (cli === 'gemini') command = buildGeminiCommand();
+
+            navigator.clipboard.writeText(command).then(() => {
+                showCopyFeedback(event.target);
+            });
+        }
+
+        function showCopyFeedback(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '&#10003; Copied!';
+            setTimeout(() => btn.innerHTML = originalText, 1500);
+        }
+
+        // ========================================
+        // Presets
+        // ========================================
+        function applyPreset(cli, preset) {
+            if (cli === 'claude') {
+                switch (preset) {
+                    case 'yolo':
+                        document.getElementById('claude-agent').value = '';
+                        document.getElementById('claude-model').value = '';
+                        document.getElementById('claude-permission-mode').value = 'bypass';
+                        document.getElementById('claude-continue').checked = false;
+                        document.getElementById('claude-verbose').checked = false;
+                        break;
+                    case 'explore':
+                        document.getElementById('claude-agent').value = 'explore';
+                        document.getElementById('claude-model').value = 'haiku';
+                        document.getElementById('claude-permission-mode').value = 'bypass';
+                        break;
+                    case 'planner':
+                        document.getElementById('claude-agent').value = 'plan';
+                        document.getElementById('claude-model').value = '';
+                        document.getElementById('claude-permission-mode').value = 'plan';
+                        break;
+                    case 'reviewer':
+                        document.getElementById('claude-agent').value = 'code-reviewer';
+                        document.getElementById('claude-model').value = '';
+                        document.getElementById('claude-permission-mode').value = 'bypass';
+                        break;
+                    case 'opus':
+                        document.getElementById('claude-agent').value = '';
+                        document.getElementById('claude-model').value = 'opus';
+                        document.getElementById('claude-permission-mode').value = 'bypass';
+                        break;
+                }
+                updateClaudePreview();
+            } else if (cli === 'codex') {
+                switch (preset) {
+                    case 'full-auto':
+                        document.getElementById('codex-model').value = '';
+                        document.getElementById('codex-approval').value = '';
+                        document.getElementById('codex-full-auto').checked = true;
+                        break;
+                    case 'o3':
+                        document.getElementById('codex-model').value = 'o3';
+                        document.getElementById('codex-full-auto').checked = true;
+                        break;
+                }
+                updateCodexPreview();
+            } else if (cli === 'gemini') {
+                switch (preset) {
+                    case 'yolo':
+                        document.getElementById('gemini-approval-mode').value = 'yolo';
+                        document.getElementById('gemini-sandbox').checked = false;
+                        document.getElementById('gemini-debug').checked = false;
+                        break;
+                    case 'safe':
+                        document.getElementById('gemini-approval-mode').value = '';
+                        document.getElementById('gemini-sandbox').checked = true;
+                        document.getElementById('gemini-debug').checked = false;
+                        break;
+                    case 'debug':
+                        document.getElementById('gemini-debug').checked = true;
+                        break;
+                }
+                updateGeminiPreview();
+            }
+        }
+
+        // ========================================
+        // Initialize
+        // ========================================
+        function init() {
+            // Attach change listeners to Claude controls
+            ['claude-name', 'claude-workingDir', 'claude-agent', 'claude-custom-agent',
+             'claude-model', 'claude-permission-mode', 'claude-continue', 'claude-verbose', 'claude-system-prompt'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updateClaudePreview);
+                    el.addEventListener('input', updateClaudePreview);
+                }
+            });
+
+            // Attach change listeners to Codex controls
+            ['codex-name', 'codex-workingDir', 'codex-model', 'codex-approval', 'codex-full-auto'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updateCodexPreview);
+                    el.addEventListener('input', updateCodexPreview);
+                }
+            });
+
+            // Attach change listeners to Gemini controls
+            ['gemini-name', 'gemini-workingDir', 'gemini-model', 'gemini-approval-mode',
+             'gemini-sandbox', 'gemini-debug', 'gemini-resume'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updateGeminiPreview);
+                    el.addEventListener('input', updateGeminiPreview);
+                }
+            });
+
+            // Initial preview updates
+            updateClaudePreview();
+            updateCodexPreview();
+            updateGeminiPreview();
+        }
+
+        // Run init on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
