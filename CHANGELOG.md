@@ -15,7 +15,17 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
-## [Unreleased]
+## [1.0.0] - 2025-12-14
+
+**First Public Release** - Full Linux terminals in your Chrome sidebar!
+
+### Highlights
+
+- **Real bash terminals** in your browser sidebar (not a web emulator)
+- **Persistent sessions** powered by tmux - terminals survive sidebar close, browser restart
+- **20 MCP tools** for Claude Code browser automation (screenshots, clicks, network capture)
+- **Profile system** with categories, color-coded tabs, and smart directory inheritance
+- **Claude Code status detection** with emoji indicators and optional voice announcements
 
 ### Added
 
@@ -24,32 +34,27 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 - **GitHub Pages launcher: Token input field** - Paste token once, stored in localStorage for persistence
 - **Improved UX for external sites** - Users consciously authorize sites by pasting their token instead of auto-fetch
 
+#### TTS Long Text Support
+- **Handles long text-to-speech requests** - Text over 5000 characters now uses temp file input instead of command line
+- **Dynamic timeout scaling** - Timeout scales with text length (10s base + 1s per 1000 chars, max 120s)
+
 ### Fixed
 
 #### Terminal Corruption During Refresh While Working
 - **Fixed copy mode and corruption when refreshing sidebar during active Claude output** - Three-part fix:
-  - Disabled tmux `client-attached` and `after-select-pane` hooks that sent `refresh-client` during reconnection (escape sequences arrived before xterm.js was ready)
+  - Disabled tmux `client-attached` and `after-select-pane` hooks that sent `refresh-client` during reconnection
   - Added 1000ms output guard to buffer initial output flood during reconnection
-  - Added forced resize trick after guard lifts (sends SIGWINCH to exit copy mode and fix scroll regions)
-- **Root cause**: When page refreshed during active output, partial escape sequences were misinterpreted as tmux commands (entering copy mode) or corrupted scroll regions
-- **Why manual resize fixed it**: Resizing the sidebar sent SIGWINCH which forced tmux to redraw - now done automatically after init
-- **Also added**: Consistent status bar styling (dark gray) to project tmux config
+  - Added forced resize trick after guard lifts (sends SIGWINCH to exit copy mode)
 
 #### Sidebar Resize Corruption During Active Output
 - **Fixed terminal corruption when resizing sidebar while Claude is outputting** - Made `fitTerminal()` abort after max deferrals instead of forcing fit during continuous output
-- **Root cause**: Inconsistency between `fitTerminal()` and `triggerResizeTrick()` - the latter correctly aborted after MAX_RESIZE_DEFERRALS (10), but fitTerminal proceeded anyway
-- After 5+ seconds of continuous Claude output during sidebar resize, `fit()` + `refresh()` would run during active output causing "redraw storms" (same line repeated many times)
-- Now both functions abort and reset deferral counter during continuous output
 
 #### Ghost Badge Instant Updates
 - **Ghost badge now updates immediately** on terminal spawn/close/detach instead of waiting for 30-second poll
-- Added `refreshOrphaned()` call in WebSocket message handler for `terminal-spawned` and `terminal-closed` events
-- Added direct refresh after detach action in context menu
 
 #### Tmux Config Consistency
-- **dev.sh now loads xterm.js-optimized tmux config** - Added `-f` flag and `source-file` command to ensure `.tmux-terminal-tabs.conf` is always applied, even if tmux server was started from Windows Terminal with different settings
-- **pty-handler.js now forces config reload** - Added `tmux source-file` after session creation to ensure xterm.js settings apply even when tmux server was started elsewhere
-- **Fixed "can't find window: 0" error** - Removed hardcoded `:0` window index in `tmux-session-manager.js` that failed when `base-index 1` is set; now uses session name without window index (works with any base-index)
+- **dev.sh and pty-handler.js now force xterm.js-optimized tmux config** - Ensures consistent behavior regardless of how tmux server was started
+- **Fixed "can't find window: 0" error** - Works with any tmux `base-index` setting
 
 ---
 

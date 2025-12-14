@@ -233,6 +233,7 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
 
   // Generate with edge-tts using execFile (prevents command injection)
   // execFile passes arguments as array, not through shell
+  let tempTextFile = null;
   try {
     const outputBase = path.join(audioDir, cacheKey);
     // Build args array - no shell interpretation
@@ -240,9 +241,21 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
     if (rate && rate !== '+0%') {
       args.push('-r', rate);
     }
-    args.push('-t', text, '-o', outputBase);
 
-    await execFileAsync('edge-tts', args, { timeout: 10000 }); // 10 second timeout
+    // For long text (> 5000 chars), use file input to avoid command-line limits
+    const TEXT_THRESHOLD = 5000;
+    if (text.length > TEXT_THRESHOLD) {
+      tempTextFile = path.join(audioDir, `${cacheKey}.txt`);
+      fs.writeFileSync(tempTextFile, text, 'utf8');
+      args.push('-f', tempTextFile);
+    } else {
+      args.push('-t', text);
+    }
+    args.push('-o', outputBase);
+
+    // Scale timeout with text length: 10s base + 1s per 1000 chars, max 120s
+    const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
+    await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
     // edge-tts adds .mp3 extension
     if (fs.existsSync(`${outputBase}.mp3`)) {
@@ -264,6 +277,11 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
       console.error('[Audio] edge-tts error:', err.message);
     }
     res.status(500).json({ success: false, error: 'TTS generation failed' });
+  } finally {
+    // Clean up temp text file
+    if (tempTextFile && fs.existsSync(tempTextFile)) {
+      fs.unlinkSync(tempTextFile);
+    }
   }
 });
 
@@ -309,15 +327,28 @@ app.post('/api/audio/speak', async (req, res) => {
 
   // Check if cached, if not generate
   if (!fs.existsSync(cacheFile)) {
+    let tempTextFile = null;
     try {
       const outputBase = path.join(audioDir, cacheKey);
       const args = ['synthesize', '-v', voice];
       if (rate && rate !== '+0%') {
         args.push('-r', rate);
       }
-      args.push('-t', text, '-o', outputBase);
 
-      await execFileAsync('edge-tts', args, { timeout: 10000 });
+      // For long text (> 5000 chars), use file input to avoid command-line limits
+      const TEXT_THRESHOLD = 5000;
+      if (text.length > TEXT_THRESHOLD) {
+        tempTextFile = path.join(audioDir, `${cacheKey}.txt`);
+        fs.writeFileSync(tempTextFile, text, 'utf8');
+        args.push('-f', tempTextFile);
+      } else {
+        args.push('-t', text);
+      }
+      args.push('-o', outputBase);
+
+      // Scale timeout with text length: 10s base + 1s per 1000 chars, max 120s
+      const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
+      await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
       if (fs.existsSync(`${outputBase}.mp3`)) {
         fs.renameSync(`${outputBase}.mp3`, cacheFile);
@@ -329,6 +360,11 @@ app.post('/api/audio/speak', async (req, res) => {
     } catch (err) {
       console.error('[Audio] edge-tts error:', err.message);
       return res.status(500).json({ success: false, error: 'TTS generation failed' });
+    } finally {
+      // Clean up temp text file
+      if (tempTextFile && fs.existsSync(tempTextFile)) {
+        fs.unlinkSync(tempTextFile);
+      }
     }
   }
 

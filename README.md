@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-2.7.4-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -600,7 +600,7 @@ npm test
     "activeTerminals": 3,
     "totalTerminals": 5,
     "memoryUsage": { "heapUsed": 45, "heapTotal": 65, "rss": 120, "unit": "MB" },
-    "version": "2.7.4",
+    "version": "1.0.0",
     "nodeVersion": "v20.10.0",
     "platform": "linux",
     "timestamp": "2025-12-12T12:00:00.000Z"

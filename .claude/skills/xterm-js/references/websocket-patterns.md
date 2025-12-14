@@ -42,21 +42,6 @@ ws.on('message', (message) => {
 })
 ```
 
-### The Bug: Using 'close' for Detach
-
-```typescript
-// WRONG - This KILLS the tmux session permanently!
-const handleDetach = () => {
-  wsRef.current.send(JSON.stringify({
-    type: 'close',  // ❌ DESTRUCTIVE!
-    terminalId: terminal.agentId,
-  }))
-}
-
-// User clicks detached tab to reattach
-// Backend: "No tmux session found" - session was killed!
-```
-
 ### The Fix: Use API Endpoints for Non-Destructive Operations
 
 ```typescript
@@ -79,14 +64,6 @@ const handleDetach = async () => {
     agentId: undefined,
   })
 }
-
-// Backend API endpoint (backend/routes/api.js)
-router.post('/api/tmux/detach/:name', async (req, res) => {
-  const sessionName = req.params.name
-  // Non-destructive detach - session survives
-  execSync(`tmux detach-client -s "${sessionName}"`)
-  res.json({ success: true })
-})
 ```
 
 ## Backend Output Routing (Multi-Window)
@@ -119,10 +96,6 @@ ws.on('message', (message) => {
 
     // Add this WebSocket as owner
     terminalOwners.get(terminalId).add(ws)
-
-    console.log(`[WS] Registered owner for terminal ${terminalId}`, {
-      totalOwners: terminalOwners.get(terminalId).size
-    })
   }
 })
 
@@ -131,7 +104,6 @@ terminalRegistry.on('output', (terminalId, data) => {
   const owners = terminalOwners.get(terminalId)
 
   if (!owners || owners.size === 0) {
-    console.warn(`[WS] No owners for terminal ${terminalId}`)
     return
   }
 
@@ -148,107 +120,6 @@ terminalRegistry.on('output', (terminalId, data) => {
     }
   })
 })
-
-// Cleanup on disconnect
-ws.on('close', () => {
-  // Remove this WebSocket from all terminal ownership sets
-  terminalOwners.forEach((owners, terminalId) => {
-    owners.delete(ws)
-
-    // Clean up empty ownership sets
-    if (owners.size === 0) {
-      terminalOwners.delete(terminalId)
-    }
-  })
-})
-```
-
-### Defensive Cleanup for Stale Connections
-
-Even with proper close handling, stale connections can linger. Add periodic cleanup:
-
-```javascript
-// Periodic cleanup of dead connections (every 5 seconds)
-setInterval(() => {
-  terminalOwners.forEach((owners, terminalId) => {
-    const deadConnections = []
-
-    owners.forEach(client => {
-      // Check if connection is dead
-      if (client.readyState === WebSocket.CLOSED ||
-          client.readyState === WebSocket.CLOSING) {
-        deadConnections.push(client)
-      }
-    })
-
-    // Remove dead connections
-    deadConnections.forEach(dead => {
-      owners.delete(dead)
-      console.log(`[WS] Cleaned up dead connection for terminal ${terminalId}`)
-    })
-
-    // Clean up empty ownership sets
-    if (owners.size === 0) {
-      terminalOwners.delete(terminalId)
-    }
-  })
-}, 5000)
-```
-
-## Frontend: Window-Based Filtering
-
-### The Problem
-
-In multi-window setups, Window 1 can adopt terminals spawned in Window 2, creating duplicate connections to the same tmux session.
-
-### The Solution: Check windowId Before Adding to Agents
-
-```typescript
-// src/SimpleTerminalApp.tsx
-
-// WebSocket message handler
-ws.onmessage = (event) => {
-  const message = JSON.parse(event.data)
-
-  if (message.type === 'terminal-spawned') {
-    const existingTerminal = terminals.find(t => t.id === message.terminalId)
-
-    if (existingTerminal) {
-      // CRITICAL: Check windowId BEFORE adding to agents
-      const terminalWindow = existingTerminal.windowId || 'main'
-      const currentWindowId = urlParams.get('window') || 'main'
-
-      if (terminalWindow !== currentWindowId) {
-        console.log('⏭️ Ignoring terminal-spawned - wrong window', {
-          terminalWindow,
-          currentWindowId
-        })
-        return  // Don't add to webSocketAgents!
-      }
-
-      // Safe to add - terminal belongs to this window
-      addWebSocketAgent(message.data.id, existingTerminal)
-    }
-  }
-}
-```
-
-### No Fallback Terminal Creation
-
-```typescript
-// OLD (broken) - Creates terminals for broadcasts from other windows
-} else {
-  // Terminal not found - must be from another window's spawn
-  // Create new terminal to handle it
-  const newTerminal = createTerminal(message.data)  // ❌ WRONG!
-}
-
-// NEW (fixed) - Don't create terminals for unmatched spawns
-} else {
-  // No matching terminal found - ignore
-  console.warn('⏭️ Ignoring terminal-spawned - no matching terminal')
-  return  // Prevents cross-window adoption
-}
 ```
 
 ## Message Flow Patterns
@@ -269,8 +140,6 @@ wsRef.current.send(JSON.stringify({
 }))
 
 // Backend spawns PTY and registers ownership
-terminalOwners.get('terminal-abc').add(ws)
-
 // Backend sends spawned confirmation
 ws.send(JSON.stringify({
   type: 'terminal-spawned',
@@ -300,8 +169,6 @@ wsRef.current.send(JSON.stringify({
 }))
 
 // Backend finds existing PTY and registers ownership
-terminalOwners.get('terminal-abc').add(ws)
-
 // Backend sends reconnected confirmation with SAME agentId
 ws.send(JSON.stringify({
   type: 'terminal-spawned',  // Same event as spawn!
@@ -316,61 +183,7 @@ ws.send(JSON.stringify({
 // This is why we clear processedAgentIds on detach!
 ```
 
-### Input Flow
-
-```typescript
-// Frontend sends user input
-wsRef.current.send(JSON.stringify({
-  type: 'input',
-  terminalId: 'agent-xyz',  // Use agentId, not terminal ID!
-  data: 'ls -la\r',  // Terminal input
-}))
-
-// Backend writes to PTY
-pty.write('ls -la\r')
-
-// PTY generates output
-// Backend sends output to owners only
-owners.forEach(client => {
-  client.send(JSON.stringify({
-    type: 'output',
-    terminalId: 'agent-xyz',
-    data: 'total 64\ndrwxr-xr-x...',  // Terminal output
-  }))
-})
-
-// Frontend writes to xterm
-xtermRef.current.write(message.data)
-```
-
 ## Debugging WebSocket Issues
-
-### Enable Debug Logging
-
-```javascript
-// Backend
-ws.on('message', (message) => {
-  const msg = JSON.parse(message)
-  console.log('[WS] Received:', {
-    type: msg.type,
-    terminalId: msg.terminalId,
-    ownersCount: terminalOwners.get(msg.terminalId)?.size || 0
-  })
-})
-```
-
-```typescript
-// Frontend
-ws.onmessage = (event) => {
-  const message = JSON.parse(event.data)
-  console.log('[WS] Received:', {
-    type: message.type,
-    terminalId: message.terminalId,
-    currentWindow: urlParams.get('window') || 'main',
-    agentsCount: webSocketAgents.current.size
-  })
-}
-```
 
 ### Common Issues and Solutions
 
@@ -390,10 +203,3 @@ ws.onmessage = (event) => {
 - Check: Is processedAgentIds cleared on detach?
 - Check: Is backend returning same agentId?
 - Check: Is frontend allowing same agentId to be processed?
-
-## Files to Reference
-
-- `backend/server.js:114-443` - WebSocket message handling and output routing
-- `backend/routes/api.js:696-733` - Tmux detach API endpoint
-- `src/SimpleTerminalApp.tsx:757-785` - Frontend windowId filtering
-- `src/hooks/useWebSocketManager.ts` - WebSocket agent management

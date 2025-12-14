@@ -1,7 +1,7 @@
 # PLAN.md - TabzChrome Roadmap
 
 **Last Updated**: December 13, 2025
-**Current Version**: 2.7.4
+**Current Version**: 1.0.0
 **Status**: Profile Organization Complete | Next: Power Tools
 
 ---
