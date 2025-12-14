@@ -31,7 +31,7 @@
     {
       "name": "tabz-chrome-full",
       "description": "Full TabzChrome plugin with Tabz MCP server, state tracker hooks, commands, and all skills",
-      "source": ".",
+      "source": "./",
       "category": "integration",
       "tags": ["browser", "terminal", "mcp", "chrome-extension", "hooks", "state-tracking"]
     }
