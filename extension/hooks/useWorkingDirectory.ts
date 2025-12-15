@@ -18,7 +18,7 @@ export interface UseWorkingDirectoryReturn {
  */
 export function useWorkingDirectory(): UseWorkingDirectoryReturn {
   const [globalWorkingDir, setGlobalWorkingDir] = useState<string>('~')
-  const [recentDirs, setRecentDirs] = useState<string[]>(['~', '~/projects'])
+  const [recentDirs, setRecentDirs] = useState<string[]>(['~'])
 
   // Track if component is mounted to avoid state updates after unmount
   const isMountedRef = useRef(true)
@@ -35,7 +35,7 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
       if (!isMountedRef.current) return
 
       let localDir = result.globalWorkingDir as string || '~'
-      let localRecent = (result.recentDirs as string[]) || ['~', '~/projects']
+      let localRecent = (result.recentDirs as string[]) || ['~']
 
       // Step 2: Fetch from backend API and merge
       try {
