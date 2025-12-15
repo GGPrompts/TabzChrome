@@ -49,7 +49,7 @@ interface TerminalProps {
  * @param props.workingDir - Starting directory for the terminal
  * @param props.tmuxSession - Tmux session name for persistence
  * @param props.fontSize - Font size in pixels (default: 16)
- * @param props.fontFamily - Font family name (default: 'JetBrains Mono NF')
+ * @param props.fontFamily - Font family name (default: 'monospace')
  * @param props.themeName - Theme family name (default: 'high-contrast')
  * @param props.isDark - Dark mode toggle (default: true)
  * @param props.isActive - Whether this terminal is the active tab
@@ -57,7 +57,7 @@ interface TerminalProps {
  * @param props.onClose - Callback when terminal is closed
  * @returns Terminal container with xterm.js instance
  */
-export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'JetBrains Mono NF', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose }: TerminalProps) {
+export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)

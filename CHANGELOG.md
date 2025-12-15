@@ -15,6 +15,32 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.0] - 2025-12-15
+
+### Changed
+
+#### Default Font Changed to Monospace
+- **Default font is now `monospace`** instead of `JetBrains Mono NF` - Works out of the box on all systems without installing fonts
+- **Fixes character spacing issues** on systems without Nerd Fonts installed
+
+### Added
+
+#### Bundled Nerd Fonts
+- **`fonts/` folder** with pre-bundled Nerd Fonts (16MB total):
+  - JetBrains Mono NF (Regular + Bold)
+  - Fira Code NF (Regular + Bold)
+  - Caskaydia Cove NF (Regular + Bold)
+- **Simple install instructions** in `fonts/README.md` for Windows, macOS, and Linux
+
+#### Platform-Aware Font List
+- **Font dropdown now filters by platform** - Windows-only fonts (Consolas, Cascadia Code/Mono) hidden on macOS/Linux
+- **Trimmed font list** from 11 to 8 options - removed unbundled Nerd Fonts that required manual download
+
+### Fixed
+- **Terminal spacing/gaps issue** when default font not installed - now falls back gracefully to system monospace
+
+---
+
 ## [1.0.1] - 2025-12-14
 
 ### Fixed

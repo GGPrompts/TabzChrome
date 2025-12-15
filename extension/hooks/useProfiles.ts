@@ -86,7 +86,7 @@ export function useProfiles(_params: UseProfilesParams): UseProfilesReturn {
           return {
             ...p,
             fontSize: p.fontSize ?? 16,
-            fontFamily: p.fontFamily ?? 'JetBrains Mono NF',
+            fontFamily: p.fontFamily ?? 'monospace',
             themeName: themeName ?? 'high-contrast',
             theme: undefined, // Remove old field
             audioOverrides,

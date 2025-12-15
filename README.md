@@ -91,6 +91,25 @@ TabzChrome includes a [Claude Code plugin](.claude-plugin/plugin.json) with agen
 
 </details>
 
+<details>
+<summary>🔤 Installing Nerd Fonts (Optional)</summary>
+
+The default terminal font is **monospace** (works everywhere). For better icons and ligatures, install the bundled Nerd Fonts:
+
+**Quick Install (fonts included in repo):**
+
+| Platform | Command |
+|----------|---------|
+| **Windows** | Open `fonts/` folder → Select all `.ttf` → Right-click → Install |
+| **macOS** | Double-click each `.ttf` in `fonts/` → Click "Install Font" |
+| **Linux** | `cp fonts/*.ttf ~/.local/share/fonts/ && fc-cache -fv` |
+
+After installing, **restart Chrome** and select the font in Settings (⚙️) → Edit profile → Font Family.
+
+See [`fonts/README.md`](fonts/README.md) for details.
+
+</details>
+
 > **Not on Chrome Web Store** - This is a local developer tool that requires running a backend server. Install via "Load unpacked" in Chrome's developer mode.
 
 ### Installation
@@ -587,6 +606,11 @@ pkill -f "node.*server.js"  # Kill orphaned processes
 tmux ls                 # Verify tmux is running
 tmux kill-server        # Reset if corrupted
 ```
+
+**Terminal text has gaps/spacing between characters**
+- This can happen with custom fonts that aren't installed
+- **Fix:** Settings (⚙️) → Edit profile → Change Font Family to "Monospace (Default)" or "Consolas"
+- If using Nerd Fonts, make sure they're properly installed and restart Chrome
 
 ---
 

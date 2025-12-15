@@ -10,7 +10,7 @@ import {
   CATEGORY_COLORS,
   DEFAULT_CATEGORY_COLOR,
   DEFAULT_PROFILE,
-  FONT_FAMILIES,
+  getAvailableFonts,
   TTS_VOICES,
 } from './types'
 
@@ -548,7 +548,7 @@ export function ProfilesTab({
               className="w-full px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
               style={{ fontFamily: formData.fontFamily }}
             >
-              {FONT_FAMILIES.map((font) => (
+              {getAvailableFonts().map((font) => (
                 <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
                   {font.label}
                 </option>

@@ -93,23 +93,30 @@ export const DEFAULT_PROFILE: Profile = {
   workingDir: '',  // Empty = inherit from header
   command: '',
   fontSize: 16,
-  fontFamily: 'JetBrains Mono NF',
+  fontFamily: 'monospace',
   themeName: 'high-contrast',
 }
 
+// Platform detection for font filtering
+export const isWindows = typeof navigator !== 'undefined' && navigator.platform?.startsWith('Win')
+
 export const FONT_FAMILIES = [
+  // Universal - work everywhere
   { label: 'Monospace (Default)', value: 'monospace' },
-  { label: 'Consolas', value: 'Consolas, monospace' },
   { label: 'Courier New', value: 'Courier New, monospace' },
-  { label: 'Cascadia Code', value: "'Cascadia Code', monospace" },
-  { label: 'Cascadia Mono', value: "'Cascadia Mono', monospace" },
+  // Windows built-in
+  { label: 'Consolas', value: 'Consolas, monospace', windowsOnly: true },
+  { label: 'Cascadia Code', value: "'Cascadia Code', monospace", windowsOnly: true },
+  { label: 'Cascadia Mono', value: "'Cascadia Mono', monospace", windowsOnly: true },
+  // Nerd Fonts - bundled in fonts/ folder
   { label: 'JetBrains Mono NF', value: "'JetBrainsMono Nerd Font', 'JetBrainsMono NF', monospace" },
   { label: 'Fira Code NF', value: "'FiraCode Nerd Font', 'FiraCode NF', monospace" },
-  { label: 'Source Code Pro NF', value: "'SauceCodePro Nerd Font', 'SauceCodePro NF', monospace" },
-  { label: 'Caskaydia Cove NF', value: "'CaskaydiaCove Nerd Font Mono', 'CaskaydiaCove NFM', monospace" },
-  { label: 'Hack NF', value: "'Hack Nerd Font', monospace" },
-  { label: 'MesloLGS NF', value: "'MesloLGS Nerd Font', monospace" },
-]
+  { label: 'Caskaydia Cove NF', value: "'CaskaydiaCove Nerd Font', 'CaskaydiaCove NF', monospace" },
+] as const
+
+// Filtered font list based on platform
+export const getAvailableFonts = () =>
+  FONT_FAMILIES.filter(f => !('windowsOnly' in f) || f.windowsOnly === isWindows)
 
 // Audio types
 export const TTS_VOICES = [

@@ -990,7 +990,7 @@ function SidePanelTerminal() {
                       workingDir={session.workingDir || effectiveProfile?.workingDir}
                       tmuxSession={session.sessionName}
                       fontSize={effectiveProfile?.fontSize || 16}
-                      fontFamily={effectiveProfile?.fontFamily || 'JetBrains Mono NF'}
+                      fontFamily={effectiveProfile?.fontFamily || 'monospace'}
                       themeName={effectiveProfile?.themeName || 'high-contrast'}
                       isDark={isDark}
                       isActive={session.id === currentSession}
