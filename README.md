@@ -79,6 +79,18 @@ TabzChrome includes a [Claude Code plugin](.claude-plugin/plugin.json) with agen
 | tmux | 3.0+ | Session persistence |
 | OS | WSL2 / Linux / macOS | Backend requires Unix shell |
 
+<details>
+<summary>📦 Installing tmux</summary>
+
+| Platform | Command |
+|----------|---------|
+| **macOS** | `brew install tmux` |
+| **Ubuntu/Debian** | `sudo apt install tmux` |
+| **Fedora** | `sudo dnf install tmux` |
+| **Arch** | `sudo pacman -S tmux` |
+
+</details>
+
 > **Not on Chrome Web Store** - This is a local developer tool that requires running a backend server. Install via "Load unpacked" in Chrome's developer mode.
 
 ### Installation

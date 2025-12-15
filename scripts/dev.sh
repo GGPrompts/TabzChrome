@@ -72,7 +72,25 @@ echo ""
 # Check if tmux is installed
 if ! command -v tmux &> /dev/null; then
     echo -e "${RED}❌ tmux is not installed. Please install it first:${NC}"
-    echo -e "   ${YELLOW}sudo apt install tmux${NC}"
+    case "$(uname -s)" in
+        Darwin)
+            echo -e "   ${YELLOW}brew install tmux${NC}"
+            ;;
+        Linux)
+            if command -v apt &> /dev/null; then
+                echo -e "   ${YELLOW}sudo apt install tmux${NC}"
+            elif command -v dnf &> /dev/null; then
+                echo -e "   ${YELLOW}sudo dnf install tmux${NC}"
+            elif command -v pacman &> /dev/null; then
+                echo -e "   ${YELLOW}sudo pacman -S tmux${NC}"
+            else
+                echo -e "   ${YELLOW}Install tmux using your package manager${NC}"
+            fi
+            ;;
+        *)
+            echo -e "   ${YELLOW}Install tmux using your package manager${NC}"
+            ;;
+    esac
     exit 1
 fi
 
