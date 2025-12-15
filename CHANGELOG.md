@@ -15,6 +15,16 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.1] - 2025-12-15
+
+### Fixed
+- **Remove personal data from git** - `backend/.settings.json` and `mcp-config.json` now gitignored
+- **Safe MCP defaults** - YOLO mode (allowAllUrls) now OFF by default, minimal tools enabled
+- **Safe working directory defaults** - Recent dirs defaults to `['~']` only, no hardcoded paths
+- **Console spam removed** - Debug logging removed from audio and Claude status hooks
+
+---
+
 ## [1.1.0] - 2025-12-15
 
 ### Changed
