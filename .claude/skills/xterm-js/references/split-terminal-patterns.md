@@ -538,4 +538,4 @@ Terminals touched the edges, text was hard to read.
 - `src/components/SplitLayout.tsx` - Split rendering and resize logic
 - `src/hooks/useDragDrop.ts` - Drag and drop patterns
 - `src/SimpleTerminalApp.tsx:864-878` - Detached pane reattach fix
-- `LESSONS_LEARNED.md:202-280` - Split terminal operations lessons
+- `docs/lessons-learned/architecture.md` - Split terminal operations lessons

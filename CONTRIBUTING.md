@@ -181,7 +181,7 @@ TabzChrome/
 ## Getting Help
 
 - Read [CLAUDE.md](CLAUDE.md) for architecture details
-- Check [LESSONS_LEARNED.md](LESSONS_LEARNED.md) for common pitfalls
+- Check [docs/lessons-learned/](docs/lessons-learned/) for common pitfalls
 - Open an issue for questions
 
 ## License

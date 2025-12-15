@@ -95,8 +95,8 @@ For local development with tmux integration:
 ```
 
 This creates a `tabz-chrome` tmux session with:
-- `tabz-chrome:backend` - Backend server window
-- `tabz-chrome:logs` - Optional live logs window
+- `tabzchrome:backend` - Backend server window
+- `tabzchrome:logs` - Optional live logs window
 
 ### Environment Variables
 
@@ -349,7 +349,7 @@ LOG_LEVEL=5
 **Capture backend terminal output:**
 ```bash
 # If using dev.sh script
-tmux capture-pane -t tabz-chrome:backend -p -S -100
+tmux capture-pane -t tabzchrome:backend -p -S -100
 ```
 
 ---

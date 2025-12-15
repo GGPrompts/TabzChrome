@@ -1280,13 +1280,13 @@ process.on('SIGINT', gracefulShutdown);
 
 // Start server
 const PORT = process.env.PORT || 8129;
-server.listen(PORT, async () => {
+server.listen(PORT, '127.0.0.1', async () => {
   log.ready('');
   log.ready('╔════════════════════════════════════════╗');
   log.ready('║     Terminal Tabs Backend Server      ║');
   log.ready('╚════════════════════════════════════════╝');
   log.ready('');
-  log.info(`🚀 HTTP Server listening on port ${PORT}`);
+  log.info(`🚀 HTTP Server listening on 127.0.0.1:${PORT}`);
   log.info(`⚡ WebSocket Server ready`);
   log.info(`📁 Working directory: ${process.cwd()}`);
   log.info(`🔧 Log level: ${process.env.LOG_LEVEL || 'info (default)'}`);

@@ -137,11 +137,11 @@ tmux ls | grep ctt-
 
 ```bash
 # scripts/dev.sh creates:
-# - tabz-chrome:backend - Backend server with logs
-# - tabz-chrome:logs (optional) - Auto-refreshing log view
+# - tabzchrome:backend - Backend server with logs
+# - tabzchrome:logs (optional) - Auto-refreshing log view
 
 # Claude can now capture logs directly:
-tmux capture-pane -t tabz-chrome:backend -p -S -100
+tmux capture-pane -t tabzchrome:backend -p -S -100
 ```
 
 **Also added "Backend Logs" profile:**
@@ -149,7 +149,7 @@ tmux capture-pane -t tabz-chrome:backend -p -S -100
 {
   "id": "backend-logs",
   "name": "Backend Logs",
-  "command": "watch -n1 'tmux capture-pane -t tabz-chrome:backend -p -S -50 2>/dev/null || echo \"Start backend: ./scripts/dev.sh\"'"
+  "command": "watch -n1 'tmux capture-pane -t tabzchrome:backend -p -S -50 2>/dev/null || echo \"Start backend: ./scripts/dev.sh\"'"
 }
 ```
 
@@ -335,4 +335,33 @@ npm run build && rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/T
 
 ---
 
-**Last Updated:** December 13, 2025
+## Tmux Session Name Prefix Matching
+
+### Bug: `tmux kill-session -t "tabz"` kills `tabz-chrome`
+
+**Root Cause:** tmux uses prefix matching for session names by default.
+
+```bash
+# DANGEROUS - kills any session starting with "tabz":
+tmux has-session -t "tabz"      # Matches: tabz, tabz-chrome, tabz-anything
+tmux kill-session -t "tabz"     # Kills first match!
+
+# SAFE - exact matching with = prefix:
+tmux has-session -t "=tabz"     # Only matches exactly "tabz"
+tmux kill-session -t "=tabz"    # Only kills exactly "tabz"
+```
+
+**Prevention Strategies:**
+1. Use `=` prefix for exact matching in scripts
+2. Choose session names that won't be prefixes of other names (e.g., `tabzchrome` not `tabz-chrome`)
+3. Test with `tmux display-message -p -t "name" "#{session_name}"` to see what would match
+
+**Why This Matters:**
+- If another project uses `tmux kill-session -t tabz`, it will kill your `tabz-chrome` session
+- The TabzChrome session is now named `tabzchrome` (no hyphen) to avoid this
+
+**Files Changed:** `scripts/dev.sh` (SESSION_NAME)
+
+---
+
+**Last Updated:** December 15, 2025

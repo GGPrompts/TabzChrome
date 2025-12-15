@@ -82,7 +82,7 @@ Essential documentation in the project root:
 
 - **[README.md](../README.md)** - Project overview, getting started
 - **[CLAUDE.md](../CLAUDE.md)** - Architecture, development rules
-- **[LESSONS_LEARNED.md](../LESSONS_LEARNED.md)** - Bug insights, pitfalls
+- **[lessons-learned/](lessons-learned/)** - Bug insights, pitfalls
 - **[CHANGELOG.md](../CHANGELOG.md)** - Version history
 - **[PLAN.md](../PLAN.md)** - Development roadmap
 

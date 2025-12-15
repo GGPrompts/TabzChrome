@@ -57,7 +57,7 @@ chrome.tabs.query({ active: true }, (tabs) => {
 ### 2. **Omnibox Integration** ⭐⭐⭐⭐ ✅
 **APIs**: `omnibox`
 **Effort**: Low
-**Status**: ✅ Implemented - `term <url>` opens URLs. See [OMNIBOX_FEATURES.md](../../OMNIBOX_FEATURES.md)
+**Status**: ✅ Implemented - `term <url>` opens URLs. See [OMNIBOX_FEATURES.md](../reference/OMNIBOX_FEATURES.md)
 
 Type commands directly in Chrome's address bar:
 

@@ -177,7 +177,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## Phase 2D: Public Release Cleanup
 
-**Status**: Pre-release audit complete. See [AUDIT_REPORT.md](AUDIT_REPORT.md) for full findings.
+**Status**: Pre-release audit complete. See [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md) for full findings.
 
 ### ✅ Critical Issues - FIXED
 - [x] Repository URL in package.json (was `tmux-chrome-sidebar`, now `TabzChrome`)
@@ -192,10 +192,12 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - [x] **Add screenshots** - Screenshots in `docs/pages/screenshots/`
 - [x] **Remove debug console.logs** - Cleaned popup.tsx and sidepanel.tsx
 - [x] **Update MCP tool count** - README/CLAUDE updated to 17 tools
+- [ ] **Verify --dynamic-tool-discovery flag** - README claims this is a real Claude Code flag; may be inaccurate (API-level feature, not CLI flag)
+- [ ] **Add Homebrew install note for macOS** - brew is not installed by default; add install instructions or note
 
 ### Medium Priority - TODO
 - [x] **Add license to backend/package.json** - Added `"license": "MIT"`
-- [x] **Review manifest permissions** - See AUDIT_REPORT.md; unused permissions reserved for Phase 2C
+- [x] **Review manifest permissions** - See docs/AUDIT_REPORT.md; unused permissions reserved for Phase 2C
 - [ ] **Clean archived docs** - Personal paths remain in `docs/archived/*` files
 - [x] **Document backend .env** - Added Backend Configuration section to README
 

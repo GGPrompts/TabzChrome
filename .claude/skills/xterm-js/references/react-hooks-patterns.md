@@ -389,4 +389,4 @@ git reset --hard HEAD~1
 - `src/hooks/useWebSocketManager.ts` - wsRef parameter pattern (line 1-50)
 - `src/hooks/useTerminalResize.ts` - ref.current dependencies (line 30-60)
 - `src/SimpleTerminalApp.tsx` - Parent passes wsRef to hooks (line 100-150)
-- `LESSONS_LEARNED.md:284-406` - Complete refactoring lessons
+- `docs/lessons-learned/react-patterns.md` - Complete refactoring lessons

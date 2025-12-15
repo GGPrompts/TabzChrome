@@ -3,7 +3,7 @@
  * Optimized for Claude Code debugging via tmux capture-pane
  *
  * Logs are sent to the backend which outputs them with [Browser] prefix.
- * This allows Claude to capture browser logs via: tmux capture-pane -t tabz-chrome:backend -p -S -100
+ * This allows Claude to capture browser logs via: tmux capture-pane -t tabzchrome:backend -p -S -100
  */
 
 const BACKEND_URL = 'http://localhost:8129';

@@ -21,12 +21,30 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/../backend"
 
-SESSION_NAME="tabz-chrome"
+# Session name without hyphen to avoid tmux prefix-matching issues
+# (e.g., "tmux kill-session -t tabz" would match "tabz-chrome" but not "tabzchrome")
+SESSION_NAME="tabzchrome"
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║  TabzChrome Dev Script                ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
+
+# Quick update check (non-blocking, 2s timeout)
+CURRENT_VERSION=$(grep '"version"' "$SCRIPT_DIR/../package.json" | sed 's/.*"version": "\([^"]*\)".*/\1/')
+LATEST_RELEASE=$(curl -s --max-time 2 https://api.github.com/repos/GGPrompts/TabzChrome/releases/latest 2>/dev/null | grep '"tag_name"' | sed 's/.*"tag_name": "v\?\([^"]*\)".*/\1/')
+
+if [ -n "$LATEST_RELEASE" ] && [ "$LATEST_RELEASE" != "$CURRENT_VERSION" ]; then
+    echo -e "${YELLOW}╭─────────────────────────────────────────────────────╮${NC}"
+    echo -e "${YELLOW}│  🆕 Update available: v${CURRENT_VERSION} → v${LATEST_RELEASE}${NC}"
+    echo -e "${YELLOW}│  ${NC}Run: ${BLUE}git pull${NC} to update"
+    echo -e "${YELLOW}│  ${NC}See: ${BLUE}https://github.com/GGPrompts/TabzChrome/releases${NC}"
+    echo -e "${YELLOW}╰─────────────────────────────────────────────────────╯${NC}"
+    echo ""
+elif [ -n "$LATEST_RELEASE" ]; then
+    echo -e "${GREEN}✓ TabzChrome v${CURRENT_VERSION} (latest)${NC}"
+    echo ""
+fi
 
 # Interactive configuration
 echo -e "${YELLOW}📋 Configuration:${NC}"
