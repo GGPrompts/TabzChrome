@@ -48,3 +48,6 @@ xterm-js.zip
 
 # Backend settings (contains user-specific directories)
 backend/.settings.json
+
+# MCP config (contains user's tool preferences)
+mcp-config.json
