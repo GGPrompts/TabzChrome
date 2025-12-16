@@ -274,23 +274,13 @@ Settings Modal  -->  /api/mcp-config --> registerTools()
 
 ## Known Issues / Potential Bugs
 
-### ResizeObserver Missing Buffer Clear Protection (Dec 16, 2025)
+### ✅ ResizeObserver Missing Buffer Clear Protection - FIXED (v1.1.3)
 
-**Status:** Not yet reproduced consistently - keep an eye on this.
+**Fixed in v1.1.3** - ResizeObserver now has same buffer-clearing protection as window resize handler.
 
-**Issue:** The window.resize handler clears xterm buffer before large dimension changes (>5 cols), but:
-1. Only checks **column** delta, not **row** delta
-2. ResizeObserver path (container size changes) has no such protection
-
-**Potential trigger:** Chrome UI changes that affect sidebar height (not width):
-- Bookmarks bar appearing/disappearing
-- Any Chrome toolbar changes that squish terminal height
-
-**Symptoms:** Terminal corruption during active Claude output when height changes.
-
-**If it recurs:** Add `rowDelta` check alongside `colDelta`, and/or add same protection to ResizeObserver's `fitTerminal()` call.
-
-**Files:** `extension/components/Terminal.tsx` lines 809-821 (window resize), 516-533 (ResizeObserver)
+- Checks both row delta (>2) and column delta (>5)
+- Clears buffer and triggers resize trick for large dimension changes
+- Handles bookmarks bar appearing/disappearing, Chrome toolbar changes
 
 ---
 

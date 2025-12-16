@@ -526,10 +526,34 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
       // Debounce the fit operation
       resizeObserverTimeoutRef.current = setTimeout(() => {
+        if (!xtermRef.current || !fitAddonRef.current) return
+
+        // Capture dimensions before fit
+        const beforeCols = xtermRef.current.cols
+        const beforeRows = xtermRef.current.rows
+
         // CRITICAL: For tmux sessions, only do local fit - do NOT send to backend
         // This is the key lesson from Tabz - tmux manages its own dimensions
         // Sending container dimensions causes corruption
         fitTerminal(0, false)  // sendToBackend = false
+
+        // Check if dimensions changed significantly (row OR column)
+        // This handles bookmarks bar appearing/disappearing (height change) and sidebar resize (width change)
+        const afterCols = xtermRef.current.cols
+        const afterRows = xtermRef.current.rows
+        const colDelta = Math.abs(afterCols - beforeCols)
+        const rowDelta = Math.abs(afterRows - beforeRows)
+
+        // For large dimension changes, clear buffer and trigger resize trick
+        // xterm's reflow algorithm corrupts complex ANSI sequences during significant resize
+        if (isTmuxSession && (colDelta > 5 || rowDelta > 2)) {
+          console.log(`[Terminal] ${terminalId.slice(-8)} ResizeObserver large change: cols ${beforeCols}→${afterCols}, rows ${beforeRows}→${afterRows}`)
+          isResizingRef.current = true
+          xtermRef.current.clear()
+          isResizingRef.current = false
+          writeQueueRef.current = []
+          triggerResizeTrick()
+        }
       }, 150)
     })
 

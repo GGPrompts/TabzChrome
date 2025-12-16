@@ -15,6 +15,13 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.3] - 2025-12-16
+
+### Fixed
+- **Fixed terminal corruption when bookmarks bar appears/disappears** - ResizeObserver now has same buffer-clearing protection as window resize handler, checking both row and column delta changes
+
+---
+
 ## [1.1.2] - 2025-12-16
 
 ### Fixed
