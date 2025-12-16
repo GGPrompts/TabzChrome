@@ -15,7 +15,11 @@ const ScreenshotViewportSchema = z.object({
     .describe("CSS selector for element to screenshot. If not provided, captures the current viewport."),
   outputPath: z.string()
     .optional()
-    .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png")
+    .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png"),
+  tabId: z.number()
+    .int()
+    .optional()
+    .describe("Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab.")
 }).strict();
 
 type ScreenshotViewportInput = z.infer<typeof ScreenshotViewportSchema>;
@@ -24,7 +28,11 @@ type ScreenshotViewportInput = z.infer<typeof ScreenshotViewportSchema>;
 const ScreenshotFullSchema = z.object({
   outputPath: z.string()
     .optional()
-    .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png")
+    .describe("Custom output path for the screenshot. Default: ~/ai-images/screenshot-{timestamp}.png"),
+  tabId: z.number()
+    .int()
+    .optional()
+    .describe("Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab.")
 }).strict();
 
 type ScreenshotFullInput = z.infer<typeof ScreenshotFullSchema>;
@@ -91,7 +99,8 @@ After capturing, use the Read tool with the returned filePath to view the screen
         const result = await takeScreenshot({
           selector: params.selector,
           fullPage: false,
-          outputPath: params.outputPath
+          outputPath: params.outputPath,
+          tabId: params.tabId
         });
 
         let resultText: string;
@@ -175,7 +184,8 @@ After capturing, use the Read tool with the returned filePath to view the screen
       try {
         const result = await takeScreenshot({
           fullPage: true,
-          outputPath: params.outputPath
+          outputPath: params.outputPath,
+          tabId: params.tabId
         });
 
         let resultText: string;

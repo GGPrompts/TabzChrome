@@ -12,7 +12,11 @@ import { clickElement, fillInput } from "../client.js";
 const ClickSchema = z.object({
   selector: z.string()
     .min(1, "Selector is required")
-    .describe("CSS selector for the element to click (e.g., 'button.submit', '#login-btn', 'a[href=\"/home\"]')")
+    .describe("CSS selector for the element to click (e.g., 'button.submit', '#login-btn', 'a[href=\"/home\"]')"),
+  tabId: z.number()
+    .int()
+    .optional()
+    .describe("Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab.")
 }).strict();
 
 type ClickInput = z.infer<typeof ClickSchema>;
@@ -23,7 +27,11 @@ const FillSchema = z.object({
     .min(1, "Selector is required")
     .describe("CSS selector for the input field (e.g., 'input#email', 'textarea.message', 'input[name=\"username\"]')"),
   value: z.string()
-    .describe("The value to type into the input field. Clears existing content first.")
+    .describe("The value to type into the input field. Clears existing content first."),
+  tabId: z.number()
+    .int()
+    .optional()
+    .describe("Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab.")
 }).strict();
 
 type FillInput = z.infer<typeof FillSchema>;
@@ -71,7 +79,7 @@ or tabz_execute_script to verify the result.`,
     ClickSchema.shape,
     async (params: ClickInput) => {
       try {
-        const result = await clickElement(params.selector);
+        const result = await clickElement(params.selector, params.tabId);
 
         let resultText: string;
         if (result.success) {
@@ -152,7 +160,7 @@ After filling, you may want to:
     FillSchema.shape,
     async (params: FillInput) => {
       try {
-        const result = await fillInput(params.selector, params.value);
+        const result = await fillInput(params.selector, params.value, params.tabId);
 
         let resultText: string;
         if (result.success) {

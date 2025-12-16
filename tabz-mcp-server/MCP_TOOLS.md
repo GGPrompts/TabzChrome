@@ -140,6 +140,7 @@ JSON.stringify(localStorage)
 **Parameters:**
 - `selector` (optional): CSS selector for a specific element to screenshot
 - `outputPath` (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
+- `tabId` (optional): Target a specific tab by Chrome tab ID (from `tabz_list_tabs`). Enables parallel operations.
 
 **Returns:**
 - `success`: Whether the screenshot was captured
@@ -152,6 +153,9 @@ JSON.stringify(localStorage)
 
 // Capture specific element
 { selector: "#main-content" }
+
+// Screenshot a background tab without switching
+{ tabId: 1762559892 }
 
 // Custom output path
 { outputPath: "/tmp/screenshot.png" }
@@ -177,6 +181,7 @@ JSON.stringify(localStorage)
 
 **Parameters:**
 - `outputPath` (optional): Custom save path (default: ~/ai-images/screenshot-{timestamp}.png)
+- `tabId` (optional): Target a specific tab by Chrome tab ID (from `tabz_list_tabs`). Enables parallel operations.
 
 **Returns:**
 - `success`: Whether the screenshot was captured
@@ -186,6 +191,9 @@ JSON.stringify(localStorage)
 ```javascript
 // Capture full scrollable page
 {}
+
+// Full page screenshot of a background tab
+{ tabId: 1762559892 }
 
 // Custom output path
 { outputPath: "/tmp/fullpage.png" }
@@ -369,6 +377,7 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 
 **Parameters:**
 - `selector` (required): CSS selector for the element to click
+- `tabId` (optional): Target a specific tab by Chrome tab ID (from `tabz_list_tabs`). Enables parallel operations.
 
 **Common Selectors:**
 ```javascript
@@ -376,6 +385,15 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 ".btn-primary"          // By class
 "button[type='submit']" // By attribute
 "a.nav-link"            // By tag and class
+```
+
+**Examples:**
+```javascript
+// Click on current tab
+{ selector: "button.submit" }
+
+// Click on a background tab without switching
+{ selector: "#generate-btn", tabId: 1762559892 }
 ```
 
 **Returns:**
@@ -395,6 +413,7 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 **Parameters:**
 - `selector` (required): CSS selector for the input field
 - `value` (required): Text to type into the field
+- `tabId` (optional): Target a specific tab by Chrome tab ID (from `tabz_list_tabs`). Enables parallel operations.
 
 **Common Selectors:**
 ```javascript
@@ -402,6 +421,15 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 "input[name='username']"    // By name attribute
 "input[type='password']"    // By type
 "textarea#message"          // Textarea by ID
+```
+
+**Examples:**
+```javascript
+// Fill on current tab
+{ selector: "#prompt", value: "a cat astronaut" }
+
+// Fill on a background tab (parallel image generation!)
+{ selector: "#prompt", value: "a dog wizard", tabId: 1762559892 }
 ```
 
 **Returns:**

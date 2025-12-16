@@ -21,6 +21,10 @@ const SCREENSHOT_MAX_FILES = 50;
 let currentTabId: number = 1;
 let currentTabUrl: string = '';  // URL for matching CDP pages to Chrome tabs
 
+// Map Chrome tab IDs to URLs (populated by listTabs)
+// Enables targeting specific tabs by ID in parallel operations
+const tabIdToUrl: Map<number, string> = new Map();
+
 /**
  * Get the current tab ID that Claude is targeting
  * This is set by switchTab() and used by default in screenshot, click, etc.
@@ -233,18 +237,30 @@ async function getNonChromePages(): Promise<import('puppeteer-core').Page[] | nu
  * If no tabId specified, uses currentTabId (set by switchTab)
  *
  * Strategy:
- * 1. If we have a stored URL (from extension API), find CDP page by URL
- * 2. If tabId is small (1-based index), use as CDP array index (fallback)
- * 3. Default to first page
+ * 1. If specific tabId provided, look up URL from tabIdToUrl map
+ * 2. If no tabId, use currentTabUrl (from last listTabs/switchTab)
+ * 3. Find CDP page by URL
+ * 4. Fall back to array index for small tabIds (CDP-only mode)
+ * 5. Default to first page
  */
 async function getPageByTabId(tabId?: number): Promise<import('puppeteer-core').Page | null> {
   const pages = await getNonChromePages();
   if (!pages || pages.length === 0) return null;
 
-  // If using current tab and we have a URL, find by URL (most reliable)
-  // This handles the case where extension API returns real Chrome tabIds
-  if (tabId === undefined && currentTabUrl) {
-    const pageByUrl = pages.find(p => p.url() === currentTabUrl);
+  // Determine which URL to look for
+  let targetUrl: string | undefined;
+
+  if (tabId !== undefined) {
+    // Specific tabId requested - look up URL from map
+    targetUrl = tabIdToUrl.get(tabId);
+  } else {
+    // No tabId - use current tab URL
+    targetUrl = currentTabUrl;
+  }
+
+  // Try to find page by URL (most reliable for Chrome tab IDs)
+  if (targetUrl) {
+    const pageByUrl = pages.find(p => p.url() === targetUrl);
     if (pageByUrl) {
       return pageByUrl;
     }
@@ -834,6 +850,12 @@ export async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
       if (activeTab) {
         currentTabId = activeTab.tabId;
         currentTabUrl = activeTab.url;  // Store URL for CDP page matching
+      }
+
+      // Populate tabId -> URL map for parallel tab operations
+      tabIdToUrl.clear();
+      for (const tab of tabs) {
+        tabIdToUrl.set(tab.tabId, tab.url);
       }
 
       return { tabs };
