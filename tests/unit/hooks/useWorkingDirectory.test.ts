@@ -14,7 +14,7 @@ describe('useWorkingDirectory', () => {
 
       // Default values
       expect(result.current.globalWorkingDir).toBe('~')
-      expect(result.current.recentDirs).toEqual(['~', '~/projects'])
+      expect(result.current.recentDirs).toEqual(['~'])
     })
 
     it('should load global working directory from Chrome storage', async () => {
@@ -44,7 +44,7 @@ describe('useWorkingDirectory', () => {
       })
 
       // Should keep default recentDirs since nothing was stored
-      expect(result.current.recentDirs).toEqual(['~', '~/projects'])
+      expect(result.current.recentDirs).toEqual(['~'])
     })
 
     it('should handle missing globalWorkingDir in storage', async () => {

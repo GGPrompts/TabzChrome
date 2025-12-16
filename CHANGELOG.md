@@ -15,6 +15,22 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.2] - 2025-12-16
+
+### Fixed
+
+#### Terminal Resize Stability
+- **Fixed terminal corruption when resizing sidebar** - Clearing xterm buffer before large dimension changes (>5 columns) prevents reflow algorithm from corrupting complex ANSI sequences (Claude Code statusline, colored diffs)
+- **Fixed isWrapped crash** - Protected all `clear()` calls with resize lock to prevent "Cannot set properties of undefined (setting 'isWrapped')" error during concurrent writes
+- **Fixed blank screen after sidebar refresh** - Improved resize trick timing ensures tmux redraws content correctly after page refresh
+
+These fixes significantly improve stability when:
+- Resizing Chrome sidebar while Claude Code is outputting
+- Refreshing the sidebar during active terminal sessions
+- Switching between tabs during heavy terminal output
+
+---
+
 ## [1.1.1] - 2025-12-15
 
 ### Fixed

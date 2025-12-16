@@ -62,7 +62,7 @@ describe('Profile Working Directory Inheritance', () => {
 
       // Default values before storage loads
       expect(result.current.globalWorkingDir).toBe('~')
-      expect(result.current.recentDirs).toEqual(['~', '~/projects'])
+      expect(result.current.recentDirs).toEqual(['~'])
     })
 
     it('should load saved globalWorkingDir from Chrome storage', async () => {
