@@ -1,44 +1,60 @@
 {
-  "name": "tabz-chrome-marketplace",
-  "description": "Browser automation, terminal management, and Claude Code integration - MCP tools, skills, and commands",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tabz-chrome",
+  "version": "1.0.0",
+  "description": "TabzChrome plugins - browser automation, terminal management, multi-session orchestration",
   "owner": {
     "name": "GGPrompts",
     "url": "https://github.com/GGPrompts"
   },
-  "version": "1.0.0",
   "plugins": [
+    {
+      "name": "conductor",
+      "description": "Orchestrate multi-session Claude workflows - spawn agents, kill terminals, send prompts via tmux",
+      "source": "./plugins/conductor",
+      "category": "agents"
+    },
     {
       "name": "tabz-mcp",
       "description": "Browser automation via Tabz MCP tools - tabs, screenshots, clicks, forms, network capture",
-      "source": "./.claude/skills/tabz-mcp",
-      "category": "browser",
-      "tags": ["browser", "automation", "mcp", "screenshots", "chrome"]
+      "source": "./plugins/tabz-mcp",
+      "category": "skills"
     },
     {
       "name": "xterm-js",
       "description": "xterm.js terminal emulator patterns - React integration, WebSocket, state management",
-      "source": "./.claude/skills/xterm-js",
-      "category": "development",
-      "tags": ["terminal", "xterm", "react", "websocket"]
+      "source": "./plugins/xterm-js",
+      "category": "skills"
     },
     {
-      "name": "mcp-builder",
-      "description": "Build MCP servers in Python (FastMCP) and Node.js - design patterns and best practices",
-      "source": "./.claude/skills/mcp-builder",
-      "category": "development",
-      "tags": ["mcp", "python", "nodejs", "servers"]
+      "name": "ctthandoff",
+      "description": "Generate a handoff summary, copy to clipboard, and speak via Tabz TTS",
+      "source": "./plugins/ctthandoff",
+      "category": "commands"
+    },
+    {
+      "name": "discover-profiles",
+      "description": "Scan system for CLI tools and generate TabzChrome profile configurations",
+      "source": "./plugins/discover-profiles",
+      "category": "commands"
+    },
+    {
+      "name": "rebuild",
+      "description": "Build the TabzChrome extension and copy to Windows for Chrome reload",
+      "source": "./plugins/rebuild",
+      "category": "commands"
+    },
+    {
+      "name": "tabz-integration",
+      "description": "Integration guide for connecting projects to TabzChrome terminals",
+      "source": "./plugins/tabz-integration",
+      "category": "commands"
     },
     {
       "name": "tabz-chrome-full",
-      "description": "Full TabzChrome plugin with Tabz MCP server, state tracker hooks, commands, and all skills",
+      "description": "Everything - all skills, commands, agents, hooks, and MCP server",
       "source": "./",
-      "category": "integration",
-      "tags": ["browser", "terminal", "mcp", "chrome-extension", "hooks", "state-tracking"]
+      "category": "bundle"
     }
-  ],
-  "categories": {
-    "browser": "Browser automation and Chrome extension integration",
-    "development": "Development tools, patterns, and best practices",
-    "integration": "Full plugin bundles with MCP servers"
-  }
+  ]
 }
