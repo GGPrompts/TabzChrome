@@ -224,6 +224,91 @@ async function spawnTerminal(name, workingDir, command) {
 
 **Security:** External web pages cannot auto-fetch the token. Users must consciously paste their token to authorize a site.
 
+### Claude Code Launcher Example
+
+Build commands dynamically instead of maintaining hundreds of profiles:
+
+```html
+<h2>Spawn Claude Code</h2>
+
+<label>Agent:</label>
+<select id="agent">
+  <option value="">None</option>
+  <option value="--agent explore">Explore</option>
+  <option value="--agent plan">Plan</option>
+</select>
+
+<label>Voice:</label>
+<select id="voice">
+  <option value="">Default</option>
+  <option value="--voice jenny">Jenny</option>
+  <option value="--voice guy">Guy</option>
+</select>
+
+<label><input type="checkbox" id="skip" checked> Skip permissions</label>
+
+<button onclick="spawnClaude()">Spawn</button>
+
+<script>
+function buildCommand() {
+  const parts = ['claude'];
+  const agent = document.getElementById('agent').value;
+  const voice = document.getElementById('voice').value;
+  const skip = document.getElementById('skip').checked;
+
+  if (agent) parts.push(agent);
+  if (voice) parts.push(voice);
+  if (skip) parts.push('--dangerously-skip-permissions');
+
+  return parts.join(' ');
+}
+
+function buildName() {
+  const parts = ['Claude'];
+  const agent = document.getElementById('agent').value;
+  const voice = document.getElementById('voice').value;
+
+  if (agent) parts.push(agent.replace('--agent ', ''));
+  if (voice) parts.push(voice.replace('--voice ', ''));
+
+  return parts.join(' + ');
+}
+
+async function spawnClaude() {
+  const token = getToken();
+  if (!token) {
+    alert('Token required - get from Tabz Settings -> API Token');
+    return;
+  }
+  await fetch('http://localhost:8129/api/spawn', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Auth-Token': token
+    },
+    body: JSON.stringify({
+      name: buildName(),
+      workingDir: '~/projects',
+      command: buildCommand()
+    })
+  });
+}
+</script>
+```
+
+### Why Spawn API vs Profiles?
+
+| Approach | Best For |
+|----------|----------|
+| **Profiles** | Static configs (Bash, Large Text, specific theme) |
+| **Spawn API** | Combinatorial options (Agent x Voice x Speed x Flags) |
+| **QUEUE_COMMAND** | Sending to existing terminals |
+
+**Notes:**
+- Terminal ID: `ctt-{name}-{shortId}` (e.g., `ctt-Claude + explore-a1b2c3`)
+- Claude status tracking works (uses `workingDir`, not profile name)
+- Tab appears automatically via WebSocket broadcast
+
 ---
 
 ## Summary
@@ -235,3 +320,150 @@ async function spawnTerminal(name, workingDir, command) {
 | WebSocket + JS | `/api/auth/token` | Prompt libraries |
 | POST /api/spawn (CLI) | `/tmp/tabz-auth-token` | Programmatic terminal creation |
 | POST /api/spawn (Web) | User pastes token | External launchers (GitHub Pages) |
+
+---
+
+## Architecture
+
+### Queue Command Flow (Methods 1-3)
+```
++------------------+     +------------------+     +------------------+
+|   Web Page       |     |    CLI/Script    |     |   Prompt App     |
+| data-terminal-   |     |   (websocat)     |     |  (ggprompts)     |
+|    command       |     |                  |     |                  |
++--------+---------+     +--------+---------+     +--------+---------+
+         |                        |                        |
+         | content script         | WebSocket + token      | WebSocket + token
+         | click handler          | from /tmp/tabz-auth    | from /api/auth/token
+         v                        v                        v
++---------------------------------------------------------------------+
+|                    TabzChrome Backend                               |
+|                    ws://localhost:8129?token=<auth_token>           |
+|                                                                     |
+|  case 'QUEUE_COMMAND':                                              |
+|    broadcast({ type: 'QUEUE_COMMAND', command: data.command });     |
++---------------------------------+-----------------------------------+
+                                  | broadcast
+                                  v
++---------------------------------------------------------------------+
+|                Chrome Extension (background.ts)                     |
+|                                                                     |
+|  -> Opens sidebar if closed                                         |
+|  -> Forwards QUEUE_COMMAND to sidepanel                             |
++---------------------------------+-----------------------------------+
+                                  |
+                                  v
++---------------------------------------------------------------------+
+|                    Sidepanel (React)                                |
+|                                                                     |
+|  -> Populates chat input with command                               |
+|  -> User picks terminal tab and sends                               |
++---------------------------------------------------------------------+
+```
+
+### Spawn Flow (Method 4)
+```
++----------------------------------+
+|   Claude Launcher Web Page       |
+|   or CLI (curl)                  |
+|                                  |
+|   POST /api/spawn                |
+|   { name, workingDir, command }  |
++-----------------+----------------+
+                  | HTTP POST
+                  v
++---------------------------------------------------------------------+
+|                    TabzChrome Backend                               |
+|                    http://localhost:8129/api/spawn                  |
+|                                                                     |
+|  -> Creates tmux session (ctt-{name}-{shortId})                     |
+|  -> Registers terminal in registry                                  |
+|  -> Executes command after shell ready (~1.2s)                      |
+|  -> broadcast({ type: 'terminal-spawned', data: terminal })         |
++---------------------------------+-----------------------------------+
+                                  | WebSocket broadcast
+                                  v
++---------------------------------------------------------------------+
+|                    Sidepanel (React)                                |
+|                                                                     |
+|  -> New tab appears automatically                                   |
+|  -> Claude status tracking works (by workingDir)                    |
+|  -> User can interact immediately                                   |
++---------------------------------------------------------------------+
+```
+
+---
+
+## Security Considerations for HTTPS Sites
+
+### Private Network Access (Chrome 94+)
+
+Chrome blocks HTTPS websites from accessing localhost unless the server explicitly allows it. The TabzChrome backend includes the required header:
+
+```
+Access-Control-Allow-Private-Network: true
+```
+
+If you're building a similar integration, ensure your localhost server responds to preflight requests with this header:
+
+```javascript
+// Express middleware example
+app.use((req, res, next) => {
+  if (req.headers['access-control-request-private-network']) {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+  next();
+});
+app.use(cors());
+```
+
+### Token Sanitization
+
+HTTP headers only support ISO-8859-1 characters. Copy-paste can introduce invisible unicode characters that break requests:
+
+```
+TypeError: Failed to read 'headers': String contains non ISO-8859-1 code point
+```
+
+Always sanitize tokens before use:
+
+```javascript
+// Remove non-ASCII characters from token
+const sanitizedToken = token.replace(/[^\x00-\xFF]/g, '');
+```
+
+### Token Lifecycle
+
+- Token regenerates on every backend restart
+- If spawn requests fail with 401, the user needs a fresh token
+- Consider showing clear error messages when token is invalid/expired
+
+### Remote Site Initialization Pattern
+
+For sites deployed to HTTPS (Vercel, GitHub Pages, etc.), don't probe localhost on init:
+
+```javascript
+function isLocalhost() {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+async function initTerminalConnection() {
+  const storedToken = localStorage.getItem('tabz-api-token');
+
+  if (isLocalhost()) {
+    // On localhost: probe backend, auto-fetch token
+    const health = await fetch('http://localhost:8129/api/health');
+    if (health.ok && !storedToken) {
+      const { token } = await fetch('http://localhost:8129/api/auth/token').then(r => r.json());
+      localStorage.setItem('tabz-api-token', token);
+    }
+  } else {
+    // On remote site: skip probes, use stored token only
+    // Probing localhost from HTTPS causes browser permission prompts
+    if (!storedToken) {
+      showMessage('API token required - paste from TabzChrome Settings');
+    }
+  }
+}
+```

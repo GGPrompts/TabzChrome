@@ -401,19 +401,24 @@ const triggerResizeTrick = () => {
   const currentCols = xtermRef.current.cols
   const currentRows = xtermRef.current.rows
 
-  // Step 1: Resize down by 1 column (sends SIGWINCH)
+  // Step 1: Resize down by 1 ROW (sends SIGWINCH)
+  // CRITICAL: Shrink ROWS not COLUMNS! Column shrink causes tmux status bar
+  // to wrap its last character to the next line, corrupting scroll regions.
   isResizingRef.current = true
-  xtermRef.current.resize(currentCols - 1, currentRows)
-  sendResize(currentCols - 1, currentRows)
+  const minRows = Math.max(1, currentRows - 1)
+  xtermRef.current.resize(currentCols, minRows)
+  sendResize(currentCols, minRows)
 
-  // Step 2: Resize back (sends another SIGWINCH, forces full redraw)
+  // Step 2: Fit to container and send final dimensions (200ms for tmux to process)
   setTimeout(() => {
-    xtermRef.current.resize(currentCols, currentRows)
-    sendResize(currentCols, currentRows)
-    prevDimensionsRef.current = { cols: currentCols, rows: currentRows }
+    fitAddonRef.current.fit()
+    const finalCols = xtermRef.current.cols
+    const finalRows = xtermRef.current.rows
+    sendResize(finalCols, finalRows)
+    prevDimensionsRef.current = { cols: finalCols, rows: finalRows }
     isResizingRef.current = false
-    writeQueueRef.current = []  // Clear, don't flush - both redraws were queued
-  }, 100)
+    writeQueueRef.current = []  // Clear, don't flush - stale data from reflow
+  }, 200)
 }
 
 // Use on reconnection events
@@ -426,7 +431,9 @@ case 'TERMINAL_RECONNECTED':
   break
 ```
 
-**Key Insight:** Plain resize with same dimensions is IGNORED by tmux. The cols-1/cols trick forces SIGWINCH even when dimensions haven't "changed".
+**Key Insight:** Plain resize with same dimensions is IGNORED by tmux. The rows-1/fit trick forces SIGWINCH even when dimensions haven't "changed".
+
+**Why ROWS not COLUMNS:** Tmux status bar is sized to fit terminal width exactly. Shrinking by 1 column causes the last character (often a date digit) to wrap to the next line, corrupting the scroll region. Shrinking by 1 row temporarily hides content but keeps status bar width intact.
 
 See `references/resize-patterns.md` for the complete Tabz pattern.
 
@@ -449,7 +456,45 @@ This is a quick reference for the Tabz Pattern described in Pattern 12.
 | Window resize | Send resize to backend ✓ |
 | Reconnection (WS_CONNECTED, REFRESH_TERMINALS) | triggerResizeTrick() to force SIGWINCH |
 
-**Key Insight:** Tmux ignores resize when dimensions haven't changed. Use the cols-1/cols trick to force SIGWINCH on reconnection.
+**Key Insight:** Tmux ignores resize when dimensions haven't changed. Use the rows-1/fit trick to force SIGWINCH on reconnection. Shrink ROWS not COLUMNS - column shrink causes tmux status bar wrapping corruption.
+
+### 14. Clear Buffer Before Large Resize Changes
+
+**Critical Pattern: xterm.js Reflow Corrupts Complex ANSI Content**
+
+When dimensions change significantly (>5 columns), xterm.js tries to reflow/rewrap existing content. This corrupts content with complex ANSI sequences (Claude Code statusline, colored diffs, cursor positioning).
+
+```typescript
+// In ResizeObserver or window resize handler:
+const afterCols = xtermRef.current.cols
+const colDelta = Math.abs(afterCols - beforeCols)
+
+// For large dimension changes, clear xterm before tmux redraws
+// xterm's reflow algorithm corrupts content with complex ANSI sequences
+if (isTmuxSession && colDelta > 5) {
+  // Lock during clear to prevent isWrapped error from concurrent writes
+  isResizingRef.current = true
+  xtermRef.current.clear()
+  isResizingRef.current = false
+  writeQueueRef.current = []  // Discard stale data
+}
+
+// Then trigger resize trick to force tmux to redraw fresh
+triggerResizeTrick()
+```
+
+**Why This Works:**
+1. `clear()` wipes xterm's buffer - no content to reflow
+2. `triggerResizeTrick()` sends SIGWINCH to tmux
+3. Tmux redraws everything formatted for new dimensions
+4. Fresh content renders correctly in empty xterm
+
+**Why >5 Columns Threshold:**
+- Small changes (≤5 cols) rarely cause visible corruption
+- Large changes (>5 cols) trigger significant reflow that corrupts complex ANSI
+- The threshold avoids unnecessary clears during minor adjustments
+
+**Critical:** Protect `clear()` with resize lock! Without it, concurrent WebSocket writes crash xterm with "Cannot set properties of undefined (setting 'isWrapped')" error.
 
 ## Resources
 
