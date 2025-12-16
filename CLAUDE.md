@@ -105,7 +105,7 @@ curl -X POST http://localhost:8129/api/spawn \
   -d '{"name": "My Terminal", "workingDir": "~/projects", "command": "claude"}'
 ```
 
-See @docs/API.md for full API documentation.
+See `docs/API.md` for full API documentation.
 
 ---
 
@@ -134,14 +134,14 @@ See @docs/API.md for full API documentation.
 
 | Need | Location |
 |------|----------|
-| User guide | @README.md |
-| API reference | @docs/API.md |
-| MCP tools | @tabz-mcp-server/MCP_TOOLS.md |
-| Debugging | @docs/lessons-learned/debugging.md |
-| Terminal rendering | @docs/lessons-learned/terminal-rendering.md |
-| Chrome extension | @docs/lessons-learned/chrome-extension.md |
-| Change history | @CHANGELOG.md |
-| Roadmap | @PLAN.md |
+| User guide | `README.md` |
+| API reference | `docs/API.md` |
+| MCP tools | `tabz-mcp-server/MCP_TOOLS.md` |
+| Debugging | `docs/lessons-learned/debugging.md` |
+| Terminal rendering | `docs/lessons-learned/terminal-rendering.md` |
+| Chrome extension | `docs/lessons-learned/chrome-extension.md` |
+| Change history | `CHANGELOG.md` |
+| Roadmap | `PLAN.md` |
 
 ---
 
@@ -169,7 +169,7 @@ tmux send-keys -t "$SESSION" C-m
 ```
 
 ### When Making Changes
-1. Check @docs/lessons-learned/ for common pitfalls
+1. Check `docs/lessons-learned/` for common pitfalls
 2. Update CHANGELOG.md after fixes
 3. Run `npm test` before committing
 4. Build and test in Chrome before pushing
