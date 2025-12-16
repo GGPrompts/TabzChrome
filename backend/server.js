@@ -125,6 +125,15 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
+// Handle Private Network Access (required for HTTPS sites like Vercel to access localhost)
+// Chrome 94+ blocks requests from HTTPS to private networks without this header
+app.use((req, res, next) => {
+  // Handle preflight requests for Private Network Access
+  if (req.headers['access-control-request-private-network']) {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+  next();
+});
 app.use(cors());
 app.use(express.json());
 
