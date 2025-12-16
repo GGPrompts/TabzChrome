@@ -126,7 +126,7 @@ See @docs/API.md for full API documentation.
 
 1. **WSL Connection** - Use `localhost` not `127.0.0.1` when loading from WSL path
 2. **Paste to TUI Apps** - May corrupt TUI apps if not at prompt
-3. **Resize During Output** - Occasional display glitch with Unicode characters (⏵); refresh to fix. Permanent fix: upgrade tmux to 3.6+
+3. **Rapid Sidebar Resize** - Quickly narrowing sidebar during heavy output can cause text wrapping corruption (rare edge case)
 
 ---
 

@@ -60,6 +60,56 @@ if (!isTmuxSession) {
 
 ---
 
+## Clear Buffer Before Large Resize Changes
+
+### Lesson: xterm.js Reflow Corrupts Complex ANSI Content (Dec 16, 2025)
+
+**Problem:** First sidebar narrow after heavy Claude Code output caused text wrapping corruption.
+
+**What Happened:**
+1. Claude Code outputs complex content (statusline, diffs with ANSI colors)
+2. User narrows sidebar significantly (e.g., 107 cols → 78 cols)
+3. xterm.js reflow algorithm tries to rewrap existing content
+4. Complex ANSI sequences get corrupted during reflow
+5. Display shows garbled/duplicated lines
+
+**Root Cause:** xterm.js has a reflow algorithm that rewraps content when dimensions change. This works well for simple text, but corrupts content with:
+- Cursor positioning escape sequences
+- Claude Code's dynamic statusline
+- Colored diffs with many ANSI codes
+- Scroll region boundaries
+
+**Solution:** Clear xterm buffer before large dimension changes, then let tmux redraw fresh:
+
+```typescript
+const colDelta = Math.abs(afterCols - beforeCols)
+
+// For large dimension changes (>5 cols), clear xterm before tmux redraws
+// xterm's reflow algorithm corrupts content with complex ANSI sequences
+if (isTmuxSession && colDelta > 5) {
+  xtermRef.current.clear()
+}
+
+// Then trigger resize trick to force tmux to redraw
+triggerResizeTrick()
+```
+
+**Why This Works:**
+1. `clear()` wipes xterm's buffer - no content to reflow
+2. `triggerResizeTrick()` sends SIGWINCH to tmux
+3. Tmux redraws everything formatted for new dimensions
+4. Fresh content renders correctly in empty xterm
+
+**Why >5 Columns Threshold:**
+- Small changes (≤5 cols) rarely cause visible corruption
+- Large changes (>5 cols) trigger significant reflow that can corrupt
+- The threshold avoids unnecessary clears during minor adjustments
+
+**Files:**
+- `extension/components/Terminal.tsx:802-807` - Clear buffer on large resize
+
+---
+
 ## Tmux Status Bar Position
 
 ### Lesson: Put Tmux Status Bar at TOP When Running Claude Code (Dec 9, 2025)
@@ -229,6 +279,8 @@ if (shouldSendInitialResize) {
 
 ## triggerResizeTrick Causes "Redraw Storms"
 
+> **⚠️ PARTIALLY SUPERSEDED:** The Tabz pattern (see top of file) eliminates most redraw storm scenarios by not sending resize to backend on container changes. `triggerResizeTrick()` is now only used for reconnection scenarios, not container resize.
+
 ### Lesson: Multiple Resize Sources Cause Corruption (Dec 11, 2025)
 
 **Problem:** Terminal shows same line repeated many times (e.g., 20x, 57x), corrupting display.
@@ -342,6 +394,8 @@ writeQueueRef.current = []
 
 ## Sidebar Narrowing Corruption
 
+> **⚠️ SUPERSEDED:** This section describes an intermediate fix that was later replaced. See "Only Send Resize on Window Resize for Tmux Sessions" at the top of this file for the final solution. The 150ms debounce was reverted back to 1000ms.
+
 ### Lesson: Keep xterm and tmux Dimensions in Sync (Dec 11, 2025)
 
 **Problem:** Terminal text gets corrupted specifically when making the Chrome sidebar narrower.
@@ -378,6 +432,8 @@ During that 1 second gap:
 ---
 
 ## Page Refresh During Active Output
+
+> **⚠️ SUPERSEDED:** The output guard approach was removed. See "Only Send Resize on Window Resize for Tmux Sessions" at the top of this file. The fix now uses `triggerResizeTrick()` on reconnection events instead of buffering output.
 
 ### Lesson: Output Guard on Reconnection (Dec 13, 2025)
 
@@ -443,6 +499,8 @@ const triggerResizeTrick = (force = false) => {
 ---
 
 ## fitTerminal vs triggerResizeTrick Abort Behavior
+
+> **⚠️ SUPERSEDED:** The entire deferral/abort approach was removed. See "Only Send Resize on Window Resize for Tmux Sessions" at the top of this file. The new approach doesn't try to time resize around output - it simply doesn't send resize to backend on container changes.
 
 ### Lesson: Consistent Abort Behavior Across Related Functions (Dec 13, 2025)
 
@@ -541,4 +599,4 @@ this.resizeTimers.set(terminalId, setTimeout(() => {
 
 ---
 
-**Last Updated:** December 13, 2025
+**Last Updated:** December 15, 2025

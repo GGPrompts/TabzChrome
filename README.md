@@ -612,6 +612,11 @@ tmux kill-server        # Reset if corrupted
 - **Fix:** Settings (⚙️) → Edit profile → Change Font Family to "Monospace (Default)" or "Consolas"
 - If using Nerd Fonts, make sure they're properly installed and restart Chrome
 
+**Terminal display looks corrupted (text wrapping wrong, duplicated lines)**
+- Can occasionally happen after rapidly resizing the sidebar during heavy output
+- **Fix:** Click the **↻ refresh button** in the header bar to reload the sidebar
+- This forces tmux to redraw all terminals and fixes display issues
+
 ---
 
 ## Development

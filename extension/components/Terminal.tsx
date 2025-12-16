@@ -517,6 +517,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         return
       }
 
+      // Only log occasionally to reduce spam
+      // console.log(`[Terminal] ${terminalId.slice(-8)} RESIZE_OBSERVER fired: ${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}`)
+
       // Debounce the fit operation
       resizeObserverTimeoutRef.current = setTimeout(() => {
         // CRITICAL: For tmux sessions, only do local fit - do NOT send to backend
@@ -759,75 +762,59 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }, 100)
   }, [fontSize, fontFamily, themeName, isDark, terminalId])
 
-  // Handle ACTUAL window resize - this is the ONE place we send resize to backend
-  // Following Tabz pattern: window resize is the only time we tell tmux about dimension changes
-  // Container resize (ResizeObserver) and tab switch do NOT send resize
+  // Handle window resize - use triggerResizeTrick to force tmux to fully recalculate
+  // EXPERIMENT: Like the EOL fix for tmux splits, we need CONSISTENT handling.
+  // Simple resize can leave xterm and tmux out of sync. The resize trick (cols-1, cols)
+  // forces tmux to do a complete redraw, ensuring dimensions are fully in sync.
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null
 
-    const handleResize = (retryCount = 0) => {
+    const handleResize = () => {
+      // Reduce spam - only log when dimensions actually change or first few times
+      // console.log(`[Terminal] ${terminalId.slice(-8)} WINDOW_RESIZE fired`)
       if (resizeTimeout) clearTimeout(resizeTimeout)
 
-      // Use 1000ms debounce to match Tabz pattern
+      // Debounce, then use resize trick for consistent tmux handling
       resizeTimeout = setTimeout(() => {
         if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
 
         const containerWidth = terminalRef.current.offsetWidth
         const containerHeight = terminalRef.current.offsetHeight
 
-        // Retry with increasing delay for 0-dimension cases (sidebar animating)
         if (containerWidth <= 0 || containerHeight <= 0) {
-          if (retryCount < 5) {
-            setTimeout(() => handleResize(retryCount + 1), 50 * (retryCount + 1))
-          }
           return
         }
 
-        // Skip if already resizing
-        if (isResizingRef.current) {
-          return
-        }
+        const beforeCols = xtermRef.current.cols
+        const beforeRows = xtermRef.current.rows
 
+        // First do local fit
         try {
-          isResizingRef.current = true
           fitAddonRef.current.fit()
-
-          // Force refresh to ensure canvas redraws after fit
-          xtermRef.current.refresh(0, xtermRef.current.rows - 1)
-
-          const cols = xtermRef.current.cols
-          const rows = xtermRef.current.rows
-
-          // Release resize lock after buffer stabilizes
-          setTimeout(() => {
-            isResizingRef.current = false
-            flushWriteQueue()
-          }, 50)
-
-          // Only send if dimensions actually changed
-          if (cols === prevDimensionsRef.current.cols && rows === prevDimensionsRef.current.rows) {
-            return
-          }
-
-          prevDimensionsRef.current = { cols, rows }
-          sendMessage({
-            type: 'TERMINAL_RESIZE',
-            terminalId,
-            cols,
-            rows,
-          })
         } catch (e) {
           console.warn('[Terminal] Window resize fit failed:', e)
-          isResizingRef.current = false
-          flushWriteQueue()
         }
-      }, 1000) // 1000ms debounce - matches Tabz pattern, lets dimensions stabilize
+
+        const afterCols = xtermRef.current.cols
+        const afterRows = xtermRef.current.rows
+        const colDelta = Math.abs(afterCols - beforeCols)
+
+        // CRITICAL FIX: For large dimension changes (>5 cols), clear xterm before tmux redraws
+        // xterm's reflow algorithm corrupts content with complex ANSI sequences (Claude Code statusline, diffs)
+        // Clearing ensures tmux's redraw starts fresh, avoiding corrupted reflow
+        if (isTmuxSession && colDelta > 5) {
+          xtermRef.current.clear()
+        }
+
+        // Then use resize trick to force tmux to fully recalculate
+        // This is like the EOL fix - ensures consistent handling instead of racing
+        triggerResizeTrick()
+      }, 300) // 300ms debounce - wait for resize to settle, then do trick
     }
 
-    const onWindowResize = () => handleResize(0)
-    window.addEventListener('resize', onWindowResize)
+    window.addEventListener('resize', handleResize)
     return () => {
-      window.removeEventListener('resize', onWindowResize)
+      window.removeEventListener('resize', handleResize)
       if (resizeTimeout) clearTimeout(resizeTimeout)
     }
   }, [terminalId])
