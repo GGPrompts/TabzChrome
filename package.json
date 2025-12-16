@@ -1,6 +1,6 @@
 {
   "name": "tabzchrome",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Windows Terminal-style Chrome extension for managing bash terminals in your browser sidebar",
   "type": "module",
   "repository": {

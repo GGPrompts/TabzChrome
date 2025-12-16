@@ -15,6 +15,13 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.6] - 2025-12-16
+
+### Added
+- **`tabId` parameter for parallel tab operations** - `tabz_screenshot`, `tabz_screenshot_full`, `tabz_click`, and `tabz_fill` now accept an optional `tabId` parameter to target specific tabs without switching. Enables multi-agent workflows where Claude can operate on multiple browser tabs simultaneously.
+
+---
+
 ## [1.1.5] - 2025-12-16
 
 ### Fixed
