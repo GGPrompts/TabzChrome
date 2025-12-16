@@ -51,6 +51,12 @@
       "category": "commands"
     },
     {
+      "name": "state-tracker",
+      "description": "Live session state tracking hooks - enables TabzChrome terminal updates and audio notifications",
+      "source": "./plugins/state-tracker",
+      "category": "hooks"
+    },
+    {
       "name": "tabz-chrome-full",
       "description": "Everything - all skills, commands, agents, hooks, and MCP server",
       "source": "./",
