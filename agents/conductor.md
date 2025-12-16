@@ -95,15 +95,31 @@ You have access to `tabz_*` MCP tools for browser control:
 
 | Tool | Purpose |
 |------|---------|
-| `tabz_list_tabs` | See all open browser tabs |
+| `tabz_list_tabs` | See all open browser tabs (returns `tabId` for each) |
 | `tabz_switch_tab` | Switch to a specific tab |
 | `tabz_open_url` | Open URLs (GitHub, localhost, Vercel, etc.) |
 | `tabz_screenshot` | Capture screenshots |
+| `tabz_screenshot_full` | Capture entire scrollable page |
 | `tabz_click` | Click elements by CSS selector |
 | `tabz_fill` | Fill form inputs |
 | `tabz_get_page_info` | Get current page URL/title |
 | `tabz_execute_script` | Run JavaScript in page |
 | `tabz_get_console_logs` | View browser console |
+
+**Parallel Tab Operations**: `tabz_screenshot`, `tabz_screenshot_full`, `tabz_click`, and `tabz_fill` accept an optional `tabId` parameter. This enables:
+- Multiple Claude workers operating on different browser tabs simultaneously
+- Background tab operations without switching focus
+- Parallel web scraping or form filling across tabs
+
+Get tab IDs from `tabz_list_tabs`, then pass `tabId` to target specific tabs:
+```javascript
+// Screenshot a background tab without switching
+tabz_screenshot({ tabId: 1762559892 })
+
+// Fill forms on multiple tabs in parallel
+tabz_fill({ selector: "#prompt", value: "query 1", tabId: TAB_A })
+tabz_fill({ selector: "#prompt", value: "query 2", tabId: TAB_B })
+```
 
 ## Workflows
 

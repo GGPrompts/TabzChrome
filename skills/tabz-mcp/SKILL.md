@@ -1,6 +1,6 @@
 ---
 name: tabz-mcp
-description: Browser automation via Tabz MCP tools. This skill should be used when working with browser tabs, taking screenshots, clicking elements, filling forms, capturing network requests, or any browser interaction tasks. Provides dynamic tool discovery and common workflow patterns for the tabz MCP server.
+description: "Control Chrome browser: take screenshots, click buttons, fill forms, download images, inspect pages, capture network requests. Use when user says: 'screenshot this', 'click the button', 'fill the form', 'download that image', 'what page am I on', 'check the browser', 'look at my screen', 'interact with the website', 'capture the page', 'get the HTML', 'inspect element'. Provides MCP tool discovery for tabz_* browser automation tools."
 ---
 
 # Tabz MCP - Browser Automation
@@ -93,9 +93,10 @@ mcp-cli call tabz/tabz_download_file '{"url": "<url-from-above>"}'
 1. **Active tab detection**: `tabz_list_tabs` uses Chrome Extension API - the `active: true` field shows the user's ACTUAL focused tab (not a guess)
 2. **Tab IDs**: Chrome tab IDs are large numbers (e.g., `1762556601`), not simple indices like `1, 2, 3`
 3. **Tab targeting**: After `tabz_switch_tab`, all subsequent tools auto-target that tab
-4. **Network capture**: Must call `tabz_enable_network_capture` BEFORE the page makes requests
-5. **Selectors**: Use CSS selectors - `#id`, `.class`, `button`, `input[type="text"]`
-6. **Screenshots**: Return file paths - use Read tool to display images to user
+4. **Parallel tab ops**: `tabz_screenshot`, `tabz_screenshot_full`, `tabz_click`, `tabz_fill` accept optional `tabId` param to target background tabs without switching
+5. **Network capture**: Must call `tabz_enable_network_capture` BEFORE the page makes requests
+6. **Selectors**: Use CSS selectors - `#id`, `.class`, `button`, `input[type="text"]`
+7. **Screenshots**: Return file paths - use Read tool to display images to user
 
 ## Resources
 
