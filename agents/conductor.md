@@ -14,8 +14,11 @@ You are a workflow orchestrator specializing in coordinating multiple Claude Cod
 
 **Get auth token** (required for spawn API):
 ```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
+cat /tmp/tabz-auth-token
 ```
+Then use the token value directly in subsequent curl commands.
+
+**Note**: Command substitution `$(...)` may not work reliably in some environments. Read the token first, then copy-paste it into the X-Auth-Token header.
 
 **Discover available agents**:
 ```bash
@@ -35,15 +38,12 @@ This returns profiles the user has configured in TabzChrome settings - useful fo
 
 **Spawn a new Claude session** (appears in TabzChrome sidebar):
 ```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
-curl -X POST http://localhost:8129/api/spawn \
+# First get token: cat /tmp/tabz-auth-token
+# Then spawn with the token value:
+curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d '{
-    "name": "Claude: Worker Name",
-    "workingDir": "'$(pwd)'",
-    "command": "claude --agent AGENT_NAME --dangerously-skip-permissions"
-  }'
+  -H "X-Auth-Token: YOUR_TOKEN_HERE" \
+  -d '{"name": "Claude: Worker Name", "workingDir": "/path/to/project", "command": "claude --dangerously-skip-permissions"}'
 ```
 
 **IMPORTANT**: Always include "Claude" in the name (e.g., "Claude: Test Writer") - this triggers status emoji display and audio notifications in TabzChrome.
@@ -111,58 +111,62 @@ You have access to `tabz_*` MCP tools for browser control:
 
 When spawning a Claude worker for a specific task:
 
-1. **Spawn the terminal** (with auth token):
+1. **Get auth token**:
 ```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
-RESULT=$(curl -s -X POST http://localhost:8129/api/spawn \
+cat /tmp/tabz-auth-token
+```
+
+2. **Spawn the terminal** (use token from step 1):
+```bash
+curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Claude: Fix auth bug", "workingDir": "'$(pwd)'", "command": "claude --dangerously-skip-permissions"}')
-ID=$(echo $RESULT | jq -r '.terminal.id')
-TMUX_SESSION=$(echo $RESULT | jq -r '.terminal.sessionName')
-echo "Spawned: $ID (tmux: $TMUX_SESSION)"
+  -H "X-Auth-Token: YOUR_TOKEN_HERE" \
+  -d '{"name": "Claude: Fix auth bug", "workingDir": "/home/user/project", "command": "claude --dangerously-skip-permissions"}' | jq -r '.terminal.sessionName'
+```
+Save the returned session name (e.g., `ctt-claude-fix-auth-b-abc123`) for sending prompts.
+
+3. **Wait for Claude to initialize** (~3-4 seconds):
+```bash
+sleep 4
 ```
 
-2. **Wait for Claude to initialize** (~3 seconds):
+4. **Send the task prompt**:
 ```bash
-sleep 3
-```
-
-3. **Send the task prompt**:
-```bash
-tmux send-keys -t "$TMUX_SESSION" -l 'Your detailed task prompt here...'
+tmux send-keys -t "SESSION_NAME_HERE" -l 'Your detailed task prompt here...'
 sleep 0.3
-tmux send-keys -t "$TMUX_SESSION" C-m
+tmux send-keys -t "SESSION_NAME_HERE" C-m
 ```
 
-4. **Monitor progress** (optional):
+5. **Monitor progress** (optional):
 ```bash
-tmux capture-pane -t "$TMUX_SESSION" -p -S -30
+tmux capture-pane -t "SESSION_NAME_HERE" -p -S -50
 ```
 
 ### Parallel Workers
 
 Spawn multiple specialized workers using different agents:
 
+1. **Get auth token**: `cat /tmp/tabz-auth-token`
+
+2. **Spawn workers** (run these in parallel, use token from step 1):
 ```bash
-# Get auth token once
-TOKEN=$(cat /tmp/tabz-auth-token)
-PROJECT_DIR=$(pwd)
+# Worker 1 - Test Writer
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" -H "X-Auth-Token: YOUR_TOKEN" \
+  -d '{"name": "Claude: Test Writer", "workingDir": "/path/to/project", "command": "claude --agent test-writer --dangerously-skip-permissions"}' | jq -r '.terminal.sessionName'
 
-# Spawn workers with specific agents (include "Claude:" prefix for status tracking)
-W1=$(curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Claude: Test Writer", "workingDir": "'"$PROJECT_DIR"'", "command": "claude --agent test-writer --dangerously-skip-permissions"}' | jq -r '.terminal.sessionName')
+# Worker 2 - Doc Writer
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" -H "X-Auth-Token: YOUR_TOKEN" \
+  -d '{"name": "Claude: Doc Writer", "workingDir": "/path/to/project", "command": "claude --agent doc-writer --dangerously-skip-permissions"}' | jq -r '.terminal.sessionName'
+```
 
-W2=$(curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Claude: Doc Writer", "workingDir": "'"$PROJECT_DIR"'", "command": "claude --agent doc-writer --dangerously-skip-permissions"}' | jq -r '.terminal.sessionName')
+3. **Wait for init**: `sleep 4`
 
-sleep 3
-
-# Send tasks - agents already know their specialty
-tmux send-keys -t "$W1" -l 'Add tests for the auth module'; sleep 0.3; tmux send-keys -t "$W1" C-m
-tmux send-keys -t "$W2" -l 'Document the new API endpoints'; sleep 0.3; tmux send-keys -t "$W2" C-m
+4. **Send tasks** (use session names from step 2):
+```bash
+tmux send-keys -t "W1_SESSION" -l 'Add tests for the auth module' && sleep 0.3 && tmux send-keys -t "W1_SESSION" C-m
+tmux send-keys -t "W2_SESSION" -l 'Document the new API endpoints' && sleep 0.3 && tmux send-keys -t "W2_SESSION" C-m
 ```
 
 ### Cleanup Orphaned Sessions

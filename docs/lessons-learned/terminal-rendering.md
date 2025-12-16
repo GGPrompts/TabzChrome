@@ -6,6 +6,60 @@ Lessons related to xterm.js, tmux, resize handling, and terminal display issues.
 
 ---
 
+## Only Send Resize on Window Resize for Tmux Sessions
+
+### Lesson: The Tabz Pattern for Tmux Resize (Dec 15, 2025)
+
+**Problem:** Terminal text corruption when narrowing Chrome sidebar after Claude finishes outputting.
+
+**What Happened:**
+1. Claude outputs continuously for a while
+2. Resize events get deferred (OUTPUT_QUIET_PERIOD) then aborted (MAX_RESIZE_DEFERRALS)
+3. xterm.js thinks it's one size, tmux thinks it's another
+4. When you later narrow the sidebar, text wraps incorrectly → corruption
+
+**Root Cause:** TabzChrome tried to be "smart" about resize timing:
+- Deferred resize during active output (OUTPUT_QUIET_PERIOD = 500ms)
+- Aborted resize after 10 deferrals during continuous output
+- This left xterm and tmux dimensions permanently out of sync
+
+**Comparison with Tabz (which worked correctly):**
+
+| Aspect | TabzChrome (broken) | Tabz (working) |
+|--------|---------------------|----------------|
+| ResizeObserver | Sends resize to backend | **Local fit only - no backend** |
+| Tab activation | Sends resize to backend | **Local fit only - no backend** |
+| Output deferral | 500ms quiet period + abort | **None** |
+| Window resize | Sends resize (with deferral) | Sends resize (simple debounce) |
+| Debounce | 150ms | **1000ms** |
+
+**Key Insight from Tabz (useTerminalResize.ts line 99-106):**
+```typescript
+// For tmux sessions, skip sending resize on container changes
+if (!isTmuxSession) {
+  debouncedResize(agentId, cols, rows);
+}
+// Only send on actual window resize events
+```
+
+**Solution Applied:**
+1. **Added `isTmuxSession` detection** - All `ctt-*` terminals are tmux-backed
+2. **ResizeObserver**: Only does local `fitTerminal()`, never sends to backend
+3. **Tab activation**: Only does local fit + refresh, never sends to backend
+4. **Window resize**: Still sends resize (this is the ONE place it's allowed)
+5. **Removed OUTPUT_QUIET_PERIOD and deferral logic** - Not needed with this approach
+6. **Increased debounce to 1000ms** - Matches Tabz pattern
+
+**The Rule:** For tmux sessions, tmux manages its own dimensions. Don't fight it.
+- Container resize (ResizeObserver) → local fit only
+- Tab switch → local fit only
+- Window resize → send to backend (tmux needs to know the viewport changed)
+
+**Files:**
+- `extension/components/Terminal.tsx` - All resize logic simplified
+
+---
+
 ## Tmux Status Bar Position
 
 ### Lesson: Put Tmux Status Bar at TOP When Running Claude Code (Dec 9, 2025)

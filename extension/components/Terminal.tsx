@@ -67,6 +67,12 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const wasDisconnectedRef = useRef(false)  // Track if we were disconnected (for resync on reconnect)
   // NOTE: Claude status polling removed - sidepanel handles it via useClaudeStatus hook
 
+  // Determine if this is a tmux session - all ctt-* terminals are tmux-backed
+  // CRITICAL: For tmux sessions, we should NOT send resize on container changes (ResizeObserver, tab switch)
+  // Only send resize on actual window resize. Tmux manages its own dimensions.
+  // See Tabz lessons-learned: sending container dimensions to tmux causes corruption.
+  const isTmuxSession = !!sessionName || !!tmuxSession || terminalId.startsWith('ctt-')
+
   // Track previous dimensions to avoid unnecessary resize events (from terminal-tabs pattern)
   const prevDimensionsRef = useRef({ cols: 0, rows: 0 })
 
@@ -100,29 +106,15 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const writeQueueRef = useRef<string[]>([])
   const isFlushingRef = useRef(false)
 
-  // Output tracking - delay resize during active output to prevent tmux status bar corruption
-  // When tmux is outputting content, resizing can corrupt scroll regions and cause the status bar to disappear
-  // NOTE: 500ms quiet period is important - Claude outputs continuously, so shorter periods cause
-  // resize during output which triggers tmux redraw storms (same line repeated many times)
+  // Output tracking - used for logging only now, not for deferring resize
+  // SIMPLIFIED: Tabz taught us that for tmux sessions, we should NOT try to time around output.
+  // Instead, just don't send resize on container changes for tmux - only on window resize.
   const lastOutputTimeRef = useRef(0)
-  const OUTPUT_QUIET_PERIOD = 500 // ms to wait after output before allowing resize
-  const resizeDeferCountRef = useRef(0) // Track deferrals to prevent infinite loop
-  const MAX_RESIZE_DEFERRALS = 10 // Max times to defer before forcing resize (5 seconds with 500ms period)
-
-  // Track if sidebar was resized while this terminal was inactive
-  // If true, we need to trigger resize trick when tab becomes active
-  const needsResizeTrickOnActivateRef = useRef(false)
 
   // Track current active state via ref so ResizeObserver callback can access it
   // (callbacks capture props at creation time, refs give us current value)
   const isActiveRef = useRef(isActive)
   isActiveRef.current = isActive
-
-  // Track deferred resize timeouts so they can be cleared on new resize events
-  // Without this, orphaned deferred timeouts can fire after new resize events,
-  // causing multiple resize operations at different times
-  const deferredFitTerminalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const deferredResizeTrickRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Safe write function that queues data during resize operations
   // CRITICAL: xterm.js write() is async - data gets queued internally and parsed later
@@ -188,11 +180,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     })
   }
 
-  // Resize trick to force complete redraw (used for theme/font changes and manual refresh)
-  // CRITICAL: Uses resize lock and try/catch to prevent buffer corruption
-  // Also uses time-based debounce to prevent "redraw storms" from multiple rapid calls
-  // @param force - Skip output quiet period check (used for initial connection fix)
-  const triggerResizeTrick = (force = false) => {
+  // Resize trick to force complete redraw (used for theme/font changes and reconnection)
+  // SIMPLIFIED: No more output deferral logic - Tabz taught us that for tmux sessions,
+  // we shouldn't try to time around output. Just do the resize trick with basic debounce.
+  const triggerResizeTrick = () => {
     if (!xtermRef.current || !fitAddonRef.current) return
 
     // Skip if already resizing
@@ -202,43 +193,13 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     const now = Date.now()
 
-    // Skip if there's active output (prevents corruption during Claude output)
-    // Resize during output causes tmux to redraw while content is streaming,
-    // resulting in duplicated/interleaved lines
-    // Exception: force=true skips this check (used for initial connection fix)
-    const timeSinceOutput = now - lastOutputTimeRef.current
-    if (!force && timeSinceOutput < OUTPUT_QUIET_PERIOD) {
-      // Defer the resize trick - schedule retry after quiet period
-      if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
-        resizeDeferCountRef.current++
-        console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick DEFERRED (active output, ${timeSinceOutput}ms ago, attempt ${resizeDeferCountRef.current})`)
-        // Clear any existing deferred timeout to prevent orphaned timeouts
-        if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
-        deferredResizeTrickRef.current = setTimeout(() => {
-          deferredResizeTrickRef.current = null
-          triggerResizeTrick()
-        }, OUTPUT_QUIET_PERIOD)
-        return
-      } else {
-        // CRITICAL: Abort entirely instead of forcing resize during continuous output
-        // Forcing resize during active Claude streaming causes massive corruption
-        // (same line repeated dozens of times). Terminal dimensions are likely fine.
-        console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick ABORTED (max deferrals ${MAX_RESIZE_DEFERRALS} reached - continuous output)`)
-        resizeDeferCountRef.current = 0
-        return
-      }
-    } else {
-      resizeDeferCountRef.current = 0
-    }
-
-    // Debounce: skip if we ran recently (prevents redraw storms)
-    // Exception: force=true skips this check (used for initial connection fix)
+    // Simple debounce: skip if we ran recently (prevents redraw storms)
     const timeSinceLast = now - lastResizeTrickTimeRef.current
-    if (!force && timeSinceLast < RESIZE_TRICK_DEBOUNCE_MS) {
+    if (timeSinceLast < RESIZE_TRICK_DEBOUNCE_MS) {
       console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick DEBOUNCED (${timeSinceLast}ms since last)`)
       return
     }
-    console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick RUNNING (${timeSinceLast}ms since last, ${timeSinceOutput}ms since output)`)
+    console.log(`[Terminal] ${terminalId.slice(-8)} triggerResizeTrick RUNNING`)
     lastResizeTrickTimeRef.current = now
 
     const currentCols = xtermRef.current.cols
@@ -267,27 +228,19 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
               cols: currentCols,
               rows: currentRows,
             })
-            // CRITICAL: Update prevDimensionsRef so debouncedSendResize skips redundant send
-            // Without this, debouncedSendResize fires later and sends the same dimensions again,
-            // triggering another SIGWINCH → tmux redraw → potential corruption
+            // Update prevDimensionsRef so debouncedSendResize skips redundant send
             prevDimensionsRef.current = { cols: currentCols, rows: currentRows }
           } catch (e) {
             console.warn('[Terminal] Resize trick step 2 failed:', e)
           }
         }
         isResizingRef.current = false
-        // CRITICAL: Clear write queue instead of flushing after resize trick
-        // The two-step resize triggers TWO tmux redraws (one per SIGWINCH).
-        // Both redraws get queued, and flushing them causes duplicate content
-        // (same lines appear twice - the corruption bug).
-        // Since resize trick is purely for visual refresh, discard the queued
-        // redraw data - it is just tmux redrawing what's already on screen.
+        // Clear write queue - resize trick redraws are just visual refresh
         writeQueueRef.current = []
       }, 100)
     } catch (e) {
       console.warn('[Terminal] Resize trick step 1 failed:', e)
       isResizingRef.current = false
-      // Also clear queue on error - don't flush partial redraw data
       writeQueueRef.current = []
     }
   }
@@ -332,28 +285,26 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     fitAddonRef.current = fitAddon
 
     // Debounced resize - only send to backend after dimensions stabilize AND actually changed
-    // Pattern from terminal-tabs: track previous dimensions to avoid unnecessary resize events
-    // CRITICAL: First resize is sent immediately (or with short delay) for reattached terminals
-    // Subsequent resizes use longer debounce to avoid interrupting tmux split drag
+    // Pattern from Tabz: track previous dimensions to avoid unnecessary resize events
+    // CRITICAL FOR TMUX: This function is ONLY called from window resize handler.
+    // Container resize (ResizeObserver) should NOT call this for tmux sessions.
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null
-    const debouncedSendResize = () => {
+    const debouncedSendResize = (forceImmediate = false) => {
       if (resizeTimeout) clearTimeout(resizeTimeout)
 
       // Check if this is first resize (dimensions were at initial 0,0)
       const isFirstResize = prevDimensionsRef.current.cols === 0 && prevDimensionsRef.current.rows === 0
 
-      // First resize uses shorter delay for fast init; subsequent resizes use moderate debounce
-      // NOTE: 1000ms was too long - during that time xterm shows new dimensions but tmux uses old ones
-      // Any output during that window is formatted for wrong width = corruption
-      // 150ms is enough to batch rapid resize events while keeping xterm/tmux in sync
-      const debounceMs = isFirstResize ? 100 : 150
+      // First resize uses shorter delay for fast init
+      // Subsequent resizes use 1000ms debounce (matches Tabz - prevents issues during drag)
+      const debounceMs = forceImmediate ? 0 : (isFirstResize ? 100 : 1000)
 
       resizeTimeout = setTimeout(() => {
         if (xtermRef.current) {
           const cols = xtermRef.current.cols
           const rows = xtermRef.current.rows
 
-          // CRITICAL: Only send if dimensions actually changed (from terminal-tabs pattern)
+          // CRITICAL: Only send if dimensions actually changed
           if (cols === prevDimensionsRef.current.cols && rows === prevDimensionsRef.current.rows) {
             return
           }
@@ -370,9 +321,10 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
 
     // Fit terminal to container with dimension verification and resize lock
-    // CRITICAL: Wraps fit() in try/catch and uses resize lock to prevent buffer corruption
-    // The isWrapped error occurs when resize() is called during active write operations
-    const fitTerminal = (retryCount = 0) => {
+    // SIMPLIFIED: No more output deferral logic - Tabz taught us this causes more problems than it solves.
+    // For tmux sessions, we only do LOCAL fit (xterm) - we do NOT send resize to backend.
+    // Backend resize is only sent on actual window resize events.
+    const fitTerminal = (retryCount = 0, sendToBackend = false) => {
       if (!fitAddonRef.current || !terminalRef.current || !xtermRef.current) return
 
       const containerWidth = terminalRef.current.offsetWidth
@@ -381,7 +333,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       if (containerWidth <= 0 || containerHeight <= 0) {
         // Retry up to 5 times with increasing delay for 0-dimension cases (sidebar animating)
         if (retryCount < 5) {
-          setTimeout(() => fitTerminal(retryCount + 1), 50 * (retryCount + 1))
+          setTimeout(() => fitTerminal(retryCount + 1, sendToBackend), 50 * (retryCount + 1))
         }
         return
       }
@@ -390,33 +342,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       if (isResizingRef.current) {
         return
       }
-
-      // Skip if output happened recently - prevents tmux status bar corruption
-      // But limit deferrals to prevent infinite loop (Claude outputs constantly)
-      const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-      if (timeSinceOutput < OUTPUT_QUIET_PERIOD) {
-        if (resizeDeferCountRef.current < MAX_RESIZE_DEFERRALS) {
-          resizeDeferCountRef.current++
-          // Clear any existing deferred timeout to prevent orphaned timeouts
-          if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
-          deferredFitTerminalRef.current = setTimeout(() => {
-            deferredFitTerminalRef.current = null
-            fitTerminal(retryCount)
-          }, OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
-          return
-        } else {
-          // CRITICAL: Abort entirely instead of forcing fit during continuous output
-          // Forcing fit during active Claude streaming causes massive corruption
-          // (same line repeated dozens of times). Terminal dimensions are likely fine.
-          // This matches triggerResizeTrick() abort behavior.
-          console.log(`[Terminal] ${terminalId.slice(-8)} fitTerminal ABORTED (max deferrals ${MAX_RESIZE_DEFERRALS} reached - continuous output)`)
-          resizeDeferCountRef.current = 0
-          return
-        }
-      }
-
-      // Reset deferral counter on successful resize attempt
-      resizeDeferCountRef.current = 0
 
       try {
         isResizingRef.current = true
@@ -428,35 +353,38 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
         fitAddonRef.current.fit()
 
-        // Debounced send to backend - wait for dimensions to stabilize
-        debouncedSendResize()
+        // Only send resize to backend when explicitly requested (window resize events)
+        // ResizeObserver and tab switch should NOT send to backend for tmux sessions
+        // The caller decides whether to send based on the event type
+        if (sendToBackend) {
+          debouncedSendResize()
+        }
 
         // Force refresh to ensure canvas redraws after fit
-        // This prevents blank terminal until user interaction
         xtermRef.current.refresh(0, xtermRef.current.rows - 1)
 
         // Release lock after a short delay to allow buffer to stabilize
         resizeLockTimeoutRef.current = setTimeout(() => {
           isResizingRef.current = false
-          flushWriteQueue()  // Flush any data queued during resize
+          flushWriteQueue()
         }, 50)
       } catch (e) {
         console.warn('[Terminal] Fit failed (buffer may be mid-update):', e)
         isResizingRef.current = false
-        flushWriteQueue()  // Flush any data queued during resize
+        flushWriteQueue()
       }
     }
 
     // Initial fit sequence after xterm.open()
     const initialFit = () => {
-      // Immediate fit (local only, resize will be debounced)
+      // Immediate fit (local only)
       fitTerminal()
 
       // Second fit after short delay (catch layout shifts)
-      setTimeout(fitTerminal, 100)
+      setTimeout(() => fitTerminal(), 100)
 
-      // Third fit after longer delay (ensure everything settled)
-      setTimeout(fitTerminal, 300)
+      // Third fit after longer delay - THIS ONE sends to backend (initial dimensions)
+      setTimeout(() => fitTerminal(0, true), 300)
 
       // Force a refresh to ensure content is rendered
       setTimeout(() => {
@@ -528,7 +456,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Lift output guard after 1000ms and flush buffered output
     // This prevents escape sequence corruption when reconnecting while tmux is actively outputting
-    // 1000ms is long enough to buffer the initial flood of output during reconnection
     setTimeout(() => {
       isOutputGuardedRef.current = false
       console.log('[Terminal] Output guard lifted for:', terminalId, 'buffered:', outputGuardBufferRef.current.length, 'chunks')
@@ -536,21 +463,19 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       if (outputGuardBufferRef.current.length > 0 && xtermRef.current) {
         const buffered = outputGuardBufferRef.current.join('')
         outputGuardBufferRef.current = []
-        // Write buffered data - it's now safe
         try {
           xtermRef.current.write(buffered)
         } catch (e) {
           console.warn('[Terminal] Failed to flush output guard buffer:', e)
         }
       }
-      // Trigger resize trick after output guard lifts to fix any copy mode issues
-      // Resizing sends SIGWINCH to tmux which forces a redraw and exits copy mode
-      // This fixes the issue where refreshing during active output causes copy mode entry
-      // Use force=true to bypass output quiet period and debounce checks
+      // Use resize trick after initial connection to ensure tmux content is drawn
+      // This handles: new spawn, reattach from ghost badge, and reconnect scenarios
+      // The 500ms debounce prevents conflicts with other resize operations
       setTimeout(() => {
-        console.log('[Terminal] Post-guard FORCED resize trick for:', terminalId)
-        triggerResizeTrick(true)  // force=true to run even during active output
-      }, 100)
+        console.log('[Terminal] Post-init resize trick for:', terminalId)
+        triggerResizeTrick()
+      }, 200)
     }, 1000)
 
     // Enable Shift+Ctrl+C/V for copy/paste
@@ -580,70 +505,25 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }, 150)
 
     // ResizeObserver to fit when container size changes
-    // CRITICAL: Debounce to prevent xterm.js buffer corruption during rapid resizes
-    // (e.g., moving browser to vertical monitor triggers many resize events)
+    // SIMPLIFIED: Following Tabz pattern - for tmux sessions, only do local fit, don't send resize to backend
+    // Backend resize is only sent on actual window resize events (handled separately)
     const resizeObserverTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null }
-    // Track dimensions before resize to detect actual size changes (not just observer noise)
-    const preResizeDims = { current: { width: 0, height: 0 } }
-    // Post-resize cleanup timeout - triggers resize trick AFTER resize settles
-    const postResizeCleanupRef = { current: null as ReturnType<typeof setTimeout> | null }
 
     const resizeObserver = new ResizeObserver((entries) => {
       if (resizeObserverTimeoutRef.current) clearTimeout(resizeObserverTimeoutRef.current)
-      if (postResizeCleanupRef.current) clearTimeout(postResizeCleanupRef.current)
-      // Clear deferred timeouts from previous resize events to prevent orphaned operations
-      if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
-      if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
-      // Reset deferral counter since we're starting a fresh resize sequence
-      resizeDeferCountRef.current = 0
 
-      // Capture dimensions before this resize event for comparison
       const entry = entries[0]
-      const newWidth = entry?.contentRect?.width ?? 0
-      const newHeight = entry?.contentRect?.height ?? 0
+      if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0) {
+        return
+      }
 
+      // Debounce the fit operation
       resizeObserverTimeoutRef.current = setTimeout(() => {
-        fitTerminal()
-
-        // Schedule post-resize cleanup AFTER resize settles
-        // This triggers the resize trick to fix text corruption from sidebar resize
-        // The 300ms delay ensures we're past the resize events, not during them
-        // CRITICAL: Only trigger if dimensions actually changed (sidebar drag, not scroll/focus)
-        if (postResizeCleanupRef.current) clearTimeout(postResizeCleanupRef.current)
-
-        postResizeCleanupRef.current = setTimeout(() => {
-          // Skip if this is the first observation (initial render, not a resize)
-          // Just record the initial dimensions without triggering resize trick
-          if (preResizeDims.current.width === 0 && preResizeDims.current.height === 0) {
-            preResizeDims.current = { width: newWidth, height: newHeight }
-            console.log(`[Terminal] ${terminalId.slice(-8)} initial dimensions recorded: ${newWidth}x${newHeight}`)
-            return
-          }
-
-          // Check if this was a real resize (dimensions changed significantly)
-          const widthChange = Math.abs(newWidth - preResizeDims.current.width)
-          const heightChange = Math.abs(newHeight - preResizeDims.current.height)
-          const significantChange = widthChange > 10 || heightChange > 10
-
-          if (significantChange && newWidth > 0 && newHeight > 0) {
-            // Update stored dimensions
-            preResizeDims.current = { width: newWidth, height: newHeight }
-
-            // If terminal is not active, defer resize trick until activation
-            // Inactive terminals can't properly redraw, so mark for later
-            // NOTE: Use isActiveRef.current to get current value (not stale closure)
-            if (!isActiveRef.current) {
-              console.log(`[Terminal] ${terminalId.slice(-8)} sidebar resize complete (${widthChange}x${heightChange} change), DEFERRING resize trick (inactive)`)
-              needsResizeTrickOnActivateRef.current = true
-            } else {
-              console.log(`[Terminal] ${terminalId.slice(-8)} sidebar resize complete (${widthChange}x${heightChange} change), triggering resize trick`)
-              // Trigger resize trick to fix text corruption
-              // The existing debounce/output-quiet-period logic will prevent issues during active output
-              triggerResizeTrick()
-            }
-          }
-        }, 300)  // 300ms after resize settles - enough time for fitTerminal to complete
-      }, 150)  // 150ms debounce - prevents buffer corruption on rapid resize
+        // CRITICAL: For tmux sessions, only do local fit - do NOT send to backend
+        // This is the key lesson from Tabz - tmux manages its own dimensions
+        // Sending container dimensions causes corruption
+        fitTerminal(0, false)  // sendToBackend = false
+      }, 150)
     })
 
     if (terminalRef.current) {
@@ -651,21 +531,14 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
 
     // Cleanup
-    // Store refs for cleanup
     const currentResizeObserver = resizeObserver
     const currentTimeoutRef = resizeObserverTimeoutRef
-    const currentPostResizeRef = postResizeCleanupRef
 
-    // Cleanup resize observer when effect re-runs (but NOT xterm - that's handled separately)
     return () => {
       currentResizeObserver.disconnect()
       if (currentTimeoutRef.current) clearTimeout(currentTimeoutRef.current)
-      if (currentPostResizeRef.current) clearTimeout(currentPostResizeRef.current)
-      // Clear deferred timeouts to prevent orphaned operations after unmount
-      if (deferredFitTerminalRef.current) clearTimeout(deferredFitTerminalRef.current)
-      if (deferredResizeTrickRef.current) clearTimeout(deferredResizeTrickRef.current)
     }
-  }, [terminalId, isInitialized]) // Init on mount, re-run if terminalId changes
+  }, [terminalId, isInitialized])
 
   // Separate cleanup effect - only dispose xterm on true unmount
   useEffect(() => {
@@ -721,63 +594,52 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         }
       } else if (message.type === 'WS_CONNECTED') {
         setIsConnected(true)
-        // If we were disconnected, trigger a resync to fix any corruption
-        // This happens when service worker goes idle and WebSocket closes
-        // Output during disconnect is lost, so xterm and tmux may be out of sync
+        // If we were disconnected, force tmux to redraw
+        // CRITICAL: Plain resize with same dimensions is IGNORED by tmux.
+        // We need triggerResizeTrick to force SIGWINCH redraw.
         if (wasDisconnectedRef.current) {
           wasDisconnectedRef.current = false
-          console.log(`[Terminal] ${terminalId.slice(-8)} reconnected after disconnect, scheduling resync`)
-          // Delay resync to let WebSocket fully stabilize
-          // Use force=true to bypass output quiet period (we NEED to resync)
+          console.log(`[Terminal] ${terminalId.slice(-8)} reconnected after disconnect, forcing redraw`)
           setTimeout(() => {
-            console.log(`[Terminal] ${terminalId.slice(-8)} triggering post-reconnect resize trick`)
-            triggerResizeTrick(true)
+            if (xtermRef.current && fitAddonRef.current) {
+              fitAddonRef.current.fit()
+              xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+              // Use resize trick to force tmux to redraw
+              triggerResizeTrick()
+            }
           }, 500)
         }
       } else if (message.type === 'WS_DISCONNECTED') {
         setIsConnected(false)
         wasDisconnectedRef.current = true
-        console.log(`[Terminal] ${terminalId.slice(-8)} disconnected, will resync on reconnect`)
+        console.log(`[Terminal] ${terminalId.slice(-8)} disconnected, will refresh on reconnect`)
       } else if (message.type === 'REFRESH_TERMINALS') {
-        // Skip entirely if there's been very recent output (indicates active Claude session)
-        // This prevents even scheduling the refresh during active streaming
-        const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-        if (timeSinceOutput < 100) {
-          console.log(`[Terminal] ${terminalId.slice(-8)} skipping REFRESH_TERMINALS (output ${timeSinceOutput}ms ago)`)
-          return
-        }
-
-        // Stagger refresh per-terminal with random delay to prevent "redraw storm"
-        // When all terminals resize simultaneously, tmux sends many redraws that interleave
-        // with active Claude output, causing corruption (same line repeated many times)
-        // Random delay 50-550ms spreads out the resize events
-        const staggerDelay = 50 + Math.random() * 500
-        console.log(`[Terminal] ${terminalId.slice(-8)} received REFRESH_TERMINALS, staggering ${Math.round(staggerDelay)}ms`)
-        setTimeout(() => {
-          // CRITICAL: Re-check output time AFTER stagger delay
-          // More output may have arrived during the delay - if so, abort entirely
-          // The terminal dimensions are probably fine; corruption risk isn't worth it
-          const timeSinceOutputNow = Date.now() - lastOutputTimeRef.current
-          if (timeSinceOutputNow < OUTPUT_QUIET_PERIOD) {
-            console.log(`[Terminal] ${terminalId.slice(-8)} ABORTING REFRESH_TERMINALS (output arrived during stagger, ${timeSinceOutputNow}ms ago)`)
-            return
-          }
+        // Force tmux to redraw - xterm is new/empty after sidebar refresh
+        // CRITICAL: Plain resize with same dimensions is IGNORED by tmux.
+        // We need triggerResizeTrick (cols-1, then cols) to force SIGWINCH redraw.
+        console.log(`[Terminal] ${terminalId.slice(-8)} received REFRESH_TERMINALS, forcing redraw`)
+        if (xtermRef.current && fitAddonRef.current) {
+          fitAddonRef.current.fit()
+          xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+          // Use resize trick to force tmux to redraw content to new xterm instance
           triggerResizeTrick()
-        }, staggerDelay)
+        }
       } else if (message.type === 'TERMINAL_RECONNECTED' && message.terminalId === terminalId) {
-        // Terminal reconnected after backend restart - clear old content and resize
-        // This prevents "two sessions in one" appearance where old content remains
-        console.log(`[Terminal] ${terminalId.slice(-8)} RECONNECTED - clearing and resizing`)
-        if (xtermRef.current) {
+        // Terminal reconnected after backend restart - clear old content and force redraw
+        // CRITICAL: Plain resize with same dimensions is IGNORED by tmux.
+        console.log(`[Terminal] ${terminalId.slice(-8)} RECONNECTED - clearing and forcing redraw`)
+        if (xtermRef.current && fitAddonRef.current) {
           // Clear terminal content - tmux will send fresh scrollback
           xtermRef.current.clear()
           xtermRef.current.reset()
-          // Trigger resize after a short delay to let things settle
+          // Use resize trick after a short delay to force tmux redraw
           setTimeout(() => {
             if (fitAddonRef.current && xtermRef.current) {
               try {
                 fitAddonRef.current.fit()
                 xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+                // Use resize trick to force tmux to redraw
+                triggerResizeTrick()
               } catch (e) {
                 console.warn('[Terminal] Fit after reconnect failed:', e)
               }
@@ -897,16 +759,16 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }, 100)
   }, [fontSize, fontFamily, themeName, isDark, terminalId])
 
-  // Handle window resize - debounced to prevent buffer corruption during rapid resize
-  // CRITICAL: Chrome sidebar resize triggers many events rapidly - must debounce!
+  // Handle ACTUAL window resize - this is the ONE place we send resize to backend
+  // Following Tabz pattern: window resize is the only time we tell tmux about dimension changes
+  // Container resize (ResizeObserver) and tab switch do NOT send resize
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null
-    let windowResizeDeferCount = 0
 
     const handleResize = (retryCount = 0) => {
-      // Debounce the resize to prevent isWrapped buffer corruption
       if (resizeTimeout) clearTimeout(resizeTimeout)
 
+      // Use 1000ms debounce to match Tabz pattern
       resizeTimeout = setTimeout(() => {
         if (!fitAddonRef.current || !xtermRef.current || !terminalRef.current) return
 
@@ -926,18 +788,6 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           return
         }
 
-        // Skip if output happened recently - but limit deferrals to prevent infinite loop
-        const timeSinceOutput = Date.now() - lastOutputTimeRef.current
-        if (timeSinceOutput < OUTPUT_QUIET_PERIOD && windowResizeDeferCount < MAX_RESIZE_DEFERRALS) {
-          windowResizeDeferCount++
-          if (resizeTimeout) clearTimeout(resizeTimeout)
-          resizeTimeout = setTimeout(() => handleResize(retryCount), OUTPUT_QUIET_PERIOD - timeSinceOutput + 10)
-          return
-        }
-
-        // Reset deferral counter on successful resize
-        windowResizeDeferCount = 0
-
         try {
           isResizingRef.current = true
           fitAddonRef.current.fit()
@@ -951,7 +801,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           // Release resize lock after buffer stabilizes
           setTimeout(() => {
             isResizingRef.current = false
-            flushWriteQueue()  // Flush any data queued during resize
+            flushWriteQueue()
           }, 50)
 
           // Only send if dimensions actually changed
@@ -969,9 +819,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         } catch (e) {
           console.warn('[Terminal] Window resize fit failed:', e)
           isResizingRef.current = false
-          flushWriteQueue()  // Flush any data queued during resize
+          flushWriteQueue()
         }
-      }, 150) // 150ms debounce - matches ResizeObserver debounce
+      }, 1000) // 1000ms debounce - matches Tabz pattern, lets dimensions stabilize
     }
 
     const onWindowResize = () => handleResize(0)
@@ -983,27 +833,20 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   }, [terminalId])
 
   // Handle tab switching - refresh terminal when it becomes visible (from Tabz pattern)
-  // Simple approach: fit, refresh, focus - no complex first-activation logic needed
-  // since all terminals are now initialized on mount
+  // SIMPLIFIED: For tmux sessions, only do local fit and refresh - do NOT send resize to backend
+  // This is critical - sending resize on tab switch causes the same corruption as ResizeObserver
   useEffect(() => {
     if (!isActive || !isInitialized) return
     if (!xtermRef.current || !fitAddonRef.current) return
 
-    // Check if we need resize trick (sidebar was resized while inactive)
-    const needsResizeTrick = needsResizeTrickOnActivateRef.current
-    if (needsResizeTrick) {
-      console.log(`[Terminal] ${terminalId.slice(-8)} tab activated, needs deferred resize trick`)
-      needsResizeTrickOnActivateRef.current = false
-    } else {
-      console.log(`[Terminal] ${terminalId.slice(-8)} tab activated, refreshing`)
-    }
+    console.log(`[Terminal] ${terminalId.slice(-8)} tab activated, refreshing`)
 
     // Small delay to ensure visibility:visible has taken effect
     const timeoutId = setTimeout(() => {
       try {
         if (!xtermRef.current || !fitAddonRef.current) return
 
-        // Fit the terminal to container
+        // Fit the terminal to container (local only)
         fitAddonRef.current.fit()
 
         // Refresh the xterm display
@@ -1012,28 +855,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         // Restore focus
         xtermRef.current.focus()
 
-        // Send resize to backend to trigger tmux redraw
-        const cols = xtermRef.current.cols
-        const rows = xtermRef.current.rows
-        if (cols !== prevDimensionsRef.current.cols || rows !== prevDimensionsRef.current.rows) {
-          prevDimensionsRef.current = { cols, rows }
-          sendMessage({
-            type: 'TERMINAL_RESIZE',
-            terminalId,
-            cols,
-            rows,
-          })
-        }
-
-        // If sidebar was resized while inactive, trigger resize trick now
-        // This fixes text wrapping issues that couldn't be fixed while hidden
-        if (needsResizeTrick) {
-          // Small delay to let the fit/refresh complete first
-          setTimeout(() => {
-            console.log(`[Terminal] ${terminalId.slice(-8)} executing deferred resize trick`)
-            triggerResizeTrick()
-          }, 100)
-        }
+        // CRITICAL: Do NOT send resize to backend on tab switch for tmux sessions
+        // This is the same lesson as ResizeObserver - tmux manages its own dimensions
+        // Only send resize on actual window resize events
       } catch (error) {
         console.warn('[Terminal] Failed to refresh on tab switch:', error)
       }
