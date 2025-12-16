@@ -15,10 +15,11 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
-## [1.1.3] - 2025-12-16
+## [1.1.4] - 2025-12-16
 
 ### Fixed
-- **Fixed terminal corruption when bookmarks bar appears/disappears** - ResizeObserver now has same buffer-clearing protection as window resize handler, checking both row and column delta changes
+- **Fixed terminal corruption when bookmarks bar appears/disappears** - Changed resize trick to shrink by row instead of column, preventing tmux status bar from wrapping during resize. Also added buffer-clearing protection for row delta changes in ResizeObserver
+- **Fixed dev.sh version check showing wrong direction** - Version comparison now correctly checks if remote is newer than local (was showing "update available 1.1.3 → 1.1.1")
 
 ---
 

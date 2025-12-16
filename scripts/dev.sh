@@ -34,7 +34,13 @@ echo ""
 CURRENT_VERSION=$(grep '"version"' "$SCRIPT_DIR/../package.json" | sed 's/.*"version": "\([^"]*\)".*/\1/')
 LATEST_RELEASE=$(curl -s --max-time 2 https://api.github.com/repos/GGPrompts/TabzChrome/releases/latest 2>/dev/null | grep '"tag_name"' | sed 's/.*"tag_name": "v\?\([^"]*\)".*/\1/')
 
-if [ -n "$LATEST_RELEASE" ] && [ "$LATEST_RELEASE" != "$CURRENT_VERSION" ]; then
+# Compare versions (returns 0 if $1 > $2, 1 otherwise)
+version_gt() {
+    # Sort versions and check if first arg comes after second
+    [ "$(printf '%s\n%s' "$1" "$2" | sort -V | tail -n1)" = "$1" ] && [ "$1" != "$2" ]
+}
+
+if [ -n "$LATEST_RELEASE" ] && version_gt "$LATEST_RELEASE" "$CURRENT_VERSION"; then
     echo -e "${YELLOW}╭─────────────────────────────────────────────────────╮${NC}"
     echo -e "${YELLOW}│  🆕 Update available: v${CURRENT_VERSION} → v${LATEST_RELEASE}${NC}"
     echo -e "${YELLOW}│  ${NC}Run: ${BLUE}git pull${NC} to update"

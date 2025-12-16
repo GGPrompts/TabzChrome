@@ -152,6 +152,50 @@ writeQueueRef.current = []
 
 ---
 
+## Resize Trick: Shrink by Row, Not Column
+
+### Lesson: Column Shrink Causes Status Bar Wrapping (Dec 16, 2025)
+
+**Problem:** Terminal corruption when bookmarks bar appears/disappears during tab switching.
+
+**What Happened:**
+1. User switches tabs while Chrome bookmarks bar toggles visibility
+2. ResizeObserver fires due to container height change
+3. `triggerResizeTrick()` shrinks terminal by 1 column (cols-1)
+4. Tmux status bar at top can't fit in (cols-1) width
+5. Last character of status bar date wraps to next line
+6. This wrapped character corrupts the terminal scroll region
+7. Subsequent redraws show garbled content
+
+**Root Cause:** The resize trick used column shrinking (`cols-1, rows`) which affected the tmux status bar width. Since the status bar is at the top and sized to fit the terminal width exactly, shrinking by 1 column caused text wrapping.
+
+**Solution:** Shrink by row instead of column:
+
+```typescript
+// OLD - Column shrink causes status bar wrapping
+xtermRef.current.resize(currentCols - 1, currentRows)  // ❌ BAD
+
+// NEW - Row shrink keeps status bar width constant
+const minRows = Math.max(1, currentRows - 1)
+xtermRef.current.resize(currentCols, minRows)  // ✅ GOOD
+```
+
+**Why This Works:**
+- Tmux status bar is at the top, sized for full terminal width
+- Shrinking by row temporarily hides 1 row of content (barely visible)
+- Status bar width stays constant, no wrapping occurs
+- SIGWINCH still triggers tmux to recalculate dimensions
+- Second step fits to container and sends final dimensions
+
+**Also Changed:**
+- Increased delay between resize trick steps from 100ms to 200ms
+- Step 2 now calls `fit()` to get fresh dimensions (handles container changes during wait)
+
+**Files:**
+- `extension/components/Terminal.tsx:211-255` - Resize trick implementation
+
+---
+
 ## Tmux Status Bar Position
 
 ### Lesson: Put Tmux Status Bar at TOP When Running Claude Code (Dec 9, 2025)

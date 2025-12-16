@@ -208,28 +208,41 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     try {
       isResizingRef.current = true
 
-      // Step 1: Resize down by 1 column
-      xtermRef.current.resize(currentCols - 1, currentRows)
+      // ALTERNATIVE APPROACH: Start small, then fit to container
+      // Instead of shrinking from current size (which could be larger than container
+      // if container just shrunk), start from a minimal size and let fit() grow it.
+      // This ensures we never send dimensions larger than the container can handle.
+      //
+      // Step 1: Resize to minimal size (1 row less than current, keeping cols same)
+      // This triggers SIGWINCH to force tmux to recalculate
+      const minRows = Math.max(1, currentRows - 1)
+      xtermRef.current.resize(currentCols, minRows)
       sendMessage({
         type: 'TERMINAL_RESIZE',
         terminalId,
-        cols: currentCols - 1,
-        rows: currentRows,
+        cols: currentCols,
+        rows: minRows,
       })
 
-      // Step 2: Wait then resize back to original size
+      // Step 2: Wait then fit to container and send final dimensions
+      // Using 200ms delay to give tmux time to process the first SIGWINCH
       setTimeout(() => {
-        if (xtermRef.current) {
+        if (xtermRef.current && fitAddonRef.current) {
           try {
-            xtermRef.current.resize(currentCols, currentRows)
+            // Fit to get the correct container dimensions
+            fitAddonRef.current.fit()
+            const finalCols = xtermRef.current.cols
+            const finalRows = xtermRef.current.rows
+
+            // Send final dimensions to backend (this triggers second SIGWINCH)
             sendMessage({
               type: 'TERMINAL_RESIZE',
               terminalId,
-              cols: currentCols,
-              rows: currentRows,
+              cols: finalCols,
+              rows: finalRows,
             })
             // Update prevDimensionsRef so debouncedSendResize skips redundant send
-            prevDimensionsRef.current = { cols: currentCols, rows: currentRows }
+            prevDimensionsRef.current = { cols: finalCols, rows: finalRows }
           } catch (e) {
             console.warn('[Terminal] Resize trick step 2 failed:', e)
           }
@@ -237,7 +250,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         isResizingRef.current = false
         // Clear write queue - resize trick redraws are just visual refresh
         writeQueueRef.current = []
-      }, 100)
+      }, 200)
     } catch (e) {
       console.warn('[Terminal] Resize trick step 1 failed:', e)
       isResizingRef.current = false
@@ -526,34 +539,43 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
       // Debounce the fit operation
       resizeObserverTimeoutRef.current = setTimeout(() => {
-        if (!xtermRef.current || !fitAddonRef.current) return
+        if (!xtermRef.current || !fitAddonRef.current || !terminalRef.current) return
 
-        // Capture dimensions before fit
-        const beforeCols = xtermRef.current.cols
-        const beforeRows = xtermRef.current.rows
+        // For tmux sessions, just fit and trigger resize trick - don't clear
+        // The resize trick sends SIGWINCH which makes tmux redraw everything fresh
+        // Clearing causes isWrapped errors when data is mid-flight
+        if (isTmuxSession) {
+          const beforeCols = xtermRef.current.cols
+          const beforeRows = xtermRef.current.rows
 
-        // CRITICAL: For tmux sessions, only do local fit - do NOT send to backend
-        // This is the key lesson from Tabz - tmux manages its own dimensions
-        // Sending container dimensions causes corruption
-        fitTerminal(0, false)  // sendToBackend = false
+          fitTerminal(0, false)
 
-        // Check if dimensions changed significantly (row OR column)
-        // This handles bookmarks bar appearing/disappearing (height change) and sidebar resize (width change)
-        const afterCols = xtermRef.current.cols
-        const afterRows = xtermRef.current.rows
-        const colDelta = Math.abs(afterCols - beforeCols)
-        const rowDelta = Math.abs(afterRows - beforeRows)
+          const afterCols = xtermRef.current.cols
+          const afterRows = xtermRef.current.rows
 
-        // For large dimension changes, clear buffer and trigger resize trick
-        // xterm's reflow algorithm corrupts complex ANSI sequences during significant resize
-        if (isTmuxSession && (colDelta > 5 || rowDelta > 2)) {
-          console.log(`[Terminal] ${terminalId.slice(-8)} ResizeObserver large change: cols ${beforeCols}→${afterCols}, rows ${beforeRows}→${afterRows}`)
-          isResizingRef.current = true
-          xtermRef.current.clear()
-          isResizingRef.current = false
-          writeQueueRef.current = []
-          triggerResizeTrick()
+          // Only trigger resize trick if dimensions actually changed
+          if (afterCols !== beforeCols || afterRows !== beforeRows) {
+            const colDelta = Math.abs(afterCols - beforeCols)
+            const rowDelta = Math.abs(afterRows - beforeRows)
+
+            // CRITICAL FIX: For large dimension changes, clear xterm buffer before tmux redraws
+            // xterm's reflow algorithm corrupts content with complex ANSI sequences
+            // Same protection as window resize handler, but also check row delta
+            // Row delta >2 catches bookmarks bar appearing/disappearing (~2-3 rows)
+            if (colDelta > 5 || rowDelta > 2) {
+              isResizingRef.current = true
+              xtermRef.current.clear()
+              isResizingRef.current = false
+              writeQueueRef.current = [] // Discard stale data from reflow
+            }
+
+            triggerResizeTrick()
+          }
+          return
         }
+
+        // Non-tmux sessions: just fit
+        fitTerminal(0, false)
       }, 150)
     })
 
