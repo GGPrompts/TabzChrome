@@ -71,6 +71,10 @@
 
 ## Future Enhancements (Phase 3)
 
+### Waiting on Chrome Updates
+
+- [ ] **`sidePanel.close()` (Chrome 141+)** - Add "Close Terminal Sidebar" to context menu. Currently only `open()` exists and requires user gesture. [Chrome API docs](https://developer.chrome.com/docs/extensions/reference/api/sidePanel)
+
 ### GitHub FAB
 - **Fork + Clone Combo** - Fork first, then clone user's fork (proper OSS contribution flow)
 

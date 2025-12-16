@@ -10,7 +10,7 @@
     "name": "modulepreload-polyfill"
   },
   "background/background.ts": {
-    "file": "assets/background.ts-BjJ1MZtf.js",
+    "file": "assets/background.ts-BGm2JHGr.js",
     "name": "background.ts",
     "src": "background/background.ts",
     "isEntry": true

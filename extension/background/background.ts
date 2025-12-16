@@ -1946,15 +1946,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   // Handle both old 'toggle-sidepanel' and new 'open-sidepanel' menu IDs
   // (old ID may be cached in Chrome until full restart)
   if (menuId === 'open-sidepanel' || menuId === 'toggle-sidepanel') {
-    try {
-      const windowId = await getValidWindowId()
-      if (windowId) {
-        await chrome.sidePanel.open({ windowId })
-      }
-      // Silently ignore if no window - not an error worth logging
-    } catch (err) {
-      // Silently ignore - sidebar might already be open, or other benign issues
-      console.debug('[Background] Sidebar open attempt:', err)
+    // CRITICAL: Must call sidePanel.open() synchronously - any await breaks user gesture chain
+    const windowId = tab?.windowId && tab.windowId > 0 ? tab.windowId : undefined
+    if (windowId) {
+      chrome.sidePanel.open({ windowId }).catch(err => {
+        console.warn('[Background] Sidebar open failed:', err)
+      })
+    } else {
+      console.warn('[Background] No valid windowId from tab, cannot open sidebar')
     }
     return
   }
