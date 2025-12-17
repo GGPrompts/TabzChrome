@@ -1,0 +1,5 @@
+{
+  "name": "ctthandoff",
+  "version": "1.0.0",
+  "description": "Generate a handoff summary, copy to clipboard, and speak via Tabz TTS"
+}

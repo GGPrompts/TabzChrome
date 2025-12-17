@@ -1,0 +1,5 @@
+{
+  "name": "rebuild",
+  "version": "1.0.0",
+  "description": "Build the TabzChrome extension and copy to Windows for Chrome reload"
+}
