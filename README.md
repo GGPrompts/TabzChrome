@@ -51,7 +51,7 @@ TabzChrome is designed to work seamlessly with Claude Code:
 
 ![MCP settings](docs/pages/screenshots/mcp-settings.png)
 
-Using Anthropic's experimental dynamic tool loading, Claude fetches tool schemas on-demand instead of loading all 20 definitions into context. Enable with the `--dynamic-tool-discovery` flag when adding the MCP server.
+Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 20 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
 
 **🎭 Power Features (Claude Code Integration):**
 
@@ -451,7 +451,7 @@ Click ⚙️ → **MCP Tools** tab to configure which tools Claude can use:
 - Add custom allowed domains for `tabz_open_url`
 - Apply presets (Minimal, Standard, Full)
 
-> **Tip:** Use `--dynamic-tool-discovery` flag when adding the MCP server to load tool schemas on-demand (0 tokens up front).
+> **Tip:** Set `ENABLE_EXPERIMENTAL_MCP_CLI=true` in your shell to load tool schemas on-demand (0 tokens up front). See [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c).
 
 ### Claude Skill: `tabz-mcp`
 

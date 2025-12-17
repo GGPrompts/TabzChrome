@@ -55,8 +55,8 @@
 ## Documentation & Testing (Phase 2D/2E)
 
 ### Documentation TODO
-- [ ] **Verify --dynamic-tool-discovery flag** - README claims this is a real Claude Code flag; may be inaccurate (API-level feature, not CLI flag)
-- [ ] **Add Homebrew install note for macOS** - brew is not installed by default
+- [x] **Verify --dynamic-tool-discovery flag** - Fixed! Was inaccurate. Updated README to use `ENABLE_EXPERIMENTAL_MCP_CLI=true` env var instead
+- [x] **Add Homebrew install note for macOS** - Handled in scripts/dev.sh which detects if brew is missing and shows https://brew.sh
 - [ ] **Clean archived docs** - Personal paths remain in `docs/archived/*` files
 - [ ] Add homepage/bugs fields to backend/package.json
 
