@@ -58,6 +58,7 @@ const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
 export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNotificationsParams): UseAudioNotificationsReturn {
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(DEFAULT_AUDIO_SETTINGS)
   const [audioGlobalMute, setAudioGlobalMute] = useState(false)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
 
   // Refs for tracking state transitions
   const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())
@@ -99,6 +100,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
       if (typeof result.audioGlobalMute === 'boolean') {
         setAudioGlobalMute(result.audioGlobalMute)
       }
+      setSettingsLoaded(true)
     })
 
     return () => {
@@ -257,6 +259,8 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
 
   // SESSION START: Announce new sessions when they're spawned (Codex fix)
   useEffect(() => {
+    // Skip until settings are loaded from Chrome storage (prevents race condition on first spawn)
+    if (!settingsLoaded) return
     // Skip if sessionStart audio is disabled or master mute is on
     if (!audioSettings.events.sessionStart || audioGlobalMute) return
     // Skip during initial load (restored sessions shouldn't announce)
@@ -280,10 +284,12 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         announcedSessionsRef.current.delete(id)
       }
     }
-  }, [sessions, audioSettings.events.sessionStart, audioGlobalMute, getAudioSettingsForProfile, playAudio])
+  }, [sessions, audioSettings.events.sessionStart, audioGlobalMute, settingsLoaded, getAudioSettingsForProfile, playAudio])
 
   // Watch Claude status changes and trigger audio notifications
   useEffect(() => {
+    // Skip until settings are loaded from Chrome storage
+    if (!settingsLoaded) return
     // If master mute is on, no audio plays regardless of profile settings
     if (audioGlobalMute) return
 
@@ -436,7 +442,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         prevSubagentCountsRef.current.delete(id)
       }
     }
-  }, [claudeStatuses, audioSettings, audioGlobalMute, sessions, getAudioSettingsForProfile, playAudio])
+  }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, playAudio])
 
   return {
     audioSettings,

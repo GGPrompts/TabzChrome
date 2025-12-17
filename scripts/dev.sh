@@ -72,32 +72,38 @@ else
 fi
 
 # Check for Nerd Font (optional - for icons in terminal)
+# Skip on WSL - fonts are typically installed on Windows side and Chrome can see them
 NERD_FONT_FOUND=false
-case "$(uname -s)" in
-    Darwin)
-        # macOS: check font directories for common Nerd/dev fonts
-        if ls ~/Library/Fonts/*[Nn]erd* /Library/Fonts/*[Nn]erd* 2>/dev/null | grep -q . || \
-           ls ~/Library/Fonts/*[Jj]et[Bb]rains* /Library/Fonts/*[Jj]et[Bb]rains* 2>/dev/null | grep -q . || \
-           ls ~/Library/Fonts/*[Ff]ira[Cc]ode* /Library/Fonts/*[Ff]ira[Cc]ode* 2>/dev/null | grep -q .; then
-            NERD_FONT_FOUND=true
-        fi
-        ;;
-    Linux)
-        # Linux: use fontconfig
-        if command -v fc-list &> /dev/null; then
-            if fc-list : family | grep -qi "nerd\|powerline\|firacode\|jetbrains\|hack\|meslo"; then
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    # WSL detected - skip font check (Chrome uses Windows fonts)
+    NERD_FONT_FOUND=true
+else
+    case "$(uname -s)" in
+        Darwin)
+            # macOS: check font directories for common Nerd/dev fonts
+            if ls ~/Library/Fonts/*[Nn]erd* /Library/Fonts/*[Nn]erd* 2>/dev/null | grep -q . || \
+               ls ~/Library/Fonts/*[Jj]et[Bb]rains* /Library/Fonts/*[Jj]et[Bb]rains* 2>/dev/null | grep -q . || \
+               ls ~/Library/Fonts/*[Ff]ira[Cc]ode* /Library/Fonts/*[Ff]ira[Cc]ode* 2>/dev/null | grep -q .; then
                 NERD_FONT_FOUND=true
             fi
-        else
-            # No fc-list, skip font check
+            ;;
+        Linux)
+            # Linux: use fontconfig
+            if command -v fc-list &> /dev/null; then
+                if fc-list : family | grep -qi "nerd\|powerline\|firacode\|jetbrains\|hack\|meslo"; then
+                    NERD_FONT_FOUND=true
+                fi
+            else
+                # No fc-list, skip font check
+                NERD_FONT_FOUND=true
+            fi
+            ;;
+        *)
+            # Unknown OS, skip font check
             NERD_FONT_FOUND=true
-        fi
-        ;;
-    *)
-        # Unknown OS, skip font check
-        NERD_FONT_FOUND=true
-        ;;
-esac
+            ;;
+    esac
+fi
 if [ "$NERD_FONT_FOUND" = false ]; then
     MISSING_OPTIONAL+=("nerd-font")
 fi
@@ -292,10 +298,30 @@ echo ""
 # Tmux config optimized for xterm.js (used by TabzChrome extension)
 TMUX_CONFIG="$SCRIPT_DIR/../.tmux-terminal-tabs.conf"
 
+# Check if we're running inside the session we're about to kill
+CURRENT_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
+if [ "$CURRENT_SESSION" = "$SESSION_NAME" ]; then
+    echo -e "${RED}❌ You're running this from inside the $SESSION_NAME tmux session!${NC}"
+    echo -e "${YELLOW}   Run from a different terminal or detach first (Ctrl+B, D)${NC}"
+    exit 1
+fi
+
 # Kill existing session if it exists
 if tmux has-session -t $SESSION_NAME 2>/dev/null; then
-    echo -e "${YELLOW}⚠️  Existing session found. Killing it...${NC}"
+    echo -e "${YELLOW}⚠️  Existing tmux session found. Killing it...${NC}"
     tmux kill-session -t $SESSION_NAME
+fi
+
+# Kill any process using port 8129 (in case backend was started manually)
+PORT_PID=$(lsof -t -i:8129 2>/dev/null || true)
+if [ -n "$PORT_PID" ]; then
+    echo -e "${YELLOW}⚠️  Port 8129 in use (PID: $PORT_PID). Killing process...${NC}"
+    kill $PORT_PID 2>/dev/null
+    sleep 1
+    # Force kill if still running
+    if kill -0 $PORT_PID 2>/dev/null; then
+        kill -9 $PORT_PID 2>/dev/null
+    fi
 fi
 
 # Check if backend dependencies are installed
