@@ -33,18 +33,6 @@
       "category": "commands"
     },
     {
-      "name": "discover-profiles",
-      "description": "Scan system for CLI tools and generate TabzChrome profile configurations",
-      "source": "./plugins/discover-profiles",
-      "category": "commands"
-    },
-    {
-      "name": "rebuild",
-      "description": "Build the TabzChrome extension and copy to Windows for Chrome reload",
-      "source": "./plugins/rebuild",
-      "category": "commands"
-    },
-    {
       "name": "tabz-integration",
       "description": "Integration guide for connecting projects to TabzChrome terminals",
       "source": "./plugins/tabz-integration",
