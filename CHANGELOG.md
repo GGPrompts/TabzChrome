@@ -15,6 +15,23 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.8] - 2025-12-16
+
+### Fixed
+- **Fixed TTS audio 500 errors** - Updated edge-tts CLI arguments for v6.0+ (`--rate` instead of `-r`, `--write-media` instead of `-o`). Audio generation now works correctly.
+
+### Added
+- **Dependency checks in `dev.sh`** - Script now checks for required (Node.js, npm, tmux) and optional (edge-tts, Nerd Fonts) dependencies with platform-specific install instructions
+- **Cross-platform support** - macOS users get Homebrew commands if available, otherwise direct download links. Font detection works on both Linux (fc-list) and macOS (Library/Fonts)
+- **edge-tts version check** - Warns if edge-tts is outdated (< v6.0) and provides upgrade command
+
+### Documentation
+- Added edge-tts v6.0+ to requirements table in README
+- Added collapsible install instructions for edge-tts
+- Updated dev.sh description with new dependency checking features
+
+---
+
 ## [1.1.7] - 2025-12-16
 
 ### Fixed
