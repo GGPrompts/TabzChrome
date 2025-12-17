@@ -1,10 +1,16 @@
 Build the extension and copy to Windows for Chrome reload.
 
-**Note**: This command requires `TABZ_WIN_PATH` environment variable to be set, or defaults to `~/Desktop/TabzChrome/dist-extension/` on the Windows mount.
-
 ```bash
-# Use env var if set, otherwise try common Windows desktop location
-WIN_DEST="${TABZ_WIN_PATH:-/mnt/c/Users/$USER/Desktop/TabzChrome/dist-extension/}"
+# Auto-detect Windows username (WSL user often differs from Windows user)
+if [ -n "$TABZ_WIN_PATH" ]; then
+    WIN_DEST="$TABZ_WIN_PATH"
+elif [ -d "/mnt/c/Users" ]; then
+    # Find likely Windows user (not Default, Public, or system accounts)
+    WIN_USER=$(ls /mnt/c/Users/ | grep -vE '^(Default|Public|All Users|Default User)$' | head -1)
+    WIN_DEST="/mnt/c/Users/$WIN_USER/Desktop/TabzChrome/dist-extension/"
+else
+    WIN_DEST="/mnt/c/Users/$USER/Desktop/TabzChrome/dist-extension/"
+fi
 
 npm run build && rsync -av --delete dist-extension/ "$WIN_DEST"
 ```
