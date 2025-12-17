@@ -374,7 +374,7 @@ echo ""
 echo -e "${BLUE}URLs:${NC}"
 echo -e "  Backend:  ${YELLOW}http://localhost:8129${NC}"
 echo ""
-echo -e "${BLUE}Log Level: ${YELLOW}$LOG_LEVEL${NC} ${NC}(0=silent, 1=fatal, 2=error, 3=warn, 4=info, 5=debug)"
+echo -e "${BLUE}Log Level: ${YELLOW}$LOG_LEVEL${NC} ${NC}(0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace)"
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
   echo -e "${BLUE}Browser Logs: ${GREEN}Enabled${NC} (window 1)"
 else
