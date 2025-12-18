@@ -59,18 +59,18 @@ export const themes: Record<string, Theme> = {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
         foreground: '#e0e0e0',
         cursor: '#00d4ff',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        selectionBackground: 'rgba(0, 212, 255, 0.3)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
         red: '#ff4757',           // Errors - bright, attention-grabbing
-        green: '#3cb371',         // Success - medium sea green (readable as diff background)
+        green: '#5af78e',         // Success - vibrant green
         yellow: '#ffd93d',        // Warnings - warm yellow
         blue: '#57c7ff',          // Paths/links - sky blue
         magenta: '#ff6ac1',       // Tool names - hot pink
         cyan: '#6bcf7f',          // Headers - teal
         white: '#e0e0e0',
-        brightBlack: '#e07020',   // Orange - works on both dark bg and light blockquotes
+        brightBlack: '#c9a66b',   // Soft gold - readable timestamps on dark bg and light blockquotes
         brightRed: '#ff5c7c',
-        brightGreen: '#50c878',   // Emerald - softer for diff backgrounds
+        brightGreen: '#7dff94',   // Neon green for highlighted success
         brightYellow: '#ffeb3b',
         brightBlue: '#82dbff',
         brightMagenta: '#ff8fd7',
@@ -114,16 +114,16 @@ export const themes: Record<string, Theme> = {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
         foreground: '#f8f8f2',
         cursor: '#ff79c6',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        selectionBackground: 'rgba(255, 121, 198, 0.25)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ff5555',
-        green: '#50fa7b',
-        yellow: '#f1fa8c',
-        blue: '#8be9fd',
-        magenta: '#ff79c6',
-        cyan: '#8be9fd',
+        red: '#ff5555',           // Dracula red
+        green: '#50fa7b',         // Dracula green
+        yellow: '#f1fa8c',        // Dracula yellow
+        blue: '#8be9fd',          // Dracula cyan for paths
+        magenta: '#ff79c6',       // Dracula pink for tools
+        cyan: '#8be9fd',          // Dracula cyan for headers
         white: '#f8f8f2',
-        brightBlack: '#cc7030',   // Orange - works on both dark bg and light blockquotes
+        brightBlack: '#bd93f9',   // Dracula purple - readable timestamps matching theme
         brightRed: '#ff6e6e',
         brightGreen: '#69ff94',
         brightYellow: '#ffffa5',
@@ -169,16 +169,16 @@ export const themes: Record<string, Theme> = {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
         foreground: '#cad3f5',
         cursor: '#91d7e3',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        selectionBackground: 'rgba(145, 215, 227, 0.25)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ed8796',
-        green: '#a6da95',
-        yellow: '#eed49f',
-        blue: '#8aadf4',
-        magenta: '#c6a0f6',
-        cyan: '#91d7e3',
+        red: '#ed8796',           // Soft red - gentle errors
+        green: '#a6da95',         // Soft green - calm success
+        yellow: '#eed49f',        // Soft yellow - gentle warnings
+        blue: '#8aadf4',          // Soft blue - links
+        magenta: '#c6a0f6',       // Lavender - tool names
+        cyan: '#91d7e3',          // Soft cyan - headers
         white: '#cad3f5',
-        brightBlack: '#d08040',   // Orange - works on both dark bg and light blockquotes
+        brightBlack: '#c9b8e0',   // Soft lavender - readable timestamps matching ocean aesthetic
         brightRed: '#ee99a0',
         brightGreen: '#b8e8a3',
         brightYellow: '#f5e0ac',
@@ -224,16 +224,16 @@ export const themes: Record<string, Theme> = {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
         foreground: '#00ffff',
         cursor: '#ff00ff',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        selectionBackground: 'rgba(255, 0, 255, 0.3)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ff0055',
-        green: '#00ff88',
-        yellow: '#ffee00',
-        blue: '#00aaff',
-        magenta: '#ff00ff',
-        cyan: '#00ffff',
+        red: '#ff0055',           // Neon red - explosive errors
+        green: '#00ff88',         // Neon green - electrified success
+        yellow: '#ffee00',        // Neon yellow - glowing warnings
+        blue: '#00aaff',          // Neon blue - glowing links
+        magenta: '#ff00ff',       // Neon magenta - tool names pop
+        cyan: '#00ffff',          // Neon cyan - header glow
         white: '#f0f0ff',
-        brightBlack: '#ff8c00',   // Bright orange - fits neon theme, works on both bgs
+        brightBlack: '#ffa640',   // Neon orange - high visibility timestamps
         brightRed: '#ff4488',
         brightGreen: '#44ffaa',
         brightYellow: '#ffff44',
@@ -279,16 +279,16 @@ export const themes: Record<string, Theme> = {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
         foreground: '#ffb86c',
         cursor: '#ffcc95',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        selectionBackground: 'rgba(255, 184, 108, 0.25)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ff6b35',
-        green: '#a3e635',
-        yellow: '#fde047',
-        blue: '#60a5fa',
-        magenta: '#f472b6',
-        cyan: '#22d3ee',
-        white: '#ffb86c',
-        brightBlack: '#e88030',   // Orange - fits amber theme, works on both bgs
+        red: '#ff6b35',           // Warm red - errors
+        green: '#a3e635',         // Lime green - success
+        yellow: '#fde047',        // Bright yellow - warnings
+        blue: '#60a5fa',          // Sky blue - links
+        magenta: '#f472b6',       // Pink - tool names
+        cyan: '#22d3ee',          // Cyan - headers
+        white: '#ffb86c',         // Amber white
+        brightBlack: '#d4a574',   // Light amber/tan - readable timestamps matching amber aesthetic
         brightRed: '#ff8c5a',
         brightGreen: '#bef264',
         brightYellow: '#fef08a',
@@ -332,24 +332,24 @@ export const themes: Record<string, Theme> = {
     dark: {
       colors: {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
-        foreground: '#00ff00',
-        cursor: '#00ff00',
-        selectionBackground: 'rgba(255, 255, 255, 0.25)',
+        foreground: '#d0d0d0',
+        cursor: '#5af78e',
+        selectionBackground: 'rgba(90, 247, 142, 0.2)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ff6b6b',
-        green: '#00ff00',
-        yellow: '#d0d0d0',        // Muted - keeps green focus
-        blue: '#a8a8a8',
-        magenta: '#c0c0c0',
-        cyan: '#00ff00',          // Green accent
+        red: '#ff6b6b',           // Muted red - errors
+        green: '#5af78e',         // Bright green - THE accent color
+        yellow: '#d0d0d0',        // Same as foreground (muted)
+        blue: '#a8a8a8',          // Light gray
+        magenta: '#c0c0c0',       // Lighter gray
+        cyan: '#5af78e',          // Green accent
         white: '#d0d0d0',
-        brightBlack: '#d09030',   // Orange-gold - works on both dark bg and light blockquotes
+        brightBlack: '#7dff94',   // Bright green accent - matches theme aesthetic
         brightRed: '#ff8c8c',
-        brightGreen: '#33ff33',
+        brightGreen: '#7dff94',   // Brighter green
         brightYellow: '#e8e8e8',
         brightBlue: '#c0c0c0',
         brightMagenta: '#d8d8d8',
-        brightCyan: '#33ff33',
+        brightCyan: '#7dff94',    // Bright green
         brightWhite: '#ffffff',
       },
       backgroundGradient: 'linear-gradient(135deg, #000f00 0%, #001a00 50%, #000a00 100%)',
