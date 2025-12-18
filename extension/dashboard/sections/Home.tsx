@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Activity, Terminal, Clock, HardDrive, Ghost, RefreshCw } from 'lucide-react'
+import { Activity, Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, Cpu } from 'lucide-react'
 import { spawnTerminal, getHealth, getOrphanedSessions } from '../hooks/useDashboard'
 
 interface HealthData {
@@ -13,6 +13,8 @@ interface HealthData {
     unit: string
   }
   version: string
+  nodeVersion: string
+  platform: string
 }
 
 interface OrphanedData {
@@ -167,10 +169,28 @@ export default function HomeSection() {
         </div>
       </div>
 
-      {/* Version Info */}
+      {/* System Info Panel */}
       {health && (
-        <div className="mt-6 text-sm text-muted-foreground">
-          TabzChrome Backend v{health.version}
+        <div className="rounded-xl bg-card border border-border p-6 mt-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Server className="w-5 h-5 text-primary" />
+            System Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoRow label="Backend URL" value="http://localhost:8129" mono />
+            <InfoRow label="WebSocket URL" value="ws://localhost:8129" mono />
+            <InfoRow label="Version" value={health.version} />
+            <InfoRow label="Node.js" value={health.nodeVersion} />
+            <InfoRow label="Platform" value={health.platform} />
+            <InfoRow
+              label="Memory (Heap)"
+              value={`${health.memoryUsage.heapUsed} / ${health.memoryUsage.heapTotal} MB`}
+            />
+            <InfoRow
+              label="Memory (RSS)"
+              value={`${health.memoryUsage.rss} MB`}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -185,5 +205,14 @@ function QuickActionButton({ label, onClick }: { label: string; onClick: () => v
     >
       {label}
     </button>
+  )
+}
+
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
+      <span className="text-muted-foreground text-sm">{label}</span>
+      <span className={`text-sm ${mono ? 'font-mono text-cyan-400' : ''}`}>{value}</span>
+    </div>
   )
 }

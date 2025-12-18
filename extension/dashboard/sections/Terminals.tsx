@@ -40,10 +40,13 @@ export default function TerminalsSection() {
   const [error, setError] = useState<string | null>(null)
   const [selectedOrphans, setSelectedOrphans] = useState<Set<string>>(new Set())
   const [selectedTerminals, setSelectedTerminals] = useState<Set<string>>(new Set())
+  const [refreshing, setRefreshing] = useState(false)
 
-  const fetchData = async () => {
+  const fetchData = async (isInitial = false) => {
     try {
-      setLoading(true)
+      if (isInitial) setLoading(true)
+      setRefreshing(true)
+
       const [terminalsRes, orphanedRes, tmuxRes] = await Promise.all([
         getTerminals(),
         getOrphanedSessions(),
@@ -51,18 +54,24 @@ export default function TerminalsSection() {
       ])
 
       setTerminals(terminalsRes.data || [])
-      setOrphaned(orphanedRes.data?.sessions || [])
+      // orphanedSessions is an array of session names (strings)
+      // Convert to objects matching OrphanedSession interface
+      const orphanedNames = orphanedRes.data?.orphanedSessions || []
+      setOrphaned(orphanedNames.map((name: string) => ({ name, created: '', windows: 1 })))
       setTmuxSessions(tmuxRes.data?.sessions || [])
       setError(null)
     } catch (err) {
       setError('Failed to connect to backend')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData(true) // Initial load with spinner
+    const interval = setInterval(() => fetchData(false), 5000) // Refresh every 5s without spinner
+    return () => clearInterval(interval)
   }, [])
 
   const killOrphaned = async (sessionName: string) => {
@@ -212,14 +221,15 @@ export default function TerminalsSection() {
           <h1 className="text-3xl font-bold terminal-glow">Terminals</h1>
           <p className="text-muted-foreground mt-1">
             {terminals.length} active, {orphaned.length} orphaned
+            <span className="text-xs ml-2 opacity-60">• auto-refreshes every 5s</span>
           </p>
         </div>
         <button
-          onClick={fetchData}
-          disabled={loading}
+          onClick={() => fetchData(false)}
+          disabled={refreshing}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border hover:bg-muted disabled:opacity-50"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>

@@ -8,22 +8,21 @@ This document tracks the development of the new React-based dashboard to replace
 **Last Updated:** 2025-12-18
 
 ### ✅ Completed
-- Dashboard scaffold with 4 sections (Home, Profiles, Terminals, API Playground)
+- Dashboard scaffold with 6 sections (Home, Profiles, Terminals, API Playground, MCP Playground, Settings)
 - Profiles section with grid/list view, search, category filtering
 - Working directory selector (syncs with sidepanel via Chrome storage)
 - Kill active terminals (per-row + bulk selection)
 - Reattach orphaned sessions (per-row + bulk selection)
 - Chrome messaging for spawning (no auth tokens needed)
+- All Tmux Sessions view with AI tool detection
+- System info panel (Node version, platform, memory stats)
+- Connection status indicator (backend connected/disconnected)
+- MCP Playground section (tool configuration, presets, URL settings)
+- Settings section (working directory, API token info, theme preview)
 
-### 🔜 Next Up (Medium Priority)
-1. ~~**All Tmux Sessions view**~~ ✅ - Show external sessions + AI tool detection
-2. **System info panel** - Node version, platform, memory stats
-3. **Connection status indicator** - WebSocket connected/disconnected
-
-### 📋 Future
-- MCP Playground section
-- Settings section
+### 📋 Future (Low Priority)
 - WebSocket integration for real-time updates
+- Active terminals preview in Home section
 
 ---
 
@@ -55,10 +54,12 @@ extension/dashboard/
 ├── styles/
 │   └── globals.css         # Theme variables + utilities
 ├── sections/
-│   ├── Home.tsx            # Dashboard overview
+│   ├── Home.tsx            # Dashboard overview + system info
 │   ├── Profiles.tsx        # Profile launcher grid/list
 │   ├── Terminals.tsx       # Terminal management
-│   └── ApiPlayground.tsx   # REST API testing
+│   ├── ApiPlayground.tsx   # REST API testing
+│   ├── McpPlayground.tsx   # MCP tool configuration
+│   └── Settings.tsx        # Dashboard settings
 ├── hooks/
 │   └── useDashboard.ts     # Chrome messaging + API utilities
 ├── components/             # Reusable UI components
@@ -85,8 +86,8 @@ extension/dashboard/
 | Quick spawn buttons | ✓ | ✓ | ✅ Complete |
 | Backend version display | ✓ | ✓ | ✅ Complete |
 | **Working directory selector** | ✓ dropdown with recent dirs | ✓ (in Profiles section) | ✅ Complete |
-| **System info table** | ✓ (node, platform, heap, rss) | ✗ | ❌ Missing |
-| **WebSocket connection indicator** | ✓ live status | ✗ | ❌ Missing |
+| **System info table** | ✓ (node, platform, heap, rss) | ✓ | ✅ Complete |
+| **Connection status indicator** | ✓ live status | ✓ (header icon) | ✅ Complete |
 | **Active terminals preview** | ✓ first 5 | ✗ | ❌ Missing (separate section) |
 
 ### Terminals Section
@@ -188,19 +189,24 @@ extension/dashboard/
 
 ---
 
-## Planned Sections (Future)
+## Planned Sections - COMPLETED
 
-### MCP Playground
-- [ ] List available MCP servers
-- [ ] Browse tools per server
-- [ ] Search/filter tools
-- [ ] Auto-generate form from JSON schema
-- [ ] Execute tool and show results
+### MCP Playground ✅
+- [x] List all available TabzChrome MCP tools
+- [x] Toggle individual tools on/off
+- [x] Category-based organization with collapse/expand
+- [x] Search/filter tools by name or description
+- [x] Quick presets (Minimal, Standard, Full)
+- [x] Token usage estimates per tool
+- [x] URL settings for tabz_open_url (YOLO mode, custom domains)
+- [x] Save config to backend (restart Claude Code to apply)
 
-### Settings
-- [ ] Theme selector
-- [ ] Default working directory
-- [ ] API token display (for external tools)
+### Settings ✅
+- [x] Default working directory (syncs with sidepanel)
+- [x] Recent directories quick select
+- [x] API token documentation (file location, example curl)
+- [x] Theme preview (disabled, coming soon)
+- [x] Resource links (GitHub, legacy dashboard)
 
 ---
 
@@ -219,11 +225,13 @@ extension/dashboard/
 
 | File | Purpose |
 |------|---------|
-| `extension/dashboard/App.tsx` | Main layout, sidebar navigation |
-| `extension/dashboard/sections/Home.tsx` | Stats, quick actions |
+| `extension/dashboard/App.tsx` | Main layout, sidebar navigation, connection status |
+| `extension/dashboard/sections/Home.tsx` | Stats, quick actions, system info |
 | `extension/dashboard/sections/Profiles.tsx` | Profile launcher |
 | `extension/dashboard/sections/Terminals.tsx` | Terminal/orphan management |
 | `extension/dashboard/sections/ApiPlayground.tsx` | API testing |
+| `extension/dashboard/sections/McpPlayground.tsx` | MCP tool configuration |
+| `extension/dashboard/sections/Settings.tsx` | Dashboard settings |
 | `extension/dashboard/hooks/useDashboard.ts` | Chrome messaging, API helpers |
 | `extension/dashboard/styles/globals.css` | Theme CSS variables |
 | `vite.config.extension.ts` | Build config (includes dashboard entry) |
@@ -232,7 +240,22 @@ extension/dashboard/
 
 ## Changelog
 
-### 2025-12-18 (continued)
+### 2025-12-18 (session 3)
+- Added System Information panel to Home section (Backend URL, WebSocket URL, Version, Node.js, Platform, Memory Heap/RSS)
+- Added connection status indicator to sidebar header (green wifi = connected, red = disconnected)
+- Created MCP Playground section with full tool configuration:
+  - Category-based tool organization (Core, Interaction, Screenshot, etc.)
+  - Individual tool toggles with token estimates
+  - Quick presets (Minimal, Standard, Full)
+  - Search/filter functionality
+  - URL settings for tabz_open_url (YOLO mode, custom domains)
+- Created Settings section with:
+  - Working directory management (syncs with sidepanel via Chrome storage)
+  - API token documentation and example curl command
+  - Theme preview (disabled, coming soon)
+  - Resource links
+
+### 2025-12-18 (session 2)
 - Added working directory selector to Profiles section
 - Working directory now syncs bidirectionally between dashboard and sidepanel
 - Added Chrome storage change listener for real-time sync

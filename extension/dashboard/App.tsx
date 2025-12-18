@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Home,
   Grid3X3,
@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Github,
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 
 // Sections
@@ -16,7 +18,8 @@ import HomeSection from './sections/Home'
 import ProfilesSection from './sections/Profiles'
 import TerminalsSection from './sections/Terminals'
 import ApiPlayground from './sections/ApiPlayground'
-// import McpPlayground from './sections/McpPlayground'
+import McpPlayground from './sections/McpPlayground'
+import SettingsSection from './sections/Settings'
 
 type Section = 'home' | 'profiles' | 'terminals' | 'api' | 'mcp' | 'settings'
 
@@ -38,6 +41,26 @@ const navItems: NavItem[] = [
 export default function App() {
   const [activeSection, setActiveSection] = useState<Section>('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [connected, setConnected] = useState<boolean | null>(null) // null = checking
+
+  // Check backend connection on mount and periodically
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await fetch('http://localhost:8129/api/health', {
+          method: 'GET',
+          signal: AbortSignal.timeout(3000)
+        })
+        setConnected(res.ok)
+      } catch {
+        setConnected(false)
+      }
+    }
+
+    checkConnection()
+    const interval = setInterval(checkConnection, 10000) // Check every 10s
+    return () => clearInterval(interval)
+  }, [])
 
   const renderSection = () => {
     switch (activeSection) {
@@ -50,9 +73,9 @@ export default function App() {
       case 'api':
         return <ApiPlayground />
       case 'mcp':
-        return <div className="p-6"><h1 className="text-2xl font-bold">MCP Playground</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>
+        return <McpPlayground />
       case 'settings':
-        return <div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>
+        return <SettingsSection />
       default:
         return <HomeSection />
     }
@@ -74,7 +97,10 @@ export default function App() {
             className="w-8 h-8"
           />
           {!sidebarCollapsed && (
-            <span className="font-semibold text-lg terminal-glow">TabzChrome</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-lg terminal-glow">TabzChrome</span>
+              <ConnectionStatus connected={connected} />
+            </div>
           )}
         </div>
 
@@ -136,5 +162,30 @@ export default function App() {
         {renderSection()}
       </main>
     </div>
+  )
+}
+
+function ConnectionStatus({ connected }: { connected: boolean | null }) {
+  if (connected === null) {
+    return (
+      <span className="text-xs text-muted-foreground animate-pulse" title="Checking connection...">
+        ...
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className={`flex items-center gap-1 text-xs ${
+        connected ? 'text-emerald-400' : 'text-red-400'
+      }`}
+      title={connected ? 'Backend connected' : 'Backend disconnected'}
+    >
+      {connected ? (
+        <Wifi className="w-3 h-3" />
+      ) : (
+        <WifiOff className="w-3 h-3" />
+      )}
+    </span>
   )
 }

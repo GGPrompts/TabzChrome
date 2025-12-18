@@ -242,9 +242,13 @@ function SidePanelTerminal() {
         }
         // Play audio from /api/audio/speak endpoint (for slash commands, etc.)
         if (message.data?.type === 'audio-speak' && message.data?.url) {
-          const audio = new Audio(message.data.url)
-          audio.volume = message.data.volume ?? 0.7
-          audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+          // Use stored audio settings volume (from Settings modal) instead of broadcast volume
+          chrome.storage.local.get(['audioSettings'], (result) => {
+            const storedVolume = (result.audioSettings as { volume?: number })?.volume
+            const audio = new Audio(message.data.url)
+            audio.volume = storedVolume ?? message.data.volume ?? 0.7
+            audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+          })
         }
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
