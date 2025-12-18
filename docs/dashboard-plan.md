@@ -4,9 +4,11 @@ This document tracks the development of the new React-based dashboard to replace
 
 ## Overview
 
-The new dashboard provides a modern React + TypeScript + Tailwind interface served from the TabzChrome backend. It replaces the vanilla HTML/JS pages with a component-based architecture that can share code with the Chrome extension sidepanel.
+The new dashboard is a **Chrome extension page** (not backend-served) that provides a modern React + TypeScript + Tailwind interface for managing TabzChrome terminals and profiles.
 
 **Branch:** `feature/react-dashboard`
+**Location:** `extension/dashboard/`
+**URL:** `chrome-extension://[id]/dashboard/index.html`
 
 ## Tech Stack
 
@@ -14,18 +16,18 @@ The new dashboard provides a modern React + TypeScript + Tailwind interface serv
 |------------|---------|
 | React 18 | UI framework |
 | TypeScript | Type safety |
-| Vite | Build tool |
-| Tailwind CSS | Styling |
+| Vite + crx | Build tool (bundled with extension) |
+| Tailwind CSS v4 | Styling |
 | Lucide React | Icons |
+| Chrome APIs | Storage, messaging (no auth needed) |
 
 ## Project Structure
 
 ```
-dashboard/
+extension/dashboard/
 ├── index.html              # Entry point
 ├── main.tsx                # React root
 ├── App.tsx                 # Main layout with collapsible sidebar
-├── postcss.config.js       # Tailwind PostCSS config
 ├── styles/
 │   └── globals.css         # Theme variables + utilities
 ├── sections/
@@ -33,169 +35,179 @@ dashboard/
 │   ├── Profiles.tsx        # Profile launcher grid/list
 │   ├── Terminals.tsx       # Terminal management
 │   └── ApiPlayground.tsx   # REST API testing
+├── hooks/
+│   └── useDashboard.ts     # Chrome messaging + API utilities
 ├── components/             # Reusable UI components
-├── hooks/                  # Custom React hooks
 └── lib/                    # Utilities
 ```
 
-## NPM Scripts
+## How to Use
 
-```bash
-npm run dev:dashboard      # Dev server at localhost:5174/dashboard/
-npm run build:dashboard    # Builds to backend/public/dashboard/
-npm run build:all          # Builds extension + dashboard
-```
-
----
-
-## Completed
-
-### Infrastructure
-- [x] Vite config (`vite.config.dashboard.ts`)
-- [x] TypeScript config (`tsconfig.dashboard.json`)
-- [x] Tailwind CSS setup with theme variables
-- [x] NPM scripts for dev/build
-- [x] Main App layout with collapsible sidebar
-
-### Sections
-
-#### Home (Dashboard)
-- [x] Stats grid (active terminals, uptime, memory, orphaned sessions)
-- [x] Auto-refresh every 10 seconds
-- [x] Quick action buttons (spawn terminals)
-- [x] Backend version display
-- [x] Error state handling
-
-#### Profiles Launcher
-- [x] Fetch profiles from `/api/browser/profiles`
-- [x] Grid view with category grouping
-- [x] List view alternative
-- [x] Search filtering
-- [x] Category pill filters
-- [x] Click-to-launch via `/api/spawn`
-- [x] Emoji icon extraction from profile names
-- [x] Loading and error states
-
-#### Terminals Management
-- [x] Active terminals list from `/api/terminals`
-- [x] Orphaned sessions warning panel
-- [x] Checkbox selection for bulk operations
-- [x] Kill individual orphaned sessions
-- [x] Kill selected (bulk) operation
-
-#### API Playground
-- [x] HTTP method selector (GET, POST, PUT, DELETE)
-- [x] URL input with method color coding
-- [x] Headers editor (add/remove/toggle)
-- [x] Request body editor (for POST/PUT)
-- [x] Response viewer with status, time, copy button
-- [x] TabzChrome endpoint presets sidebar
+1. Build extension: `npm run build`
+2. Reload extension in Chrome
+3. Click the Dashboard icon in the sidepanel header
+4. Or manually navigate to `chrome-extension://[id]/dashboard/index.html`
 
 ---
 
-## Planned
+## Status Comparison: Old vs New Dashboard
 
-### Phase 1: Polish & Components
+### Home Section
 
-#### Profiles Enhancements
-- [ ] Context menu (right-click) for profile actions
-- [ ] Drag-to-reorder profiles
-- [ ] Edit profile inline (opens modal)
-- [ ] Delete profile confirmation
-- [ ] Import/export profiles
-- [ ] Favorite profiles (pin to top)
+| Feature | Old HTML | New React | Status |
+|---------|----------|-----------|--------|
+| Stats grid (terminals, uptime, memory, orphaned) | ✓ | ✓ | ✅ Complete |
+| Auto-refresh stats | ✓ 10s | ✓ 10s | ✅ Complete |
+| Quick spawn buttons | ✓ | ✓ | ✅ Complete |
+| Backend version display | ✓ | ✓ | ✅ Complete |
+| **Working directory selector** | ✓ dropdown with recent dirs | ✗ | ❌ Missing |
+| **System info table** | ✓ (node, platform, heap, rss) | ✗ | ❌ Missing |
+| **WebSocket connection indicator** | ✓ live status | ✗ | ❌ Missing |
+| **Active terminals preview** | ✓ first 5 | ✗ | ❌ Missing (separate section) |
 
-#### UI Components (from portfolio-style-guides)
-- [ ] Dialog/Modal component
-- [ ] Select dropdown
-- [ ] Tooltip
-- [ ] Toast notifications
-- [ ] Badge variants
+### Terminals Section
 
-#### Settings Section
-- [ ] Theme selector (matches extension themes)
-- [ ] API token management
-- [ ] Default working directory
-- [ ] Background style options
+| Feature | Old HTML | New React | Status |
+|---------|----------|-----------|--------|
+| Active terminals list | ✓ full table | ✓ simplified list | ⚠️ Partial |
+| Orphaned sessions warning | ✓ | ✓ | ✅ Complete |
+| Kill orphaned sessions | ✓ | ✓ | ✅ Complete |
+| Bulk select orphans | ✓ | ✓ | ✅ Complete |
+| **Bulk select active terminals** | ✓ checkboxes | ✗ | ❌ Missing |
+| **Kill active terminals** | ✓ per-row + bulk | ✗ | ❌ Missing |
+| **Reattach orphans** | ✓ | ✗ | ❌ Missing |
+| **All Tmux Sessions view** | ✓ shows external sessions | ✗ | ❌ Missing |
+| **AI Tool detection** | ✓ detects claude/gemini etc | ✗ | ❌ Missing |
 
-### Phase 2: MCP Playground
+### Profiles Section (NEW - not in old dashboard)
 
-#### MCP Tool Browser
-- [ ] List available MCP servers (`mcp-cli servers`)
-- [ ] Browse tools per server (`mcp-cli tools`)
-- [ ] Search/filter tools by name/description
-- [ ] Tool detail view with JSON schema
+| Feature | Old HTML | New React | Status |
+|---------|----------|-----------|--------|
+| Profiles launcher | ✗ | ✓ | ✅ New feature |
+| Grid/List view toggle | ✗ | ✓ | ✅ New feature |
+| Category filtering | ✗ | ✓ | ✅ New feature |
+| Search | ✗ | ✓ | ✅ New feature |
+| Click to spawn | ✗ | ✓ | ✅ New feature |
+| Emoji icon extraction | ✗ | ✓ | ✅ New feature |
 
-#### MCP Tool Tester
-- [ ] Select tool from browser
+### API Playground Section (NEW)
+
+| Feature | Old HTML | New React | Status |
+|---------|----------|-----------|--------|
+| HTTP method selector | ✗ | ✓ | ✅ New feature |
+| Request headers editor | ✗ | ✓ | ✅ New feature |
+| Request body editor | ✗ | ✓ | ✅ New feature |
+| Response viewer | ✗ | ✓ | ✅ New feature |
+| TabzChrome endpoint presets | ✗ | ✓ | ✅ New feature |
+
+### Architecture Differences
+
+| Aspect | Old HTML | New React |
+|--------|----------|-----------|
+| Location | Backend (`localhost:8129/`) | Extension page (`chrome-extension://`) |
+| Auth for spawn | Required (X-Auth-Token) | Not needed (Chrome messaging) |
+| Profile access | REST API | Direct Chrome storage |
+| Real-time updates | WebSocket | Polling (no WebSocket) |
+| Build | Static HTML | Bundled with extension |
+
+---
+
+## Features to Add (from old dashboard)
+
+### High Priority
+
+1. **Working Directory Selector**
+   - Dropdown with recent directories
+   - Custom path input
+   - Syncs with extension header selector
+   - Persists in Chrome storage
+
+2. **Reattach Orphaned Sessions**
+   - Button to reattach orphans to new tabs
+   - Bulk reattach selected
+
+3. **Kill Active Terminals**
+   - Add kill button per terminal row
+   - Bulk selection and kill
+
+### Medium Priority
+
+4. **All Tmux Sessions View**
+   - Show all tmux sessions (not just TabzChrome)
+   - Detect AI tools (claude, gemini, codex)
+   - Source indicator (Tabz vs External)
+   - Kill any session
+
+5. **System Information Panel**
+   - Node.js version
+   - Platform
+   - Memory heap/RSS
+   - Backend URL/WebSocket URL
+
+6. **Connection Status Indicator**
+   - Show connected/disconnected in header
+   - Could use WebSocket for real-time updates
+
+### Low Priority
+
+7. **Active Terminals Preview in Home**
+   - Show first 5 terminals in Home section
+   - Link to Terminals section for full list
+
+8. **WebSocket Integration**
+   - Real-time terminal spawn/close notifications
+   - Live stats updates
+   - Connection status
+
+---
+
+## Planned Sections (Future)
+
+### MCP Playground
+- [ ] List available MCP servers
+- [ ] Browse tools per server
+- [ ] Search/filter tools
 - [ ] Auto-generate form from JSON schema
-- [ ] Execute tool (`mcp-cli call`)
-- [ ] Display results with JSON viewer
-- [ ] Save tool call history
+- [ ] Execute tool and show results
 
-### Phase 3: Advanced Features
-
-#### Terminal Embedding
-- [ ] Embed xterm.js terminals in dashboard (experimental)
-- [ ] Quick terminal preview on hover
-- [ ] Full terminal view in modal
-
-#### Monitoring
-- [ ] Real-time terminal activity chart
-- [ ] Memory usage over time
-- [ ] WebSocket connection status
-- [ ] Console log viewer (from MCP)
-
-#### Integration
-- [ ] Share hooks/utils with extension sidepanel
-- [ ] Unified theme provider
-- [ ] Profile sync between dashboard and extension
+### Settings
+- [ ] Theme selector
+- [ ] Default working directory
+- [ ] API token display (for external tools)
 
 ---
 
 ## Source Inspiration
 
-Components and patterns adapted from:
-
 | Source | What |
 |--------|------|
-| `~/projects/personal-homepage` | Bookmarks section (→ Profiles), API Playground, useTerminalExtension hook |
-| `~/projects/portfolio-style-guides` | 45+ shadcn/ui components, Admin Dashboard layout, Theme system |
-| TabzChrome Extension | Theme variables, profile schema, API endpoints |
-
----
-
-## API Endpoints Used
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/health` | GET | Backend status, uptime, memory |
-| `/api/terminals` | GET | List active terminal sessions |
-| `/api/browser/profiles` | GET | Fetch profiles from Chrome storage |
-| `/api/tmux/orphaned-sessions` | GET | List orphaned tmux sessions |
-| `/api/spawn` | POST | Create new terminal |
-| `/api/tmux/kill-session` | POST | Kill a tmux session |
+| `~/projects/personal-homepage` | Bookmarks → Profiles, API Playground, hooks |
+| `~/projects/portfolio-style-guides` | 45+ shadcn/ui components, Admin Dashboard layout |
+| `backend/public/*.html` | Original dashboard features |
+| TabzChrome Extension | Theme variables, profile schema |
 
 ---
 
 ## File References
 
-| New File | Purpose |
-|----------|---------|
-| `vite.config.dashboard.ts` | Vite build config for dashboard |
-| `tsconfig.dashboard.json` | TypeScript config for dashboard |
-| `dashboard/App.tsx` | Main layout component |
-| `dashboard/sections/Home.tsx` | Dashboard overview section |
-| `dashboard/sections/Profiles.tsx` | Profile launcher section |
-| `dashboard/sections/Terminals.tsx` | Terminal management section |
-| `dashboard/sections/ApiPlayground.tsx` | API testing section |
-| `dashboard/styles/globals.css` | Theme CSS variables |
+| File | Purpose |
+|------|---------|
+| `extension/dashboard/App.tsx` | Main layout, sidebar navigation |
+| `extension/dashboard/sections/Home.tsx` | Stats, quick actions |
+| `extension/dashboard/sections/Profiles.tsx` | Profile launcher |
+| `extension/dashboard/sections/Terminals.tsx` | Terminal/orphan management |
+| `extension/dashboard/sections/ApiPlayground.tsx` | API testing |
+| `extension/dashboard/hooks/useDashboard.ts` | Chrome messaging, API helpers |
+| `extension/dashboard/styles/globals.css` | Theme CSS variables |
+| `vite.config.extension.ts` | Build config (includes dashboard entry) |
 
 ---
 
-## Notes
+## Changelog
 
-- Dashboard is served from backend at `/dashboard/` path
-- Shares Tailwind config with extension (same theme variables)
-- Can run dev server independently on port 5174
-- Production build outputs to `backend/public/dashboard/`
+### 2024-12-18
+- Initial scaffold with 4 sections (Home, Profiles, Terminals, API Playground)
+- Converted from backend-served to extension page
+- Dashboard button in sidepanel now opens extension page
+- No auth required - uses Chrome messaging for spawning
+- Profiles load from Chrome storage directly

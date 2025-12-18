@@ -68,9 +68,11 @@ export default function App() {
       >
         {/* Logo/Brand */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Terminal className="w-5 h-5 text-primary" />
-          </div>
+          <img
+            src="../icons/icon48.png"
+            alt="TabzChrome"
+            className="w-8 h-8"
+          />
           {!sidebarCollapsed && (
             <span className="font-semibold text-lg terminal-glow">TabzChrome</span>
           )}

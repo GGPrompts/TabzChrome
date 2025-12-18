@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Terminal, Trash2, RefreshCw, Ghost, AlertTriangle, CheckCircle } from 'lucide-react'
+import { getTerminals, getOrphanedSessions, killSession } from '../hooks/useDashboard'
 
 interface TerminalSession {
   id: string
@@ -26,20 +27,12 @@ export default function TerminalsSection() {
     try {
       setLoading(true)
       const [terminalsRes, orphanedRes] = await Promise.all([
-        fetch('/api/terminals'),
-        fetch('/api/tmux/orphaned-sessions'),
+        getTerminals(),
+        getOrphanedSessions(),
       ])
 
-      if (terminalsRes.ok) {
-        const data = await terminalsRes.json()
-        setTerminals(data.data || [])
-      }
-
-      if (orphanedRes.ok) {
-        const data = await orphanedRes.json()
-        setOrphaned(data.data?.sessions || [])
-      }
-
+      setTerminals(terminalsRes.data || [])
+      setOrphaned(orphanedRes.data?.sessions || [])
       setError(null)
     } catch (err) {
       setError('Failed to connect to backend')
@@ -54,19 +47,13 @@ export default function TerminalsSection() {
 
   const killOrphaned = async (sessionName: string) => {
     try {
-      const res = await fetch('/api/tmux/kill-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionName }),
+      await killSession(sessionName)
+      setOrphaned((prev) => prev.filter((s) => s.name !== sessionName))
+      setSelectedOrphans((prev) => {
+        const next = new Set(prev)
+        next.delete(sessionName)
+        return next
       })
-      if (res.ok) {
-        setOrphaned((prev) => prev.filter((s) => s.name !== sessionName))
-        setSelectedOrphans((prev) => {
-          const next = new Set(prev)
-          next.delete(sessionName)
-          return next
-        })
-      }
     } catch (err) {
       console.error('Failed to kill session:', err)
     }

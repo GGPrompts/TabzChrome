@@ -1,16 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Grid, List, Search, Play, RefreshCw, Terminal, Folder, X } from 'lucide-react'
-
-interface Profile {
-  id: string
-  name: string
-  command?: string
-  workingDir: string
-  category?: string
-  fontSize?: number
-  fontFamily?: string
-  themeName?: string
-}
+import { spawnTerminal, getProfiles } from '../hooks/useDashboard'
+import type { Profile } from '../../components/SettingsModal'
 
 type ViewMode = 'grid' | 'list'
 
@@ -25,16 +16,11 @@ export default function ProfilesSection() {
   const fetchProfiles = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/browser/profiles')
-      if (res.ok) {
-        const data = await res.json()
-        setProfiles(data.profiles || [])
-        setError(null)
-      } else {
-        setError('Failed to fetch profiles')
-      }
+      const profilesList = await getProfiles()
+      setProfiles(profilesList)
+      setError(null)
     } catch (err) {
-      setError('Backend not connected')
+      setError('Failed to load profiles')
     } finally {
       setLoading(false)
     }
@@ -70,18 +56,12 @@ export default function ProfilesSection() {
 
   const launchProfile = async (profile: Profile) => {
     try {
-      const res = await fetch('/api/spawn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: profile.name,
-          command: profile.command || '',
-          workingDir: profile.workingDir || '',
-        }),
+      await spawnTerminal({
+        name: profile.name,
+        command: profile.command,
+        workingDir: profile.workingDir,
+        profile,
       })
-      if (!res.ok) {
-        console.error('Failed to launch profile')
-      }
     } catch (err) {
       console.error('Launch error:', err)
     }

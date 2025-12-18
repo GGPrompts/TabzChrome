@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Activity, Terminal, Clock, HardDrive, Ghost, RefreshCw } from 'lucide-react'
+import { spawnTerminal, getHealth, getOrphanedSessions } from '../hooks/useDashboard'
 
 interface HealthData {
   uptime: number
@@ -28,20 +29,12 @@ export default function HomeSection() {
     try {
       setLoading(true)
       const [healthRes, orphanedRes] = await Promise.all([
-        fetch('/api/health'),
-        fetch('/api/tmux/orphaned-sessions'),
+        getHealth(),
+        getOrphanedSessions(),
       ])
 
-      if (healthRes.ok) {
-        const data = await healthRes.json()
-        setHealth(data.data)
-      }
-
-      if (orphanedRes.ok) {
-        const data = await orphanedRes.json()
-        setOrphaned({ count: data.data?.count || 0 })
-      }
-
+      setHealth(healthRes.data)
+      setOrphaned({ count: orphanedRes.data?.count || 0 })
       setError(null)
     } catch (err) {
       setError('Failed to connect to backend')
@@ -93,6 +86,14 @@ export default function HomeSection() {
       bgColor: orphaned?.count ? 'bg-amber-400/10' : 'bg-muted/50',
     },
   ]
+
+  const handleSpawn = async (command: string) => {
+    try {
+      await spawnTerminal({ name: command, command })
+    } catch (err) {
+      console.error('Spawn error:', err)
+    }
+  }
 
   return (
     <div className="p-6">
@@ -153,15 +154,15 @@ export default function HomeSection() {
         <div className="flex flex-wrap gap-3">
           <QuickActionButton
             label="New Bash Terminal"
-            onClick={() => spawnTerminal('bash')}
+            onClick={() => handleSpawn('bash')}
           />
           <QuickActionButton
             label="Claude Code"
-            onClick={() => spawnTerminal('claude')}
+            onClick={() => handleSpawn('claude')}
           />
           <QuickActionButton
             label="LazyGit"
-            onClick={() => spawnTerminal('lazygit')}
+            onClick={() => handleSpawn('lazygit')}
           />
         </div>
       </div>
@@ -185,19 +186,4 @@ function QuickActionButton({ label, onClick }: { label: string; onClick: () => v
       {label}
     </button>
   )
-}
-
-async function spawnTerminal(command: string) {
-  try {
-    const res = await fetch('/api/spawn', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: command, command }),
-    })
-    if (!res.ok) {
-      console.error('Failed to spawn terminal')
-    }
-  } catch (err) {
-    console.error('Spawn error:', err)
-  }
 }

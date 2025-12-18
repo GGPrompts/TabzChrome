@@ -24,10 +24,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite --config vite.config.extension.ts",
-    "dev:dashboard": "vite --config vite.config.dashboard.ts",
     "build": "tsc --project tsconfig.extension.json && vite build --config vite.config.extension.ts",
-    "build:dashboard": "vite build --config vite.config.dashboard.ts",
-    "build:all": "npm run build && npm run build:dashboard",
     "zip": "cd dist-extension && zip -r ../terminal-tabs-extension.zip .",
     "test": "vitest",
     "test:ui": "vitest --ui",

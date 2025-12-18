@@ -695,7 +695,7 @@ function SidePanelTerminal() {
 
           {/* Dashboard Button */}
           <button
-            onClick={() => chrome.tabs.create({ url: 'http://localhost:8129' })}
+            onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html') })}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Open Dashboard"
             aria-label="Open Dashboard"
