@@ -111,6 +111,35 @@ Add tips to conductor.md for better prompts:
 - [ ] Add `subagent_count` display to Tmuxplexer TUI
 - [ ] Show context % in Tmuxplexer session list (once statusline writes it)
 
+### Sub-Agent Architecture
+
+The conductor currently handles too many responsibilities. Split into specialized sub-agents:
+
+| Agent | Model | Role |
+|-------|-------|------|
+| **Conductor** | Opus | Orchestrator - decides what needs doing, delegates to specialists |
+| **Tabz Manager** | Sonnet | Browser control (screenshots, clicks, forms, page inspection) |
+| **Watcher** | Haiku | Cheap polling of worker status/context, alerts when stuck/full/done |
+
+**Watcher agent** (Haiku) - ideal for monitoring because it's fast/cheap:
+```yaml
+name: watcher
+model: haiku
+description: Monitor Claude worker sessions - check progress, context usage, completion status
+```
+
+Responsibilities:
+- Periodic `tmux capture-pane` to check worker output
+- Read `/tmp/claude-code-state/*.json` for status and context %
+- Alert conductor when: worker done, worker stuck, context > 80%, errors detected
+- Return structured status reports for conductor to act on
+
+**Tasks:**
+- [ ] Create `agents/watcher.md` - Haiku-based session monitor
+- [ ] Create `agents/tabz-manager.md` - Browser automation specialist
+- [ ] Slim down conductor to pure orchestration (spawn, delegate, cleanup)
+- [ ] Add watcher invocation pattern to conductor docs
+
 ---
 
 ## Future Enhancements (Phase 3)
