@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme variables - matches TabzChrome extension themes */
+:root {
+  /* High Contrast (default) */
+  --background: 0 0% 5%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 142 76% 45%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 142 76% 45%;
+  --accent-foreground: 0 0% 5%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 0% 20%;
+  --input: 0 0% 15%;
+  --ring: 142 76% 45%;
+  --radius: 0.5rem;
+}
+
+[data-theme="amber"] {
+  --primary: 45 93% 58%;
+  --accent: 45 93% 58%;
+  --ring: 45 93% 58%;
+}
+
+[data-theme="ocean"] {
+  --primary: 199 89% 48%;
+  --accent: 199 89% 48%;
+  --ring: 199 89% 48%;
+}
+
+[data-theme="dracula"] {
+  --background: 231 15% 18%;
+  --foreground: 60 30% 96%;
+  --card: 232 14% 21%;
+  --primary: 326 100% 74%;
+  --accent: 191 97% 77%;
+  --ring: 326 100% 74%;
+}
+
+[data-theme="matrix"] {
+  --primary: 120 100% 40%;
+  --accent: 120 100% 40%;
+  --ring: 120 100% 40%;
+}
+
+[data-theme="neon"] {
+  --primary: 320 100% 60%;
+  --accent: 180 100% 50%;
+  --ring: 320 100% 60%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  /* Glass effect */
+  .glass {
+    @apply bg-card/80 backdrop-blur-md border border-border/50;
+  }
+  .glass-dark {
+    @apply bg-background/90 backdrop-blur-md border border-border/50;
+  }
+
+  /* Terminal glow effect */
+  .terminal-glow {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  /* Border glow */
+  .border-glow {
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
