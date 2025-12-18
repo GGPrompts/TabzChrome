@@ -256,12 +256,65 @@ version_gt() {
 if [ -n "$LATEST_RELEASE" ] && version_gt "$LATEST_RELEASE" "$CURRENT_VERSION"; then
     echo -e "${YELLOW}╭─────────────────────────────────────────────────────╮${NC}"
     echo -e "${YELLOW}│  🆕 Update available: v${CURRENT_VERSION} → v${LATEST_RELEASE}${NC}"
-    echo -e "${YELLOW}│  ${NC}Run: ${BLUE}git pull${NC} to update"
-    echo -e "${YELLOW}│  ${NC}See: ${BLUE}https://github.com/GGPrompts/TabzChrome/releases${NC}"
     echo -e "${YELLOW}╰─────────────────────────────────────────────────────╯${NC}"
     echo ""
+    read -p "$(echo -e ${BLUE}Update now? ${NC}${YELLOW}[y/N]${NC}: )" DO_UPDATE
+    if [[ "$DO_UPDATE" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${BLUE}📥 Pulling latest changes...${NC}"
+        cd "$SCRIPT_DIR/.."
+        git pull origin main
+
+        echo ""
+        echo -e "${BLUE}📦 Installing dependencies...${NC}"
+        npm install
+
+        echo ""
+        echo -e "${BLUE}🔨 Building extension...${NC}"
+        npm run build
+
+        # Copy to Windows if WSL
+        if grep -qi microsoft /proc/version 2>/dev/null; then
+            WIN_DEST="${TABZ_WIN_PATH:-/mnt/c/Users/$(ls /mnt/c/Users/ 2>/dev/null | grep -vE '^(Default|Default User|Public|All Users|WsiAccount|desktop.ini)$' | head -1)/Desktop/TabzChrome/dist-extension/}"
+            if [ -d "$(dirname "$WIN_DEST")" ]; then
+                echo ""
+                echo -e "${BLUE}📋 Copying to Windows...${NC}"
+                rsync -av --delete dist-extension/ "$WIN_DEST"
+                echo ""
+                echo -e "${GREEN}✅ Extension updated! Reload at chrome://extensions${NC}"
+            fi
+        else
+            echo ""
+            echo -e "${GREEN}✅ Extension updated! Load dist-extension/ in Chrome${NC}"
+        fi
+
+        # Update version after update
+        CURRENT_VERSION=$(grep '"version"' "$SCRIPT_DIR/../package.json" | sed 's/.*"version": "\([^"]*\)".*/\1/')
+        echo ""
+    fi
+
+    # Check for plugin updates
+    PLUGIN_MARKETPLACE="$HOME/.claude/plugins/marketplaces/tabz-chrome"
+    if [ -d "$PLUGIN_MARKETPLACE" ]; then
+        echo -e "${YELLOW}💡 TabzChrome plugins detected${NC}"
+        echo -e "   Run ${BLUE}/plugin update${NC} in Claude Code to sync plugins"
+        echo ""
+    fi
 elif [ -n "$LATEST_RELEASE" ]; then
     echo -e "${GREEN}✓ TabzChrome v${CURRENT_VERSION} (latest)${NC}"
+
+    # Still check for plugin updates even if main repo is current
+    PLUGIN_MARKETPLACE="$HOME/.claude/plugins/marketplaces/tabz-chrome"
+    if [ -d "$PLUGIN_MARKETPLACE" ]; then
+        # Check if plugins are behind by comparing git commits
+        cd "$SCRIPT_DIR/.."
+        REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null)
+        PLUGIN_COMMIT=$(cd "$PLUGIN_MARKETPLACE" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [ "$REPO_COMMIT" != "$PLUGIN_COMMIT" ] && [ "$PLUGIN_COMMIT" != "unknown" ]; then
+            echo -e "${YELLOW}   💡 Plugins may need update (repo: ${REPO_COMMIT}, plugins: ${PLUGIN_COMMIT})${NC}"
+            echo -e "      Run ${BLUE}/plugin update${NC} in Claude Code"
+        fi
+    fi
     echo ""
 fi
 

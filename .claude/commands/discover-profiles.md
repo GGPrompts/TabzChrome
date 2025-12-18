@@ -18,15 +18,7 @@ This returns:
 
 Note which tools already have profiles (match by `command` field) to avoid duplicates.
 
-2. Open the awesome-tuis reference page so users can discover new tools:
-
-```
-Use tabz MCP to open: https://github.com/rothgar/awesome-tuis
-```
-
-This page has a comprehensive list of TUI applications they might want to install.
-
-3. Scan for installed CLI tools by running these checks:
+2. Scan for installed CLI tools by running these checks:
 
 ```bash
 # AI CLIs
@@ -35,7 +27,7 @@ for cmd in claude codex gemini aider opencode ollama gpt sgpt cursor; do
 done
 
 # TUI Tools
-for cmd in lazygit htop btop btm ranger mc ncdu tig lazydocker k9s; do
+for cmd in lazygit htop btop btm ranger mc ncdu tig lazydocker k9s yazi lf nnn broot; do
   command -v $cmd &>/dev/null && echo "✓ $cmd: $(which $cmd)"
 done
 
@@ -43,17 +35,89 @@ done
 for cmd in nvim vim micro nano hx emacs code; do
   command -v $cmd &>/dev/null && echo "✓ $cmd: $(which $cmd)"
 done
+
+# System/Dev
+for cmd in docker kubectl npm pnpm yarn tmux screen; do
+  command -v $cmd &>/dev/null && echo "✓ $cmd: $(which $cmd)"
+done
 ```
 
-4. Present the found tools to the user in a clean list, grouped by category:
-   - **AI Assistants**: claude, codex, gemini, aider, etc.
-   - **TUI Tools**: lazygit, htop, btop, ranger, etc.
-   - **Editors**: nvim, vim, micro, helix, etc.
-   - **Dev Tools**: docker, kubectl, npm, etc.
+3. **AI Assistant Setup** - Ask specifically about AI tools they use:
 
-   If user exported existing profiles, mark tools that already have profiles with "(already configured)".
+```
+Use AskUserQuestion tool with:
+- question: "Which AI assistants do you use?"
+- header: "AI Tools"
+- multiSelect: true
+- options:
+  - "Claude Code" (if installed)
+  - "Aider" (if installed)
+  - "Codex/GPT" (if installed)
+  - "Other/None"
+```
 
-5. Ask the user which tools they'd like to create profiles for. Mention they can browse the awesome-tuis page (now open in their browser) to discover more tools to install.
+**If Claude Code is selected**, ask follow-up questions:
+
+```
+Use AskUserQuestion tool with:
+- question: "How do you prefer to run Claude Code?"
+- header: "Claude Mode"
+- multiSelect: false
+- options:
+  - "YOLO mode (--dangerously-skip-permissions) - Claude can edit/run without asking (Recommended)"
+  - "Safe mode - Claude asks before file edits and commands"
+  - "Both - create profiles for each mode"
+```
+
+Then ask about the Conductor agent (available via TabzChrome plugin):
+
+```
+Use AskUserQuestion tool with:
+- question: "Add Claude Conductor profile? (multi-session orchestrator from TabzChrome)"
+- header: "Conductor"
+- multiSelect: false
+- options:
+  - "Yes - add Claude Conductor profile"
+  - "No thanks"
+```
+
+If yes, add a profile with command: `claude --agent conductor`
+(Note: Requires the conductor plugin from TabzChrome marketplace to be installed)
+
+4. **Interactive Selection Loop** - Use `AskUserQuestion` with `multiSelect: true` to let users pick remaining tools:
+
+```
+Use AskUserQuestion tool with:
+- question: "Which tools would you like to add as profiles?"
+- header: "Add Profiles"
+- multiSelect: true
+- options: List the found tools that don't already have profiles (max 4 per question)
+```
+
+**IMPORTANT**: Continue the loop! After each selection:
+- Confirm what was selected (e.g., "Added: lazygit, btop, htop")
+- Ask "What would you like to do next?" with options:
+  - "Show more tools" - continue with next batch of found tools
+  - "Add a custom command" - ask for command name and details
+  - "Browse awesome-tuis for ideas" - open https://github.com/rothgar/awesome-tuis in browser
+  - "Done - generate profiles" - exit loop and generate JSON
+
+Keep looping until user chooses "Done". This ensures they can:
+- Select from multiple batches (since AskUserQuestion only shows 4 options at a time)
+- Add custom commands not in the initial scan
+- Discover new tools to install from curated lists
+- Review selections before finalizing
+
+5. **Before generating**, show a summary of selected profiles and ask for confirmation:
+
+```
+Use AskUserQuestion tool with:
+- question: "Ready to create X profiles? (list them)"
+- header: "Confirm"
+- options:
+  - "Yes, generate profiles"
+  - "No, let me change selections"
+```
 
 6. For each selected tool, generate a profile JSON with:
    - Sensible `name` (e.g., "Claude Code", "LazyGit")
@@ -120,8 +184,8 @@ Each profile has these fields:
 ```json
 [
   {
-    "id": "claude-code-12345",
-    "name": "Claude Code",
+    "id": "claude-yolo-12345",
+    "name": "Claude YOLO",
     "category": "AI Assistants",
     "command": "claude --dangerously-skip-permissions",
     "workingDir": "",
@@ -130,7 +194,27 @@ Each profile has these fields:
     "themeName": "high-contrast"
   },
   {
-    "id": "lazygit-12346",
+    "id": "claude-safe-12346",
+    "name": "Claude Safe",
+    "category": "AI Assistants",
+    "command": "claude",
+    "workingDir": "",
+    "fontSize": 16,
+    "fontFamily": "JetBrains Mono, monospace",
+    "themeName": "ocean"
+  },
+  {
+    "id": "claude-conductor-12347",
+    "name": "Claude Conductor",
+    "category": "AI Assistants",
+    "command": "claude --agent conductor",
+    "workingDir": "",
+    "fontSize": 16,
+    "fontFamily": "JetBrains Mono, monospace",
+    "themeName": "neon"
+  },
+  {
+    "id": "lazygit-12348",
     "name": "LazyGit",
     "category": "TUI Tools",
     "command": "lazygit",
@@ -144,7 +228,8 @@ Each profile has these fields:
 
 ## Tips for Users
 
-- **AI Assistants** benefit from `--dangerously-skip-permissions` flag for automation
+- **Claude YOLO mode** (`--dangerously-skip-permissions`) lets Claude edit files and run commands without asking - great for trusted workflows
+- **Claude Conductor** (`--agent conductor`) enables multi-session orchestration - requires the TabzChrome conductor plugin
 - **TUI Tools** work best with monospace fonts like JetBrains Mono or Fira Code
 - Leave `workingDir` empty to inherit from the header dropdown
 - Profiles can be customized further in Settings after import
