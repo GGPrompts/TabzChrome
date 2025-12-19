@@ -87,8 +87,8 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
   // Track last_updated timestamps to filter stale status files (Codex fix)
   const lastStatusUpdateRef = useRef<Map<string, string>>(new Map())
   // Track announced sessions for session-start audio (Codex fix)
-  // Store session info (name) so we can announce it when closed
-  const announcedSessionsRef = useRef<Map<string, string>>(new Map())
+  // Store session info (name + voice) so we can announce with correct voice when closed
+  const announcedSessionsRef = useRef<Map<string, { name: string; voice?: string }>>(new Map())
   // Track sessions that were detached (not killed) - these say "detached" instead of "closed"
   const detachedSessionsRef = useRef<Set<string>>(new Set())
   // Track if this is initial load (don't announce restored sessions)
@@ -149,10 +149,10 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
     if (sessions.length > 0 && initialLoadRef.current) {
       // Give a short delay to let restored sessions populate
       const timer = setTimeout(() => {
-        // Mark all current sessions as already announced (store their names)
+        // Mark all current sessions as already announced (store their names + voices)
         sessions.forEach(s => {
           const displayName = s.profile?.name || s.name || 'Terminal'
-          announcedSessionsRef.current.set(s.id, displayName)
+          announcedSessionsRef.current.set(s.id, { name: displayName, voice: s.assignedVoice })
         })
         initialLoadRef.current = false
       }, 1000)
@@ -293,7 +293,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
     sessions.forEach(session => {
       if (!announcedSessionsRef.current.has(session.id)) {
         const displayName = session.profile?.name || session.name || 'Terminal'
-        announcedSessionsRef.current.set(session.id, displayName)
+        announcedSessionsRef.current.set(session.id, { name: displayName, voice: session.assignedVoice })
 
         const settings = getAudioSettingsForProfile(session.profile, session.assignedVoice)
         if (settings.enabled) {
@@ -303,12 +303,14 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
     })
 
     // Announce and clean up removed sessions
-    for (const [id, displayName] of announcedSessionsRef.current) {
+    for (const [id, sessionInfo] of announcedSessionsRef.current) {
       if (!sessions.find(s => s.id === id)) {
         // Check if session was detached (not killed)
         const wasDetached = detachedSessionsRef.current.has(id)
         if (audioSettings.events.sessionStart) {
-          playAudio(`${displayName} ${wasDetached ? 'detached' : 'closed'}`)
+          // Create a minimal session object with the stored voice for playAudio
+          const closedSession = { id, name: sessionInfo.name, assignedVoice: sessionInfo.voice } as TerminalSession
+          playAudio(`${sessionInfo.name} ${wasDetached ? 'detached' : 'closed'}`, closedSession)
         }
         announcedSessionsRef.current.delete(id)
         detachedSessionsRef.current.delete(id)
@@ -415,7 +417,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         switch (currentToolName) {
           case 'Read': announcement = 'Reading'; break
           case 'Write': announcement = 'Writing'; break
-          case 'Edit': announcement = 'Editing'; break
+          case 'Edit': announcement = 'Edit'; break
           case 'Bash': announcement = 'Running command'; break
           case 'Glob': announcement = 'Searching files'; break
           case 'Grep': announcement = 'Searching code'; break
