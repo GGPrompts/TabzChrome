@@ -105,9 +105,53 @@ Location: .claude/skills/fastapi-templates/
 Worker can now use: "use the fastapi-templates skill to..."
 ```
 
+## Disable/Remove Skills
+
+After a task is complete, clean up installed skills to avoid context bloat.
+
+### List Installed Skills
+```bash
+ls -la .claude/skills/
+```
+
+### Remove a Skill
+```bash
+rm -rf .claude/skills/fastapi-templates
+echo "Removed fastapi-templates skill"
+```
+
+### Disable Temporarily (Keep for Later)
+Move to a disabled folder instead of deleting:
+```bash
+mkdir -p .claude/skills-disabled
+mv .claude/skills/fastapi-templates .claude/skills-disabled/
+echo "Disabled fastapi-templates (can re-enable later)"
+```
+
+### Re-enable a Skill
+```bash
+mv .claude/skills-disabled/fastapi-templates .claude/skills/
+echo "Re-enabled fastapi-templates"
+```
+
+### Cleanup Workflow
+
+After conductor confirms a task is complete:
+1. List skills that were installed for this task
+2. Ask conductor if they should be kept or removed
+3. Remove/disable as directed
+
+Report:
+```
+Cleanup complete:
+- Removed: fastapi-templates, docker-wizard
+- Kept: testing (user requested)
+```
+
 ## Notes
 
 - Skills are project-local (`.claude/skills/`) - workers in that directory can use them
 - Higher stars generally means better quality
 - Preview before installing to verify relevance
 - Some skills have `references/` directories with additional docs
+- Clean up task-specific skills after completion to reduce context overhead
