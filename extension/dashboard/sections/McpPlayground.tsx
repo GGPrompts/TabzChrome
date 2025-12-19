@@ -64,6 +64,7 @@ export default function McpPlayground() {
   const [allowAllUrls, setAllowAllUrls] = useState(false)
   const [customDomains, setCustomDomains] = useState('')
   const [inspectorCommand, setInspectorCommand] = useState<string>('')
+  const [inspectorUrl, setInspectorUrl] = useState<string>('http://localhost:6274')
 
   // Fetch config and inspector command on mount
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function McpPlayground() {
         if (inspectorRes.ok) {
           const inspectorData = await inspectorRes.json()
           setInspectorCommand(inspectorData.data?.command || '')
+          setInspectorUrl(inspectorData.data?.inspectorUrl || 'http://localhost:6274')
         }
       } catch (err) {
         console.error('Failed to fetch MCP config:', err)
@@ -214,23 +216,36 @@ export default function McpPlayground() {
           <div className="flex-1">
             <h3 className="font-semibold text-cyan-200 mb-1">MCP Inspector</h3>
             <p className="text-sm text-cyan-200/80 mb-3">
-              Test and debug Tabz MCP tools interactively. Opens at localhost:6274. Installs on first use.
+              Test and debug Tabz MCP tools interactively. Installs on first use.
             </p>
-            <button
-              onClick={async () => {
-                if (inspectorCommand) {
-                  await spawnTerminal({
-                    name: 'MCP Inspector',
-                    command: inspectorCommand,
-                  })
-                }
-              }}
-              disabled={!inspectorCommand}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Microscope className="w-4 h-4" />
-              Launch Inspector
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (inspectorCommand) {
+                    await spawnTerminal({
+                      name: 'MCP Inspector',
+                      command: inspectorCommand,
+                    })
+                  }
+                }}
+                disabled={!inspectorCommand}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Terminal className="w-4 h-4" />
+                Start Server
+              </button>
+              <button
+                onClick={() => chrome.tabs.create({ url: inspectorUrl })}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+                title="Open inspector in this Chrome browser"
+              >
+                <Microscope className="w-4 h-4" />
+                Open Inspector
+              </button>
+            </div>
+            <p className="text-xs text-cyan-200/50 mt-2">
+              Start server first, then click Open Inspector. URL: {inspectorUrl}
+            </p>
           </div>
         </div>
       </div>

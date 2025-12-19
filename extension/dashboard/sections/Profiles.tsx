@@ -195,7 +195,7 @@ export default function ProfilesSection() {
     setDropPosition(null)
   }
 
-  const handleDrop = (index: number) => {
+  const handleDrop = (index: number, targetCategory: string) => {
     if (draggedIndex === null || draggedIndex === index) {
       setDraggedIndex(null)
       setDragOverIndex(null)
@@ -205,6 +205,12 @@ export default function ProfilesSection() {
 
     const newProfiles = [...profiles]
     const [draggedProfile] = newProfiles.splice(draggedIndex, 1)
+
+    // Update category if dropped into a different category
+    const newCategory = targetCategory === 'Uncategorized' ? undefined : targetCategory
+    if (draggedProfile.category !== newCategory) {
+      draggedProfile.category = newCategory
+    }
 
     // Calculate the actual insert index based on drop position
     let insertIndex = index
@@ -580,6 +586,7 @@ export default function ProfilesSection() {
                       originalIndex={originalIndex}
                       isDefault={profile.id === defaultProfile}
                       themeGradient={themes[profile.themeName]?.dark.backgroundGradient}
+                      category={category}
                       onClick={() => launchProfile(profile)}
                       onEdit={() => editProfile(profile.id)}
                       isDragging={draggedIndex === originalIndex}
@@ -588,7 +595,7 @@ export default function ProfilesSection() {
                       onDragStart={() => handleDragStart(originalIndex)}
                       onDragOver={(e) => handleDragOver(e, originalIndex, true)}
                       onDragLeave={handleDragLeave}
-                      onDrop={() => handleDrop(originalIndex)}
+                      onDrop={(targetCategory) => handleDrop(originalIndex, targetCategory)}
                       onDragEnd={handleDragEnd}
                     />
                   ))}
@@ -603,6 +610,7 @@ export default function ProfilesSection() {
                       originalIndex={originalIndex}
                       isDefault={profile.id === defaultProfile}
                       themeGradient={themes[profile.themeName]?.dark.backgroundGradient}
+                      category={category}
                       onClick={() => launchProfile(profile)}
                       onEdit={() => editProfile(profile.id)}
                       isDragging={draggedIndex === originalIndex}
@@ -611,7 +619,7 @@ export default function ProfilesSection() {
                       onDragStart={() => handleDragStart(originalIndex)}
                       onDragOver={(e) => handleDragOver(e, originalIndex)}
                       onDragLeave={handleDragLeave}
-                      onDrop={() => handleDrop(originalIndex)}
+                      onDrop={(targetCategory) => handleDrop(originalIndex, targetCategory)}
                       onDragEnd={handleDragEnd}
                     />
                   ))}
@@ -638,6 +646,7 @@ interface ProfileCardProps {
   originalIndex: number
   isDefault: boolean
   themeGradient?: string
+  category: string
   onClick: () => void
   onEdit: () => void
   isDragging: boolean
@@ -646,7 +655,7 @@ interface ProfileCardProps {
   onDragStart: () => void
   onDragOver: (e: React.DragEvent) => void
   onDragLeave: () => void
-  onDrop: () => void
+  onDrop: (targetCategory: string) => void
   onDragEnd: () => void
 }
 
@@ -654,6 +663,7 @@ function ProfileCard({
   profile,
   isDefault,
   themeGradient,
+  category,
   onClick,
   onEdit,
   isDragging,
@@ -681,21 +691,22 @@ function ProfileCard({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      onDrop={() => onDrop(category)}
       onDragEnd={onDragEnd}
+      onClick={onClick}
       className={`
-        group relative flex flex-col items-center p-4 rounded-xl border transition-all overflow-hidden
+        group relative flex flex-col items-center p-4 rounded-xl border transition-all overflow-hidden cursor-pointer
         ${isDragging ? 'opacity-50 border-primary' : 'border-border hover:border-primary/50'}
       `}
       style={themeGradient ? { background: themeGradient } : undefined}
     >
       {/* Drop indicator line - left (for grid layout) */}
       {isDragOver && dropPosition === 'above' && (
-        <div className="absolute -left-[3px] top-0 bottom-0 w-[2px] bg-primary rounded-full shadow-[0_0_6px_var(--primary)]" />
+        <div className="absolute -left-[3px] top-0 bottom-0 w-[3px] bg-green-500 rounded-full shadow-[0_0_8px_#22c55e] z-50" />
       )}
       {/* Drop indicator line - right (for grid layout) */}
       {isDragOver && dropPosition === 'below' && (
-        <div className="absolute -right-[3px] top-0 bottom-0 w-[2px] bg-primary rounded-full shadow-[0_0_6px_var(--primary)]" />
+        <div className="absolute -right-[3px] top-0 bottom-0 w-[3px] bg-green-500 rounded-full shadow-[0_0_8px_#22c55e] z-50" />
       )}
 
       {/* Default badge - top left */}
@@ -719,13 +730,15 @@ function ProfileCard({
       {/* Edit button - top right corner */}
       <button
         onClick={(e) => { e.stopPropagation(); onEdit() }}
-        className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all z-10"
         title="Edit profile"
       >
         <Settings className="w-3.5 h-3.5 text-white/50 hover:text-white/80" />
       </button>
 
-      <button onClick={onClick} className="flex flex-col items-center w-full">
+      {/* Card content */}
+      <div className="flex flex-col items-center w-full pointer-events-none">
         <div className="w-12 h-12 flex items-center justify-center mb-2 rounded-lg bg-white/10 text-2xl group-hover:scale-110 transition-transform">
           {emoji || <Terminal className="w-6 h-6 text-white/80" />}
         </div>
@@ -739,7 +752,7 @@ function ProfileCard({
           </span>
         )}
         <Play className="w-4 h-4 text-white/80 mt-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-      </button>
+      </div>
     </div>
   )
 }
@@ -749,6 +762,7 @@ interface ProfileListItemProps {
   originalIndex: number
   isDefault: boolean
   themeGradient?: string
+  category: string
   onClick: () => void
   onEdit: () => void
   isDragging: boolean
@@ -757,7 +771,7 @@ interface ProfileListItemProps {
   onDragStart: () => void
   onDragOver: (e: React.DragEvent) => void
   onDragLeave: () => void
-  onDrop: () => void
+  onDrop: (targetCategory: string) => void
   onDragEnd: () => void
 }
 
@@ -765,6 +779,7 @@ function ProfileListItem({
   profile,
   isDefault,
   themeGradient,
+  category,
   onClick,
   onEdit,
   isDragging,
@@ -791,32 +806,34 @@ function ProfileListItem({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      onDrop={() => onDrop(category)}
       onDragEnd={onDragEnd}
+      onClick={onClick}
       className={`
-        relative w-full flex items-center gap-4 p-3 rounded-lg border transition-all group overflow-hidden
+        relative w-full flex items-center gap-4 p-3 rounded-lg border transition-all group overflow-hidden cursor-pointer
         ${isDragging ? 'opacity-50 border-primary' : 'border-border hover:border-primary/50'}
       `}
       style={themeGradient ? { background: themeGradient } : undefined}
     >
       {/* Drop indicator line - above */}
       {isDragOver && dropPosition === 'above' && (
-        <div className="absolute -top-[3px] left-0 right-0 h-[2px] bg-primary rounded-full shadow-[0_0_6px_var(--primary)]" />
+        <div className="absolute -top-[3px] left-0 right-0 h-[3px] bg-green-500 rounded-full shadow-[0_0_8px_#22c55e] z-50" />
       )}
       {/* Drop indicator line - below */}
       {isDragOver && dropPosition === 'below' && (
-        <div className="absolute -bottom-[3px] left-0 right-0 h-[2px] bg-primary rounded-full shadow-[0_0_6px_var(--primary)]" />
+        <div className="absolute -bottom-[3px] left-0 right-0 h-[3px] bg-green-500 rounded-full shadow-[0_0_8px_#22c55e] z-50" />
       )}
 
-      {/* Drag handle */}
+      {/* Drag handle - pointer-events-none so drag passes to parent */}
       <div
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-white/30 hover:text-white/60 transition-colors"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-white/30 hover:text-white/60 transition-colors pointer-events-none"
         title="Drag to reorder"
       >
         <GripVertical className="w-4 h-4" />
       </div>
 
-      <button onClick={onClick} className="flex items-center gap-4 flex-1 min-w-0">
+      {/* Content - pointer-events-none to allow drag through */}
+      <div className="flex items-center gap-4 flex-1 min-w-0 pointer-events-none">
         <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white/10 text-xl flex-shrink-0">
           {emoji || <Terminal className="w-5 h-5 text-white/80" />}
         </div>
@@ -837,17 +854,18 @@ function ProfileListItem({
             <div className="text-sm text-white/50 font-mono truncate">{profile.command}</div>
           )}
         </div>
-      </button>
+      </div>
       <button
         onClick={(e) => { e.stopPropagation(); onEdit() }}
-        className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all flex-shrink-0"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all flex-shrink-0 z-10"
         title="Edit profile"
       >
         <Settings className="w-4 h-4 text-white/50 hover:text-white/80" />
       </button>
-      <button onClick={onClick} className="flex-shrink-0">
+      <div className="flex-shrink-0 pointer-events-none">
         <Play className="w-5 h-5 text-white/80 opacity-0 group-hover:opacity-100 transition-opacity" />
-      </button>
+      </div>
     </div>
   )
 }

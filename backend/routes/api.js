@@ -510,6 +510,7 @@ router.get('/health', asyncHandler(async (req, res) => {
 /**
  * GET /api/mcp/inspector-command - Get the command to launch MCP Inspector
  * Returns the full npx command with the correct path to the tabz-mcp-server
+ * Note: Inspector auto-opens default browser; use "Open Inspector" button to open in current Chrome
  */
 router.get('/mcp/inspector-command', asyncHandler(async (req, res) => {
   const path = require('path');
@@ -522,6 +523,7 @@ router.get('/mcp/inspector-command', asyncHandler(async (req, res) => {
     data: {
       command: `npx @modelcontextprotocol/inspector node ${mcpServerPath}`,
       mcpServerPath,
+      inspectorUrl: 'http://localhost:6274',
       note: 'Installs on first use via npx'
     }
   });
