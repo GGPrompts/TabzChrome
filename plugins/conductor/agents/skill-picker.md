@@ -109,15 +109,48 @@ Worker can now use: "use the fastapi-templates skill to..."
 
 After a task is complete, clean up installed skills to avoid context bloat.
 
-### List Installed Skills
+### Protected Skills
+
+**NEVER remove or disable these:**
+1. Skills in `~/.claude/skills/` (global user skills)
+2. Skills listed in `.claude/skills/.safelist`
+
+Check safelist before any removal:
 ```bash
-ls -la .claude/skills/
+# View protected project skills
+cat .claude/skills/.safelist 2>/dev/null || echo "(no safelist)"
+
+# Example .safelist content:
+# xterm-js
+# tabz-mcp
+# mcp-builder
 ```
 
-### Remove a Skill
+### Add to Safelist
 ```bash
-rm -rf .claude/skills/fastapi-templates
-echo "Removed fastapi-templates skill"
+echo "skill-name" >> .claude/skills/.safelist
+```
+
+### List Installed Skills
+```bash
+# Project skills (manageable)
+ls -d .claude/skills/*/ 2>/dev/null | xargs -I {} basename {}
+
+# Global skills (protected, never touch)
+ls -d ~/.claude/skills/*/ 2>/dev/null | xargs -I {} basename {}
+```
+
+### Remove a Skill (with safelist check)
+```bash
+SKILL="fastapi-templates"
+
+# Check if protected
+if grep -qx "$SKILL" .claude/skills/.safelist 2>/dev/null; then
+  echo "ERROR: $SKILL is protected (in .safelist)"
+else
+  rm -rf ".claude/skills/$SKILL"
+  echo "Removed $SKILL"
+fi
 ```
 
 ### Disable Temporarily (Keep for Later)
