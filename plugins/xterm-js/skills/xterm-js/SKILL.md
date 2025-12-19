@@ -343,103 +343,167 @@ const xtermOptions = {
 
 **Reference:** [Tmux EOL Fix Gist](https://gist.github.com/GGPrompts/7d40ea1070a45de120261db00f1d7e3a) - Complete guide with font normalization patterns
 
-### 12. Resize Strategy for Tmux Sessions (The Tabz Pattern)
+### 12. Resize & Output Coordination
 
-**Critical Pattern: Only Send Resize to Backend on Window Resize**
+**Critical Pattern: Don't Resize During Active Output**
 
-For tmux-backed terminals, DON'T try to time resize around output. Instead, simply don't send resize to backend on container changes at all. This eliminates the root cause of corruption.
+Resizing terminals (especially tmux) sends SIGWINCH which triggers a full screen redraw. During active output streaming, this causes "redraw storms" where the same content appears multiple times.
 
 ```typescript
-// Determine if this is a tmux session
-const isTmuxSession = !!sessionName || terminalId.startsWith('ctt-')
+// Track output timing
+const lastOutputTimeRef = useRef(0)
+const OUTPUT_QUIET_PERIOD = 500  // Wait 500ms after last output
 
-// fitTerminal now takes a sendToBackend parameter
-const fitTerminal = (sendToBackend = false) => {
-  fitAddonRef.current.fit()
-  xtermRef.current.refresh(0, xtermRef.current.rows - 1)
-
-  // Only send resize to backend when explicitly requested
-  if (sendToBackend) {
-    debouncedSendResize()
-  }
+// In output handler
+const handleOutput = (data: string) => {
+  lastOutputTimeRef.current = Date.now()
+  xterm.write(data)
 }
 
-// ResizeObserver: local fit only for tmux
-const resizeObserver = new ResizeObserver(() => {
-  if (isTmuxSession) {
-    fitTerminal(false)  // Local only - no backend
-  } else {
-    fitTerminal(true)   // Regular shells send to backend
-  }
-})
-
-// Window resize: the ONE place we send to backend
-window.addEventListener('resize', () => {
-  fitTerminal(true)  // Send to backend
-})
+// Before any resize operation
+const safeToResize = () => {
+  const timeSinceOutput = Date.now() - lastOutputTimeRef.current
+  return timeSinceOutput >= OUTPUT_QUIET_PERIOD
+}
 ```
 
-**Why This Works:**
-- Tmux manages its own pane dimensions internally
-- Container changes (sidebar resize, tab switch) only affect xterm's viewport, not tmux's understanding of size
-- Only actual window resize changes the viewport dimensions tmux needs to know about
-- No output deferral logic = no race conditions = no corruption
+**Critical Pattern: Two-Step Resize Trick for Tmux**
 
-**Critical Pattern: Two-Step Resize Trick for Reconnection**
-
-Tmux ignores resize events when dimensions haven't changed. For reconnection scenarios (page refresh, WebSocket reconnect), xterm is new/empty but tmux session exists. Plain resize won't redraw. Use the "resize trick" to force SIGWINCH:
+Tmux sometimes doesn't properly rewrap text after dimension changes. The "resize trick" forces a full redraw:
 
 ```typescript
-const triggerResizeTrick = () => {
+const triggerResizeTrick = (force = false) => {
   if (!xtermRef.current || !fitAddonRef.current) return
-
-  // Simple debounce - no output deferral needed
-  const timeSinceLast = Date.now() - lastResizeTrickTimeRef.current
-  if (timeSinceLast < 500) return
-  lastResizeTrickTimeRef.current = Date.now()
 
   const currentCols = xtermRef.current.cols
   const currentRows = xtermRef.current.rows
 
-  // Step 1: Resize down by 1 ROW (sends SIGWINCH)
-  // CRITICAL: Shrink ROWS not COLUMNS! Column shrink causes tmux status bar
-  // to wrap its last character to the next line, corrupting scroll regions.
-  isResizingRef.current = true
-  const minRows = Math.max(1, currentRows - 1)
-  xtermRef.current.resize(currentCols, minRows)
-  sendResize(currentCols, minRows)
+  // Skip if output is active (unless forced)
+  if (!force && !safeToResize()) {
+    // Defer and retry later
+    setTimeout(() => triggerResizeTrick(), OUTPUT_QUIET_PERIOD)
+    return
+  }
 
-  // Step 2: Fit to container and send final dimensions (200ms for tmux to process)
+  // Step 1: Resize down by 1 column (sends SIGWINCH)
+  xtermRef.current.resize(currentCols - 1, currentRows)
+  sendResize(currentCols - 1, currentRows)
+
+  // Step 2: Resize back (sends another SIGWINCH)
   setTimeout(() => {
-    fitAddonRef.current.fit()
-    const finalCols = xtermRef.current.cols
-    const finalRows = xtermRef.current.rows
-    sendResize(finalCols, finalRows)
-    prevDimensionsRef.current = { cols: finalCols, rows: finalRows }
-    isResizingRef.current = false
-    writeQueueRef.current = []  // Clear, don't flush - stale data from reflow
-  }, 200)
+    xtermRef.current.resize(currentCols, currentRows)
+    sendResize(currentCols, currentRows)
+  }, 100)
 }
-
-// Use on reconnection events
-case 'REFRESH_TERMINALS':
-case 'WS_CONNECTED':
-case 'TERMINAL_RECONNECTED':
-  fitAddonRef.current.fit()
-  xtermRef.current.refresh(0, xtermRef.current.rows - 1)
-  triggerResizeTrick()  // Force tmux to redraw to new xterm
-  break
 ```
 
-**Key Insight:** Plain resize with same dimensions is IGNORED by tmux. The rows-1/fit trick forces SIGWINCH even when dimensions haven't "changed".
+**Critical Pattern: Clear Write Queue After Resize Trick**
 
-**Why ROWS not COLUMNS:** Tmux status bar is sized to fit terminal width exactly. Shrinking by 1 column causes the last character (often a date digit) to wrap to the next line, corrupting the scroll region. Shrinking by 1 row temporarily hides content but keeps status bar width intact.
+The two-step resize causes TWO tmux redraws. If you're queueing writes during resize, you'll have duplicate content:
 
-See `references/resize-patterns.md` for the complete Tabz pattern.
+```typescript
+const writeQueueRef = useRef<string[]>([])
+const isResizingRef = useRef(false)
 
-### 13. Tmux Resize Quick Reference
+// During resize trick
+isResizingRef.current = true
+// ... do resize ...
+isResizingRef.current = false
 
-This is a quick reference for the Tabz Pattern described in Pattern 12.
+// CRITICAL: Clear queue instead of flushing after resize trick
+// Both redraws are queued - flushing writes duplicate content!
+writeQueueRef.current = []
+```
+
+**Critical Pattern: Output Guard on Reconnection**
+
+When reconnecting to an active tmux session (e.g., page refresh during Claude streaming), buffer initial output to prevent escape sequence corruption:
+
+```typescript
+const isOutputGuardedRef = useRef(true)
+const outputGuardBufferRef = useRef<string[]>([])
+
+// Buffer output during guard period
+const handleOutput = (data: string) => {
+  if (isOutputGuardedRef.current) {
+    outputGuardBufferRef.current.push(data)
+    return
+  }
+  xterm.write(data)
+}
+
+// Lift guard after initialization (1000ms), flush buffer, then force resize
+useEffect(() => {
+  const timer = setTimeout(() => {
+    isOutputGuardedRef.current = false
+
+    // Flush buffered output
+    if (outputGuardBufferRef.current.length > 0) {
+      const buffered = outputGuardBufferRef.current.join('')
+      outputGuardBufferRef.current = []
+      xtermRef.current?.write(buffered)
+    }
+
+    // Force resize trick to fix any tmux state issues
+    setTimeout(() => triggerResizeTrick(true), 100)
+  }, 1000)
+
+  return () => clearTimeout(timer)
+}, [])
+```
+
+**Critical Pattern: Track and Cancel Deferred Operations**
+
+Multiple resize events in quick succession create orphaned timeouts. Track them:
+
+```typescript
+const deferredResizeTrickRef = useRef<NodeJS.Timeout | null>(null)
+const deferredFitTerminalRef = useRef<NodeJS.Timeout | null>(null)
+
+// On new resize event, cancel pending deferred operations
+const handleResize = () => {
+  if (deferredResizeTrickRef.current) {
+    clearTimeout(deferredResizeTrickRef.current)
+    deferredResizeTrickRef.current = null
+  }
+  if (deferredFitTerminalRef.current) {
+    clearTimeout(deferredFitTerminalRef.current)
+    deferredFitTerminalRef.current = null
+  }
+
+  // Schedule new operation
+  deferredFitTerminalRef.current = setTimeout(() => {
+    deferredFitTerminalRef.current = null
+    fitTerminal()
+  }, 150)
+}
+```
+
+See `references/resize-patterns.md` for complete resize coordination patterns.
+
+### 13. Tmux-Specific Resize Strategy
+
+**Critical Pattern: Skip ResizeObserver for Tmux Sessions**
+
+Tmux manages its own pane dimensions. ResizeObserver firing on container changes (focus, clicks, layout) causes unnecessary SIGWINCH signals:
+
+```typescript
+useEffect(() => {
+  // For tmux sessions, only send initial resize - skip ResizeObserver
+  if (useTmux) {
+    console.log('[Resize] Skipping ResizeObserver (tmux session)')
+    return  // Don't set up observer at all
+  }
+
+  // For regular shells, use ResizeObserver
+  const resizeObserver = new ResizeObserver((entries) => {
+    // ... handle resize
+  })
+
+  resizeObserver.observe(containerRef.current)
+  return () => resizeObserver.disconnect()
+}, [useTmux])
+```
 
 **Why Tmux Is Different:**
 - Regular shells: Each xterm instance owns its PTY, resize freely
@@ -447,54 +511,10 @@ This is a quick reference for the Tabz Pattern described in Pattern 12.
 - Tmux receives SIGWINCH and redraws ALL panes
 - Multiple resize events = multiple full redraws = corruption
 
-**The Rule (Tabz Pattern):**
-
-| Event | Action |
-|-------|--------|
-| ResizeObserver (container change) | Local fit only - NO backend resize |
-| Tab switch | Local fit + refresh - NO backend resize |
-| Window resize | Send resize to backend ✓ |
-| Reconnection (WS_CONNECTED, REFRESH_TERMINALS) | triggerResizeTrick() to force SIGWINCH |
-
-**Key Insight:** Tmux ignores resize when dimensions haven't changed. Use the rows-1/fit trick to force SIGWINCH on reconnection. Shrink ROWS not COLUMNS - column shrink causes tmux status bar wrapping corruption.
-
-### 14. Clear Buffer Before Large Resize Changes
-
-**Critical Pattern: xterm.js Reflow Corrupts Complex ANSI Content**
-
-When dimensions change significantly (>5 columns), xterm.js tries to reflow/rewrap existing content. This corrupts content with complex ANSI sequences (Claude Code statusline, colored diffs, cursor positioning).
-
-```typescript
-// In ResizeObserver or window resize handler:
-const afterCols = xtermRef.current.cols
-const colDelta = Math.abs(afterCols - beforeCols)
-
-// For large dimension changes, clear xterm before tmux redraws
-// xterm's reflow algorithm corrupts content with complex ANSI sequences
-if (isTmuxSession && colDelta > 5) {
-  // Lock during clear to prevent isWrapped error from concurrent writes
-  isResizingRef.current = true
-  xtermRef.current.clear()
-  isResizingRef.current = false
-  writeQueueRef.current = []  // Discard stale data
-}
-
-// Then trigger resize trick to force tmux to redraw fresh
-triggerResizeTrick()
-```
-
-**Why This Works:**
-1. `clear()` wipes xterm's buffer - no content to reflow
-2. `triggerResizeTrick()` sends SIGWINCH to tmux
-3. Tmux redraws everything formatted for new dimensions
-4. Fresh content renders correctly in empty xterm
-
-**Why >5 Columns Threshold:**
-- Small changes (≤5 cols) rarely cause visible corruption
-- Large changes (>5 cols) trigger significant reflow that corrupts complex ANSI
-- The threshold avoids unnecessary clears during minor adjustments
-
-**Critical:** Protect `clear()` with resize lock! Without it, concurrent WebSocket writes crash xterm with "Cannot set properties of undefined (setting 'isWrapped')" error.
+**For Tmux:**
+- DO resize: Once on initial connection (sets viewport)
+- DO resize: On actual browser window resize
+- DON'T resize: On focus, tab switch, container changes
 
 ## Resources
 

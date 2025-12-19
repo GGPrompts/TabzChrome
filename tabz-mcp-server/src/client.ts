@@ -800,17 +800,33 @@ const customTabNames: Map<string, string> = new Map();
  */
 export async function renameTab(tabId: number, name: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const pages = await getNonChromePages();
-    if (!pages) {
-      return { success: false, error: 'CDP not available. Make sure Chrome is running with --remote-debugging-port=9222' };
+    // First, try to get URL from tabIdToUrl map (populated by listTabs with Chrome tab IDs)
+    let url = tabIdToUrl.get(tabId);
+
+    // If not found in map, the user may not have called listTabs recently
+    // Try to refresh the tab list via extension API
+    if (!url) {
+      const tabsResult = await listTabs();
+      url = tabIdToUrl.get(tabId);
     }
 
-    // Tab IDs are 1-based for user clarity
-    if (tabId < 1 || tabId > pages.length) {
-      return { success: false, error: `Invalid tab ID: ${tabId}. Available tabs: 1-${pages.length}` };
+    // Still not found? Check if it's a small number (CDP array index fallback)
+    if (!url) {
+      const pages = await getNonChromePages();
+      if (pages && tabId >= 1 && tabId <= pages.length) {
+        // Small number, treat as 1-based CDP index (legacy behavior)
+        url = pages[tabId - 1].url();
+      }
     }
 
-    const url = pages[tabId - 1].url(); // Convert to 0-based index
+    if (!url) {
+      // Build helpful error message
+      const availableIds = [...tabIdToUrl.keys()];
+      const idsStr = availableIds.length > 0
+        ? `Available tab IDs: ${availableIds.join(', ')}`
+        : 'Run tabz_list_tabs first to get valid tab IDs';
+      return { success: false, error: `Invalid tab ID: ${tabId}. ${idsStr}` };
+    }
 
     if (name.trim() === '') {
       // Empty name clears the custom name

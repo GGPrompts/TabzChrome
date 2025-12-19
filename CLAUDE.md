@@ -72,6 +72,20 @@ After completing work:
 2. **docs/lessons-learned/** - Key insights from complex bugs
 3. **CLAUDE.md** - Only for architecture changes (keep minimal!)
 
+### Plugin/Skill Sync
+Skills and agents exist in two places that must stay in sync:
+
+| Location | Purpose |
+|----------|---------|
+| `.claude/skills/`, `.claude/agents/` | Project-level (Claude reads these) |
+| `plugins/*/skills/`, `plugins/*/agents/` | Plugin distribution (for sharing) |
+
+**When updating skills/agents:** Update both locations, or copy from one to the other.
+```bash
+# Example: sync xterm-js skill to plugin
+cp -r .claude/skills/xterm-js/* plugins/xterm-js/skills/xterm-js/
+```
+
 ---
 
 ## Quick Reference
