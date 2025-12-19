@@ -47,6 +47,8 @@ extension/                      backend/
 
 ## Development Rules
 
+> **Public Project**: This repo is public with active users on WSL2/Windows, Linux, and macOS. All changes must be cross-platform compatible. Never commit hardcoded paths, usernames, or machine-specific configuration.
+
 ### ALWAYS
 - Keep it simple - if it adds complexity, remove it
 - Test bash terminals only - no other shell types
