@@ -3,14 +3,14 @@ import { Settings as SettingsIcon, FolderOpen, Key, Palette, Copy, Check, Refres
 
 const API_BASE = 'http://localhost:8129'
 
-// Theme options
+// Theme options (must match extension/styles/themes.ts)
 const THEMES = [
-  { id: 'high-contrast', name: 'High Contrast', desc: 'Default theme with bright colors', color: '#00ff88' },
-  { id: 'dracula', name: 'Dracula', desc: 'Purple-tinted dark theme', color: '#bd93f9' },
-  { id: 'monokai', name: 'Monokai', desc: 'Classic warm dark theme', color: '#f92672' },
-  { id: 'ocean', name: 'Ocean', desc: 'Blue-tinted dark theme', color: '#82aaff' },
-  { id: 'nord', name: 'Nord', desc: 'Arctic, north-bluish theme', color: '#88c0d0' },
-  { id: 'gruvbox', name: 'Gruvbox', desc: 'Retro groove color scheme', color: '#d79921' },
+  { id: 'high-contrast', name: 'High Contrast', desc: 'Maximum readability with vibrant colors', color: '#00ff88' },
+  { id: 'dracula', name: 'Dracula', desc: 'Classic purple-accented dark theme', color: '#bd93f9' },
+  { id: 'ocean', name: 'Ocean', desc: 'Gentle ocean-inspired blues', color: '#82aaff' },
+  { id: 'neon', name: 'Neon', desc: 'Ultra-vibrant neon colors', color: '#ff00ff' },
+  { id: 'amber', name: 'Amber', desc: 'Warm retro amber aesthetic', color: '#d79921' },
+  { id: 'matrix', name: 'Matrix', desc: 'Classic green terminal', color: '#00ff88' },
 ]
 
 export default function SettingsSection() {
@@ -19,6 +19,7 @@ export default function SettingsSection() {
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [tokenVisible, setTokenVisible] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [tokenCopied, setTokenCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [newDir, setNewDir] = useState('')
   const [selectedTheme, setSelectedTheme] = useState('high-contrast')
@@ -97,7 +98,20 @@ export default function SettingsSection() {
 
   const copyToken = async () => {
     try {
-      // Instruction to copy from file
+      const res = await fetch(`${API_BASE}/api/auth/token`)
+      const data = await res.json()
+      if (data.token) {
+        await navigator.clipboard.writeText(data.token)
+        setTokenCopied(true)
+        setTimeout(() => setTokenCopied(false), 2000)
+      }
+    } catch (err) {
+      console.error('Failed to copy token:', err)
+    }
+  }
+
+  const copyCommand = async () => {
+    try {
       await navigator.clipboard.writeText('cat /tmp/tabz-auth-token')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -205,12 +219,28 @@ export default function SettingsSection() {
           <div className="flex items-center gap-2">
             <button
               onClick={copyToken}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              {tokenCopied ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4" />
+                  <span>Copy Token</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={copyCommand}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
             >
               {copied ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-400" />
-                  <span>Copied command!</span>
+                  <span>Copied!</span>
                 </>
               ) : (
                 <>

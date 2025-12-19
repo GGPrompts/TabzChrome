@@ -36,6 +36,8 @@ export type MessageType =
   | 'RECONNECT'
   // Open URL in new tab (content script FAB)
   | 'OPEN_TAB'
+  // Dashboard -> Sidebar: Open settings modal to edit a specific profile
+  | 'OPEN_SETTINGS_EDIT_PROFILE'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -281,6 +283,12 @@ export interface OpenTabMessage extends BaseMessage {
   url: string;
 }
 
+// Open settings modal to edit a specific profile (dashboard -> sidebar)
+export interface OpenSettingsEditProfileMessage extends BaseMessage {
+  type: 'OPEN_SETTINGS_EDIT_PROFILE';
+  profileId: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -312,6 +320,7 @@ export type ExtensionMessage =
   | TmuxSessionSendMessage
   | ReconnectMessage
   | OpenTabMessage
+  | OpenSettingsEditProfileMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage

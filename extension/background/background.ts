@@ -1492,6 +1492,26 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       }
       break
 
+    case 'OPEN_SETTINGS_EDIT_PROFILE':
+      // Open sidebar and broadcast to sidepanel to open settings modal with specific profile
+      try {
+        const windows = await chrome.windows.getAll({ windowTypes: ['normal'] })
+        const targetWindow = windows.find(w => w.focused) || windows[0]
+        if (targetWindow?.id) {
+          await chrome.sidePanel.open({ windowId: targetWindow.id })
+        }
+      } catch {
+        // Silently ignore - user gesture may not be available
+      }
+      // Broadcast to sidepanel after brief delay for sidebar to open
+      setTimeout(() => {
+        broadcastToClients({
+          type: 'OPEN_SETTINGS_EDIT_PROFILE',
+          profileId: message.profileId,
+        })
+      }, 300)
+      break
+
     case 'CLOSE_SESSION':
       sendToWebSocket({
         type: 'close-terminal',

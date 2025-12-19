@@ -207,8 +207,8 @@ export default function TerminalsSection() {
     return date.toLocaleTimeString()
   }
 
-  // Helper to shorten path
-  const shortenPath = (path: string, maxLen = 25) => {
+  // Helper to shorten path - show the end (most relevant part)
+  const shortenPath = (path: string, maxLen = 35) => {
     if (!path || path.length <= maxLen) return path
     return '...' + path.slice(-maxLen + 3)
   }
@@ -431,10 +431,10 @@ export default function TerminalsSection() {
           <div>
             {/* Header row */}
             <div className="flex items-center gap-4 px-4 py-2 text-sm text-muted-foreground border-b border-border">
-              <span className="flex-1">Session</span>
+              <span className="w-48">Session</span>
               <span className="w-16 text-center">Windows</span>
               <span className="w-24">AI Tool</span>
-              <span className="w-32">Working Dir</span>
+              <span className="flex-1">Working Dir</span>
               <span className="w-24">Source</span>
               <span className="w-16"></span>
             </div>
@@ -449,7 +449,7 @@ export default function TerminalsSection() {
                     className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors"
                   >
                     {/* Session name */}
-                    <div className="flex-1 min-w-0">
+                    <div className="w-48 min-w-0">
                       <div className="font-mono text-sm truncate">{session.name}</div>
                       {session.gitBranch && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
@@ -476,8 +476,8 @@ export default function TerminalsSection() {
                     </div>
 
                     {/* Working Dir */}
-                    <div className="w-32 text-sm text-muted-foreground font-mono truncate" title={session.workingDir}>
-                      {shortenPath(session.workingDir)}
+                    <div className="flex-1 min-w-0 text-sm text-muted-foreground font-mono truncate" title={session.workingDir}>
+                      {session.workingDir}
                     </div>
 
                     {/* Source */}

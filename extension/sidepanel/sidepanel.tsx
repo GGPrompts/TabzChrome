@@ -48,6 +48,7 @@ setupConsoleForwarding()
 function SidePanelTerminal() {
   const [wsConnected, setWsConnected] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [editProfileId, setEditProfileId] = useState<string | null>(null)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [profileDropdownLeft, setProfileDropdownLeft] = useState<number | null>(null)
   const profileBtnRef = useRef<HTMLDivElement>(null)
@@ -273,6 +274,10 @@ function SidePanelTerminal() {
         chatInput.setChatInputText(message.command)
         chatInput.setChatInputMode('execute')
         setTimeout(() => chatInput.chatInputRef.current?.focus(), 100)
+      } else if (message.type === 'OPEN_SETTINGS_EDIT_PROFILE') {
+        // Open settings modal with specific profile to edit
+        setEditProfileId(message.profileId)
+        setIsSettingsOpen(true)
       }
     })
 
@@ -1079,7 +1084,11 @@ function SidePanelTerminal() {
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={() => {
+          setIsSettingsOpen(false)
+          setEditProfileId(null)  // Clear edit profile ID on close
+        }}
+        editProfileId={editProfileId}
       />
 
       {/* Tab Context Menu */}

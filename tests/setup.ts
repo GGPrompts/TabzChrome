@@ -176,6 +176,18 @@ const mockChromeStorage = {
       }
       return Promise.resolve()
     }),
+    // Chrome 93+ API - onChanged at local level
+    onChanged: {
+      addListener: vi.fn((listener: (changes: { [key: string]: chrome.storage.StorageChange }) => void) => {
+        storageChangeListeners.push(listener)
+      }),
+      removeListener: vi.fn((listener: (changes: { [key: string]: chrome.storage.StorageChange }) => void) => {
+        const index = storageChangeListeners.indexOf(listener)
+        if (index > -1) {
+          storageChangeListeners.splice(index, 1)
+        }
+      }),
+    },
   },
   onChanged: {
     addListener: vi.fn((listener: (changes: { [key: string]: chrome.storage.StorageChange }) => void) => {
