@@ -15,6 +15,18 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.11] - 2025-12-18
+
+### Fixed
+- **Dashboard profile drag-drop** - Fixed profiles not being draggable in grid/list view. Nested button elements were capturing mouse events; restructured to use pointer-events-none on content areas.
+- **Cross-category drag-drop** - Profiles can now be dragged between categories. When dropped into a different category, the profile's category is automatically updated.
+- **Drop indicators visibility** - Changed drop indicator color from theme variable to explicit green (#22c55e) for better visibility.
+
+### Changed
+- **MCP Inspector buttons** - Split into "Start Server" and "Open Inspector" buttons. This allows opening the inspector in the current Chrome browser instead of the system default browser.
+
+---
+
 ## [1.1.10] - 2025-12-18
 
 ### Added
