@@ -145,6 +145,41 @@ See `extension/shared/messaging.ts` for message schemas.
 
 ---
 
+## Tmux Session Endpoints
+
+### GET /api/tmux/sessions/:name/capture
+
+Capture full terminal scrollback as text. Used by the "View as Text" feature.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "content": "terminal output text...",
+    "lines": 1234,
+    "metadata": {
+      "sessionName": "ctt-Claude-abc123",
+      "workingDir": "/home/user/projects",
+      "gitBranch": "main",
+      "capturedAt": "2025-12-19T17:30:00.000Z"
+    }
+  }
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:8129/api/tmux/sessions/ctt-Claude-abc123/capture
+```
+
+**Notes:**
+- ANSI escape codes are stripped for clean text output
+- No line length or line count limits (full scrollback)
+- `gitBranch` is null if not in a git repository
+
+---
+
 ## Security Model
 
 - **CLI/Conductor**: Full access via token file

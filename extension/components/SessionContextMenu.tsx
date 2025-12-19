@@ -31,6 +31,8 @@ interface SessionContextMenuProps {
   onRename: () => void
   /** Callback to copy the session ID to clipboard */
   onCopyId: () => void
+  /** Callback to view terminal output as selectable text */
+  onViewAsText?: () => void
   /** Callback to detach the session (keeps tmux running) */
   onDetach: () => void
   /** Callback to kill the session (destroys tmux) */
@@ -61,6 +63,7 @@ export function SessionContextMenu({
   terminal,
   onRename,
   onCopyId,
+  onViewAsText,
   onDetach,
   onKill,
   onClose,
@@ -102,6 +105,18 @@ export function SessionContextMenu({
           >
             📋 Copy Session ID
           </button>
+          {onViewAsText && (
+            <button
+              className="context-menu-item"
+              onClick={() => {
+                onViewAsText()
+                onClose()
+              }}
+            >
+              📄 View as Text
+            </button>
+          )}
+          <div className="context-menu-divider" />
           <button
             className="context-menu-item"
             onClick={() => {

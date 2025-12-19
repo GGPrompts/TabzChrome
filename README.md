@@ -285,6 +285,23 @@ The 👻 badge appears in the header when orphaned tmux sessions exist (sessions
 | Reattach | Session restored as a tab with full terminal history |
 | Kill | Tmux session destroyed permanently |
 
+### Tab Context Menu
+
+Right-click any terminal tab to access these actions:
+
+| Action | Description |
+|--------|-------------|
+| ✏️ Rename Tab | Change the display name |
+| 📋 Copy Session ID | Copy tmux session name for CLI use |
+| 📄 View as Text | Capture full scrollback as selectable text |
+| 👻 Detach Session | Keep running but remove from UI |
+| ❌ Kill Session | Destroy terminal permanently |
+
+**View as Text** opens the Dashboard with:
+- Full terminal scrollback (no truncation)
+- **Copy All** button for clipboard
+- **Save as Markdown** with metadata (timestamp, working directory, git branch)
+
 ### Claude Code Status Detection
 
 Terminal tabs show live Claude Code status with emoji indicators:

@@ -100,9 +100,9 @@ npm run build                 # Build extension
 npm test                      # Run tests
 
 # Debugging
-tmux ls | grep "^ctt-"        # List extension terminals
-tmux capture-pane -t Bash -p  # Capture terminal output
-ps aux | grep "node server"   # Check backend running
+tmux ls | grep "^ctt-"                        # List extension terminals
+tmux capture-pane -t tabzchrome:logs -p -S -50  # Capture backend + console logs
+ps aux | grep "node server"                   # Check backend running
 ```
 
 ### Build & Deploy
@@ -168,7 +168,7 @@ See `docs/API.md` for full API documentation.
 # Check backend + terminals without asking user
 ps aux | grep "node server.js" | grep -v grep
 tmux ls | grep "^ctt-"
-tmux capture-pane -t tabzchrome:backend -p -S -50
+tmux capture-pane -t tabzchrome:logs -p -S -50  # Logs window has backend + browser console logs
 ```
 
 ### Key Constraints

@@ -15,6 +15,21 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.13] - 2025-12-19
+
+### Added
+- **View as Text** - New feature to capture terminal output as selectable, copyable text:
+  - Right-click any terminal tab → "📄 View as Text"
+  - Dashboard Terminals page: Eye icon next to each terminal
+  - Opens in dashboard with full scrollback (no truncation)
+  - **Copy All** button for clipboard
+  - **Save as Markdown** exports with metadata (timestamp, working directory, git branch)
+
+### Fixed
+- **Terminal resize comments** - Corrected code comments to accurately describe the resize trick as "rows-1, then fit" (not cols).
+
+---
+
 ## [1.1.12] - 2025-12-18
 
 ### Fixed

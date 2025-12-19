@@ -21,6 +21,21 @@ import ApiPlayground from './sections/ApiPlayground'
 import McpPlayground from './sections/McpPlayground'
 import SettingsSection from './sections/Settings'
 
+// Components
+import CaptureViewer from './components/CaptureViewer'
+
+// Types for capture viewer
+interface CaptureData {
+  content: string
+  lines: number
+  metadata: {
+    sessionName: string
+    workingDir: string | null
+    gitBranch: string | null
+    capturedAt: string
+  }
+}
+
 type Section = 'home' | 'profiles' | 'terminals' | 'api' | 'mcp' | 'settings'
 
 interface NavItem {
@@ -42,6 +57,39 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<Section>('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [connected, setConnected] = useState<boolean | null>(null) // null = checking
+  const [captureData, setCaptureData] = useState<CaptureData | null>(null)
+
+  // Check for capture query param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const captureId = params.get('capture')
+
+    if (captureId) {
+      // Load capture data from localStorage
+      const stored = localStorage.getItem(`tabz-capture-${captureId}`)
+      if (stored) {
+        try {
+          const data = JSON.parse(stored)
+          setCaptureData(data)
+        } catch (err) {
+          console.error('Failed to parse capture data:', err)
+        }
+      }
+    }
+  }, [])
+
+  const handleCloseCapture = () => {
+    // Get capture ID from URL to clean up localStorage
+    const params = new URLSearchParams(window.location.search)
+    const captureId = params.get('capture')
+    if (captureId) {
+      localStorage.removeItem(`tabz-capture-${captureId}`)
+    }
+
+    // Clear capture data and remove query param
+    setCaptureData(null)
+    window.history.replaceState({}, '', window.location.pathname)
+  }
 
   // Check backend connection on mount and periodically
   useEffect(() => {
@@ -162,6 +210,11 @@ export default function App() {
       <main className="flex-1 overflow-auto scrollbar-thin">
         {renderSection()}
       </main>
+
+      {/* Capture Viewer Overlay */}
+      {captureData && (
+        <CaptureViewer capture={captureData} onClose={handleCloseCapture} />
+      )}
     </div>
   )
 }

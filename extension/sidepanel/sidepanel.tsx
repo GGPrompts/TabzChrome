@@ -606,6 +606,38 @@ function SidePanelTerminal() {
     }
   }
 
+  // Handle "View as Text" from tab menu
+  // Captures terminal content and opens it in the dashboard
+  const handleViewAsText = async () => {
+    if (!contextMenu.terminalId) return
+
+    const terminal = sessions.find(s => s.id === contextMenu.terminalId)
+    if (!terminal?.sessionName) return
+
+    try {
+      // Capture terminal content from backend
+      const response = await fetch(`http://localhost:8129/api/tmux/sessions/${terminal.sessionName}/capture`)
+      const result = await response.json()
+
+      if (!result.success) {
+        console.error('[handleViewAsText] Failed to capture:', result.error)
+        return
+      }
+
+      // Generate unique ID and store in localStorage
+      const captureId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      localStorage.setItem(`tabz-capture-${captureId}`, JSON.stringify(result.data))
+
+      // Open dashboard with capture parameter
+      const dashboardUrl = chrome.runtime.getURL(`dashboard/index.html?capture=${captureId}`)
+      window.open(dashboardUrl, '_blank')
+
+      setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
+    } catch (error) {
+      console.error('[handleViewAsText] Error:', error)
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground">
       {/* Header - Windows Terminal style */}
@@ -1121,6 +1153,7 @@ function SidePanelTerminal() {
             navigator.clipboard.writeText(sessionId)
           }
         }}
+        onViewAsText={handleViewAsText}
         onDetach={handleDetachSession}
         onKill={handleKillSession}
         onClose={() => setContextMenu({ show: false, x: 0, y: 0, terminalId: null })}

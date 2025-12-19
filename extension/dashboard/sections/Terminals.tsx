@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Terminal, Trash2, RefreshCw, Ghost, AlertTriangle, CheckCircle, RotateCcw, Cpu, GitBranch, Folder } from 'lucide-react'
+import { Terminal, Trash2, RefreshCw, Ghost, AlertTriangle, CheckCircle, RotateCcw, Cpu, GitBranch, Folder, Eye } from 'lucide-react'
 import { getTerminals, getOrphanedSessions, killSession, killSessions, reattachSessions, getAllTmuxSessions, killTmuxSession } from '../hooks/useDashboard'
 
 interface TerminalSession {
@@ -187,6 +187,26 @@ export default function TerminalsSection() {
       await fetchData()
     } catch (err) {
       console.error('Failed to kill tmux session:', err)
+    }
+  }
+
+  // View terminal content as text
+  const handleViewAsText = async (sessionName: string) => {
+    try {
+      const response = await fetch(`http://localhost:8129/api/tmux/sessions/${sessionName}/capture`)
+      const result = await response.json()
+
+      if (!result.success) {
+        console.error('Failed to capture:', result.error)
+        return
+      }
+
+      // Store in localStorage and open viewer
+      const captureId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      localStorage.setItem(`tabz-capture-${captureId}`, JSON.stringify(result.data))
+      window.location.search = `?capture=${captureId}`
+    } catch (err) {
+      console.error('Failed to view as text:', err)
     }
   }
 
@@ -391,7 +411,16 @@ export default function TerminalsSection() {
                   <div className="w-32 text-sm text-muted-foreground text-right">
                     {new Date(terminal.createdAt).toLocaleTimeString()}
                   </div>
-                  <div className="w-16 flex justify-end">
+                  <div className="w-24 flex justify-end gap-1">
+                    {terminal.id.startsWith('ctt-') && (
+                      <button
+                        onClick={() => handleViewAsText(terminal.id)}
+                        className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                        title="View as text"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => killTerminal(terminal.id)}
                       className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
@@ -488,7 +517,14 @@ export default function TerminalsSection() {
                     </div>
 
                     {/* Actions */}
-                    <div className="w-16 flex justify-end">
+                    <div className="w-24 flex justify-end gap-1">
+                      <button
+                        onClick={() => handleViewAsText(session.name)}
+                        className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                        title="View as text"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleKillTmuxSession(session.name)}
                         className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"

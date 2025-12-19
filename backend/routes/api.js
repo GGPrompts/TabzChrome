@@ -656,6 +656,64 @@ router.get('/tmux/sessions/:name/preview', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * GET /api/tmux/sessions/:name/capture - Capture full terminal content with metadata
+ * Returns content suitable for "View as Text" feature with markdown export
+ */
+router.get('/tmux/sessions/:name/capture', asyncHandler(async (req, res) => {
+  const { name } = req.params;
+
+  // Get session details for metadata
+  const sessions = await tmuxSessionManager.listDetailedSessions();
+  const session = sessions.find(s => s.name === name);
+
+  if (!session) {
+    return res.status(404).json({
+      success: false,
+      error: `Session ${name} not found`
+    });
+  }
+
+  if (!session.paneId) {
+    return res.status(500).json({
+      success: false,
+      error: `No pane found for session ${name}`
+    });
+  }
+
+  // Capture full scrollback using the paneId from session metadata
+  // This avoids issues with tmux base-index settings
+  try {
+    const { execSync } = require('child_process');
+    const rawContent = execSync(
+      `tmux capture-pane -p -e -S - -t "${session.paneId}"`,
+      { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
+    );
+    // Strip ANSI codes but DON'T truncate lines - user wants full content for copying
+    let content = rawContent.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+    content = content.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+
+    res.json({
+      success: true,
+      data: {
+        content,
+        lines: content.split('\n').length,
+        metadata: {
+          sessionName: session.name,
+          workingDir: session.workingDir || null,
+          gitBranch: session.gitBranch || null,
+          capturedAt: new Date().toISOString(),
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}));
+
+/**
  * GET /api/tmux/sessions/:name/statusline - Get Claude Code statusline
  * Only works for Claude Code sessions
  */
