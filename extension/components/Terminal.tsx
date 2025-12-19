@@ -653,14 +653,14 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
           // Only trigger resize trick if dimensions actually changed
           if (afterCols !== beforeCols || afterRows !== beforeRows) {
-            const colDelta = Math.abs(afterCols - beforeCols)
+            const isNarrowing = afterCols < beforeCols
             const rowDelta = Math.abs(afterRows - beforeRows)
 
-            // CRITICAL FIX: For large dimension changes, clear xterm buffer before tmux redraws
-            // xterm's reflow algorithm corrupts content with complex ANSI sequences
-            // Same protection as window resize handler, but also check row delta
+            // CRITICAL FIX: Clear xterm buffer for ANY narrowing or large row changes
+            // Claude Code's full-width prompt highlighting (Dec 2025 update) uses ANSI background
+            // sequences that span the entire line. xterm.js's reflow corrupts these when narrowing.
             // Row delta >2 catches bookmarks bar appearing/disappearing (~2-3 rows)
-            if (colDelta > 5 || rowDelta > 2) {
+            if (isNarrowing || rowDelta > 2) {
               isResizingRef.current = true
               xtermRef.current.clear()
               isResizingRef.current = false
@@ -958,22 +958,22 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
         const afterCols = xtermRef.current.cols
         const afterRows = xtermRef.current.rows
-        const colDelta = Math.abs(afterCols - beforeCols)
+        const isNarrowing = afterCols < beforeCols
 
-        // CRITICAL FIX: For large dimension changes (>5 cols), clear xterm before tmux redraws
-        // xterm's reflow algorithm corrupts content with complex ANSI sequences (Claude Code statusline, diffs)
-        // Clearing ensures tmux's redraw starts fresh, avoiding corrupted reflow
+        // CRITICAL FIX: Clear xterm buffer for ANY narrowing operation
+        // Claude Code's full-width prompt highlighting (Dec 2025 update) uses ANSI background
+        // sequences that span the entire line. xterm.js's reflow algorithm corrupts these
+        // when the terminal narrows, causing extra line breaks between all lines.
+        // Clearing ensures tmux's redraw starts fresh, avoiding corrupted reflow.
         // NOTE: Must set resize lock BEFORE clear() to prevent isWrapped error from concurrent writes
-        if (isTmuxSession && colDelta > 5) {
+        if (isTmuxSession && isNarrowing) {
           isResizingRef.current = true
           xtermRef.current.clear()
-          // Release lock and clear queue so triggerResizeTrick can proceed
           isResizingRef.current = false
           writeQueueRef.current = [] // Discard stale data from reflow
         }
 
-        // Then use resize trick to force tmux to fully recalculate
-        // This is like the EOL fix - ensures consistent handling instead of racing
+        // Use resize trick to force tmux to fully recalculate
         triggerResizeTrick()
       }, 300) // 300ms debounce - wait for resize to settle, then do trick
     }
