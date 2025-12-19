@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
-import { Settings } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Settings, Microscope } from 'lucide-react'
 import { MCP_TOOLS, PRESETS } from './types'
+import { sendMessage } from '../../shared/messaging'
+
+const API_BASE = 'http://localhost:8129'
 
 interface McpToolsTabProps {
   mcpEnabledTools: string[]
@@ -30,6 +33,23 @@ export function McpToolsTab({
   setCustomDomains,
 }: McpToolsTabProps) {
   const [urlSettingsExpanded, setUrlSettingsExpanded] = useState(false)
+  const [inspectorCommand, setInspectorCommand] = useState<string>('')
+
+  // Fetch inspector command on mount
+  useEffect(() => {
+    const fetchInspectorCommand = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/mcp/inspector-command`)
+        if (res.ok) {
+          const data = await res.json()
+          setInspectorCommand(data.data?.command || '')
+        }
+      } catch (err) {
+        console.error('Failed to fetch inspector command:', err)
+      }
+    }
+    fetchInspectorCommand()
+  }, [])
 
   const handleMcpToolToggle = (toolId: string) => {
     // Core tools are always required
@@ -69,6 +89,35 @@ export function McpToolsTab({
             rel="noopener noreferrer"
             className="text-[#00c8ff] hover:underline"
           >Save ~80% tokens with mcp-cli mode</a>
+        </p>
+      </div>
+
+      {/* MCP Inspector */}
+      <div className="mb-4 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Microscope className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm text-cyan-200">MCP Inspector</span>
+          </div>
+          <button
+            onClick={() => {
+              if (inspectorCommand) {
+                sendMessage({
+                  type: 'SPAWN_TERMINAL',
+                  name: 'MCP Inspector',
+                  command: inspectorCommand,
+                })
+              }
+            }}
+            disabled={!inspectorCommand}
+            className="flex items-center gap-1.5 px-2 py-1 text-xs rounded bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Microscope className="w-3 h-3" />
+            Launch
+          </button>
+        </div>
+        <p className="text-xs text-cyan-200/60 mt-1">
+          Test tools at localhost:6274 (installs on first use)
         </p>
       </div>
 

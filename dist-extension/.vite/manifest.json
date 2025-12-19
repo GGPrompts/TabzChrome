@@ -5,6 +5,10 @@
     "src": "../../../../../@crx/manifest",
     "isEntry": true
   },
+  "_messaging-C505Xsyh.js": {
+    "file": "assets/messaging-C505Xsyh.js",
+    "name": "messaging"
+  },
   "_modulepreload-polyfill-B5Qt9EMX.js": {
     "file": "assets/modulepreload-polyfill-B5Qt9EMX.js",
     "name": "modulepreload-polyfill"
@@ -21,6 +25,19 @@
     "src": "content/content.ts",
     "isEntry": true
   },
+  "dashboard/index.html": {
+    "file": "assets/dashboard-BkKZ5Ulh.js",
+    "name": "dashboard",
+    "src": "dashboard/index.html",
+    "isEntry": true,
+    "imports": [
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_messaging-C505Xsyh.js"
+    ],
+    "css": [
+      "assets/dashboard-cmZ1_Hg-.css"
+    ]
+  },
   "devtools/devtools.html": {
     "file": "assets/devtools.html-mCDI7W4T.js",
     "name": "devtools.html",
@@ -31,15 +48,16 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-JbfWgAZX.js",
+    "file": "assets/sidepanel.html-5NJ2zF07.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
     "imports": [
-      "_modulepreload-polyfill-B5Qt9EMX.js"
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_messaging-C505Xsyh.js"
     ],
     "css": [
-      "assets/sidepanel-8DuoreDm.css"
+      "assets/sidepanel-C6s21pP5.css"
     ]
   }
 }

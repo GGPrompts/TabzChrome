@@ -96,23 +96,19 @@ To continue in a new session:
 - If `$ARGUMENTS` contains "quiet" -> Skip audio entirely
 - If `$ARGUMENTS` is empty or doesn't contain "quiet" -> Play audio via Tabz TTS
 
-When playing audio, use the Tabz backend TTS endpoint (plays through browser, not Windows):
+When playing audio, use jq to safely escape the text for JSON (handles quotes, newlines, special chars):
 
 ```bash
-curl -s -X POST http://localhost:8129/api/audio/speak \
-  -H "Content-Type: application/json" \
-  -d '{
-    "text": "[INSERT PLAIN TEXT VERSION OF SUMMARY - no markdown, conversational]",
-    "voice": "en-GB-SoniaNeural",
-    "rate": "+20%",
-    "volume": 0.8
-  }' > /dev/null 2>&1 &
+cat <<'AUDIO_TEXT_EOF' | jq -Rs '{text: ., voice: "en-GB-SoniaNeural", rate: "+20%", volume: 0.8}' | curl -s -X POST http://localhost:8129/api/audio/speak -H "Content-Type: application/json" -d @- > /dev/null 2>&1 &
+[INSERT PLAIN TEXT VERSION OF SUMMARY - no markdown, conversational, 2-4 sentences max]
+AUDIO_TEXT_EOF
 ```
 
 **IMPORTANT**:
-- Run the curl command in background (with `&`) so it doesn't block
-- Convert the summary to plain spoken text (no markdown formatting, bullet points become natural speech)
-- Keep it concise for audio - summarize the summary if needed (aim for 30-60 seconds of speech)
+- Use the heredoc + jq pattern above - it safely handles any text content
+- Convert the summary to plain spoken text (no markdown, no bullet points)
+- Keep it VERY concise for audio - 2-4 sentences summarizing the key state (aim for 15-30 seconds of speech)
+- Example: "We've been working on the React dashboard for TabzChrome. Added system info panel, connection status, and MCP playground. The build is passing and ready to test."
 
 After triggering playback, tell the user: "Audio summary playing through Tabz!"
 

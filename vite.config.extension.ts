@@ -20,5 +20,10 @@ export default defineConfig({
   build: {
     outDir: '../dist-extension',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        dashboard: fileURLToPath(new URL('./extension/dashboard/index.html', import.meta.url)),
+      },
+    },
   },
 })

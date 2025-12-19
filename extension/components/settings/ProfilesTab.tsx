@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Plus, Edit, Trash2, GripVertical, Palette, Download, Upload, Volume2, Search, X, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
 import { Terminal as TerminalIcon } from 'lucide-react'
 import { themes, themeNames } from '../../styles/themes'
@@ -24,6 +24,8 @@ interface ProfilesTabProps {
   audioSettings: AudioSettings
   onExportProfiles: () => void
   onImportClick: () => void
+  /** Optional profile ID to edit immediately on mount */
+  editProfileId?: string | null
 }
 
 export function ProfilesTab({
@@ -36,10 +38,23 @@ export function ProfilesTab({
   audioSettings,
   onExportProfiles,
   onImportClick,
+  editProfileId,
 }: ProfilesTabProps) {
   // Profile state
   const [isAdding, setIsAdding] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+
+  // Handle editProfileId prop - open edit form for specified profile
+  useEffect(() => {
+    if (editProfileId && profiles.length > 0) {
+      const index = profiles.findIndex(p => p.id === editProfileId)
+      if (index !== -1) {
+        setFormData(profiles[index])
+        setEditingIndex(index)
+        setIsAdding(true)
+      }
+    }
+  }, [editProfileId, profiles])
   const [formData, setFormData] = useState<Profile>(DEFAULT_PROFILE)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)

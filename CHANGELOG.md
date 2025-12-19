@@ -15,6 +15,23 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.10] - 2025-12-18
+
+### Added
+- **Dashboard Profiles drag-drop reordering** - Drag profiles to reorder within/across categories, drag category headers to reorder categories. Visual drop indicators for grid (left/right) and list (above/below) views.
+- **Dashboard Profiles theme gradients** - Profile cards now display their theme's background gradient, making it easy to visually distinguish profiles.
+- **Dashboard Profiles default indicator** - Star badge shows which profile is the default (used by Spawn API when no profile specified).
+- **Dashboard Profiles auto-sync** - Profile cards update automatically when you change settings in the sidebar (no refresh needed).
+- **MCP Inspector launcher** - New button in dashboard MCP Settings and sidebar MCP tab to launch the official MCP Inspector for interactive tool testing at localhost:6274.
+
+### Changed
+- Renamed "MCP Playground" to "MCP Settings" in dashboard navigation (better reflects its purpose as a configuration page).
+
+### Fixed
+- Dashboard GitHub link now points to correct repository (GGPrompts/TabzChrome).
+
+---
+
 ## [1.1.9] - 2025-12-18
 
 ### Added

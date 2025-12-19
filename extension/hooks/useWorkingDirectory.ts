@@ -77,6 +77,27 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
     }
   }, [])
 
+  // Listen for Chrome storage changes (from sidepanel or other sources)
+  useEffect(() => {
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.globalWorkingDir?.newValue !== undefined) {
+        const newDir = changes.globalWorkingDir.newValue as string
+        if (newDir !== globalWorkingDir) {
+          setGlobalWorkingDir(newDir)
+        }
+      }
+      if (changes.recentDirs?.newValue !== undefined) {
+        const newRecent = changes.recentDirs.newValue as string[]
+        setRecentDirs(newRecent)
+      }
+    }
+
+    chrome.storage.local.onChanged.addListener(handleStorageChange)
+    return () => {
+      chrome.storage.local.onChanged.removeListener(handleStorageChange)
+    }
+  }, [globalWorkingDir])
+
   // Save global working directory to Chrome storage AND backend API
   useEffect(() => {
     chrome.storage.local.set({ globalWorkingDir })

@@ -508,6 +508,26 @@ router.get('/health', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * GET /api/mcp/inspector-command - Get the command to launch MCP Inspector
+ * Returns the full npx command with the correct path to the tabz-mcp-server
+ */
+router.get('/mcp/inspector-command', asyncHandler(async (req, res) => {
+  const path = require('path');
+
+  // Get the path to the tabz-mcp-server relative to the backend
+  const mcpServerPath = path.resolve(__dirname, '../../tabz-mcp-server/dist/index.js');
+
+  res.json({
+    success: true,
+    data: {
+      command: `npx @modelcontextprotocol/inspector node ${mcpServerPath}`,
+      mcpServerPath,
+      note: 'Installs on first use via npx'
+    }
+  });
+}));
+
+/**
  * GET /api/tmux/sessions - List active tmux sessions (simple)
  */
 router.get('/tmux/sessions', asyncHandler(async (req, res) => {

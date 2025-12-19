@@ -181,49 +181,53 @@ Each profile has these fields:
 
 ## Example Output Format
 
+**IMPORTANT:** The import expects a `profiles` wrapper object, not a raw array!
+
 ```json
-[
-  {
-    "id": "claude-yolo-12345",
-    "name": "Claude YOLO",
-    "category": "AI Assistants",
-    "command": "claude --dangerously-skip-permissions",
-    "workingDir": "",
-    "fontSize": 16,
-    "fontFamily": "JetBrains Mono, monospace",
-    "themeName": "high-contrast"
-  },
-  {
-    "id": "claude-safe-12346",
-    "name": "Claude Safe",
-    "category": "AI Assistants",
-    "command": "claude",
-    "workingDir": "",
-    "fontSize": 16,
-    "fontFamily": "JetBrains Mono, monospace",
-    "themeName": "ocean"
-  },
-  {
-    "id": "claude-conductor-12347",
-    "name": "Claude Conductor",
-    "category": "AI Assistants",
-    "command": "claude --agent conductor",
-    "workingDir": "",
-    "fontSize": 16,
-    "fontFamily": "JetBrains Mono, monospace",
-    "themeName": "neon"
-  },
-  {
-    "id": "lazygit-12348",
-    "name": "LazyGit",
-    "category": "TUI Tools",
-    "command": "lazygit",
-    "workingDir": "",
-    "fontSize": 16,
-    "fontFamily": "JetBrains Mono, monospace",
-    "themeName": "dracula"
-  }
-]
+{
+  "profiles": [
+    {
+      "id": "claude-yolo-12345",
+      "name": "Claude YOLO",
+      "category": "AI Assistants",
+      "command": "claude --dangerously-skip-permissions",
+      "workingDir": "",
+      "fontSize": 16,
+      "fontFamily": "JetBrains Mono, monospace",
+      "themeName": "high-contrast"
+    },
+    {
+      "id": "claude-safe-12346",
+      "name": "Claude Safe",
+      "category": "AI Assistants",
+      "command": "claude",
+      "workingDir": "",
+      "fontSize": 16,
+      "fontFamily": "JetBrains Mono, monospace",
+      "themeName": "ocean"
+    },
+    {
+      "id": "claude-conductor-12347",
+      "name": "Claude Conductor",
+      "category": "AI Assistants",
+      "command": "claude --agent conductor",
+      "workingDir": "",
+      "fontSize": 16,
+      "fontFamily": "JetBrains Mono, monospace",
+      "themeName": "neon"
+    },
+    {
+      "id": "lazygit-12348",
+      "name": "LazyGit",
+      "category": "TUI Tools",
+      "command": "lazygit",
+      "workingDir": "",
+      "fontSize": 16,
+      "fontFamily": "JetBrains Mono, monospace",
+      "themeName": "dracula"
+    }
+  ]
+}
 ```
 
 ## Tips for Users

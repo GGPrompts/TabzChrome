@@ -48,6 +48,7 @@ setupConsoleForwarding()
 function SidePanelTerminal() {
   const [wsConnected, setWsConnected] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [editProfileId, setEditProfileId] = useState<string | null>(null)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [profileDropdownLeft, setProfileDropdownLeft] = useState<number | null>(null)
   const profileBtnRef = useRef<HTMLDivElement>(null)
@@ -242,9 +243,13 @@ function SidePanelTerminal() {
         }
         // Play audio from /api/audio/speak endpoint (for slash commands, etc.)
         if (message.data?.type === 'audio-speak' && message.data?.url) {
-          const audio = new Audio(message.data.url)
-          audio.volume = message.data.volume ?? 0.7
-          audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+          // Use stored audio settings volume (from Settings modal) instead of broadcast volume
+          chrome.storage.local.get(['audioSettings'], (result) => {
+            const storedVolume = (result.audioSettings as { volume?: number })?.volume
+            const audio = new Audio(message.data.url)
+            audio.volume = storedVolume ?? message.data.volume ?? 0.7
+            audio.play().catch(err => console.warn('[Audio] Playback failed:', err.message))
+          })
         }
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
@@ -269,6 +274,10 @@ function SidePanelTerminal() {
         chatInput.setChatInputText(message.command)
         chatInput.setChatInputMode('execute')
         setTimeout(() => chatInput.chatInputRef.current?.focus(), 100)
+      } else if (message.type === 'OPEN_SETTINGS_EDIT_PROFILE') {
+        // Open settings modal with specific profile to edit
+        setEditProfileId(message.profileId)
+        setIsSettingsOpen(true)
       }
     })
 
@@ -695,7 +704,7 @@ function SidePanelTerminal() {
 
           {/* Dashboard Button */}
           <button
-            onClick={() => chrome.tabs.create({ url: 'http://localhost:8129' })}
+            onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html') })}
             className="p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
             title="Open Dashboard"
             aria-label="Open Dashboard"
@@ -816,7 +825,7 @@ function SidePanelTerminal() {
                       )}
                       <span className="flex-1 min-w-0 truncate">
                         {claudeStatuses.has(session.id)
-                          ? getStatusText(claudeStatuses.get(session.id), session.profile?.name)
+                          ? getStatusText(claudeStatuses.get(session.id), session.profile?.name || session.name)
                           : session.name
                         }
                       </span>
@@ -1075,7 +1084,11 @@ function SidePanelTerminal() {
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={() => {
+          setIsSettingsOpen(false)
+          setEditProfileId(null)  // Clear edit profile ID on close
+        }}
+        editProfileId={editProfileId}
       />
 
       {/* Tab Context Menu */}

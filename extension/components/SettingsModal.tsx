@@ -38,6 +38,8 @@ interface SettingsModalProps {
   isOpen: boolean
   /** Callback to close the modal */
   onClose: () => void
+  /** Optional profile ID to edit on open (switches to profiles tab and opens editor) */
+  editProfileId?: string | null
 }
 
 /**
@@ -61,9 +63,16 @@ interface SettingsModalProps {
  * @param props.onClose - Called when user closes the modal
  * @returns Modal dialog or null if not open
  */
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, editProfileId }: SettingsModalProps) {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('profiles')
+
+  // Switch to profiles tab when editProfileId changes
+  useEffect(() => {
+    if (editProfileId && isOpen) {
+      setActiveTab('profiles')
+    }
+  }, [editProfileId, isOpen])
 
   // Profile state
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -616,6 +625,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               audioSettings={audioSettings}
               onExportProfiles={handleExportProfiles}
               onImportClick={handleImportClick}
+              editProfileId={editProfileId}
             />
             </div>
           )}

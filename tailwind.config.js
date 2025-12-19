@@ -5,6 +5,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./extension/**/*.{js,ts,jsx,tsx}",
+    "./dashboard/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

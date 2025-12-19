@@ -134,7 +134,23 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(cors());
+// CORS configuration - allow Chrome extension pages and localhost origins
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like curl, Postman, or same-origin)
+    if (!origin) return callback(null, true);
+
+    // Allow chrome-extension:// origins (dashboard page)
+    if (origin.startsWith('chrome-extension://')) return callback(null, true);
+
+    // Allow localhost origins
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
+
+    // Allow all other origins for flexibility
+    callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // API Routes
