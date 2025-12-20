@@ -37,6 +37,8 @@ interface SessionContextMenuProps {
   onDetach: () => void
   /** Callback to kill the session (destroys tmux) */
   onKill: () => void
+  /** Callback to open the session in 3D Focus mode */
+  onOpenIn3D: () => void
   /** Callback to close the context menu */
   onClose: () => void
 }
@@ -66,6 +68,7 @@ export function SessionContextMenu({
   onViewAsText,
   onDetach,
   onKill,
+  onOpenIn3D,
   onClose,
 }: SessionContextMenuProps) {
   if (!show || !terminal) return null
@@ -93,6 +96,17 @@ export function SessionContextMenu({
       >
         ✏️ Rename Tab...
       </button>
+      {isTmuxSession && (
+        <button
+          className="context-menu-item"
+          onClick={() => {
+            onOpenIn3D()
+            onClose()
+          }}
+        >
+          🧊 Open in 3D Focus
+        </button>
+      )}
       {isTmuxSession && (
         <>
           <div className="context-menu-divider" />

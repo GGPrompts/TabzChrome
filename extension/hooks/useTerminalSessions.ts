@@ -12,6 +12,7 @@ export interface TerminalSession {
   profile?: Profile     // Profile settings for this terminal
   assignedVoice?: string  // Auto-assigned voice for audio (when no profile override)
   command?: string      // Startup command (for API-spawned terminals without profile)
+  focusedIn3D?: boolean // Terminal is currently open in 3D Focus mode
 }
 
 interface UseTerminalSessionsParams {

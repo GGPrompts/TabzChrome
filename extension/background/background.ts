@@ -1512,6 +1512,22 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage, sender, s
       }, 300)
       break
 
+    case 'FOCUS_IN_3D':
+      // 3D Focus page opened/refreshed - broadcast to sidepanel to show placeholder
+      broadcastToClients({
+        type: 'FOCUS_IN_3D',
+        terminalId: message.terminalId,
+      })
+      break
+
+    case 'RETURN_FROM_3D':
+      // 3D Focus page closing - broadcast to sidepanel to restore terminal
+      broadcastToClients({
+        type: 'RETURN_FROM_3D',
+        terminalId: message.terminalId,
+      })
+      break
+
     case 'CLOSE_SESSION':
       sendToWebSocket({
         type: 'close-terminal',

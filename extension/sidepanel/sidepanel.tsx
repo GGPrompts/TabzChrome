@@ -278,6 +278,16 @@ function SidePanelTerminal() {
         // Open settings modal with specific profile to edit
         setEditProfileId(message.profileId)
         setIsSettingsOpen(true)
+      } else if (message.type === 'FOCUS_IN_3D') {
+        // 3D Focus page opened/refreshed - mark terminal as in 3D mode
+        setSessions(prev => prev.map(s =>
+          s.id === message.terminalId ? { ...s, focusedIn3D: true } : s
+        ))
+      } else if (message.type === 'RETURN_FROM_3D') {
+        // 3D Focus page closed - return terminal to sidebar
+        setSessions(prev => prev.map(s =>
+          s.id === message.terminalId ? { ...s, focusedIn3D: false } : s
+        ))
       }
     })
 
@@ -636,6 +646,47 @@ function SidePanelTerminal() {
     } catch (error) {
       console.error('[handleViewAsText] Error:', error)
     }
+  }
+
+  // Handle "Open in 3D Focus" from tab menu
+  const handleOpenIn3D = () => {
+    if (!contextMenu.terminalId) return
+
+    const terminal = sessions.find(s => s.id === contextMenu.terminalId)
+    if (!terminal?.sessionName) return
+
+    // Mark session as focused in 3D (sidebar will show placeholder instead of terminal)
+    setSessions(prev => prev.map(s =>
+      s.id === terminal.id ? { ...s, focusedIn3D: true } : s
+    ))
+
+    // Open new browser tab with 3D focus page
+    const url = chrome.runtime.getURL(`3d/3d-focus.html?session=${terminal.sessionName}&id=${terminal.id}`)
+    chrome.tabs.create({ url })
+
+    setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
+  }
+
+  // Handle "Return from 3D Focus" - bring terminal back to sidebar
+  const handleReturnFrom3D = async (terminalId: string) => {
+    // Find and close the 3D tab to prevent dual connections
+    const session = sessions.find(s => s.id === terminalId)
+    if (session?.sessionName) {
+      try {
+        const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
+        for (const tab of tabs) {
+          if (tab.url?.includes(`session=${session.sessionName}`)) {
+            chrome.tabs.remove(tab.id!)
+          }
+        }
+      } catch (e) {
+        console.warn('[handleReturnFrom3D] Could not close 3D tab:', e)
+      }
+    }
+
+    setSessions(prev => prev.map(s =>
+      s.id === terminalId ? { ...s, focusedIn3D: false } : s
+    ))
   }
 
   return (
@@ -1084,26 +1135,46 @@ function SidePanelTerminal() {
                       zIndex: session.id === currentSession ? 1 : 0,
                     }}
                   >
-                    <Terminal
-                      terminalId={session.id}
-                      sessionName={session.name}
-                      terminalType={session.type}
-                      workingDir={session.workingDir || effectiveProfile?.workingDir}
-                      tmuxSession={session.sessionName}
-                      fontSize={effectiveProfile?.fontSize || 16}
-                      fontFamily={effectiveProfile?.fontFamily || 'monospace'}
-                      themeName={effectiveProfile?.themeName || 'high-contrast'}
-                      isDark={isDark}
-                      useWebGL={useWebGL}
-                      isActive={session.id === currentSession}
-                      pasteCommand={session.id === currentSession ? pasteCommand : null}
-                      onClose={() => {
-                        sendMessage({
-                          type: 'CLOSE_TERMINAL',
-                          terminalId: session.id,
-                        })
-                      }}
-                    />
+                    {session.focusedIn3D ? (
+                      // Show placeholder when terminal is being viewed in 3D Focus mode
+                      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0a] to-[#1a1a2e] text-center px-8">
+                        <div className="text-6xl mb-4">🧊</div>
+                        <h2 className="text-xl font-semibold text-[#00ffff] mb-2">Focusing in 3D</h2>
+                        <p className="text-sm text-gray-400 mb-6">
+                          This terminal is currently open in 3D Focus mode
+                        </p>
+                        <button
+                          onClick={() => handleReturnFrom3D(session.id)}
+                          className="px-4 py-2 bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] border border-[#00ffff]/50 rounded-md transition-colors"
+                        >
+                          Return to Sidebar
+                        </button>
+                        <p className="text-xs text-gray-500 mt-4">
+                          Status and audio notifications still active
+                        </p>
+                      </div>
+                    ) : (
+                      <Terminal
+                        terminalId={session.id}
+                        sessionName={session.name}
+                        terminalType={session.type}
+                        workingDir={session.workingDir || effectiveProfile?.workingDir}
+                        tmuxSession={session.sessionName}
+                        fontSize={effectiveProfile?.fontSize || 16}
+                        fontFamily={effectiveProfile?.fontFamily || 'monospace'}
+                        themeName={effectiveProfile?.themeName || 'high-contrast'}
+                        isDark={isDark}
+                        useWebGL={useWebGL}
+                        isActive={session.id === currentSession}
+                        pasteCommand={session.id === currentSession ? pasteCommand : null}
+                        onClose={() => {
+                          sendMessage({
+                            type: 'CLOSE_TERMINAL',
+                            terminalId: session.id,
+                          })
+                        }}
+                      />
+                    )}
                   </div>
                   )
                 })}
@@ -1156,6 +1227,7 @@ function SidePanelTerminal() {
         onViewAsText={handleViewAsText}
         onDetach={handleDetachSession}
         onKill={handleKillSession}
+        onOpenIn3D={handleOpenIn3D}
         onClose={() => setContextMenu({ show: false, x: 0, y: 0, terminalId: null })}
       />
 

@@ -47,7 +47,10 @@ export type MessageType =
   | 'BROWSER_SCRIPT_RESULT'
   // Browser MCP - Page info
   | 'BROWSER_GET_PAGE_INFO'
-  | 'BROWSER_PAGE_INFO';
+  | 'BROWSER_PAGE_INFO'
+  // 3D Focus Mode
+  | 'FOCUS_IN_3D'
+  | 'RETURN_FROM_3D';
 
 export interface BaseMessage {
   type: MessageType;
@@ -289,6 +292,18 @@ export interface OpenSettingsEditProfileMessage extends BaseMessage {
   profileId: string;
 }
 
+// 3D Focus Mode - notify sidebar when opening in 3D view
+export interface FocusIn3DMessage extends BaseMessage {
+  type: 'FOCUS_IN_3D';
+  terminalId: string;
+}
+
+// 3D Focus Mode - notify sidebar when returning from 3D view
+export interface ReturnFrom3DMessage extends BaseMessage {
+  type: 'RETURN_FROM_3D';
+  terminalId: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -328,7 +343,10 @@ export type ExtensionMessage =
   | BrowserExecuteScriptMessage
   | BrowserScriptResultMessage
   | BrowserGetPageInfoMessage
-  | BrowserPageInfoMessage;
+  | BrowserPageInfoMessage
+  // 3D Focus Mode
+  | FocusIn3DMessage
+  | ReturnFrom3DMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {
