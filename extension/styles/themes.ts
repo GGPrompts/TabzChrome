@@ -332,25 +332,25 @@ export const themes: Record<string, Theme> = {
     dark: {
       colors: {
         background: 'rgba(0, 0, 0, 0)',  // Fully transparent to show CSS gradient
-        foreground: '#d0d0d0',
-        cursor: '#5af78e',
-        selectionBackground: 'rgba(90, 247, 142, 0.2)',
+        foreground: '#5af78e',    // Bright matrix green for main text
+        cursor: '#7dff94',
+        selectionBackground: 'rgba(90, 247, 142, 0.25)',
         black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
-        red: '#ff6b6b',           // Muted red - errors
-        green: '#5af78e',         // Bright green - THE accent color
-        yellow: '#d0d0d0',        // Same as foreground (muted)
-        blue: '#a8a8a8',          // Light gray
-        magenta: '#c0c0c0',       // Lighter gray
-        cyan: '#5af78e',          // Green accent
-        white: '#d0d0d0',
-        brightBlack: '#7dff94',   // Bright green accent - matches theme aesthetic
-        brightRed: '#ff8c8c',
+        red: '#ff4757',           // Bright red - errors still need to pop
+        green: '#5af78e',         // Bright green - THE matrix color
+        yellow: '#c0ff00',        // Lime/chartreuse - warnings visible against green
+        blue: '#00d4ff',          // Cyan - paths/links stand out
+        magenta: '#ff6ac1',       // Hot pink - tool names pop against green
+        cyan: '#7dff94',          // Bright green - headers
+        white: '#5af78e',         // Matrix green (not gray)
+        brightBlack: '#39ff14',   // Neon green - readable timestamps
+        brightRed: '#ff5c7c',
         brightGreen: '#7dff94',   // Brighter green
-        brightYellow: '#e8e8e8',
-        brightBlue: '#c0c0c0',
-        brightMagenta: '#d8d8d8',
-        brightCyan: '#7dff94',    // Bright green
-        brightWhite: '#ffffff',
+        brightYellow: '#d4ff00',
+        brightBlue: '#00e5ff',
+        brightMagenta: '#ff8fd7',
+        brightCyan: '#9eff9e',
+        brightWhite: '#b0ffb0',   // Light green tint
       },
       backgroundGradient: 'linear-gradient(135deg, #000f00 0%, #001a00 50%, #000a00 100%)',
     },
