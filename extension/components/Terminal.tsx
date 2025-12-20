@@ -10,65 +10,6 @@ import { sendMessage, connectToBackground } from '../shared/messaging'
 import { getThemeColors, getBackgroundGradient, ThemeColors } from '../styles/themes'
 
 /**
- * Claude Code syntax highlighting for terminal output
- * Injects ANSI color codes for Claude Code patterns:
- * - ● Tool invocation marker (magenta)
- * - Tool names after ● (magenta bold)
- * - ⎿ Output continuation (cyan)
- * - ✓ Success checkmark (green)
- * - ✗ ✘ Error marks (red)
- * - ⚠ Warning (yellow)
- */
-const ANSI = {
-  reset: '\x1b[0m',
-  bold: '\x1b[1m',
-  dim: '\x1b[2m',
-  green: '\x1b[32m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-}
-
-// Tool names that Claude Code uses
-const TOOL_NAMES = [
-  'Bash', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Task', 'TodoWrite',
-  'WebFetch', 'WebSearch', 'AskUserQuestion', 'LSP', 'NotebookEdit',
-  'Skill', 'EnterPlanMode', 'ExitPlanMode', 'KillShell', 'TaskOutput',
-]
-
-// Build regex for tool names (only match after ● to avoid false positives)
-const TOOL_PATTERN = new RegExp(`(● )(${TOOL_NAMES.join('|')})(\\()`, 'g')
-
-function highlightClaudeOutput(data: string): string {
-  // Skip if data contains existing ANSI codes (already colorized)
-  // But allow our own highlighting to be added
-
-  let result = data
-
-  // Colorize ● ToolName( pattern - magenta bullet, bold magenta tool name
-  result = result.replace(TOOL_PATTERN, `${ANSI.magenta}$1${ANSI.bold}$2${ANSI.reset}${ANSI.magenta}$3${ANSI.reset}`)
-
-  // Colorize standalone ● (tool marker) that wasn't caught above
-  result = result.replace(/●(?! (?:Bash|Read|Edit|Write|Glob|Grep|Task|TodoWrite|WebFetch|WebSearch|AskUserQuestion|LSP|NotebookEdit|Skill|EnterPlanMode|ExitPlanMode|KillShell|TaskOutput)\()/g, `${ANSI.magenta}●${ANSI.reset}`)
-
-  // Colorize ⎿ (output continuation marker) - cyan
-  result = result.replace(/⎿/g, `${ANSI.cyan}⎿${ANSI.reset}`)
-
-  // Colorize ✓ (success) - green
-  result = result.replace(/✓/g, `${ANSI.green}✓${ANSI.reset}`)
-
-  // Colorize ✗ ✘ ❌ (error marks) - red
-  result = result.replace(/[✗✘❌]/g, `${ANSI.red}$&${ANSI.reset}`)
-
-  // Colorize ⚠ (warning) - yellow
-  result = result.replace(/⚠/g, `${ANSI.yellow}⚠${ANSI.reset}`)
-
-  return result
-}
-
-/**
  * Adjust theme background for WebGL renderer compatibility
  * WebGL needs slight opacity (not fully transparent) for proper rendering
  * Canvas renderer works fine with full transparency
@@ -802,8 +743,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           // Use safeWrite to queue data during resize operations
           // Direct write() is async - xterm queues data and parses later
           // If resize happens while data is queued, parser crashes with "isWrapped" error
-          // Apply Claude Code syntax highlighting before writing
-          safeWrite(highlightClaudeOutput(sanitizedData))
+          safeWrite(sanitizedData)
         } else {
           console.warn('[Terminal] ⚠️ Cannot write - xterm:', !!xtermRef.current, 'data:', !!message.data)
         }
