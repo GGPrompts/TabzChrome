@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
 import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, LayoutDashboard, Zap, Layers } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
@@ -191,6 +191,28 @@ function SidePanelTerminal() {
     handleEndZoneDrop,
   } = useTabDragDrop({ sessions, setSessions })
 
+  // Switch to session - handles both selecting the tab and focusing 3D browser tab if needed
+  const switchToSession = useCallback(async (sessionId: string) => {
+    setCurrentSession(sessionId)
+
+    // Find the session to check if it's in 3D mode
+    const session = sessionsRef.current?.find(s => s.id === sessionId)
+    if (session?.focusedIn3D && session.sessionName) {
+      try {
+        const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
+        const targetTab = tabs.find(tab => {
+          const url = new URL(tab.url || '')
+          return url.searchParams.get('session') === session.sessionName
+        })
+        if (targetTab?.id) {
+          await chrome.tabs.update(targetTab.id, { active: true })
+        }
+      } catch (e) {
+        console.warn('[switchToSession] Could not focus 3D tab:', e)
+      }
+    }
+  }, [setCurrentSession, sessionsRef])
+
   // Keyboard shortcuts hook - handles keyboard and omnibox actions
   const {
     handleKeyboardNewTab,
@@ -207,6 +229,7 @@ function SidePanelTerminal() {
     profiles,
     defaultProfileId,
     setCurrentSession,
+    switchToSession,
     addToRecentDirs,
   })
 
@@ -912,7 +935,7 @@ function SidePanelTerminal() {
                       color: 'white',  // White text works on all category colors
                       borderColor: `${categoryColor}60`,  // 60 = ~37% opacity in hex
                     } : undefined}
-                    onClick={() => setCurrentSession(session.id)}
+                    onClick={() => switchToSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                     title={claudeStatuses.has(session.id)
                       ? `${session.name}\n${getFullStatusText(claudeStatuses.get(session.id))}`

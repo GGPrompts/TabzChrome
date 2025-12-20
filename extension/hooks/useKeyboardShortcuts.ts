@@ -10,6 +10,7 @@ export interface UseKeyboardShortcutsParams {
   profiles: Profile[]
   defaultProfileId: string
   setCurrentSession: (id: string | null) => void
+  switchToSession: (id: string) => void  // Handles both session switch and 3D tab focus
   addToRecentDirs: (dir: string) => void
 }
 
@@ -34,6 +35,7 @@ export function useKeyboardShortcuts({
   currentSessionRef,
   globalWorkingDirRef,
   setCurrentSession,
+  switchToSession,
   addToRecentDirs,
 }: UseKeyboardShortcutsParams): UseKeyboardShortcutsReturn {
 
@@ -110,8 +112,8 @@ export function useKeyboardShortcuts({
 
     const currentIndex = allSessions.findIndex(s => s.id === current)
     const nextIndex = (currentIndex + 1) % allSessions.length
-    setCurrentSession(allSessions[nextIndex].id)
-  }, [sessionsRef, currentSessionRef, setCurrentSession])
+    switchToSession(allSessions[nextIndex].id)
+  }, [sessionsRef, currentSessionRef, switchToSession])
 
   // Switch to previous tab
   const handleKeyboardPrevTab = useCallback(() => {
@@ -121,16 +123,16 @@ export function useKeyboardShortcuts({
 
     const currentIndex = allSessions.findIndex(s => s.id === current)
     const prevIndex = currentIndex === 0 ? allSessions.length - 1 : currentIndex - 1
-    setCurrentSession(allSessions[prevIndex].id)
-  }, [sessionsRef, currentSessionRef, setCurrentSession])
+    switchToSession(allSessions[prevIndex].id)
+  }, [sessionsRef, currentSessionRef, switchToSession])
 
   // Switch to specific tab by index (1-9 keys)
   const handleKeyboardSwitchTab = useCallback((tabIndex: number) => {
     const allSessions = sessionsRef.current || []
     if (tabIndex >= 0 && tabIndex < allSessions.length) {
-      setCurrentSession(allSessions[tabIndex].id)
+      switchToSession(allSessions[tabIndex].id)
     }
-  }, [sessionsRef, setCurrentSession])
+  }, [sessionsRef, switchToSession])
 
   // Spawn terminal with specific profile (from omnibox)
   const handleOmniboxSpawnProfile = useCallback((profile: Profile) => {
