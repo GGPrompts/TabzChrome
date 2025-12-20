@@ -11,7 +11,7 @@ function FocusedCameraController({ locked, onToggleLock }: { locked: boolean; on
   const { camera } = useThree()
   const mousePosition = useRef({ x: 0, y: 0 })
   const lockedPosition = useRef({ x: 0, y: 0 })
-  const zoomDistance = useRef(8) // Start at comfortable distance
+  const zoomDistance = useRef(5) // Start closer for readability
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -253,7 +253,7 @@ export default function FocusScene() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 60 }}
+        camera={{ position: [0, 0, 5], fov: 60 }}
         dpr={Math.min(window.devicePixelRatio, 2)}
         gl={{
           antialias: true,
