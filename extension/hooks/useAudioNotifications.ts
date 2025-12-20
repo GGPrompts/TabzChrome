@@ -60,7 +60,7 @@ const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   volume: 0.7,
   voice: 'en-US-AndrewMultilingualNeural',
   rate: '+0%',
-  events: { ready: true, sessionStart: false, tools: false, toolDetails: false, subagents: false },
+  events: { ready: true, sessionStart: false, tools: false, toolDetails: false, subagents: false, contextWarning: false, contextCritical: false },
   toolDebounceMs: 1000,
 }
 
@@ -79,6 +79,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
   const prevClaudeStatusesRef = useRef<Map<string, string>>(new Map())
   const prevToolNamesRef = useRef<Map<string, string>>(new Map())
   const prevSubagentCountsRef = useRef<Map<string, number>>(new Map())
+  const prevContextPctRef = useRef<Map<string, number>>(new Map())  // Track context % for threshold alerts
   const lastAudioTimeRef = useRef<number>(0)
   const lastToolAudioTimeRef = useRef<number>(0)
   // Track when we last announced "ready" for each terminal to prevent duplicates
@@ -461,9 +462,37 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         }
       }
 
+      // EVENT: Context window threshold alerts
+      // Uses hysteresis: only triggers when CROSSING a threshold (not on every poll above it)
+      const currentContextPct = status.context_pct
+      const prevContextPct = prevContextPctRef.current.get(terminalId)
+
+      if (currentContextPct != null && prevContextPct != null) {
+        const displayName = getDisplayName()
+
+        // Warning threshold: 50% (matches statusline yellow threshold)
+        if (audioSettings.events.contextWarning) {
+          const crossedWarningUp = prevContextPct < 50 && currentContextPct >= 50
+          if (crossedWarningUp) {
+            playAudio(`${displayName} 50 percent context`, session)
+          }
+        }
+
+        // Critical threshold: 75% (matches statusline red threshold)
+        if (audioSettings.events.contextCritical) {
+          const crossedCriticalUp = prevContextPct < 75 && currentContextPct >= 75
+          if (crossedCriticalUp) {
+            playAudio(`${displayName} context critical`, session)
+          }
+        }
+      }
+
       // Update previous values
       prevClaudeStatusesRef.current.set(terminalId, currentStatus)
       prevSubagentCountsRef.current.set(terminalId, currentSubagentCount)
+      if (currentContextPct != null) {
+        prevContextPctRef.current.set(terminalId, currentContextPct)
+      }
     })
 
     // Clean up removed terminals from prev refs
@@ -472,6 +501,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         prevClaudeStatusesRef.current.delete(id)
         prevToolNamesRef.current.delete(id)
         prevSubagentCountsRef.current.delete(id)
+        prevContextPctRef.current.delete(id)
       }
     }
   }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, playAudio])

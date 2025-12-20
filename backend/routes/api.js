@@ -1094,6 +1094,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               current_tool: stateData.current_tool || '',
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
+              claude_session_id: stateData.claude_session_id,  // For context file lookup
               tmuxPane: stateData.tmux_pane,
               details: stateData.details || null,
               subagent_count: stateData.subagent_count || 0
@@ -1112,6 +1113,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               current_tool: stateData.current_tool || '',
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
+              claude_session_id: stateData.claude_session_id,  // For context file lookup
               details: stateData.details || null,
               matchType: 'exact',
               subagent_count: stateData.subagent_count || 0
@@ -1132,6 +1134,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
               current_tool: stateData.current_tool || '',
               last_updated: stateData.last_updated || '',
               sessionId: stateData.session_id || file.replace('.json', ''),
+              claude_session_id: stateData.claude_session_id,  // For context file lookup
               details: stateData.details || null,
               matchType: 'parent',
               subagent_count: stateData.subagent_count || 0
@@ -1148,13 +1151,19 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
     // Return best match or unknown if no match found
     if (bestMatch) {
       // Try to merge context window data from statusline
-      if (bestMatch.sessionId) {
+      // Look for claude_session_id (set by statusline) to find the context file
+      const claudeSessionId = bestMatch.claude_session_id;
+      if (claudeSessionId) {
         try {
-          const contextFile = path.join(stateDir, `${bestMatch.sessionId}-context.json`);
+          const contextFile = path.join(stateDir, `${claudeSessionId}-context.json`);
           if (fs.existsSync(contextFile)) {
             const contextData = JSON.parse(fs.readFileSync(contextFile, 'utf-8'));
-            if (contextData.context_window) {
-              bestMatch.context_window = contextData.context_window;
+            // Merge context_window and include context_pct inside it for frontend
+            if (contextData.context_window || contextData.context_pct != null) {
+              bestMatch.context_window = {
+                ...contextData.context_window,
+                context_pct: contextData.context_pct
+              };
             }
           }
         } catch (err) {

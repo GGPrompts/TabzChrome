@@ -11,7 +11,7 @@ import { WorkingDirDropdown } from '../components/WorkingDirDropdown'
 import { ChatInputBar } from '../components/ChatInputBar'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { setupConsoleForwarding } from '../shared/consoleForwarder'
-import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis } from '../hooks/useClaudeStatus'
+import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis, getContextColor } from '../hooks/useClaudeStatus'
 import { useCommandHistory } from '../hooks/useCommandHistory'
 import { useOrphanedSessions } from '../hooks/useOrphanedSessions'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
@@ -946,7 +946,7 @@ function SidePanelTerminal() {
                     onClick={() => switchToSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                     title={claudeStatuses.has(session.id)
-                      ? `${session.name}\n${getFullStatusText(claudeStatuses.get(session.id))}`
+                      ? `${session.name}\n${getFullStatusText(claudeStatuses.get(session.id))}${claudeStatuses.get(session.id)?.context_pct != null ? `\nContext: ${claudeStatuses.get(session.id)?.context_pct}%` : ''}`
                       : session.name
                     }
                   >
@@ -963,6 +963,15 @@ function SidePanelTerminal() {
                           : session.name
                         }
                       </span>
+                      {/* Context window percentage - far right, color-coded */}
+                      {claudeStatuses.get(session.id)?.context_pct != null && (
+                        <span
+                          className="flex-shrink-0 ml-auto text-xs font-medium"
+                          style={{ color: getContextColor(claudeStatuses.get(session.id)?.context_pct) }}
+                        >
+                          {claudeStatuses.get(session.id)?.context_pct}%
+                        </span>
+                      )}
                     </span>
                     <button
                       onClick={(e) => handleCloseTab(e, session.id)}

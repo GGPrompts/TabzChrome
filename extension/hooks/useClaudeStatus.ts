@@ -6,6 +6,7 @@ export interface ClaudeStatus {
   last_updated?: string
   tmuxPane?: string  // Pane ID (e.g., '%42') for targeted send to Claude in split layouts
   subagent_count?: number  // Number of active subagents (for 🤖🤖🤖 display)
+  context_pct?: number  // Context window usage percentage (0-100)
   details?: {
     args?: {
       file_path?: string
@@ -112,6 +113,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
                   last_updated: result.last_updated,
                   tmuxPane: result.tmuxPane,
                   subagent_count: result.subagent_count || 0,
+                  context_pct: result.context_window?.context_pct,
                   details: result.details,
                 } as ClaudeStatus,
                 success: true,
@@ -142,8 +144,17 @@ export function useClaudeStatus(terminals: TerminalInfo[]): Map<string, ClaudeSt
             // Keep previous status if we haven't exceeded threshold
             if (newMisses < MISS_THRESHOLD && prevStatuses.has(result.id)) {
               newStatuses.set(result.id, prevStatuses.get(result.id)!)
+            } else if (prevStatuses.has(result.id)) {
+              // Even after threshold, preserve context_pct if we had it
+              // This keeps the percentage visible even when Claude is idle
+              const prevStatus = prevStatuses.get(result.id)!
+              if (prevStatus.context_pct != null) {
+                newStatuses.set(result.id, {
+                  status: 'idle',
+                  context_pct: prevStatus.context_pct
+                })
+              }
             }
-            // Otherwise, don't add to map (terminal removed after threshold)
           }
         }
 
@@ -351,5 +362,16 @@ export function getFullStatusText(status: ClaudeStatus | undefined): string {
     default:
       return ''
   }
+}
+
+/**
+ * Get color for context window percentage display
+ * Matches the statusline thresholds: green < 50%, yellow < 75%, red >= 75%
+ */
+export function getContextColor(contextPct: number | undefined): string {
+  if (contextPct === undefined || contextPct === null) return ''
+  if (contextPct < 50) return '#00ff88'  // Tabz green
+  if (contextPct < 75) return '#fbbf24'  // Amber/yellow
+  return '#ef4444'  // Red
 }
 

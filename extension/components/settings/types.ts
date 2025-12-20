@@ -138,6 +138,8 @@ export interface AudioEventSettings {
   tools: boolean
   toolDetails: boolean  // Announce file names for Read/Edit/Write, patterns for Grep/Glob
   subagents: boolean
+  contextWarning: boolean   // Announce when context hits warning threshold (default 50%)
+  contextCritical: boolean  // Announce when context hits critical threshold (default 75%)
 }
 
 export interface AudioSettings {
@@ -168,6 +170,8 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     tools: false,
     toolDetails: false,
     subagents: false,
+    contextWarning: false,
+    contextCritical: false,
   },
   toolDebounceMs: 1000,
 }

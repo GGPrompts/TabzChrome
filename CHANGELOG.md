@@ -15,6 +15,28 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.15] - 2025-12-20
+
+### Added
+- **Context window percentage on tabs** - Claude terminal tabs now display context usage:
+  - Shows percentage on far right of tab (e.g., "62%")
+  - Color-coded to match statusline thresholds: green (<50%), yellow (50-74%), red (75%+)
+  - Tooltip includes context percentage
+  - Persists even when Claude is idle
+- **Audio alerts for context thresholds** - New notification events in Settings → Audio:
+  - **Context warning** - Announces when context reaches 50%
+  - **Context critical** - Announces when context reaches 75%
+  - Uses hysteresis to only announce once per threshold crossing
+
+### Fixed
+- **State-tracker preserves claude_session_id** - Fixed race condition where state-tracker would overwrite the `claude_session_id` field set by statusline, causing context percentage to disappear from tabs
+
+### Documentation
+- Added statusline example to state-tracker plugin (`examples/statusline-with-context.sh`)
+- Added setup guide for context window display (`examples/README.md`)
+
+---
+
 ## [1.1.14] - 2025-12-20
 
 ### Added
