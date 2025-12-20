@@ -11,7 +11,7 @@ function FocusedCameraController({ locked, onToggleLock }: { locked: boolean; on
   const { camera } = useThree()
   const mousePosition = useRef({ x: 0, y: 0 })
   const lockedPosition = useRef({ x: 0, y: 0 })
-  const zoomDistance = useRef(5) // Start closer for readability
+  const zoomDistance = useRef(3.5) // Start zoomed in for readability
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -110,9 +110,12 @@ interface Terminal3DWrapperProps {
   terminalId: string
   width?: number
   height?: number
+  themeName?: string
+  fontSize?: number
+  fontFamily?: string
 }
 
-function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800 }: Terminal3DWrapperProps) {
+function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800, themeName = 'high-contrast', fontSize = 16, fontFamily = 'monospace' }: Terminal3DWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useTerminal3DMouseFix(containerRef, true)
@@ -144,6 +147,9 @@ function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800
         isActive={true}
         onClose={() => window.close()}
         useWebGL={true}
+        themeName={themeName}
+        fontSize={fontSize}
+        fontFamily={fontFamily}
       />
     </div>
   )
@@ -153,9 +159,12 @@ function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800
 interface TerminalDisplayProps {
   sessionName: string
   terminalId: string
+  themeName?: string
+  fontSize?: number
+  fontFamily?: string
 }
 
-function TerminalDisplay({ sessionName, terminalId }: TerminalDisplayProps) {
+function TerminalDisplay({ sessionName, terminalId, themeName, fontSize, fontFamily }: TerminalDisplayProps) {
   const terminalWidth = 1200
   const terminalHeight = 800
 
@@ -176,6 +185,9 @@ function TerminalDisplay({ sessionName, terminalId }: TerminalDisplayProps) {
           terminalId={terminalId}
           width={terminalWidth}
           height={terminalHeight}
+          themeName={themeName}
+          fontSize={fontSize}
+          fontFamily={fontFamily}
         />
       </Html>
     </group>
@@ -187,6 +199,9 @@ export default function FocusScene() {
   const [sessionName, setSessionName] = useState<string>('')
   const [terminalId, setTerminalId] = useState<string>('')
   const [cameraLocked, setCameraLocked] = useState(false)
+  const [themeName, setThemeName] = useState<string>('high-contrast')
+  const [fontSize, setFontSize] = useState<number>(16)
+  const [fontFamily, setFontFamily] = useState<string>('monospace')
 
   useEffect(() => {
     // Get session info from URL params
@@ -195,8 +210,16 @@ export default function FocusScene() {
     // Use session name as terminal ID for consistency with sidebar
     const id = params.get('id') || session || `3d-${Date.now()}`
 
+    // Get theme settings from URL params (passed from sidebar)
+    const theme = params.get('theme') || 'high-contrast'
+    const size = parseInt(params.get('fontSize') || '16', 10)
+    const family = params.get('fontFamily') || 'monospace'
+
     setSessionName(session)
     setTerminalId(id)
+    setThemeName(theme)
+    setFontSize(size)
+    setFontFamily(family)
 
     // Set page title
     document.title = session ? `3D Focus: ${session}` : '3D Focus Mode'
@@ -253,7 +276,7 @@ export default function FocusScene() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 60 }}
+        camera={{ position: [0, 0, 3.5], fov: 60 }}
         dpr={Math.min(window.devicePixelRatio, 2)}
         gl={{
           antialias: true,
@@ -267,7 +290,7 @@ export default function FocusScene() {
         <Stars radius={100} depth={50} count={2000} factor={4} fade speed={1} />
 
         {/* Terminal */}
-        <TerminalDisplay sessionName={sessionName} terminalId={terminalId} />
+        <TerminalDisplay sessionName={sessionName} terminalId={terminalId} themeName={themeName} fontSize={fontSize} fontFamily={fontFamily} />
 
         {/* Camera controller */}
         <FocusedCameraController locked={cameraLocked} onToggleLock={() => setCameraLocked(l => !l)} />
@@ -297,7 +320,7 @@ export default function FocusScene() {
             </span>
           )}
         </div>
-        <div style={{ color: '#888', marginTop: 4 }}>
+        <div style={{ color: '#00ff00', marginTop: 4, opacity: 0.8 }}>
           Scroll: zoom | F2: {cameraLocked ? 'unlock' : 'lock'} | Esc: unfocus terminal
         </div>
       </div>

@@ -67,16 +67,46 @@ export function useTerminalSessions({
   // Load saved terminal sessions from Chrome storage on mount
   // CRITICAL: Must complete before LIST_TERMINALS request to avoid race condition
   useEffect(() => {
-    chrome.storage.local.get(['terminalSessions', 'currentTerminalId'], (result) => {
+    chrome.storage.local.get(['terminalSessions', 'currentTerminalId'], async (result) => {
       if (result.terminalSessions && Array.isArray(result.terminalSessions)) {
-        setSessions(result.terminalSessions)
+        let loadedSessions = result.terminalSessions as TerminalSession[]
+
+        // Check for stale focusedIn3D flags (3D tabs that no longer exist after extension reload)
+        const focusedSessions = loadedSessions.filter(s => s.focusedIn3D)
+        if (focusedSessions.length > 0) {
+          try {
+            // Query for any open 3D focus tabs
+            const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
+            const openSessionNames = new Set<string>(
+              tabs.map(tab => {
+                const url = new URL(tab.url || '')
+                return url.searchParams.get('session')
+              }).filter((s): s is string => s !== null)
+            )
+
+            // Reset focusedIn3D for terminals whose 3D tabs no longer exist
+            loadedSessions = loadedSessions.map(s => {
+              if (s.focusedIn3D && s.sessionName && !openSessionNames.has(s.sessionName)) {
+                console.log('[Sessions] Resetting stale focusedIn3D flag for:', s.sessionName)
+                return { ...s, focusedIn3D: false }
+              }
+              return s
+            })
+          } catch (e) {
+            // If tab query fails, reset all focusedIn3D flags to be safe
+            console.warn('[Sessions] Could not query 3D tabs, resetting focusedIn3D flags:', e)
+            loadedSessions = loadedSessions.map(s => ({ ...s, focusedIn3D: false }))
+          }
+        }
+
+        setSessions(loadedSessions)
         // Restore saved current terminal, or fall back to first
         const savedCurrentId = result.currentTerminalId as string | undefined
-        const sessionExists = savedCurrentId && result.terminalSessions.some((s: TerminalSession) => s.id === savedCurrentId)
+        const sessionExists = savedCurrentId && loadedSessions.some((s: TerminalSession) => s.id === savedCurrentId)
         if (savedCurrentId && sessionExists) {
           setCurrentSession(savedCurrentId)
-        } else if (result.terminalSessions.length > 0) {
-          setCurrentSession(result.terminalSessions[0].id)
+        } else if (loadedSessions.length > 0) {
+          setCurrentSession(loadedSessions[0].id)
         }
       }
       setStorageLoaded(true)

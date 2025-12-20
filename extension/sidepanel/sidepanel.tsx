@@ -661,7 +661,11 @@ function SidePanelTerminal() {
     ))
 
     // Open new browser tab with 3D focus page
-    const url = chrome.runtime.getURL(`3d/3d-focus.html?session=${terminal.sessionName}&id=${terminal.id}`)
+    // Include theme information from the terminal's profile
+    const themeName = terminal.profile?.themeName || 'high-contrast'
+    const fontSize = terminal.profile?.fontSize || 16
+    const fontFamily = encodeURIComponent(terminal.profile?.fontFamily || 'monospace')
+    const url = chrome.runtime.getURL(`3d/3d-focus.html?session=${terminal.sessionName}&id=${terminal.id}&theme=${themeName}&fontSize=${fontSize}&fontFamily=${fontFamily}`)
     chrome.tabs.create({ url })
 
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
