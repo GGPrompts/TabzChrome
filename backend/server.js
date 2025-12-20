@@ -247,13 +247,20 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
   const cacheKey = crypto.createHash('md5').update(`${voice}:${rate}:${text}`).digest('hex');
   const cacheFile = path.join(audioDir, `${cacheKey}.mp3`);
 
-  // Check if cached
-  if (fs.existsSync(cacheFile)) {
-    return res.json({
-      success: true,
-      url: `http://localhost:8129/audio/${cacheKey}.mp3`,
-      cached: true
-    });
+  // Check if cached (ensure file exists and has content)
+  try {
+    const stats = fs.statSync(cacheFile);
+    if (stats.size > 0) {
+      return res.json({
+        success: true,
+        url: `http://localhost:8129/audio/${cacheKey}.mp3`,
+        cached: true
+      });
+    }
+    // Empty file - delete and regenerate
+    fs.unlinkSync(cacheFile);
+  } catch {
+    // File doesn't exist - continue to generate
   }
 
   // Generate with edge-tts using execFile (prevents command injection)
@@ -282,14 +289,18 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
     const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
     await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
-    if (fs.existsSync(cacheFile)) {
+    // Verify file was created with content
+    const stats = fs.statSync(cacheFile);
+    if (stats.size > 0) {
       res.json({
         success: true,
         url: `http://localhost:8129/audio/${cacheKey}.mp3`,
         cached: false
       });
     } else {
-      res.status(500).json({ success: false, error: 'Audio generation failed' });
+      // Empty file - delete and report failure
+      fs.unlinkSync(cacheFile);
+      res.status(500).json({ success: false, error: 'Audio generation produced empty file' });
     }
   } catch (err) {
     // Only log non-network errors (timeouts are expected and noisy)
@@ -345,8 +356,21 @@ app.post('/api/audio/speak', async (req, res) => {
   const cacheFile = path.join(audioDir, `${cacheKey}.mp3`);
   const audioUrl = `http://localhost:8129/audio/${cacheKey}.mp3`;
 
-  // Check if cached, if not generate
-  if (!fs.existsSync(cacheFile)) {
+  // Check if cached (with size check), if not generate
+  let needsGeneration = true;
+  try {
+    const stats = fs.statSync(cacheFile);
+    if (stats.size > 0) {
+      needsGeneration = false;
+    } else {
+      // Empty file - delete and regenerate
+      fs.unlinkSync(cacheFile);
+    }
+  } catch {
+    // File doesn't exist - need to generate
+  }
+
+  if (needsGeneration) {
     let tempTextFile = null;
     try {
       const args = ['-v', voice];
@@ -370,8 +394,11 @@ app.post('/api/audio/speak', async (req, res) => {
       const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
       await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
-      if (!fs.existsSync(cacheFile)) {
-        return res.status(500).json({ success: false, error: 'Audio generation failed' });
+      // Verify file was created with content
+      const stats = fs.statSync(cacheFile);
+      if (stats.size === 0) {
+        fs.unlinkSync(cacheFile);
+        return res.status(500).json({ success: false, error: 'Audio generation produced empty file' });
       }
     } catch (err) {
       console.error('[Audio] edge-tts error:', err.message);
