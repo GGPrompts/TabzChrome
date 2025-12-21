@@ -1053,6 +1053,68 @@ wss.on('connection', (ws, req) => {
           break;
 
         // ============================================
+        // BOOKMARK RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-bookmarks-tree-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              tree: data.tree,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-bookmarks-search-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              bookmarks: data.bookmarks,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-bookmarks-create-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              bookmark: data.bookmark,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-bookmarks-create-folder-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              folder: data.folder,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-bookmarks-move-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              bookmark: data.bookmark,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-bookmarks-delete-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
         // QUEUE_COMMAND - Forward to Chrome extension
         // ============================================
         case 'QUEUE_COMMAND':

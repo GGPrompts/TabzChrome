@@ -12,9 +12,9 @@
  * - console: tabz_get_console_logs, tabz_execute_script
  * - network: tabz_enable_network_capture, tabz_get_network_requests, tabz_get_api_response, tabz_clear_network_requests
  * - downloads: tabz_download_file, tabz_get_downloads, tabz_cancel_download
+ * - bookmarks: tabz_get_bookmark_tree, tabz_search_bookmarks, tabz_save_bookmark, tabz_create_folder, tabz_move_bookmark, tabz_delete_bookmark
  * - cookies: (future) tabz_check_auth, tabz_get_cookies
  * - history: (future) tabz_search_history
- * - bookmarks: (future) tabz_save_bookmark, tabz_search_bookmarks
  *
  * Tool groups can be configured via the backend /api/mcp-config endpoint.
  */
@@ -31,12 +31,13 @@ import { registerInspectionTools } from "./tools/inspection.js";
 import { registerOmniboxTools } from "./tools/omnibox.js";
 import { registerNetworkTools } from "./tools/network.js";
 import { registerDownloadTools } from "./tools/downloads.js";
+import { registerBookmarkTools } from "./tools/bookmarks.js";
 
 // Backend URL (TabzChrome backend running in WSL)
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8129";
 
 // Default enabled tool groups (used if backend is not reachable)
-const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console', 'network', 'downloads'];
+const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console', 'network', 'downloads', 'bookmarks'];
 
 // Tool group registration functions
 // Maps group names to their registration functions
@@ -71,9 +72,12 @@ const TOOL_GROUPS: Record<string, ToolGroupRegistrar> = {
   downloads: (server) => {
     registerDownloadTools(server);    // tabz_download_file, tabz_get_downloads, tabz_cancel_download
   },
+  // Bookmark tools (Chrome bookmarks API)
+  bookmarks: (server) => {
+    registerBookmarkTools(server);    // tabz_get_bookmark_tree, tabz_search_bookmarks, tabz_save_bookmark, tabz_create_folder, tabz_move_bookmark, tabz_delete_bookmark
+  },
   // cookies: (server) => registerCookieTools(server),
   // history: (server) => registerHistoryTools(server),
-  // bookmarks: (server) => registerBookmarkTools(server),
 };
 
 /**

@@ -118,3 +118,49 @@ export interface CancelDownloadResult {
   success: boolean;
   error?: string;
 }
+
+// Bookmark types
+export interface BookmarkNode {
+  id: string;
+  title: string;
+  url?: string;
+  parentId?: string;
+  index?: number;
+  dateAdded?: number;
+  children?: BookmarkNode[];
+}
+
+export interface BookmarkTreeResult {
+  success: boolean;
+  tree?: BookmarkNode[];
+  error?: string;
+}
+
+export interface BookmarkSearchResult {
+  success: boolean;
+  bookmarks?: BookmarkNode[];
+  error?: string;
+}
+
+export interface BookmarkCreateResult {
+  success: boolean;
+  bookmark?: BookmarkNode;
+  error?: string;
+}
+
+export interface BookmarkFolderResult {
+  success: boolean;
+  folder?: BookmarkNode;
+  error?: string;
+}
+
+export interface BookmarkMoveResult {
+  success: boolean;
+  bookmark?: BookmarkNode;
+  error?: string;
+}
+
+export interface BookmarkDeleteResult {
+  success: boolean;
+  error?: string;
+}

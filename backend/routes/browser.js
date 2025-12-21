@@ -699,6 +699,347 @@ router.get('/profiles', async (req, res) => {
   }
 });
 
+// ============================================
+// BOOKMARK ROUTES
+// ============================================
+
+// GET /api/browser/bookmarks/tree - Get bookmark tree
+router.get('/bookmarks/tree', async (req, res) => {
+  const folderId = req.query.folderId;
+  const maxDepth = req.query.maxDepth ? parseInt(req.query.maxDepth) : 3;
+
+  log.debug('GET /bookmarks/tree', { folderId, maxDepth });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-tree',
+      requestId,
+      folderId,
+      maxDepth
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-tree error:', error);
+    res.json({ success: false, tree: [], error: error.message });
+  }
+});
+
+// GET /api/browser/bookmarks/search - Search bookmarks
+router.get('/bookmarks/search', async (req, res) => {
+  const query = req.query.query;
+  const limit = req.query.limit ? parseInt(req.query.limit) : 20;
+
+  if (!query) {
+    return res.status(400).json({ success: false, error: 'query is required' });
+  }
+
+  log.debug('GET /bookmarks/search', { query, limit });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-search',
+      requestId,
+      query,
+      limit
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-search error:', error);
+    res.json({ success: false, bookmarks: [], error: error.message });
+  }
+});
+
+// POST /api/browser/bookmarks/create - Create a bookmark
+router.post('/bookmarks/create', async (req, res) => {
+  const { url, title, parentId, index } = req.body;
+
+  if (!url || !title) {
+    return res.status(400).json({ success: false, error: 'url and title are required' });
+  }
+
+  log.debug('POST /bookmarks/create', { url, title, parentId, index });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-create',
+      requestId,
+      url,
+      title,
+      parentId: parentId || '1',
+      index
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-create error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/bookmarks/create-folder - Create a bookmark folder
+router.post('/bookmarks/create-folder', async (req, res) => {
+  const { title, parentId, index } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ success: false, error: 'title is required' });
+  }
+
+  log.debug('POST /bookmarks/create-folder', { title, parentId, index });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-create-folder',
+      requestId,
+      title,
+      parentId: parentId || '1',
+      index
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-create-folder error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/bookmarks/move - Move a bookmark or folder
+router.post('/bookmarks/move', async (req, res) => {
+  const { id, parentId, index } = req.body;
+
+  if (!id || !parentId) {
+    return res.status(400).json({ success: false, error: 'id and parentId are required' });
+  }
+
+  log.debug('POST /bookmarks/move', { id, parentId, index });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-move',
+      requestId,
+      id,
+      parentId,
+      index
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-move error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/bookmarks/delete - Delete a bookmark or folder
+router.post('/bookmarks/delete', async (req, res) => {
+  const { id } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'id is required' });
+  }
+
+  log.debug('POST /bookmarks/delete', { id });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-bookmarks-delete',
+      requestId,
+      id
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('bookmarks-delete error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
 module.exports.addConsoleLog = addConsoleLog;
 module.exports.getConsoleLogs = getConsoleLogs;

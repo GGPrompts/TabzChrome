@@ -40,6 +40,13 @@ const MCP_TOOLS: McpTool[] = [
   { id: 'tabz_download_file', name: 'Download File', desc: 'Download any URL to disk', tokens: 1200, category: 'Downloads' },
   { id: 'tabz_get_downloads', name: 'List Downloads', desc: 'List recent downloads with status', tokens: 1000, category: 'Downloads' },
   { id: 'tabz_cancel_download', name: 'Cancel Download', desc: 'Cancel in-progress download', tokens: 500, category: 'Downloads' },
+  // Bookmarks
+  { id: 'tabz_get_bookmark_tree', name: 'Bookmark Tree', desc: 'Get bookmark folder hierarchy', tokens: 1200, category: 'Bookmarks' },
+  { id: 'tabz_search_bookmarks', name: 'Search Bookmarks', desc: 'Find bookmarks by title/URL', tokens: 900, category: 'Bookmarks' },
+  { id: 'tabz_save_bookmark', name: 'Save Bookmark', desc: 'Add URL to bookmarks', tokens: 1000, category: 'Bookmarks' },
+  { id: 'tabz_create_folder', name: 'Create Folder', desc: 'Create bookmark folder', tokens: 800, category: 'Bookmarks' },
+  { id: 'tabz_move_bookmark', name: 'Move Bookmark', desc: 'Move to different folder', tokens: 800, category: 'Bookmarks' },
+  { id: 'tabz_delete_bookmark', name: 'Delete Bookmark', desc: 'Remove bookmark or folder', tokens: 600, category: 'Bookmarks' },
 ]
 
 const CORE_TOOL_IDS = MCP_TOOLS.filter(t => t.locked).map(t => t.id)

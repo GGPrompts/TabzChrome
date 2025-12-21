@@ -1,6 +1,6 @@
 # TabzChrome MCP Tools Reference
 
-TabzChrome provides 20 MCP tools for browser automation via Chrome Extension API and CDP.
+TabzChrome provides 26 MCP tools for browser automation via Chrome Extension API and CDP.
 
 ## Tool Categories
 
@@ -10,6 +10,7 @@ TabzChrome provides 20 MCP tools for browser automation via Chrome Extension API
 | **Screenshots** | `tabz_screenshot`, `tabz_screenshot_full` | Capture viewport or full scrollable page |
 | **Interaction** | `tabz_click`, `tabz_fill`, `tabz_execute_script` | Click buttons, fill forms, run JS |
 | **Downloads** | `tabz_download_image`, `tabz_download_file`, `tabz_get_downloads`, `tabz_cancel_download` | Download files, track status, cancel downloads |
+| **Bookmarks** | `tabz_get_bookmark_tree`, `tabz_search_bookmarks`, `tabz_save_bookmark`, `tabz_create_folder`, `tabz_move_bookmark`, `tabz_delete_bookmark` | Organize bookmarks, save URLs |
 | **Network** | `tabz_enable_network_capture`, `tabz_get_api_response` | Monitor API calls, inspect responses |
 | **Inspection** | `tabz_get_element`, `tabz_get_console_logs`, `tabz_get_page_info` | Debug, inspect HTML/CSS |
 
@@ -56,6 +57,7 @@ mcp-cli call tabz/tabz_switch_tab '{"tabId": 1762556601}'
 These features work with just the extension and backend:
 - Tab management (`list_tabs`, `switch_tab`, `rename_tab`)
 - Downloads (`download_file`, `download_image`, `get_downloads`, `cancel_download`)
+- Bookmarks (`get_bookmark_tree`, `search_bookmarks`, `save_bookmark`, `create_folder`, `move_bookmark`, `delete_bookmark`)
 - Console logs (`get_console_logs`)
 - Page info (`get_page_info`)
 

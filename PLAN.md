@@ -1,7 +1,7 @@
 # PLAN.md - TabzChrome Roadmap
 
 **Last Updated**: December 21, 2025
-**Current Version**: 1.1.16
+**Current Version**: 1.1.18
 
 ---
 
@@ -29,17 +29,17 @@
 | `tabz_frequent_sites` | Get most visited sites | Planned |
 | `tabz_delete_history` | Remove specific URLs from history | Planned |
 
-#### `chrome.bookmarks` - Knowledge Management
+#### `chrome.bookmarks` - Knowledge Management ✓
 **Permission**: `"bookmarks"`
 
 | Tool | Description | Status |
 |------|-------------|--------|
-| `tabz_save_bookmark` | Save URL to bookmarks (with folder support) | Planned |
-| `tabz_search_bookmarks` | Find bookmarks by title/URL | Planned |
-| `tabz_get_bookmark_tree` | Get full bookmark hierarchy | Planned |
-| `tabz_create_folder` | Create bookmark folder | Planned |
-| `tabz_move_bookmark` | Move bookmark to different folder | Planned |
-| `tabz_delete_bookmark` | Remove a bookmark | Planned |
+| `tabz_save_bookmark` | Save URL to bookmarks (with folder support) | Done |
+| `tabz_search_bookmarks` | Find bookmarks by title/URL | Done |
+| `tabz_get_bookmark_tree` | Get full bookmark hierarchy | Done |
+| `tabz_create_folder` | Create bookmark folder | Done |
+| `tabz_move_bookmark` | Move bookmark to different folder | Done |
+| `tabz_delete_bookmark` | Remove a bookmark | Done |
 
 #### `chrome.downloads` - Page Saving
 **Permission**: `"downloads"` (already have)
@@ -159,6 +159,40 @@ Settings Modal  -->  /api/mcp-config --> registerTools()
   [x] Interaction
   [x] Downloads
 ```
+
+---
+
+## Adding New MCP Tools Checklist
+
+When adding new MCP tools, update these files:
+
+### Implementation (Required)
+1. `extension/manifest.json` - Add Chrome permission (e.g., `"bookmarks"`, `"history"`)
+2. `tabz-mcp-server/src/tools/<category>.ts` - Create tool file with Zod schemas
+3. `tabz-mcp-server/src/types.ts` - Add TypeScript types
+4. `tabz-mcp-server/src/client.ts` - Add HTTP client functions
+5. `tabz-mcp-server/src/index.ts` - Import and register tool group
+6. `backend/routes/browser.js` - Add REST endpoints
+7. `backend/server.js` - Add WebSocket response handlers (e.g., `browser-bookmarks-tree-result`)
+8. `extension/background/background.ts` - Add message handlers calling Chrome APIs
+
+### Documentation (Required)
+9. `extension/components/settings/types.ts` - Add to `MCP_TOOLS` array (sidebar settings)
+10. `extension/dashboard/sections/McpPlayground.tsx` - Add to `MCP_TOOLS` array (dashboard)
+11. `tabz-mcp-server/MCP_TOOLS.md` - Add to overview table + detailed documentation
+12. `CHANGELOG.md` - Add version entry
+13. `PLAN.md` - Update status from "Planned" to "Done"
+
+### Version Sync
+14. `package.json` - Bump version
+15. `extension/manifest.json` - Bump version (must match package.json)
+16. `PLAN.md` - Update "Current Version"
+
+### Skill References (Optional but recommended)
+17. `.claude/skills/tabz-guide/references/mcp-tools.md` - Update tool count + categories
+18. `plugins/tabz-guide/skills/tabz-guide/references/mcp-tools.md` - Sync copy
+19. `README.md` - Update tool count
+20. `docs/pages/mcp-tools.html` - Update tool count + add table rows
 
 ---
 

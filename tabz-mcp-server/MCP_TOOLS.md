@@ -26,6 +26,12 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_download_file` | "download file", "download URL", "save file" | Download any URL to disk (returns Windows + WSL paths) |
 | `tabz_get_downloads` | "list downloads", "download status", "recent downloads" | List recent downloads with status and progress |
 | `tabz_cancel_download` | "cancel download", "stop download" | Cancel an in-progress download |
+| `tabz_get_bookmark_tree` | "show bookmarks", "bookmark folders", "bookmark hierarchy" | Get bookmark folder structure |
+| `tabz_search_bookmarks` | "find bookmark", "search bookmarks" | Find bookmarks by title or URL |
+| `tabz_save_bookmark` | "save bookmark", "add bookmark", "bookmark this" | Save URL to bookmarks |
+| `tabz_create_folder` | "create folder", "new bookmark folder" | Create bookmark folder |
+| `tabz_move_bookmark` | "move bookmark", "organize bookmarks" | Move bookmark to different folder |
+| `tabz_delete_bookmark` | "delete bookmark", "remove bookmark" | Delete bookmark or folder |
 
 > **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
@@ -768,6 +774,205 @@ Confirmation of cancellation.
 
 ---
 
+## tabz_get_bookmark_tree
+
+**Purpose:** Get the Chrome bookmarks hierarchy showing folders and bookmarks.
+
+**Trigger phrases:**
+- "Show my bookmarks"
+- "What folders do I have?"
+- "Bookmark structure"
+
+**Parameters:**
+- `folderId` (optional): Get children of specific folder. Omit for full tree.
+  - `"1"` = Bookmarks Bar
+  - `"2"` = Other Bookmarks
+- `maxDepth` (optional): Maximum depth to traverse (1-10, default: 3)
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+Tree structure with:
+- `id`: Bookmark/folder ID (use with other bookmark tools)
+- `title`: Display name
+- `url`: URL (only for bookmarks, not folders)
+- `children`: Nested items (for folders)
+
+**Examples:**
+```javascript
+// Full tree
+{}
+
+// Bookmarks Bar only
+{ folderId: "1" }
+
+// Shallow view (immediate children only)
+{ maxDepth: 1 }
+```
+
+---
+
+## tabz_search_bookmarks
+
+**Purpose:** Search Chrome bookmarks by title or URL.
+
+**Trigger phrases:**
+- "Find my React bookmarks"
+- "Search bookmarks for GitHub"
+- "Do I have this bookmarked?"
+
+**Parameters:**
+- `query` (required): Search text - matches titles and URLs
+- `limit` (optional): Max results (1-100, default: 20)
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+List of matching bookmarks with ID, title, URL, and parent folder ID.
+
+**Examples:**
+```javascript
+// Find by topic
+{ query: "react" }
+
+// Find by domain
+{ query: "github.com" }
+
+// Limit results
+{ query: "docs", limit: 5 }
+```
+
+---
+
+## tabz_save_bookmark
+
+**Purpose:** Save a URL as a Chrome bookmark.
+
+**Trigger phrases:**
+- "Bookmark this page"
+- "Save to bookmarks"
+- "Add to Bookmarks Bar"
+
+**Parameters:**
+- `url` (required): URL to bookmark
+- `title` (required): Bookmark title
+- `parentId` (optional): Folder ID. Default: `"1"` (Bookmarks Bar)
+  - `"1"` = Bookmarks Bar
+  - `"2"` = Other Bookmarks
+  - Or use a folder ID from `tabz_get_bookmark_tree`
+- `index` (optional): Position in folder (0 = first). Omit for end.
+
+**Returns:**
+The created bookmark with its ID.
+
+**Examples:**
+```javascript
+// Save to Bookmarks Bar
+{ url: "https://github.com/user/repo", title: "My Repo" }
+
+// Save to Other Bookmarks
+{ url: "https://example.com", title: "Example", parentId: "2" }
+
+// Save to custom folder
+{ url: "https://react.dev", title: "React Docs", parentId: "123" }
+```
+
+---
+
+## tabz_create_folder
+
+**Purpose:** Create a new bookmark folder.
+
+**Trigger phrases:**
+- "Create bookmark folder"
+- "New folder in bookmarks"
+- "Make a folder for these"
+
+**Parameters:**
+- `title` (required): Folder name
+- `parentId` (optional): Parent folder ID. Default: `"1"` (Bookmarks Bar)
+- `index` (optional): Position in parent (0 = first). Omit for end.
+
+**Returns:**
+The created folder with its ID. Use this ID as `parentId` in `tabz_save_bookmark`.
+
+**Examples:**
+```javascript
+// Create in Bookmarks Bar
+{ title: "Work Projects" }
+
+// Create in Other Bookmarks
+{ title: "Archive", parentId: "2" }
+
+// Create nested folder
+{ title: "React", parentId: "456" }
+```
+
+---
+
+## tabz_move_bookmark
+
+**Purpose:** Move a bookmark or folder to a different location.
+
+**Trigger phrases:**
+- "Move this bookmark"
+- "Reorganize bookmarks"
+- "Put bookmark in folder"
+
+**Parameters:**
+- `id` (required): Bookmark or folder ID to move
+- `parentId` (required): Destination folder ID
+  - `"1"` = Bookmarks Bar
+  - `"2"` = Other Bookmarks
+- `index` (optional): Position in destination (0 = first). Omit for end.
+
+**Returns:**
+The moved bookmark with updated location.
+
+**Examples:**
+```javascript
+// Move to Bookmarks Bar
+{ id: "123", parentId: "1" }
+
+// Move to specific folder
+{ id: "123", parentId: "456" }
+
+// Move to first position
+{ id: "123", parentId: "1", index: 0 }
+```
+
+**Note:** Cannot move the Bookmarks Bar or Other Bookmarks folders themselves.
+
+---
+
+## tabz_delete_bookmark
+
+**Purpose:** Delete a bookmark or folder.
+
+**Trigger phrases:**
+- "Delete this bookmark"
+- "Remove bookmark"
+- "Clean up bookmarks"
+
+**Parameters:**
+- `id` (required): Bookmark or folder ID to delete
+
+**Returns:**
+Confirmation of deletion.
+
+**⚠️ Warning:** Deleting a folder will also delete ALL bookmarks inside it!
+
+**Examples:**
+```javascript
+// Delete single bookmark
+{ id: "123" }
+
+// Delete folder (and all contents!)
+{ id: "456" }
+```
+
+**Note:** Cannot delete the Bookmarks Bar or Other Bookmarks folders.
+
+---
+
 ## Architecture
 
 ```
@@ -860,10 +1065,16 @@ Most tools can work via **CDP (Chrome DevTools Protocol)** with Chrome launched 
 | `tabz_download_file` | ✅ Required | Chrome downloads API |
 | `tabz_get_downloads` | ✅ Required | Chrome downloads API |
 | `tabz_cancel_download` | ✅ Required | Chrome downloads API |
+| `tabz_get_bookmark_tree` | ✅ Required | Chrome bookmarks API |
+| `tabz_search_bookmarks` | ✅ Required | Chrome bookmarks API |
+| `tabz_save_bookmark` | ✅ Required | Chrome bookmarks API |
+| `tabz_create_folder` | ✅ Required | Chrome bookmarks API |
+| `tabz_move_bookmark` | ✅ Required | Chrome bookmarks API |
+| `tabz_delete_bookmark` | ✅ Required | Chrome bookmarks API |
 
 **Summary:**
 - **CDP-only tools (10):** Work with just Chrome + `--remote-debugging-port=9222`
-- **Extension-required (4):** Console logs, downloads API
+- **Extension-required (10):** Console logs, downloads API, bookmarks API
 - **Extension-preferred (2):** Tab management (accurate active tab detection)
 - **Hybrid (4):** Use both extension and CDP for best results
 

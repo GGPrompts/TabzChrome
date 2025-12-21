@@ -15,6 +15,20 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.1.18] - 2025-12-21
+
+### Added
+- **Bookmark MCP tools** - 6 new tools for Chrome bookmark management:
+  - `tabz_get_bookmark_tree` - Get bookmark folder hierarchy
+  - `tabz_search_bookmarks` - Find bookmarks by title/URL
+  - `tabz_save_bookmark` - Save URLs to bookmarks (with folder support)
+  - `tabz_create_folder` - Create bookmark folders
+  - `tabz_move_bookmark` - Move bookmarks between folders
+  - `tabz_delete_bookmark` - Remove bookmarks or folders
+- **skillsmp.com** - Added to default URL allowlist for `tabz_open_url`
+
+---
+
 ## [1.1.17] - 2025-12-21
 
 ### Improved

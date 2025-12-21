@@ -52,7 +52,7 @@ TabzChrome is designed to work seamlessly with Claude Code:
 
 ![MCP settings](docs/pages/screenshots/mcp-settings.png)
 
-Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 20 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
+Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 26 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
 
 **🎭 Power Features (Claude Code Integration):**
 
@@ -67,7 +67,7 @@ TabzChrome includes a [Claude Code plugin marketplace](.claude-plugin/marketplac
 | [**state-tracker**](plugins/state-tracker/) | hooks | Live Claude status tracking for terminal tab updates |
 | [**ctthandoff**](plugins/ctthandoff/) | command | Generate handoff summary, copy to clipboard, speak via TTS |
 | [**tabz-integration**](plugins/tabz-integration/) | command | Integration guide for connecting projects to TabzChrome |
-| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 20 browser control tools (screenshots, clicks, network capture) |
+| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 26 browser control tools (screenshots, clicks, bookmarks, network) |
 
 **Quick setup:** Plugins auto-load when you run Claude Code in the TabzChrome directory.
 
