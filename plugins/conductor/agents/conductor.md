@@ -48,6 +48,45 @@ curl -s -X POST http://localhost:8129/api/spawn \
 - Always use `--dangerously-skip-permissions`
 - Response includes `terminal.sessionName` - save for sending prompts
 
+### Spawning Documentation Viewer (TFE)
+
+TFE (Terminal File Explorer) can render markdown files with glamour. Spawn it alongside workers to display live documentation:
+
+```bash
+# View a markdown file with preview
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: TOKEN_HERE" \
+  -d '{"name": "Docs: CLAUDE.md", "workingDir": "/project", "command": "tfe --preview /project/CLAUDE.md"}'
+```
+
+Use cases:
+- **Show updated docs** - After a worker modifies README.md, spawn TFE to display it
+- **Reference during work** - Keep API docs visible while implementing
+- **Review changes** - Open changelogs or lesson-learned files
+
+The `--preview` flag auto-opens the preview pane with glamour-rendered markdown.
+
+**Viewing TFE state** - capture what's displayed:
+```bash
+tmux capture-pane -t ctt-docs-xxx -p
+```
+
+**Scrolling the preview** - send keys to navigate:
+```bash
+tmux send-keys -t ctt-docs-xxx NPage   # Page down
+tmux send-keys -t ctt-docs-xxx PPage   # Page up
+tmux send-keys -t ctt-docs-xxx Down    # Scroll one line down
+tmux send-keys -t ctt-docs-xxx Up      # Scroll one line up
+```
+
+**Switch focus and navigate files**:
+```bash
+tmux send-keys -t ctt-docs-xxx Tab     # Toggle focus left/right pane
+tmux send-keys -t ctt-docs-xxx Down    # Select next file (when left focused)
+tmux send-keys -t ctt-docs-xxx Enter   # Open selected file
+```
+
 ### Spawning TUI Tools & Other Profiles
 
 Check what profiles the user has configured:
@@ -59,6 +98,7 @@ Look for useful tools by category:
 - **Git Tools** - Git TUIs for branch management, commits
 - **TUI Tools** - File explorers, system monitors, log viewers
 - **Editors** - Terminal editors
+- **Documentation** - `tfe --preview <file.md>` for markdown viewing
 
 Spawn a profile's tool when relevant:
 ```bash
@@ -233,6 +273,26 @@ Use the debugging skill to verify each endpoint works.
 @src/models/user.ts
 ```
 
+### Documentation Alongside Work
+
+Spawn a worker and a docs viewer side-by-side:
+
+```bash
+TOKEN=$(cat /tmp/tabz-auth-token)
+
+# Worker terminal
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" -H "X-Auth-Token: $TOKEN" \
+  -d '{"name": "Claude: Update Docs", "workingDir": "/project", "command": "claude --dangerously-skip-permissions"}'
+
+# Docs viewer (TFE with markdown preview)
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" -H "X-Auth-Token: $TOKEN" \
+  -d '{"name": "Docs: README", "workingDir": "/project", "command": "tfe --preview /project/README.md"}'
+```
+
+After the worker updates a file, TFE can be refreshed by pressing `r` or the user can navigate to the updated file.
+
 ### Cleanup
 
 ```bash
@@ -254,6 +314,12 @@ tmux ls | grep "^ctt-" | cut -d: -f1 | xargs -I {} tmux kill-session -t {}
 | `conductor:skill-picker` | Task tool (subagent) | Search/install skills from skillsmp.com |
 | `tabz-manager` | Spawn as terminal (`--agent tabz-manager`) | Browser automation (visible for safety) |
 
+## Tools
+
+| Tool | How to Spawn | Purpose |
+|------|--------------|---------|
+| `tfe --preview <file>` | Spawn API with command | Markdown docs viewer (glamour rendering) |
+
 ## Best Practices
 
 1. **Read CAPABILITIES.md first** - Know what's available
@@ -266,6 +332,7 @@ tmux ls | grep "^ctt-" | cut -d: -f1 | xargs -I {} tmux kill-session -t {}
 8. **Spawn tabz-manager as terminal** - Visible browser automation for safety
 9. **One goal per worker** - Workers can spawn their own subagents
 10. **Clean up when done** - Kill terminals after tasks complete
+11. **Spawn TFE for docs** - Keep reference docs visible with `tfe --preview`
 
 ## Error Handling
 
