@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabz - Chrome Edition",
-  "version": "1.1.11",
+  "version": "1.1.15",
   "description": "Full-featured terminal manager in your browser with xterm.js, tmux integration, and multi-window support",
   "permissions": [
     "storage",
