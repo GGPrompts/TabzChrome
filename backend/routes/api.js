@@ -1473,13 +1473,12 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
 
       // Extract profile name from session ID (ctt-ProfileName-shortId)
       const parts = sessionName.split('-');
-      const profileName = parts.length >= 2 ? parts[1] : 'Recovered';
-      const displayName = `${profileName} (recovered)`;
+      const profileName = parts.length >= 2 ? parts[1] : 'Terminal';
 
       // Register the terminal with the existing tmux session
       const terminal = await terminalRegistry.registerTerminal({
         id: sessionName,  // Use tmux session name as ID
-        name: displayName,
+        name: profileName,
         terminalType: 'bash',
         workingDir,
         useTmux: true,

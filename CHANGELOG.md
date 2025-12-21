@@ -31,6 +31,8 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 ### Fixed
 - **State-tracker preserves claude_session_id** - Fixed race condition where state-tracker would overwrite the `claude_session_id` field set by statusline, causing context percentage to disappear from tabs
 - **WebGL renderer now shows diffs and box-drawing correctly** - Changed WebGL background from semi-transparent to fully opaque. All themes now use solid `black` colors matching their gradient starts instead of transparent. High-contrast dark uses pure `#000000` for maximum contrast.
+- **Detach now announces "detached" instead of "closed"** - Fixed race condition where audio announcement fired before detach flag was set
+- **Reattached terminals restore original profile name** - When recovering terminals from ghost badge, the matched profile's name (including emoji) is now restored instead of showing just the sanitized name
 
 ### Documentation
 - Added statusline example to state-tracker plugin (`examples/statusline-with-context.sh`)

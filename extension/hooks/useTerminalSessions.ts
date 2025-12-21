@@ -307,9 +307,9 @@ export function useTerminalSessions({
                 return sanitizedProfileName === sanitizedNameFromId
               })
               if (matchedProfile) {
-                // Update the session with the matched profile
+                // Update the session with the matched profile AND restore original name
                 setSessions(prev => prev.map(s =>
-                  s.id === terminal.id ? { ...s, profile: matchedProfile } : s
+                  s.id === terminal.id ? { ...s, profile: matchedProfile, name: matchedProfile.name } : s
                 ))
               }
             })

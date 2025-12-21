@@ -582,6 +582,10 @@ function SidePanelTerminal() {
     if (!terminal) return
 
     try {
+      // Mark as detached BEFORE fetch - backend broadcasts terminal-closed immediately
+      // and the audio hook needs to know it's a detach before that message arrives
+      markSessionDetached(terminal.id)
+
       // Use DELETE /api/agents/:id?force=false to remove from registry but preserve tmux session
       // This makes the session appear as "orphaned" in the Ghost Badge
       const response = await fetch(`http://localhost:8129/api/agents/${terminal.id}?force=false`, {
@@ -590,8 +594,6 @@ function SidePanelTerminal() {
 
       const data = await response.json()
       if (data.success) {
-        // Mark as detached so audio says "detached" instead of "closed"
-        markSessionDetached(terminal.id)
         // Update local state immediately for responsiveness
         setSessions(prev => prev.filter(s => s.id !== terminal.id))
         if (currentSession === terminal.id) {
