@@ -30,43 +30,20 @@
 }
 
 /* ============================================
-   XTERM.JS TRANSPARENT BACKGROUND
-   Force all xterm elements to be transparent
-   so container gradient backgrounds show through
+   XTERM.JS TRANSPARENT BACKGROUND (Canvas Only)
+   Force xterm elements transparent for Canvas renderer.
+   WebGL can't handle transparency - skip these rules.
    ============================================ */
 
-/* Main xterm container */
-.xterm {
+.terminal-container:not(.webgl-renderer) .xterm,
+.terminal-container:not(.webgl-renderer) .xterm-screen,
+.terminal-container:not(.webgl-renderer) .xterm-viewport,
+.terminal-container:not(.webgl-renderer) .xterm canvas,
+.terminal-container:not(.webgl-renderer) .xterm-screen canvas,
+.terminal-container:not(.webgl-renderer) .xterm-helper-textarea,
+.terminal-container:not(.webgl-renderer) .xterm-rows {
   background: transparent !important;
-}
-
-/* Screen container */
-.xterm-screen {
-  background: transparent !important;
-}
-
-/* Viewport (scroll area) */
-.xterm-viewport {
   background-color: transparent !important;
-}
-
-/* All canvas elements */
-.xterm canvas {
-  background: transparent !important;
-}
-
-.xterm-screen canvas {
-  background-color: transparent !important;
-}
-
-/* Helper textarea */
-.xterm-helper-textarea {
-  background-color: transparent !important;
-}
-
-/* Rows container */
-.xterm-rows {
-  background: transparent !important;
 }
 
 /* Remove text shadows for crisp rendering */

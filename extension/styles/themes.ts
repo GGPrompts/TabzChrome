@@ -60,7 +60,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#e0e0e0',
         cursor: '#00d4ff',
         selectionBackground: 'rgba(0, 212, 255, 0.3)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#000000',  // Pure black for maximum contrast with WebGL
         red: '#ff4757',           // Errors - bright, attention-grabbing
         green: '#5af78e',         // Success - vibrant green
         yellow: '#ffd93d',        // Warnings - warm yellow
@@ -85,7 +85,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#1a1a2e',
         cursor: '#0077b6',
         selectionBackground: 'rgba(0, 119, 182, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#f8f9fa',  // Match gradient start (solid for WebGL)
         red: '#c41a16',
         green: '#007400',
         yellow: '#7a5d00',
@@ -115,7 +115,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#f8f8f2',
         cursor: '#ff79c6',
         selectionBackground: 'rgba(255, 121, 198, 0.25)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#1a1b26',  // Match gradient start (not transparent - WebGL can't handle it)
         red: '#ff5555',           // Dracula red
         green: '#50fa7b',         // Dracula green
         yellow: '#f1fa8c',        // Dracula yellow
@@ -140,7 +140,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#282a36',
         cursor: '#c850a0',
         selectionBackground: 'rgba(200, 80, 160, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#f5f3f7',  // Match gradient start (solid for WebGL)
         red: '#d63031',
         green: '#00a86b',
         yellow: '#9c7b00',
@@ -170,7 +170,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#cad3f5',
         cursor: '#91d7e3',
         selectionBackground: 'rgba(145, 215, 227, 0.25)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#12162a',  // Match gradient start (not transparent - WebGL can't handle it)
         red: '#ed8796',           // Soft red - gentle errors
         green: '#a6da95',         // Soft green - calm success
         yellow: '#eed49f',        // Soft yellow - gentle warnings
@@ -195,7 +195,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#1e2030',
         cursor: '#0891b2',
         selectionBackground: 'rgba(8, 145, 178, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#e8f4fc',  // Match gradient start (solid for WebGL)
         red: '#be123c',
         green: '#059669',
         yellow: '#a16207',
@@ -225,7 +225,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#00ffff',
         cursor: '#ff00ff',
         selectionBackground: 'rgba(255, 0, 255, 0.3)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#0a0014',  // Match gradient start (not transparent - WebGL can't handle it)
         red: '#ff0055',           // Neon red - explosive errors
         green: '#00ff88',         // Neon green - electrified success
         yellow: '#ffee00',        // Neon yellow - glowing warnings
@@ -250,7 +250,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#1a0033',
         cursor: '#c026d3',
         selectionBackground: 'rgba(192, 38, 211, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#fdf4ff',  // Match gradient start for light mode
         red: '#db2777',
         green: '#059669',
         yellow: '#d97706',
@@ -280,7 +280,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#ffb86c',
         cursor: '#ffcc95',
         selectionBackground: 'rgba(255, 184, 108, 0.25)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#1a1308',  // Match gradient start (not transparent - WebGL can't handle it)
         red: '#ff6b35',           // Warm red - errors
         green: '#a3e635',         // Lime green - success
         yellow: '#fde047',        // Bright yellow - warnings
@@ -305,7 +305,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#78350f',
         cursor: '#b45309',
         selectionBackground: 'rgba(180, 83, 9, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#fffbeb',  // Match gradient start for light mode
         red: '#c2410c',
         green: '#4d7c0f',
         yellow: '#a16207',
@@ -335,7 +335,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#5af78e',    // Bright matrix green for main text
         cursor: '#7dff94',
         selectionBackground: 'rgba(90, 247, 142, 0.25)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#000f00',  // Match gradient start (not transparent - WebGL can't handle it)
         red: '#ff4757',           // Bright red - errors still need to pop
         green: '#5af78e',         // Bright green - THE matrix color
         yellow: '#c0ff00',        // Lime/chartreuse - warnings visible against green
@@ -360,7 +360,7 @@ export const themes: Record<string, Theme> = {
         foreground: '#166534',
         cursor: '#15803d',
         selectionBackground: 'rgba(22, 163, 74, 0.2)',
-        black: 'rgba(0, 0, 0, 0)',  // Transparent to blend with background
+        black: '#f0fdf4',  // Match gradient start for light mode
         red: '#dc2626',
         green: '#15803d',
         yellow: '#4b5563',

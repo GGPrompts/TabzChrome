@@ -11,22 +11,20 @@ import { getThemeColors, getBackgroundGradient, ThemeColors } from '../styles/th
 
 /**
  * Adjust theme background for WebGL renderer compatibility
- * WebGL needs slight opacity (not fully transparent) for proper rendering
- * Canvas renderer works fine with full transparency
+ * WebGL renders transparent as black - use slight tint matching gradient.
+ * Note: WebGL is dark-mode only (light mode uses Canvas renderer).
  */
 function adjustThemeForWebGL(colors: ThemeColors, useWebGL: boolean): ThemeColors {
   if (!useWebGL) return colors
-
-  // Parse existing background to get RGB values, add 50% opacity for WebGL
-  // Theme backgrounds are rgba(0,0,0,0) - we add a visible dark tint
-  const bg = colors.background
-  const rgbaMatch = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-  if (rgbaMatch) {
-    const [, r, g, b] = rgbaMatch
-    return { ...colors, background: `rgba(${r}, ${g}, ${b}, 0.5)` }
+  const hex = colors.black
+  const match = hex.match(/^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})/)
+  if (match) {
+    const r = parseInt(match[1], 16)
+    const g = parseInt(match[2], 16)
+    const b = parseInt(match[3], 16)
+    return { ...colors, background: `rgba(${r}, ${g}, ${b}, 1)` }
   }
-  // Fallback: add dark overlay for WebGL
-  return { ...colors, background: 'rgba(10, 10, 15, 0.5)' }
+  return { ...colors, background: colors.black }
 }
 
 /**
@@ -1038,7 +1036,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col terminal-container"
+      className={`h-full flex flex-col terminal-container${useWebGL ? ' webgl-renderer' : ''}`}
       style={{
         background: backgroundGradient,
       }}

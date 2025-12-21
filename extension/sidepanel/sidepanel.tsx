@@ -361,7 +361,7 @@ function SidePanelTerminal() {
       }
       if (typeof result.useWebGL === 'boolean') {
         setUseWebGL(result.useWebGL)
-        // WebGL requires dark mode - enforce this on load
+        // WebGL requires dark mode - enforce on load
         if (result.useWebGL && result.isDark === false) {
           setIsDark(true)
           chrome.storage.local.set({ isDark: true })
@@ -791,7 +791,6 @@ function SidePanelTerminal() {
             onClick={() => {
               const newValue = !useWebGL
               chrome.storage.local.set({ useWebGL: newValue, isDark: newValue ? true : isDark }, () => {
-                // Small delay ensures storage is fully propagated before reload reads it back
                 setTimeout(() => window.location.reload(), 150)
               })
             }}
@@ -800,7 +799,7 @@ function SidePanelTerminal() {
                 ? 'bg-[#00ff88]/20 text-[#00ff88] hover:bg-[#00ff88]/30'
                 : 'hover:bg-purple-500/10 text-gray-400 hover:text-purple-400'
             }`}
-            title={useWebGL ? 'WebGL (dark only, crisp) - click to switch to Canvas' : 'Canvas (light/dark) - click to switch to WebGL'}
+            title={useWebGL ? 'WebGL (dark only, crisp) - click for Canvas' : 'Canvas (light/dark) - click for WebGL'}
             aria-label={useWebGL ? 'Switch to Canvas renderer' : 'Switch to WebGL renderer'}
           >
             {useWebGL ? <Zap className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
