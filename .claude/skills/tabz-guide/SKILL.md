@@ -91,12 +91,12 @@ Neural text-to-speech notifications for Claude Code status changes. Audio genera
 **Key settings** (Settings → Audio):
 - **Voice**: 10 neural voices, or "Random" for unique voice per terminal
 - **Rate**: Speech speed (-50% to +100%)
-- **Pitch**: Voice pitch (-20Hz to +50Hz) - higher = more urgent
+- **Pitch**: Voice pitch (-200Hz to +300Hz) - higher = more urgent
 - **Events**: Ready, session start, tools, subagents, context warnings
 
 **Context alerts auto-elevate pitch + rate:**
-- 50% warning: `+30Hz`, `+15%` rate
-- 75% critical: `+50Hz`, `+30%` rate
+- 50% warning: `+100Hz`, `+15%` rate
+- 75% critical: `+200Hz`, `+30%` rate
 
 **API example:**
 ```bash

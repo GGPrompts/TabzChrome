@@ -137,9 +137,9 @@ export function AudioTab({
             </label>
             <input
               type="range"
-              min="-20"
-              max="50"
-              step="10"
+              min="-200"
+              max="300"
+              step="50"
               value={parseInt(audioSettings.pitch)}
               onChange={(e) => {
                 const val = parseInt(e.target.value)
@@ -148,12 +148,12 @@ export function AudioTab({
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>-20Hz (lower)</span>
+              <span>-200Hz (lower)</span>
               <span>0Hz</span>
-              <span>+50Hz (higher)</span>
+              <span>+300Hz (higher)</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Context alerts auto-elevate: warning (+30Hz, +15% rate), critical (+50Hz, +30% rate)
+              Context alerts auto-elevate: warning (+100Hz, +15% rate), critical (+200Hz, +30% rate)
             </p>
           </div>
 

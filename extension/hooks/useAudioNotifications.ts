@@ -473,7 +473,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
 
       // EVENT: Context window threshold alerts
       // Uses hysteresis: only triggers when CROSSING a threshold (not on every poll above it)
-      // Uses elevated pitch + rate for urgent/alert tone
+      // Uses elevated pitch + rate for urgent/alert tone (wide Hz range for noticeable difference)
       const currentContextPct = status.context_pct
       const prevContextPct = prevContextPctRef.current.get(terminalId)
 
@@ -485,7 +485,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         if (audioSettings.events.contextWarning) {
           const crossedWarningUp = prevContextPct < 50 && currentContextPct >= 50
           if (crossedWarningUp) {
-            playAudio(`Warning! ${displayName} 50 percent context!`, session, false, { pitch: '+30Hz', rate: '+15%' })
+            playAudio(`Warning! ${displayName} 50 percent context!`, session, false, { pitch: '+100Hz', rate: '+15%' })
           }
         }
 
@@ -494,7 +494,7 @@ export function useAudioNotifications({ sessions, claudeStatuses }: UseAudioNoti
         if (audioSettings.events.contextCritical) {
           const crossedCriticalUp = prevContextPct < 75 && currentContextPct >= 75
           if (crossedCriticalUp) {
-            playAudio(`Alert! ${displayName} context critical!`, session, false, { pitch: '+50Hz', rate: '+30%' })
+            playAudio(`Alert! ${displayName} context critical!`, session, false, { pitch: '+200Hz', rate: '+30%' })
           }
         }
       }

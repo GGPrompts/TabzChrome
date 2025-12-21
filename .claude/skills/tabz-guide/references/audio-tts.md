@@ -58,17 +58,18 @@ Voice pitch in Hz. Format: `+NHz` or `-NHz`
 
 | Value | Effect |
 |-------|--------|
-| `-20Hz` | Lower, calmer tone |
+| `-200Hz` | Much lower, calmer tone |
+| `-100Hz` | Lower tone |
 | `+0Hz` | Normal pitch (default) |
-| `+20Hz` | Higher, mild urgency |
-| `+40Hz` | Higher, alert tone |
-| `+50Hz` | Maximum urgency |
+| `+100Hz` | Higher, noticeable urgency |
+| `+200Hz` | High alert tone |
+| `+300Hz` | Maximum pitch |
 
-Range: -20Hz to +50Hz
+Range: -200Hz to +300Hz (wider range for noticeable difference)
 
 **Context alerts auto-elevate pitch + rate for distinct urgency:**
-- 50% warning: `+30Hz` pitch, `+15%` rate, "Warning!" prefix
-- 75% critical: `+50Hz` pitch, `+30%` rate, "Alert!" prefix
+- 50% warning: `+100Hz` pitch, `+15%` rate, "Warning!" prefix
+- 75% critical: `+200Hz` pitch, `+30%` rate, "Alert!" prefix
 
 ### Volume
 
