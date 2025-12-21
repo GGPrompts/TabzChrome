@@ -828,6 +828,52 @@ router.post('/tmux/refresh/:name', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * DELETE /api/tmux/sessions/bulk - Kill multiple tmux sessions
+ * Body: { sessions: string[] } - Array of tmux session names to kill
+ * WARNING: This is destructive and cannot be undone
+ * NOTE: Must be defined BEFORE /sessions/:name to avoid route conflict
+ */
+router.delete('/tmux/sessions/bulk', asyncHandler(async (req, res) => {
+  const { sessions } = req.body;
+  const { execSync } = require('child_process');
+
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'sessions array is required'
+    });
+  }
+
+  const results = {
+    killed: [],
+    failed: []
+  };
+
+  for (const sessionName of sessions) {
+    try {
+      execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null`);
+      results.killed.push(sessionName);
+
+      // Broadcast to WebSocket clients so UI removes the tab (if it was registered)
+      if (sessionName.startsWith('ctt-')) {
+        const broadcast = req.app.get('broadcast');
+        if (broadcast) {
+          broadcast({ type: 'terminal-closed', data: { id: sessionName } });
+        }
+      }
+    } catch (err) {
+      results.failed.push({ session: sessionName, error: 'Session not found or already killed' });
+    }
+  }
+
+  res.json({
+    success: true,
+    data: results,
+    message: `Killed ${results.killed.length} session(s), ${results.failed.length} failed`
+  });
+}));
+
+/**
  * DELETE /api/tmux/sessions/:name - Kill a tmux session
  * WARNING: This is destructive and cannot be undone
  */
@@ -1509,51 +1555,6 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
     success: true,
     data: results,
     message: `Reattached ${results.success.length} session(s), ${results.failed.length} failed`
-  });
-}));
-
-/**
- * DELETE /api/tmux/sessions/bulk - Kill multiple tmux sessions
- * Body: { sessions: string[] } - Array of tmux session names to kill
- * WARNING: This is destructive and cannot be undone
- */
-router.delete('/tmux/sessions/bulk', asyncHandler(async (req, res) => {
-  const { sessions } = req.body;
-  const { execSync } = require('child_process');
-
-  if (!Array.isArray(sessions) || sessions.length === 0) {
-    return res.status(400).json({
-      success: false,
-      error: 'sessions array is required'
-    });
-  }
-
-  const results = {
-    killed: [],
-    failed: []
-  };
-
-  for (const sessionName of sessions) {
-    try {
-      execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null`);
-      results.killed.push(sessionName);
-
-      // Broadcast to WebSocket clients so UI removes the tab (if it was registered)
-      if (sessionName.startsWith('ctt-')) {
-        const broadcast = req.app.get('broadcast');
-        if (broadcast) {
-          broadcast({ type: 'terminal-closed', data: { id: sessionName } });
-        }
-      }
-    } catch (err) {
-      results.failed.push({ session: sessionName, error: 'Session not found or already killed' });
-    }
-  }
-
-  res.json({
-    success: true,
-    data: results,
-    message: `Killed ${results.killed.length} session(s), ${results.failed.length} failed`
   });
 }));
 

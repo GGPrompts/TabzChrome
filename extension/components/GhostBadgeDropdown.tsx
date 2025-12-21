@@ -62,14 +62,24 @@ export function GhostBadgeDropdown({
 }: GhostBadgeDropdownProps) {
   // Focus index: -1 = nothing, 0 = Select All, 1+ = sessions (index - 1)
   const [focusedIndex, setFocusedIndex] = useState(-1)
+  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
 
-  // Reset focus when dropdown opens/closes
+  // Reset focus and status when dropdown opens/closes
   useEffect(() => {
     if (showDropdown) {
       setFocusedIndex(-1)
+      setStatusMessage(null)
     }
   }, [showDropdown])
+
+  // Auto-clear status message after 3 seconds
+  useEffect(() => {
+    if (statusMessage) {
+      const timer = setTimeout(() => setStatusMessage(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [statusMessage])
 
   // Scroll focused item into view
   useEffect(() => {
@@ -255,6 +265,17 @@ export function GhostBadgeDropdown({
             })}
           </div>
 
+          {/* Status Message */}
+          {statusMessage && (
+            <div className={`px-3 py-2 text-xs ${
+              statusMessage.type === 'success'
+                ? 'bg-green-500/10 text-green-400 border-t border-green-500/30'
+                : 'bg-red-500/10 text-red-400 border-t border-red-500/30'
+            }`}>
+              {statusMessage.type === 'success' ? '✓' : '✗'} {statusMessage.text}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="px-3 py-2 border-t border-gray-800 flex gap-2">
             <button
@@ -263,7 +284,9 @@ export function GhostBadgeDropdown({
                 const result = await onReattach(Array.from(selectedOrphans))
                 if (result.success) {
                   setSelectedOrphans(new Set())
-                  // Keep dropdown open to show updated list
+                  setStatusMessage({ text: result.message, type: 'success' })
+                } else {
+                  setStatusMessage({ text: result.message, type: 'error' })
                 }
               }}
               disabled={selectedOrphans.size === 0}
@@ -282,6 +305,9 @@ export function GhostBadgeDropdown({
                   const result = await onKill(Array.from(selectedOrphans))
                   if (result.success) {
                     setSelectedOrphans(new Set())
+                    setStatusMessage({ text: result.message, type: 'success' })
+                  } else {
+                    setStatusMessage({ text: result.message, type: 'error' })
                   }
                 }
               }}

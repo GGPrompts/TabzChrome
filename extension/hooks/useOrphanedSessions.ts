@@ -107,9 +107,44 @@ export function useOrphanedSessions(): UseOrphanedSessionsResult {
       // Refresh the orphaned sessions list after killing
       await fetchOrphanedSessions()
 
+      const killedCount = result.data?.killed?.length || 0
+      const message = result.message || `Killed ${killedCount} session(s)`
+
+      // Play audio notification if enabled
+      if (result.success && killedCount > 0) {
+        try {
+          const stored = await chrome.storage.local.get('audioSettings')
+          const audioSettings = (stored.audioSettings || {}) as {
+            enabled?: boolean
+            events?: { sessionStart?: boolean }
+            voice?: string
+            rate?: string
+            volume?: number
+          }
+          if (audioSettings.enabled && audioSettings.events?.sessionStart) {
+            const text = killedCount === 1
+              ? `Killed orphaned session`
+              : `Killed ${killedCount} orphaned sessions`
+            await fetch(`${API_BASE}/api/audio/speak`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text,
+                voice: audioSettings.voice || 'en-US-AndrewMultilingualNeural',
+                rate: audioSettings.rate || '+0%',
+                volume: audioSettings.volume ?? 0.7
+              })
+            })
+          }
+        } catch (audioErr) {
+          // Silently fail audio - not critical
+          console.warn('Audio notification failed:', audioErr)
+        }
+      }
+
       return {
         success: result.success,
-        message: result.message || `Killed ${result.data?.killed?.length || 0} session(s)`
+        message
       }
     } catch (err) {
       return {
