@@ -466,7 +466,6 @@ Tabz includes an **MCP server** with 20 tools that let Claude Code control your 
 | `tabz_get_element` | Inspect element HTML/CSS |
 | `tabz_enable_network_capture` | Start capturing network requests |
 | `tabz_get_network_requests` | List captured XHR/fetch requests |
-| `tabz_get_api_response` | Get full response body for a request |
 | `tabz_clear_network_requests` | Clear captured requests |
 | `tabz_download_file` | Download any URL to disk |
 | `tabz_get_downloads` | List recent downloads with status |
@@ -491,31 +490,20 @@ Install the `tabz-mcp` skill for guided browser automation. The skill dynamicall
 
 **Location:** `~/.claude/skills/tabz-mcp/`
 
-### What Requires Remote Debugging?
+### No Remote Debugging Required
 
-| Feature | Remote Debugging Required? |
-|---------|---------------------------|
-| Terminal sidebar | No |
-| Profiles, audio, themes | No |
-| Ghost badge, session persistence | No |
-| Tab management (`list_tabs`, `switch_tab`) | No (extension-based) |
-| Downloads (`download_file`, `download_image`) | No (extension-based) |
-| Console logs | No (extension-based) |
-| **Screenshots, clicks, fill** | **Yes** (CDP) |
-| **Network capture** | **Yes** (CDP) |
+**All 26 MCP tools now work using Chrome Extension APIs only!** No `--remote-debugging-port=9222` flag needed.
 
-Many MCP tools now work without remote debugging! Tab management uses the extension API for accurate active tab detection (Claude knows which tab you're actually looking at). Only advanced features like screenshots and network capture require CDP.
+| Feature | Works Out of the Box |
+|---------|---------------------|
+| Terminal sidebar | ✓ |
+| Profiles, audio, themes | ✓ |
+| Tab management, screenshots, clicks, fill | ✓ (Extension APIs) |
+| Network capture, downloads, console logs | ✓ (Extension APIs) |
 
-### MCP Setup (WSL2)
+### MCP Setup
 
-1. **Start Chrome with remote debugging:**
-   ```cmd
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:\Temp\chrome-debug
-   ```
-
-   > **Tip:** Create a desktop shortcut for this command so you don't forget the flag.
-
-2. **Configure MCP** in your project's `.mcp.json`:
+**Configure MCP** in your project's `.mcp.json`:
    ```json
    {
      "mcpServers": {

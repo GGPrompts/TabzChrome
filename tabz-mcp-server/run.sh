@@ -3,8 +3,6 @@
 # Use this on native Linux or macOS (not WSL2)
 #
 # For WSL2, use run-wsl.sh which invokes Windows node.exe
-# for proper Chrome DevTools Protocol access.
-#
 # For auto-detection, use run-auto.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

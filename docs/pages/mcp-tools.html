@@ -132,11 +132,6 @@
                         <td>List captured XHR/fetch requests</td>
                     </tr>
                     <tr>
-                        <td><code>tabz_get_api_response</code></td>
-                        <td>"get response", "API response body"</td>
-                        <td>Get full response body for a request</td>
-                    </tr>
-                    <tr>
                         <td><code>tabz_clear_network_requests</code></td>
                         <td>"clear network", "reset capture"</td>
                         <td>Clear captured network requests</td>
@@ -541,20 +536,6 @@
             </div>
         </div>
 
-        <div class="tool-card">
-            <h3>tabz_get_api_response</h3>
-            <p class="description">Get the full response body for a specific network request by its request ID.</p>
-            <div class="triggers">
-                <h4>Trigger phrases:</h4>
-                <span class="trigger-tag">"get response body"</span>
-                <span class="trigger-tag">"show API response"</span>
-                <span class="trigger-tag">"what did that request return"</span>
-            </div>
-            <div class="code-wrapper">
-                <div class="code-block"><code><span class="comment">// Get response by request ID (from get_network_requests)</span>
-{ <span class="string">"requestId"</span>: <span class="string">"12345.67"</span> }</code></div>
-            </div>
-        </div>
 
         <div class="tool-card">
             <h3>tabz_clear_network_requests</h3>
@@ -682,46 +663,28 @@
                     <code>.mcp.json</code> in project root
                 </div>
             </div>
-            <h3 style="margin-top: 1.5rem;">What Requires Chrome Debug Mode?</h3>
+            <h3 style="margin-top: 1.5rem;">No Chrome Debug Mode Required</h3>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Most tools work without debug mode. Only these require <code>--remote-debugging-port=9222</code>:
+                <strong>All 26 tools work using Chrome Extension APIs only.</strong> No <code>--remote-debugging-port=9222</code> flag needed.
             </p>
-            <table style="font-size: 0.9rem;">
-                <thead>
-                    <tr>
-                        <th>Tool</th>
-                        <th>Without Debug</th>
-                        <th>With Debug</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Tab management (list, switch, rename)</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                    </tr>
-                    <tr>
-                        <td>Download tools</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                    </tr>
-                    <tr>
-                        <td>Console logs</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                    </tr>
-                    <tr>
-                        <td>Screenshots, clicks, fill</td>
-                        <td style="color: var(--red);">✗ Requires debug</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                    </tr>
-                    <tr>
-                        <td>Network capture</td>
-                        <td style="color: var(--red);">✗ Requires debug</td>
-                        <td style="color: var(--green);">✓ Works</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="ref-grid">
+                <div class="ref-item" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3);">
+                    <h4 style="color: var(--green);">✓ Screenshots</h4>
+                    <code>tabz_screenshot</code>, <code>tabz_screenshot_full</code>
+                </div>
+                <div class="ref-item" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3);">
+                    <h4 style="color: var(--green);">✓ Interaction</h4>
+                    <code>tabz_click</code>, <code>tabz_fill</code>
+                </div>
+                <div class="ref-item" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3);">
+                    <h4 style="color: var(--green);">✓ Network</h4>
+                    <code>tabz_enable_network_capture</code>, <code>tabz_get_network_requests</code>
+                </div>
+                <div class="ref-item" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3);">
+                    <h4 style="color: var(--green);">✓ All Others</h4>
+                    Tab management, downloads, bookmarks, scripting
+                </div>
+            </div>
         </section>
     </main>
 

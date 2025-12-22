@@ -158,7 +158,7 @@ cd tabz-mcp-server && npm run build
 
 ### MCP Server: Tabz
 
-**20 browser automation tools** for controlling Chrome programmatically:
+**26 browser automation tools** for controlling Chrome programmatically (all use Extension APIs, no CDP required):
 
 | Category | Tools | Purpose |
 |----------|-------|---------|
@@ -166,7 +166,7 @@ cd tabz-mcp-server && npm run build
 | Screenshots | `tabz_screenshot`, `tabz_screenshot_full` | Capture page visuals |
 | Interaction | `tabz_click`, `tabz_fill` | Click elements, fill forms |
 | Downloads | `tabz_download_image`, `tabz_download_file` | Download files from pages |
-| Network | `tabz_enable_network_capture`, `tabz_get_api_response` | Monitor API calls |
+| Network | `tabz_enable_network_capture`, `tabz_get_network_requests` | Monitor API calls |
 | Scripting | `tabz_execute_script`, `tabz_get_console_logs` | Run JS, debug |
 
 **Requirements:**

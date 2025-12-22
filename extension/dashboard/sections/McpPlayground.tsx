@@ -34,7 +34,6 @@ const MCP_TOOLS: McpTool[] = [
   // Network monitoring
   { id: 'tabz_enable_network_capture', name: 'Enable Network', desc: 'Start capturing network requests', tokens: 950, category: 'Network' },
   { id: 'tabz_get_network_requests', name: 'Network Requests', desc: 'List captured XHR/fetch requests', tokens: 1400, category: 'Network' },
-  { id: 'tabz_get_api_response', name: 'API Response', desc: 'Get response body for a request', tokens: 1100, category: 'Network' },
   { id: 'tabz_clear_network_requests', name: 'Clear Network', desc: 'Clear captured requests', tokens: 400, category: 'Network' },
   // Downloads
   { id: 'tabz_download_file', name: 'Download File', desc: 'Download any URL to disk', tokens: 1200, category: 'Downloads' },

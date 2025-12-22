@@ -15,6 +15,27 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.0] - 2025-12-22
+
+### Changed
+- **No CDP required!** All 26 MCP tools now use Chrome Extension APIs exclusively
+  - No `--remote-debugging-port=9222` flag needed to launch Chrome
+  - No puppeteer-core dependency (smaller install, faster startup)
+  - Simpler setup - just install extension and start backend
+
+### Removed
+- **`tabz_get_api_response` tool** - Removed due to browser security restrictions preventing response body capture via Extension APIs. Use `tabz_get_network_requests` to see request metadata (URL, method, status, timing)
+
+### Updated
+- Documentation cleanup across all files:
+  - GitHub Pages (`docs/pages/mcp-tools.html`) - Updated tool list and requirements section
+  - README.md - Simplified MCP setup instructions
+  - WSL2_SETUP.md - Completely rewritten (much simpler now)
+  - All skills and agents updated to remove CDP references
+  - Dashboard MCP Settings page updated
+
+---
+
 ## [1.1.20] - 2025-12-21
 
 ### Added

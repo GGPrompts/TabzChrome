@@ -49,11 +49,11 @@ mcp-cli call tabz/tabz_enable_network_capture '{}'
 # 2. Navigate or interact with the page
 # (user interaction or tabz_click/tabz_fill)
 
-# 3. List captured requests
+# 3. List captured requests (includes URL, method, status, timing)
 mcp-cli call tabz/tabz_get_network_requests '{}'
 
-# 4. Get specific response body (use requestId from step 3)
-mcp-cli call tabz/tabz_get_api_response '{"requestId": "req-abc123"}'
+# 4. Filter for specific patterns
+mcp-cli call tabz/tabz_get_network_requests '{"filter": "api.github.com"}'
 ```
 
 ## Find Failed API Requests
@@ -66,11 +66,11 @@ mcp-cli call tabz/tabz_enable_network_capture '{}'
 
 # 2. Reproduce the issue (interact with page)
 
-# 3. Filter for errors (status 400+)
-mcp-cli call tabz/tabz_get_network_requests '{"statusMin": 400}'
+# 3. Filter for errors
+mcp-cli call tabz/tabz_get_network_requests '{"statusFilter": "error"}'
 
-# 4. Inspect the failed request
-mcp-cli call tabz/tabz_get_api_response '{"requestId": "req-xyz789"}'
+# 4. Clear captured requests when done
+mcp-cli call tabz/tabz_clear_network_requests '{}'
 ```
 
 ## Debug Page Errors

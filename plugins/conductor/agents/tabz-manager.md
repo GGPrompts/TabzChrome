@@ -49,7 +49,6 @@ Both accept optional `tabId` for background tab capture without switching focus.
 | `tabz_get_console_logs` | View browser console output |
 | `tabz_enable_network_capture` | Start capturing network requests |
 | `tabz_get_network_requests` | Get captured requests |
-| `tabz_get_api_response` | Get specific API response body |
 | `tabz_clear_network_requests` | Clear captured requests |
 
 ### Downloads
@@ -149,8 +148,8 @@ mcp-cli call tabz/tabz_enable_network_capture '{}'
 # Trigger the action, then get requests
 mcp-cli call tabz/tabz_get_network_requests '{}'
 
-# Get specific response body
-mcp-cli call tabz/tabz_get_api_response '{"urlPattern": "/api/users"}'
+# Filter for specific endpoints
+mcp-cli call tabz/tabz_get_network_requests '{"filter": "/api/users"}'
 ```
 
 ### Parallel Tab Operations

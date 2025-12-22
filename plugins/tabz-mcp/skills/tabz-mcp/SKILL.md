@@ -47,7 +47,7 @@ Discover tools by running `mcp-cli tools tabz`. Common categories include:
 | Interaction | `tabz_click`, `tabz_fill` | Interact with elements |
 | Screenshots | `tabz_screenshot*` | Capture page visuals |
 | Downloads | `tabz_download*` | Download files/images |
-| Network | `tabz_*network*`, `tabz_get_api_response` | Monitor API calls |
+| Network | `tabz_enable_network_capture`, `tabz_get_network_requests`, `tabz_clear_network_requests` | Monitor API calls |
 | Scripting | `tabz_execute_script`, `tabz_get_console_logs` | Run JS, debug |
 
 ## Quick Patterns

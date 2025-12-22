@@ -1,6 +1,6 @@
 # TabzChrome MCP Tools Reference
 
-TabzChrome provides 26 MCP tools for browser automation via Chrome Extension API and CDP.
+TabzChrome provides 26 MCP tools for browser automation via Chrome Extension APIs.
 
 ## Tool Categories
 
@@ -11,7 +11,7 @@ TabzChrome provides 26 MCP tools for browser automation via Chrome Extension API
 | **Interaction** | `tabz_click`, `tabz_fill`, `tabz_execute_script` | Click buttons, fill forms, run JS |
 | **Downloads** | `tabz_download_image`, `tabz_download_file`, `tabz_get_downloads`, `tabz_cancel_download` | Download files, track status, cancel downloads |
 | **Bookmarks** | `tabz_get_bookmark_tree`, `tabz_search_bookmarks`, `tabz_save_bookmark`, `tabz_create_folder`, `tabz_move_bookmark`, `tabz_delete_bookmark` | Organize bookmarks, save URLs |
-| **Network** | `tabz_enable_network_capture`, `tabz_get_api_response` | Monitor API calls, inspect responses |
+| **Network** | `tabz_enable_network_capture`, `tabz_get_network_requests`, `tabz_clear_network_requests` | Monitor API calls |
 | **Inspection** | `tabz_get_element`, `tabz_get_console_logs`, `tabz_get_page_info` | Debug, inspect HTML/CSS |
 
 ---
@@ -52,21 +52,12 @@ mcp-cli call tabz/tabz_switch_tab '{"tabId": 1762556601}'
 
 ## Setup Requirements
 
-### No CDP Required
+### All Tools Use Extension APIs
 
-These features work with just the extension and backend:
-- Tab management (`list_tabs`, `switch_tab`, `rename_tab`)
-- Downloads (`download_file`, `download_image`, `get_downloads`, `cancel_download`)
-- Bookmarks (`get_bookmark_tree`, `search_bookmarks`, `save_bookmark`, `create_folder`, `move_bookmark`, `delete_bookmark`)
-- Console logs (`get_console_logs`)
-- Page info (`get_page_info`)
-
-### CDP Required
-
-These features need Chrome launched with `--remote-debugging-port=9222`:
-- Screenshots (`tabz_screenshot`, `tabz_screenshot_full`)
-- Click/Fill (`tabz_click`, `tabz_fill`)
-- Network capture (`enable_network_capture`, `get_api_response`)
+All 26 tools work using Chrome Extension APIs only - no `--remote-debugging-port=9222` required:
+- Tab management, downloads, bookmarks
+- Screenshots, click/fill, element inspection
+- Network capture, console logs, scripting
 
 ---
 

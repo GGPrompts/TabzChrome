@@ -46,7 +46,7 @@
     ]
   },
   "background/background.ts": {
-    "file": "assets/background.ts-DcKjohUd.js",
+    "file": "assets/background.ts-eJiyeCMk.js",
     "name": "background.ts",
     "src": "background/background.ts",
     "isEntry": true
@@ -58,7 +58,7 @@
     "isEntry": true
   },
   "dashboard/index.html": {
-    "file": "assets/dashboard-Bc3yBS6n.js",
+    "file": "assets/dashboard-_7X9feFw.js",
     "name": "dashboard",
     "src": "dashboard/index.html",
     "isEntry": true,
@@ -81,7 +81,7 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-oxj5cosF.js",
+    "file": "assets/sidepanel.html-eKNRrxLF.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
