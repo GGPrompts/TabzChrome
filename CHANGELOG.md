@@ -15,7 +15,7 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
-## [1.1.19] - 2025-12-21
+## [1.1.20] - 2025-12-21
 
 ### Added
 - **Audio priority system** - High-priority audio (summaries, handoffs) now blocks low-priority status updates:
