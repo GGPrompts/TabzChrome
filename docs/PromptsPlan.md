@@ -188,6 +188,18 @@ interface PromptsState {
 - **Prompty files**: `~/projects/TFE/.prompts/` and `~/projects/TFE/examples/.prompts/`
 - **Similar**: VS Code Snippets, TextExpander, Raycast snippets
 
+## Phase 5: 3D Focus Integration
+
+- [ ] **Multi-terminal splits** - Combine selected terminals into tmux splits via `join-pane`
+- [ ] **3D Prompt Library** - Floating panel in 3D Focus with template list
+- [ ] **Broadcast to all** - Send same prompt to all splits simultaneously
+- [ ] **Helix browser** - 3D helix/spiral visualization of prompt library
+  - Zoom in/out navigation
+  - Grab to select
+  - Scroll through hundreds of prompts
+  - Could show prompt preview on hover/focus
+- [ ] **Split layouts** - 2x2, 3x1, custom arrangements in 3D space
+
 ## Open Questions
 
 1. Should enhancement use embedded terminal or API call?
