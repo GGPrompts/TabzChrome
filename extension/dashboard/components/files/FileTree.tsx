@@ -54,10 +54,13 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   // After that, user navigation controls currentPath
   useEffect(() => {
     if (!waitForLoad && !hasInitialized) {
-      // If basePath is still "~" but we have a cached non-home path, use that instead
-      // This prevents overwriting a project path with home on reload
-      const pathToUse = (basePath === "~" && fileTreePath && fileTreePath !== "~")
-        ? fileTreePath
+      // If basePath is still "~" but we have a cached tree for a real project, use that
+      // fileTreePath is now always expanded (e.g., /home/matt/projects/X), not tilde
+      const isBasePathHome = basePath === "~" || basePath === "/home/matt"
+      const hasCachedProject = fileTreePath && !fileTreePath.endsWith("/matt") && fileTreePath !== "~"
+
+      const pathToUse = (isBasePathHome && hasCachedProject)
+        ? fileTreePath  // Use cached project path
         : basePath
       setCurrentPath(pathToUse)
       setHasInitialized(true)
@@ -69,12 +72,21 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     const targetPath = path || currentPath
 
     // Use cached tree if available and path matches what we want
-    if (!forceRefresh && fileTree && fileTreePath === targetPath) {
-      // Just expand root if needed
-      if (fileTree && expandedFolders.size === 0) {
-        setExpandedFolders(new Set([fileTree.path]))
+    if (!forceRefresh && fileTree && fileTree.path) {
+      // fileTreePath is the expanded path from last fetch
+      // Check if target matches either the cached expanded path or if it's the same tilde path
+      const targetMatchesCached =
+        fileTree.path === targetPath ||  // Exact match (both expanded)
+        fileTreePath === targetPath ||   // Request path match
+        (targetPath.startsWith("~") && fileTree.path.endsWith(targetPath.slice(1)))  // ~/foo matches /home/user/foo
+
+      if (targetMatchesCached) {
+        // Just expand root if needed
+        if (expandedFolders.size === 0) {
+          setExpandedFolders(new Set([fileTree.path]))
+        }
+        return
       }
-      return
     }
 
     setLoading(true)
@@ -96,7 +108,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
 
       const data = await response.json()
       setFileTree(data)
-      setFileTreePath(targetPath)
+      // Store the API's resolved path (expanded ~) for consistent comparisons
+      setFileTreePath(data.path)
 
       // Expand root folder
       if (data) {

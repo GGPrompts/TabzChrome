@@ -109,6 +109,9 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
 
   // Save global working directory to Chrome storage AND backend API
   useEffect(() => {
+    if (!isLoaded) {
+      return
+    }
     chrome.storage.local.set({ globalWorkingDir })
 
     // Also sync to backend API (for dashboard)
@@ -119,10 +122,13 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
         body: JSON.stringify({ globalWorkingDir })
       }).catch(() => { /* ignore API errors */ })
     }
-  }, [globalWorkingDir])
+  }, [globalWorkingDir, isLoaded])
 
   // Save recent dirs to Chrome storage AND backend API
   useEffect(() => {
+    if (!isLoaded) {
+      return
+    }
     chrome.storage.local.set({ recentDirs })
 
     // Also sync to backend API (for dashboard)
@@ -133,7 +139,7 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
         body: JSON.stringify({ recentDirs })
       }).catch(() => { /* ignore API errors */ })
     }
-  }, [recentDirs])
+  }, [recentDirs, isLoaded])
 
   // Helper to add a directory to recent list
   const addToRecentDirs = useCallback((dir: string) => {

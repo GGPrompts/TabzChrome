@@ -43,8 +43,8 @@
     "file": "assets/themes-Dxk98ACV.js",
     "name": "themes"
   },
-  "_useWorkingDirectory-BOaq7BYu.js": {
-    "file": "assets/useWorkingDirectory-BOaq7BYu.js",
+  "_useWorkingDirectory-CzqKphSu.js": {
+    "file": "assets/useWorkingDirectory-CzqKphSu.js",
     "name": "useWorkingDirectory",
     "imports": [
       "_themes-Dxk98ACV.js"
@@ -63,14 +63,14 @@
     "isEntry": true
   },
   "dashboard/index.html": {
-    "file": "assets/dashboard-c3IHlzuw.js",
+    "file": "assets/dashboard-BVX5ZvZ3.js",
     "name": "dashboard",
     "src": "dashboard/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_useWorkingDirectory-BOaq7BYu.js",
+      "_useWorkingDirectory-CzqKphSu.js",
       "_extends-CF3RwP-h.js"
     ],
     "css": [
@@ -87,7 +87,7 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-BWriTAij.js",
+    "file": "assets/sidepanel.html-NRNlX898.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
@@ -95,7 +95,7 @@
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
       "_globals-DYs9MM2P.js",
-      "_useWorkingDirectory-BOaq7BYu.js"
+      "_useWorkingDirectory-CzqKphSu.js"
     ]
   }
 }
