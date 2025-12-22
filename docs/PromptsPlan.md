@@ -1,12 +1,163 @@
-# Prompts Section for TabzChrome Dashboard
+# File Filters for TabzChrome Dashboard
 
-## Status: Planning
+## Status: In Progress
 
-**Target:** Dashboard prompt engineering workbench with template library, variable filling, AI enhancement, and direct terminal sending.
+**Target:** TFE-style file filters integrated into the Files section - filter by Prompts, Claude ecosystem files, or Favorites.
 
 ## Overview
 
-A "Prompts" section that loads `.prompty` template files, allows filling variables, optionally enhances with AI, and sends directly to terminal sessions.
+Instead of a separate "Prompts" section, integrate filters directly into the existing Files section. Inspired by TFE's filter system with special colors for Claude-related files.
+
+## UI Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Dashboard Sidebar │  Files Section                                  │
+│ ──────────────────│─────────────────────────────────────────────────│
+│ 📁 Working Dir ▼  │  Files    [All] [📝 Prompts] [🤖 Claude] [⭐]   │
+│                   │  /home/matt/projects/TabzChrome        ⚙️       │
+│ • Terminals       ├─────────────┬───────────────────────────────────│
+│ • Files           │  FileTree   │  File Viewer                      │
+│ • Focus           │  (left)     │  (right with tabs)                │
+│ • Settings        │             │                                   │
+└───────────────────┴─────────────┴───────────────────────────────────┘
+```
+
+## Filter Definitions
+
+| Filter | Icon | Sources | Shows |
+|--------|------|---------|-------|
+| **All** | - | Working dir | Normal tree view |
+| **Prompts** | 📝 | `~/.prompts/`, `.prompts/`, `.claude/commands/` | `.prompty` files, markdown templates |
+| **Claude** | 🤖 | `~/.claude/`, `.claude/`, project root | CLAUDE.md, settings, skills, agents, hooks, .mcp.json |
+| **Favorites** | ⭐ | Saved paths | User-bookmarked files |
+
+## File Type Colors (TFE-Inspired)
+
+| Type | Light | Dark | Examples |
+|------|-------|------|----------|
+| claude-config | #D75F00 | #FF8700 | CLAUDE.md, settings.json |
+| prompt | #D7005F | #FF79C6 | .prompty, .prompts/ |
+| skill | #008B8B | #50FAE9 | .claude/skills/*.md |
+| agent | #8B00FF | #BD93F9 | .claude/agents/*.md, AGENTS.md |
+| hook | #5F8700 | #A6E22E | .claude/hooks/*.md |
+| mcp | #0087AF | #66D9EF | .mcp.json |
+| command | #0087D7 | #87CEEB | .claude/commands/*.md |
+
+## Implementation
+
+### Phase 1: Core Filter System
+- [x] Update plan document
+- [ ] Create `claudeFileTypes.ts` utility (detection + colors)
+- [ ] Add `activeFilter` state to FilesContext
+- [ ] Add filter toggle buttons to Files.tsx header
+- [ ] Backend: `GET /api/files/list?filter=X&workingDir=Y`
+- [ ] Create FilteredFileList component (grouped list view)
+- [ ] Apply colors to FileTree rendering
+
+### Phase 2: Prompts Features
+- [ ] Variable detection in `.prompty` files (scan for `{{var}}`)
+- [ ] Variable form when prompt file selected
+- [ ] Live preview with substitution
+- [ ] "Send to terminal" button for filled prompts
+- [ ] Terminal selector dropdown
+
+### Phase 3: Favorites
+- [ ] Star button on files/folders
+- [ ] Persist favorites to Chrome storage
+- [ ] Favorites filter view
+
+### Phase 4: Template Management
+- [ ] Create new template UI
+- [ ] Edit templates in-place
+- [ ] Duplicate/fork templates
+
+## Backend API
+
+### GET /api/files/list
+
+Returns grouped file list for a filter.
+
+**Request:**
+```
+GET /api/files/list?filter=claude&workingDir=/home/matt/projects/TabzChrome
+```
+
+**Response:**
+```json
+{
+  "groups": [
+    {
+      "name": "Global (~/.claude/)",
+      "icon": "🌐",
+      "files": [
+        { "name": "settings.json", "path": "/home/matt/.claude/settings.json", "type": "claude-config" },
+        { "name": "Explore.md", "path": "/home/matt/.claude/agents/Explore.md", "type": "agent" }
+      ]
+    },
+    {
+      "name": "Project",
+      "icon": "📁",
+      "files": [
+        { "name": "CLAUDE.md", "path": "/home/matt/projects/TabzChrome/CLAUDE.md", "type": "claude-config" },
+        { "name": ".mcp.json", "path": "/home/matt/projects/TabzChrome/.mcp.json", "type": "mcp" }
+      ]
+    }
+  ]
+}
+```
+
+### Filter: prompts
+
+Searches:
+- `~/.prompts/**/*.prompty`
+- `<workingDir>/.prompts/**/*`
+- `<workingDir>/.claude/commands/**/*.md`
+
+### Filter: claude
+
+Searches:
+- `~/.claude/` (settings, skills, agents, commands, hooks)
+- `<workingDir>/.claude/`
+- `<workingDir>/CLAUDE.md`, `CLAUDE.local.md`
+- `<workingDir>/.mcp.json`
+- `<workingDir>/plugins/` (if exists)
+
+## Frontend Components
+
+| Component | Purpose |
+|-----------|---------|
+| `utils/claudeFileTypes.ts` | File type detection and color mapping |
+| `components/files/FilterBar.tsx` | Filter toggle buttons |
+| `components/files/FilteredFileList.tsx` | Grouped list view (non-tree) |
+| `contexts/FilesContext.tsx` | Add activeFilter state |
+
+## State Shape
+
+```typescript
+// FilesContext additions
+interface FilesContextType {
+  // Existing...
+
+  // New filter state
+  activeFilter: 'all' | 'prompts' | 'claude' | 'favorites'
+  setActiveFilter: (filter: FileFilter) => void
+  filteredFiles: FilteredFilesResponse | null
+  loadFilteredFiles: (filter: FileFilter) => Promise<void>
+}
+
+interface FilteredFilesResponse {
+  groups: Array<{
+    name: string
+    icon?: string
+    files: Array<{
+      name: string
+      path: string
+      type: ClaudeFileType
+    }>
+  }>
+}
+```
 
 ## Prompty File Format
 
@@ -17,10 +168,10 @@ description: Generate GitHub release notes from recent commits
 inputs:
   version:
     type: string
-    description: Version number for this release (e.g., v0.6.1)
+    description: Version number for this release
   last_version:
     type: string
-    description: Previous version (e.g., v1.0.0)
+    description: Previous version tag
 ---
 
 # Quick Release Notes for {{version}}
@@ -34,177 +185,19 @@ git log {{last_version}}..HEAD --oneline
 ```
 
 **Key elements:**
-- YAML frontmatter: `name`, `description`, `inputs` (optional with type/description)
+- YAML frontmatter: `name`, `description`, `inputs` (optional)
 - `{{variable}}` placeholders in body
-- Variables can be defined in inputs OR just detected from `{{...}}` in body
-
-## Source Locations
-
-1. `~/.prompts/` - Global user prompts
-2. `<project>/.prompts/` - Project-specific prompts (based on working directory)
-
-## UI Layout
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Prompts                                                    [+]  │
-├──────────────┬──────────────────────────────────────────────────┤
-│ Templates    │  Quick Release Notes Generator                   │
-│ ────────     │  ─────────────────────────────                   │
-│ 📝 Release   │  "Generate GitHub release notes from commits"    │
-│ 📝 Review    │                                                  │
-│ 📝 Debug     │  ┌─ Variables ────────────────────────────────┐  │
-│              │  │ version:      [v1.2.3        ]             │  │
-│ ── Project ──│  │ last_version: [v1.2.2        ]             │  │
-│ 📝 Deploy    │  └────────────────────────────────────────────┘  │
-│              │                                                  │
-│              │  ┌─ Preview ──────────────────────────────────┐  │
-│              │  │ # Quick Release Notes for v1.2.3           │  │
-│              │  │                                            │  │
-│              │  │ ## Instructions                            │  │
-│              │  │ 1. Review commits since last release:      │  │
-│              │  │ ```bash                                    │  │
-│              │  │ git log v1.2.2..HEAD --oneline             │  │
-│              │  │ ```                                        │  │
-│              │  │                                            │  │
-│              │  └────────────────────────────────────────────┘  │
-│              │                                                  │
-│              │  [🤖 Enhance]  Send to: [Claude Worker ▼]  [▶]   │
-└──────────────┴──────────────────────────────────────────────────┘
-```
-
-## Features
-
-### Phase 1: Core Template System
-- [ ] Backend API: `GET /api/prompts/list` - List prompts from ~/.prompts and project .prompts
-- [ ] Backend API: `GET /api/prompts/read?path=X` - Read and parse prompty file
-- [ ] Frontend: Prompts section in dashboard nav
-- [ ] Frontend: Template list (grouped by global/project)
-- [ ] Frontend: Variable form builder (auto-generate from inputs + detected {{vars}})
-- [ ] Frontend: Live preview with variables substituted
-- [ ] Frontend: Terminal selector dropdown (list active terminals)
-- [ ] Frontend: Send to terminal button (via WebSocket)
-
-### Phase 2: Enhanced Editing
-- [ ] Large textarea/editor for the filled prompt (editable before send)
-- [ ] Syntax highlighting for markdown
-- [ ] Copy to clipboard button
-- [ ] Save as new template button
-
-### Phase 3: AI Enhancement
-
-**Architecture:** Clean React chat component (NOT a terminal) using same backend PTY system with hidden Claude/Codex/Gemini process.
-
-- [ ] "Enhance with AI" button
-- [ ] React chat component (reference: `~/projects/personal-homepage` AI Workspace)
-- [ ] Backend spawns hidden `claude --print` or `codex` process
-- [ ] Enhancement auto-adds:
-  - `@file` references based on context
-  - Relevant skills/MCPs/subagents from CAPABILITIES.md
-  - Project-specific patterns
-- [ ] Model selector (Claude, Codex, Gemini)
-- [ ] Enhancement presets (expand, clarify, add file refs, capability-aware)
-
-### Phase 4: Template Management
-- [ ] Create new template UI
-- [ ] Edit existing templates
-- [ ] Delete templates
-- [ ] Duplicate/fork templates
-- [ ] Import/export templates
-
-## Backend APIs
-
-### GET /api/prompts/list
-Returns list of prompty files from global and project directories.
-
-```json
-{
-  "global": [
-    { "name": "Quick Release Notes", "path": "~/.prompts/quick-release.prompty", "description": "..." }
-  ],
-  "project": [
-    { "name": "Deploy Script", "path": ".prompts/deploy.prompty", "description": "..." }
-  ]
-}
-```
-
-### GET /api/prompts/read?path=X
-Returns parsed prompty file.
-
-```json
-{
-  "name": "Quick Release Notes Generator",
-  "description": "Generate GitHub release notes from recent commits",
-  "inputs": {
-    "version": { "type": "string", "description": "Version number..." },
-    "last_version": { "type": "string", "description": "Previous version..." }
-  },
-  "detectedVariables": ["version", "last_version"],
-  "body": "# Quick Release Notes for {{version}}..."
-}
-```
-
-### POST /api/prompts/save
-Save new or update existing prompty file.
-
-### POST /api/prompts/enhance (Phase 3)
-Enhance prompt via local Claude/Codex.
-
-```json
-{
-  "prompt": "...",
-  "mode": "expand" | "clarify" | "examples" | "custom",
-  "customInstruction": "..."
-}
-```
-
-## Frontend Components
-
-| Component | Purpose |
-|-----------|---------|
-| `sections/Prompts.tsx` | Main section container |
-| `components/prompts/TemplateList.tsx` | Left sidebar with template list |
-| `components/prompts/VariableForm.tsx` | Form for filling template variables |
-| `components/prompts/PromptPreview.tsx` | Live preview with substitution |
-| `components/prompts/TerminalSelector.tsx` | Dropdown to pick target terminal |
-| `components/prompts/EnhancePanel.tsx` | AI enhancement UI (Phase 3) |
-
-## State Management
-
-```typescript
-interface PromptsState {
-  templates: PromptyFile[]
-  selectedTemplate: PromptyFile | null
-  variables: Record<string, string>
-  filledPrompt: string
-  targetTerminal: string | null
-  isEnhancing: boolean
-}
-```
+- Variables auto-detected from `{{...}}` patterns
 
 ## Integration Points
 
-- **Terminal sending**: Use existing WebSocket to send to terminal via `sendMessage({ type: 'TERMINAL_INPUT', ... })`
-- **Working directory**: Use sidebar's working dir to determine project .prompts location
-- **Terminal list**: Reuse `useTerminalSessions` hook to get available terminals
+- **File viewer**: Existing viewer handles all file types
+- **Terminal sending**: Use `chrome.runtime.sendMessage({ type: 'TERMINAL_INPUT', ... })`
+- **Working directory**: Use sidebar's working dir for project context
+- **Terminal list**: Reuse `useTerminalSessions` hook
 
 ## Reference
 
-- **TFE Implementation**: `~/projects/TFE/` - Original bubbletea prompts implementation
-- **Prompty files**: `~/projects/TFE/.prompts/` and `~/projects/TFE/examples/.prompts/`
-- **AI Workspace Chat**: `~/projects/personal-homepage` - Advanced React chat component for AI enhancement
-- **Similar**: VS Code Snippets, TextExpander, Raycast snippets
-
-## Phase 5: 3D Focus Integration (Future)
-
-- [ ] **Multi-terminal splits** - Combine selected terminals into tmux splits via `join-pane`
-- [ ] **3D Prompt Library** - Floating panel in 3D Focus with template list
-- [ ] **Broadcast to all** - Send same prompt to all splits simultaneously
-- [ ] **Split layouts** - 2x2, 3x1, custom arrangements in 3D space
-
-## Open Questions
-
-1. Should enhancement use embedded terminal or API call?
-2. Should templates be editable in-place or require "edit mode"?
-3. Should there be a "quick send" from sidebar without opening full Prompts section?
-4. Keyboard shortcuts for power users?
+- **TFE Implementation**: `~/projects/TFE/` - Filter system, file colors
+- **TFE styles**: `~/projects/TFE/styles.go` - Color definitions
+- **TFE filters**: `~/projects/TFE/favorites.go` - getFilteredFiles()

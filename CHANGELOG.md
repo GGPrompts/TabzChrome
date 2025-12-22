@@ -15,6 +15,34 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.3] - 2025-12-22
+
+### Added
+- **File Filters** - TFE-style filter buttons in Files section header:
+  - **Claude filter** - Shows all Claude ecosystem files (~/.claude/, .claude/, CLAUDE.md, .mcp.json, plugins)
+  - **Prompts filter** - Shows prompt templates (~/.prompts/, .prompts/, .claude/commands/)
+  - **Favorites filter** - Shows user-starred files
+- **Star/Favorite files** - Star button in file viewer toolbar to bookmark files
+  - Yellow filled star when favorited
+  - Persisted to localStorage
+  - Click ⭐ filter to see all favorites
+- **TFE-inspired file colors** in tree view:
+  - Orange: CLAUDE.md, .claude/, settings.json
+  - Pink: .prompts/, .prompty files
+  - Purple: agents
+  - Teal: skills
+  - Green: hooks
+  - Cyan: .mcp.json
+  - Amber: plugins
+- **Relative paths in filtered views** - Shows `conductor/plugin.json` instead of just `plugin.json`
+- **New backend API** - `GET /api/files/list?filter=X&workingDir=Y` for filtered file lists
+
+### Fixed
+- **Broken symlinks** - Filtered file lists now skip broken symlinks instead of erroring
+- **Git directory exclusion** - .git folders excluded from filtered results
+
+---
+
 ## [1.2.2] - 2025-12-22
 
 ### Added

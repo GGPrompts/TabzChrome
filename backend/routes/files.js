@@ -576,8 +576,6 @@ router.post('/save-excalidraw', async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // Write/save a file
 router.post('/write', async (req, res) => {
   try {
@@ -645,6 +643,293 @@ router.post('/write-spawn-options', async (req, res) => {
   } catch (error) {
     console.error('Error writing spawn-options.json:', error)
     return res.status(500).json({ error: error.message })
+  }
+})
+
+// Helper to get Claude file type for backend classification
+function getClaudeFileType(name, filePath) {
+  // CLAUDE.md and CLAUDE.local.md
+  if (/^CLAUDE(\.local)?\.md$/i.test(name)) {
+    return 'claude-config'
+  }
+  // .claude directory itself
+  if (name === '.claude') {
+    return 'claude-config'
+  }
+  // settings.json in .claude/
+  if (name === 'settings.json' && filePath.includes('/.claude/')) {
+    return 'claude-config'
+  }
+  // .mcp.json
+  if (name === '.mcp.json') {
+    return 'mcp'
+  }
+  // AGENTS.md
+  if (name === 'AGENTS.md') {
+    return 'agent'
+  }
+  // Files inside .claude subdirectories
+  if (filePath.includes('/.claude/')) {
+    if (filePath.includes('/agents/')) return 'agent'
+    if (filePath.includes('/skills/')) return 'skill'
+    if (filePath.includes('/hooks/')) return 'hook'
+    if (filePath.includes('/commands/')) return 'command'
+  }
+  // .prompts directory
+  if (name === '.prompts') {
+    return 'prompt'
+  }
+  // .prompty files
+  if (/\.prompty$/i.test(name)) {
+    return 'prompt'
+  }
+  // Files inside .prompts/
+  if (filePath.includes('/.prompts/')) {
+    return 'prompt'
+  }
+  // plugins directory
+  if (name === 'plugins' || filePath.includes('/plugins/')) {
+    return 'plugin'
+  }
+  return null
+}
+
+// Helper to recursively find files matching criteria
+async function findFilesRecursive(dir, matcher, maxDepth = 5, currentDepth = 0) {
+  const results = []
+
+  if (currentDepth >= maxDepth) return results
+
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true })
+
+    for (const entry of entries) {
+      // Skip node_modules and .git directories
+      if (entry.name === 'node_modules' || entry.name === '.git') continue
+
+      const fullPath = path.join(dir, entry.name)
+
+      // Check if it's a symlink and verify target exists
+      if (entry.isSymbolicLink()) {
+        try {
+          await fs.stat(fullPath) // This follows the symlink
+        } catch {
+          // Broken symlink - skip it
+          continue
+        }
+      }
+
+      if (entry.isDirectory()) {
+        // Don't include directories in results - only recurse into them
+        // Recurse into subdirectory
+        const subResults = await findFilesRecursive(fullPath, matcher, maxDepth, currentDepth + 1)
+        results.push(...subResults)
+      } else {
+        if (matcher(entry.name, fullPath, false)) {
+          results.push({ name: entry.name, path: fullPath, isDir: false })
+        }
+      }
+    }
+  } catch (err) {
+    // Permission denied or other error - skip
+  }
+
+  return results
+}
+
+// GET /api/files/list - Get filtered file list (prompts, claude, favorites)
+router.get('/list', async (req, res) => {
+  try {
+    const filter = req.query.filter || 'all'
+    let workingDir = req.query.workingDir || process.cwd()
+    workingDir = expandTilde(workingDir)
+
+    const homeDir = process.env.HOME || process.env.USERPROFILE
+    const groups = []
+
+    if (filter === 'claude') {
+      // Global ~/.claude/
+      const globalClaudeDir = path.join(homeDir, '.claude')
+      try {
+        await fs.access(globalClaudeDir)
+        const globalFiles = await findFilesRecursive(globalClaudeDir, (name, filePath) => {
+          const type = getClaudeFileType(name, filePath)
+          return type !== null
+        }, 3)
+
+        if (globalFiles.length > 0) {
+          groups.push({
+            name: 'Global (~/.claude/)',
+            icon: '🌐',
+            files: globalFiles.map(f => ({
+              name: f.name,
+              path: f.path,
+              type: getClaudeFileType(f.name, f.path)
+            }))
+          })
+        }
+      } catch {}
+
+      // Project-level Claude files
+      const projectFiles = []
+
+      // Check for CLAUDE.md, CLAUDE.local.md
+      for (const name of ['CLAUDE.md', 'CLAUDE.local.md']) {
+        const filePath = path.join(workingDir, name)
+        try {
+          await fs.access(filePath)
+          projectFiles.push({ name, path: filePath, type: 'claude-config' })
+        } catch {}
+      }
+
+      // Check for .mcp.json
+      const mcpPath = path.join(workingDir, '.mcp.json')
+      try {
+        await fs.access(mcpPath)
+        projectFiles.push({ name: '.mcp.json', path: mcpPath, type: 'mcp' })
+      } catch {}
+
+      // Check for .claude/ directory
+      const projectClaudeDir = path.join(workingDir, '.claude')
+      try {
+        await fs.access(projectClaudeDir)
+        const claudeFiles = await findFilesRecursive(projectClaudeDir, (name, filePath) => {
+          const type = getClaudeFileType(name, filePath)
+          return type !== null
+        }, 3)
+        projectFiles.push(...claudeFiles.map(f => ({
+          name: f.name,
+          path: f.path,
+          type: getClaudeFileType(f.name, f.path)
+        })))
+      } catch {}
+
+      // Check for plugins/ directory
+      const pluginsDir = path.join(workingDir, 'plugins')
+      try {
+        await fs.access(pluginsDir)
+        const pluginFiles = await findFilesRecursive(pluginsDir, () => true, 2)
+        if (pluginFiles.length > 0) {
+          projectFiles.push(...pluginFiles.map(f => ({
+            name: f.name,
+            path: f.path,
+            type: 'plugin'
+          })))
+        }
+      } catch {}
+
+      if (projectFiles.length > 0) {
+        groups.push({
+          name: 'Project',
+          icon: '📁',
+          files: projectFiles
+        })
+      }
+
+    } else if (filter === 'prompts') {
+      // Global ~/.prompts/
+      const globalPromptsDir = path.join(homeDir, '.prompts')
+      try {
+        await fs.access(globalPromptsDir)
+        const globalFiles = await findFilesRecursive(globalPromptsDir, (name, filePath, isDir) => {
+          if (isDir) return false
+          return /\.(prompty|md|yaml|yml|txt)$/i.test(name)
+        }, 3)
+
+        if (globalFiles.length > 0) {
+          groups.push({
+            name: 'Global (~/.prompts/)',
+            icon: '🌐',
+            files: globalFiles.map(f => ({
+              name: f.name,
+              path: f.path,
+              type: 'prompt'
+            }))
+          })
+        }
+      } catch {}
+
+      // Global ~/.claude/commands/
+      const globalCommandsDir = path.join(homeDir, '.claude', 'commands')
+      try {
+        await fs.access(globalCommandsDir)
+        const commandFiles = await findFilesRecursive(globalCommandsDir, (name, filePath, isDir) => {
+          if (isDir) return false
+          return /\.md$/i.test(name)
+        }, 3)
+
+        if (commandFiles.length > 0) {
+          groups.push({
+            name: 'Global Commands (~/.claude/commands/)',
+            icon: '⚡',
+            files: commandFiles.map(f => ({
+              name: f.name,
+              path: f.path,
+              type: 'command'
+            }))
+          })
+        }
+      } catch {}
+
+      // Project .prompts/
+      const projectPromptsDir = path.join(workingDir, '.prompts')
+      try {
+        await fs.access(projectPromptsDir)
+        const projectPromptFiles = await findFilesRecursive(projectPromptsDir, (name, filePath, isDir) => {
+          if (isDir) return false
+          return /\.(prompty|md|yaml|yml|txt)$/i.test(name)
+        }, 3)
+
+        if (projectPromptFiles.length > 0) {
+          groups.push({
+            name: 'Project Prompts (.prompts/)',
+            icon: '📁',
+            files: projectPromptFiles.map(f => ({
+              name: f.name,
+              path: f.path,
+              type: 'prompt'
+            }))
+          })
+        }
+      } catch {}
+
+      // Project .claude/commands/
+      const projectCommandsDir = path.join(workingDir, '.claude', 'commands')
+      try {
+        await fs.access(projectCommandsDir)
+        const projectCommandFiles = await findFilesRecursive(projectCommandsDir, (name, filePath, isDir) => {
+          if (isDir) return false
+          return /\.md$/i.test(name)
+        }, 3)
+
+        if (projectCommandFiles.length > 0) {
+          groups.push({
+            name: 'Project Commands (.claude/commands/)',
+            icon: '⚡',
+            files: projectCommandFiles.map(f => ({
+              name: f.name,
+              path: f.path,
+              type: 'command'
+            }))
+          })
+        }
+      } catch {}
+
+    } else if (filter === 'favorites') {
+      // Favorites would need to be stored somewhere (localStorage on frontend, or a config file)
+      // For now, return empty - will be implemented when favorites feature is added
+      groups.push({
+        name: 'Favorites',
+        icon: '⭐',
+        files: []
+      })
+    }
+
+    res.json({ groups })
+
+  } catch (error) {
+    console.error('Error listing filtered files:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 

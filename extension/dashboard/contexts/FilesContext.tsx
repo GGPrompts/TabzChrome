@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
+import { FileFilter, ClaudeFileType } from '../utils/claudeFileTypes'
 
 const API_BASE = "http://localhost:8129"
 
@@ -11,6 +12,22 @@ interface FileNode {
   size?: number
   modified?: string
   children?: FileNode[]
+}
+
+interface FilteredFile {
+  name: string
+  path: string
+  type: ClaudeFileType
+}
+
+interface FilteredGroup {
+  name: string
+  icon?: string
+  files: FilteredFile[]
+}
+
+interface FilteredFilesResponse {
+  groups: FilteredGroup[]
 }
 
 interface OpenFile {
@@ -36,6 +53,18 @@ interface FilesContextType {
   setOpenFiles: React.Dispatch<React.SetStateAction<OpenFile[]>>
   activeFileId: string | null
   setActiveFileId: (id: string | null) => void
+
+  // Filter state
+  activeFilter: FileFilter
+  setActiveFilter: (filter: FileFilter) => void
+  filteredFiles: FilteredFilesResponse | null
+  filteredFilesLoading: boolean
+  loadFilteredFiles: (filter: FileFilter, workingDir: string) => Promise<void>
+
+  // Favorites
+  favorites: Set<string>
+  toggleFavorite: (path: string) => void
+  isFavorite: (path: string) => boolean
 
   // Actions
   openFile: (path: string) => Promise<void>
@@ -64,6 +93,96 @@ export function FilesProvider({ children }: { children: ReactNode }) {
   // Open files state
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([])
   const [activeFileId, setActiveFileId] = useState<string | null>(null)
+
+  // Filter state - persist to localStorage
+  const [activeFilter, setActiveFilterState] = useState<FileFilter>(() => {
+    return (localStorage.getItem('tabz-files-filter') as FileFilter) || 'all'
+  })
+  const [filteredFiles, setFilteredFiles] = useState<FilteredFilesResponse | null>(null)
+  const [filteredFilesLoading, setFilteredFilesLoading] = useState(false)
+
+  // Favorites state - persist to localStorage (declared before loadFilteredFiles which uses it)
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('tabz-file-favorites')
+    if (stored) {
+      try {
+        return new Set(JSON.parse(stored))
+      } catch {
+        return new Set()
+      }
+    }
+    return new Set()
+  })
+
+  const toggleFavorite = useCallback((path: string) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev)
+      if (newFavorites.has(path)) {
+        newFavorites.delete(path)
+      } else {
+        newFavorites.add(path)
+      }
+      localStorage.setItem('tabz-file-favorites', JSON.stringify(Array.from(newFavorites)))
+      return newFavorites
+    })
+  }, [])
+
+  const isFavorite = useCallback((path: string) => {
+    return favorites.has(path)
+  }, [favorites])
+
+  const setActiveFilter = (filter: FileFilter) => {
+    setActiveFilterState(filter)
+    localStorage.setItem('tabz-files-filter', filter)
+  }
+
+  const loadFilteredFiles = useCallback(async (filter: FileFilter, workingDir: string) => {
+    if (filter === 'all') {
+      setFilteredFiles(null)
+      return
+    }
+
+    // Handle favorites filter locally
+    if (filter === 'favorites') {
+      const favArray = Array.from(favorites)
+      if (favArray.length === 0) {
+        setFilteredFiles({ groups: [] })
+        return
+      }
+      setFilteredFiles({
+        groups: [{
+          name: 'Favorites',
+          icon: '⭐',
+          files: favArray.map(path => ({
+            name: path.split('/').pop() || path,
+            path,
+            type: null // Will use default icon
+          }))
+        }]
+      })
+      return
+    }
+
+    setFilteredFilesLoading(true)
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/files/list?${new URLSearchParams({
+          filter,
+          workingDir,
+        })}`
+      )
+      if (!response.ok) {
+        throw new Error('Failed to load filtered files')
+      }
+      const data = await response.json()
+      setFilteredFiles(data)
+    } catch (err) {
+      console.error('Failed to load filtered files:', err)
+      setFilteredFiles(null)
+    } finally {
+      setFilteredFilesLoading(false)
+    }
+  }, [favorites])
 
   const openFile = useCallback(async (path: string) => {
     // Check if already open
@@ -133,6 +252,14 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       setOpenFiles,
       activeFileId,
       setActiveFileId,
+      activeFilter,
+      setActiveFilter,
+      filteredFiles,
+      filteredFilesLoading,
+      loadFilteredFiles,
+      favorites,
+      toggleFavorite,
+      isFavorite,
       openFile,
       closeFile,
     }}>

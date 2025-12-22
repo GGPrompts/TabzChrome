@@ -1,6 +1,6 @@
 # Files Section for TabzChrome Dashboard
 
-## Status: Phase 1, 2, 3 & 3.5 Complete ✅
+## Status: Phase 1, 2, 3, 3.5 & 4 Complete ✅
 
 **Completed:** 2025-12-22
 **Source:** Adapted from Opustrator's FileTree component
@@ -96,7 +96,27 @@ Add a "Files" section to the dashboard for browsing and viewing files with synta
 - [x] **Dashboard section persistence** - Active section saved to localStorage, survives page refresh
 - [x] **Sidebar collapsed state** - Also persisted to localStorage
 
-### Phase 4: Future Enhancements
+### Phase 4: File Filters & Favorites ✅
+
+- [x] **TFE-style filter buttons** in Files header: All, Prompts, Claude, Favorites
+- [x] **Claude filter** - Shows ~/.claude/, project .claude/, CLAUDE.md, .mcp.json, plugins
+- [x] **Prompts filter** - Shows ~/.prompts/, project .prompts/, .claude/commands/
+- [x] **Favorites filter** - Shows user-starred files (persisted to localStorage)
+- [x] **Star button** in file viewer toolbar - Toggle favorites on any open file
+- [x] **TFE-inspired colors** in tree view:
+  - Orange: CLAUDE.md, .claude/, settings.json
+  - Pink: .prompts/, .prompty files
+  - Purple: agents
+  - Teal: skills
+  - Green: hooks
+  - Cyan: .mcp.json
+  - Amber: plugins
+- [x] **Relative paths** in filtered views (e.g., `conductor/plugin.json` not just `plugin.json`)
+- [x] **Smart icons** per file type in filtered views
+- [x] **Backend API** - GET /api/files/list?filter=X&workingDir=Y
+- [x] **Broken symlink handling** - Skips broken symlinks in filtered results
+
+### Phase 5: Future Enhancements
 
 - [ ] Split view toggle (2-pane mode for ultrawide)
 - [ ] Keyboard navigation in tree
@@ -110,6 +130,7 @@ GET /api/files/tree?path=X&depth=5&showHidden=false  → FileNode tree
 GET /api/files/content?path=X                        → { content, fileName, fileSize }
 GET /api/files/image?path=X                          → { dataUri, mimeType, size }
 GET /api/files/video?path=X                          → { dataUri, mimeType, size } (100MB limit)
+GET /api/files/list?filter=X&workingDir=Y            → { groups: [{ name, icon, files }] }
 ```
 
 **Backend Enhancements:**

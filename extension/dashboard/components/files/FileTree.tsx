@@ -15,8 +15,14 @@ import {
   Minimize2,
   Video,
   Table,
+  Settings,
+  Zap,
+  Bot,
+  Terminal,
+  Plug,
 } from "lucide-react"
 import { useFilesContext } from "../../contexts/FilesContext"
+import { getClaudeFileType, claudeFileColors, ClaudeFileType } from "../../utils/claudeFileTypes"
 
 interface FileNode {
   name: string
@@ -132,8 +138,34 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     fetchFileTree()
   }, [currentPath, showHidden, maxDepth, waitForLoad])
 
-  // Get file icon based on extension
-  const getFileIcon = (fileName: string) => {
+  // Get icon for Claude file types
+  const getClaudeIcon = (claudeType: ClaudeFileType) => {
+    switch (claudeType) {
+      case 'claude-config': return Settings
+      case 'prompt': return FileText
+      case 'skill': return Zap
+      case 'agent': return Bot
+      case 'hook': return Terminal
+      case 'mcp': return Plug
+      case 'command': return FileCode
+      case 'plugin': return Folder
+      default: return null
+    }
+  }
+
+  // Get file icon based on extension and Claude file type
+  const getFileIcon = (fileName: string, filePath: string) => {
+    // First check for Claude file types (they get priority coloring)
+    const claudeType = getClaudeFileType(fileName, filePath)
+    if (claudeType) {
+      const ClaudeIcon = getClaudeIcon(claudeType)
+      if (ClaudeIcon) {
+        const colorClass = claudeFileColors[claudeType]?.tailwind || ''
+        return <ClaudeIcon className={`w-4 h-4 ${colorClass}`} />
+      }
+    }
+
+    // Fall back to extension-based icons
     const ext = fileName.split(".").pop()?.toLowerCase()
     const codeExts = ["js", "jsx", "ts", "tsx", "py", "java", "cpp", "c", "h", "css", "scss", "html", "vue", "rs", "go"]
     const docExts = ["md", "txt", "doc", "docx", "pdf", "rtf"]
@@ -148,6 +180,21 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     if (videoExts.includes(ext || "")) return <Video className="w-4 h-4 text-purple-400" />
     if (ext === "csv") return <Table className="w-4 h-4 text-emerald-400" />
     return <File className="w-4 h-4" />
+  }
+
+  // Get folder icon with Claude coloring
+  const getFolderIcon = (folderName: string, folderPath: string, isExpanded: boolean) => {
+    const claudeType = getClaudeFileType(folderName, folderPath)
+    if (claudeType) {
+      const colorClass = claudeFileColors[claudeType]?.tailwind || 'text-yellow-400'
+      return isExpanded
+        ? <FolderOpen className={`w-4 h-4 ${colorClass}`} />
+        : <Folder className={`w-4 h-4 ${colorClass}`} />
+    }
+    // Default folder color
+    return isExpanded
+      ? <FolderOpen className="w-4 h-4 text-yellow-400" />
+      : <Folder className="w-4 h-4 text-yellow-400" />
   }
 
   // Filter nodes based on search
@@ -224,6 +271,10 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     const isSelected = selectedPath === node.path
     const isDirectory = node.type === "directory"
 
+    // Check if this is a Claude file for text coloring
+    const claudeType = getClaudeFileType(node.name, node.path)
+    const textColorClass = claudeType ? claudeFileColors[claudeType]?.tailwind : ''
+
     return (
       <div key={node.path}>
         <div
@@ -239,12 +290,12 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           </span>
           <span className="mr-2">
             {isDirectory ? (
-              isExpanded ? <FolderOpen className="w-4 h-4 text-yellow-400" /> : <Folder className="w-4 h-4 text-yellow-400" />
+              getFolderIcon(node.name, node.path, isExpanded)
             ) : (
-              getFileIcon(node.name)
+              getFileIcon(node.name, node.path)
             )}
           </span>
-          <span className={`text-sm truncate ${isDirectory ? "font-medium" : ""}`}>{node.name}</span>
+          <span className={`text-sm truncate ${isDirectory ? "font-medium" : ""} ${textColorClass}`}>{node.name}</span>
         </div>
         {isDirectory && isExpanded && node.children && (
           <div>{node.children.map((child) => renderFileTree(child, depth + 1))}</div>

@@ -4,11 +4,13 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FileTree } from '../components/files/FileTree'
-import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table } from 'lucide-react'
+import { FilteredFileList } from '../components/files/FilteredFileList'
+import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star } from 'lucide-react'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
 import { useFilesContext } from '../contexts/FilesContext'
+import { FileFilter } from '../utils/claudeFileTypes'
 
 // Get icon color class based on file type (matches FileTree.tsx colors)
 const getIconColorClass = (fileType: FileType): string => {
@@ -72,9 +74,53 @@ const parseCSV = (content: string): { headers: string[], rows: string[][] } => {
   return { headers, rows }
 }
 
+// Filter button component
+function FilterButton({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-2.5 py-1 text-sm rounded-md transition-colors ${
+        active
+          ? 'bg-primary/20 text-primary border border-primary/30'
+          : 'hover:bg-muted text-muted-foreground border border-transparent'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+const filterOptions: { value: FileFilter; label: string; icon?: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'prompts', label: 'Prompts', icon: '📝' },
+  { value: 'claude', label: 'Claude', icon: '🤖' },
+  { value: 'favorites', label: '', icon: '⭐' },
+]
+
 export default function FilesSection() {
   // Use context for persistent state across tab switches
-  const { openFiles, activeFileId, setActiveFileId, openFile, closeFile } = useFilesContext()
+  const {
+    openFiles,
+    activeFileId,
+    setActiveFileId,
+    openFile,
+    closeFile,
+    activeFilter,
+    setActiveFilter,
+    filteredFiles,
+    filteredFilesLoading,
+    loadFilteredFiles,
+    toggleFavorite,
+    isFavorite,
+  } = useFilesContext()
 
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false)
   const [imageZoom, setImageZoom] = useState<'fit' | number>('fit')
@@ -86,6 +132,13 @@ export default function FilesSection() {
 
   // File viewer settings (font size, family, max depth)
   const { settings: viewerSettings, setFontSize, setFontFamily } = useFileViewerSettings()
+
+  // Load filtered files when filter changes
+  useEffect(() => {
+    if (activeFilter !== 'all' && globalWorkingDir) {
+      loadFilteredFiles(activeFilter, globalWorkingDir)
+    }
+  }, [activeFilter, globalWorkingDir, loadFilteredFiles])
 
   // Close settings dropdown when clicking outside
   useEffect(() => {
@@ -121,13 +174,30 @@ export default function FilesSection() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with Settings */}
+      {/* Header with Filters and Settings */}
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border bg-card/50">
         <h2 className="text-lg font-semibold">Files</h2>
-        <span className="text-sm text-muted-foreground font-mono">{globalWorkingDir}</span>
+
+        {/* Filter toggles */}
+        <div className="flex items-center gap-1">
+          {filterOptions.map((option) => (
+            <FilterButton
+              key={option.value}
+              active={activeFilter === option.value}
+              onClick={() => setActiveFilter(option.value)}
+            >
+              {option.icon && <span className="mr-1">{option.icon}</span>}
+              {option.label}
+            </FilterButton>
+          ))}
+        </div>
+
+        <span className="text-sm text-muted-foreground font-mono ml-auto mr-2 truncate max-w-[300px]" title={globalWorkingDir}>
+          {globalWorkingDir}
+        </span>
 
         {/* Settings Dropdown */}
-        <div className="relative ml-auto" ref={settingsRef}>
+        <div className="relative" ref={settingsRef}>
           <button
             onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors text-sm"
@@ -178,9 +248,18 @@ export default function FilesSection() {
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0">
-        {/* File Tree - Left Side */}
+        {/* File Tree / Filtered List - Left Side */}
         <div className="w-72 border-r border-border flex-shrink-0 overflow-hidden">
-          <FileTree onFileSelect={openFile} basePath={globalWorkingDir} maxDepth={viewerSettings.maxDepth} waitForLoad={!workingDirLoaded} />
+          {activeFilter === 'all' ? (
+            <FileTree onFileSelect={openFile} basePath={globalWorkingDir} maxDepth={viewerSettings.maxDepth} waitForLoad={!workingDirLoaded} />
+          ) : (
+            <FilteredFileList
+              filter={activeFilter}
+              filteredFiles={filteredFiles}
+              loading={filteredFilesLoading}
+              onFileSelect={openFile}
+            />
+          )}
         </div>
 
         {/* File Viewer - Right Side */}
@@ -273,6 +352,13 @@ export default function FilesSection() {
                 >
                   <Download className="w-4 h-4" /> Download
                 </a>
+                <button
+                  onClick={() => toggleFavorite(activeFile.path)}
+                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
+                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                </button>
                 <span className="ml-auto text-xs text-muted-foreground">
                   {imageDimensions && `${imageDimensions.width} × ${imageDimensions.height}`}
                   {activeFile.path && <span className="ml-2">{activeFile.path}</span>}
@@ -310,6 +396,14 @@ export default function FilesSection() {
                 >
                   <Download className="w-4 h-4" /> Download
                 </a>
+                <button
+                  onClick={() => toggleFavorite(activeFile.path)}
+                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
+                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
+                </button>
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
               {/* Video Player */}
@@ -330,6 +424,14 @@ export default function FilesSection() {
               <div className="flex items-center gap-2 p-2 border-b border-border bg-card/50">
                 <button onClick={copyContent} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <Copy className="w-4 h-4" /> Copy
+                </button>
+                <button
+                  onClick={() => toggleFavorite(activeFile.path)}
+                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
+                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
                 </button>
                 <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <ExternalLink className="w-4 h-4" /> Open in Editor
@@ -377,6 +479,14 @@ export default function FilesSection() {
               <div className="flex items-center gap-2 p-2 border-b border-border bg-card/50">
                 <button onClick={copyContent} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <Copy className="w-4 h-4" /> Copy
+                </button>
+                <button
+                  onClick={() => toggleFavorite(activeFile.path)}
+                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
+                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
                 </button>
                 <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <ExternalLink className="w-4 h-4" /> Open in Editor
