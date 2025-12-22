@@ -92,12 +92,18 @@ git log {{last_version}}..HEAD --oneline
 - [ ] Save as new template button
 
 ### Phase 3: AI Enhancement
+
+**Architecture:** Clean React chat component (NOT a terminal) using same backend PTY system with hidden Claude/Codex/Gemini process.
+
 - [ ] "Enhance with AI" button
-- [ ] Options:
-  - **Embedded terminal**: Small xterm running `claude --print` or `codex`
-  - **API endpoint**: `/api/prompts/enhance` that pipes through local Claude
-  - **Send to tab**: Open in Codex terminal, user copies result back
-- [ ] Enhancement presets (expand, clarify, add examples, etc.)
+- [ ] React chat component (reference: `~/projects/personal-homepage` AI Workspace)
+- [ ] Backend spawns hidden `claude --print` or `codex` process
+- [ ] Enhancement auto-adds:
+  - `@file` references based on context
+  - Relevant skills/MCPs/subagents from CAPABILITIES.md
+  - Project-specific patterns
+- [ ] Model selector (Claude, Codex, Gemini)
+- [ ] Enhancement presets (expand, clarify, add file refs, capability-aware)
 
 ### Phase 4: Template Management
 - [ ] Create new template UI
@@ -184,8 +190,9 @@ interface PromptsState {
 
 ## Reference
 
-- **TFE Implementation**: `~/projects/TFE/` - Original bubbletea implementation
+- **TFE Implementation**: `~/projects/TFE/` - Original bubbletea prompts implementation
 - **Prompty files**: `~/projects/TFE/.prompts/` and `~/projects/TFE/examples/.prompts/`
+- **AI Workspace Chat**: `~/projects/personal-homepage` - Advanced React chat component for AI enhancement
 - **Similar**: VS Code Snippets, TextExpander, Raycast snippets
 
 ## Phase 5: 3D Focus Integration
