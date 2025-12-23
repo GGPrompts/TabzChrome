@@ -106,6 +106,89 @@
 
 ---
 
+## Dashboard File Tree Improvements
+
+**Status**: Planning
+
+### Context Menu for File Tree
+- [ ] **Right-click context menu** - Disable Chrome default menu on tree only (not viewers)
+- [ ] **Menu options**:
+  - Copy Path / Copy Relative Path
+  - Copy @filename (Claude/Codex style)
+  - Favorite (files AND folders - currently files only)
+  - Set as Working Directory (folders)
+  - Spawn Terminal Here (folders) → submenu with profiles
+  - Send to Terminal (files)
+  - Open in Viewer (files)
+- Reference: `~/projects/opustrator/frontend/src/components/EnhancedFileViewer.tsx` (lines 750-1270)
+
+### Floating Command Composer
+- [ ] **Pop-out composer window** - More space for editing prompts before sending
+- [ ] **Features**:
+  - Multi-line editor for complex prompts
+  - Target selection: existing terminals OR spawn new
+  - "New Terminal" option with profile/directory/name selection
+  - Mode: Execute (Enter) / Paste only / Paste + focus
+  - Non-interactive mode (--print, one-shot)
+  - Close after send option
+- [ ] **Implementation**: `chrome.windows.create({ type: 'popup' })` for true floating window
+
+### Command Queue (Replace History)
+- [ ] **Replace unused history with queue** - Stage multiple prompts before dispatch
+- [ ] **Queue features**:
+  - Add prompts with different targets per item
+  - Run sequentially or all at once
+  - Edit before dispatch
+  - Reorder (drag or up/down)
+  - "Run All" button
+- [ ] **Pairs with floating composer** - Compose → Add to Queue → Dispatch when ready
+
+### Other File Tree Ideas
+- [ ] Keyboard navigation (arrow keys, Enter to open)
+- [ ] Fuzzy search (Cmd+P style)
+- [ ] Git status indicators (modified/untracked)
+- [ ] Drag file path to terminal
+
+---
+
+## Tmux MCP Server
+
+**Status**: Researching
+
+Existing projects to evaluate:
+- [jonrad/tmux-mcp](https://github.com/jonrad/tmux-mcp) - POC, basic control
+- [nickgnd/tmux-mcp](https://github.com/nickgnd/tmux-mcp) - Claude Desktop integration
+- [michael-abdo/tmux-claude-mcp-server](https://github.com/michael-abdo/tmux-claude-mcp-server) - Hierarchical Claude orchestration
+
+**Why tmux API > send-keys**: Terminals can be in states that don't accept keys (vim, TUI apps). API calls always work.
+
+Potential tools:
+| Tool | Description |
+|------|-------------|
+| `tmux_list_sessions` | List all sessions with metadata |
+| `tmux_capture_pane` | Get pane contents (what you see) |
+| `tmux_run_shell` | Run command, wait for exit, return output |
+| `tmux_wait_for_prompt` | Wait until shell is idle |
+| `tmux_get_pane_pid` | Get foreground process |
+
+---
+
+## Agent Coordination Board
+
+**Status**: Idea
+
+Could use **GitHub Projects** as shared kanban for agent coordination:
+```bash
+# Agent posts note to project board
+gh project item-create 4 --owner GGPrompts \
+  --title "Worker-1: Refactor complete" \
+  --body "Split into 8 modules, tests pass"
+```
+
+Benefits: No infrastructure to build, works from CLI, real-time sync, mobile app.
+
+---
+
 ## Future Enhancements
 
 ### Waiting on Chrome Updates
