@@ -237,33 +237,48 @@ class TmuxSessionManager {
   /**
    * Find Claude state for a session by matching pane ID or working directory
    * Uses pre-loaded state cache for performance
+   * Also looks up context_pct from context files via claude_session_id
    */
   findClaudeStateInCache(session, stateCache) {
     if (!stateCache || stateCache.length === 0) {
       return null;
     }
 
+    let statusState = null;
+
     // Try to match by tmux pane ID (most reliable)
     if (session.paneId) {
-      const byPane = stateCache.find(state =>
+      statusState = stateCache.find(state =>
         state.tmux_pane === session.paneId
       );
-      if (byPane) {
-        return byPane;
-      }
     }
 
     // Fallback: match by working directory
-    if (session.workingDir) {
-      const byWorkingDir = stateCache.find(state =>
+    if (!statusState && session.workingDir) {
+      statusState = stateCache.find(state =>
         state.working_dir === session.workingDir
       );
-      if (byWorkingDir) {
-        return byWorkingDir;
+    }
+
+    if (!statusState) {
+      return null;
+    }
+
+    // Look up context_pct from context file via claude_session_id
+    if (statusState.claude_session_id) {
+      const contextState = stateCache.find(state =>
+        state.session_id === statusState.claude_session_id &&
+        state.context_pct !== undefined
+      );
+      if (contextState) {
+        statusState = {
+          ...statusState,
+          context_pct: contextState.context_pct,
+        };
       }
     }
 
-    return null;
+    return statusState;
   }
 
   /**
@@ -285,6 +300,7 @@ class TmuxSessionManager {
             status: cachedState.status || 'unknown',
             currentTool: cachedState.current_tool || null,
             lastUpdated: cachedState.last_updated,
+            context_pct: cachedState.context_pct,
           };
         }
       }

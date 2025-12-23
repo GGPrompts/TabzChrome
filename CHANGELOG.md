@@ -15,6 +15,34 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.10] - 2025-12-23
+
+### Added
+- **Shared ActiveTerminalsList component** - New reusable component for terminal lists:
+  - Used by both Dashboard (Home) and Terminals pages for consistent display
+  - Shows Claude status indicators (Ready, Using Bash, Thinking, etc.)
+  - Shows context percentage with color coding (green < 50%, yellow 50-74%, orange 75-89%, red 90%+)
+  - Shows git branch and AI tool badges
+  - Clickable terminals to switch to that tab in sidebar
+- **Context percentage in dashboard** - Terminal lists now show Claude's context window usage
+  - Backend updated to include `context_pct` in `/api/tmux/sessions/detailed` endpoint
+  - Looks up context data via `claude_session_id` from state files
+- **Click-to-switch terminals** - Click any Tabz terminal in dashboard to switch to it in sidebar
+  - New `SWITCH_TO_TERMINAL` message type for dashboard → sidebar communication
+  - Works from both Home page and Terminals page
+
+### Changed
+- **Working directory display** - Now uses `~` instead of full home path (`/home/user` → `~`)
+- **Badge styling for accessibility** - All badges now use dark background with colored text/border:
+  - Tabz: Green text + green border on dark bg
+  - External: Blue text + blue border on dark bg
+  - claude-code: Orange text + orange border on dark bg (was purple)
+- **Source column simplified** - Now shows just "Tabz" or "External" based on session origin
+  - Removed redundant AI tool display (already shown in AI Tool column)
+- **Optimized column widths** - All Tmux Sessions table columns adjusted for better space usage
+
+---
+
 ## [1.2.9] - 2025-12-23
 
 ### Added

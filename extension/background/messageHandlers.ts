@@ -84,6 +84,17 @@ export function setupMessageHandlers(): void {
         }, 300)
         break
 
+      case 'SWITCH_TO_TERMINAL':
+        // Open sidebar and switch to a specific terminal tab (from dashboard)
+        await tryOpenSidebar()
+        setTimeout(() => {
+          broadcastToClients({
+            type: 'SWITCH_TO_TERMINAL',
+            terminalId: (message as any).terminalId,
+          })
+        }, 300)
+        break
+
       case 'FOCUS_IN_3D':
         // 3D Focus page opened/refreshed - broadcast to sidepanel to show placeholder
         broadcastToClients({

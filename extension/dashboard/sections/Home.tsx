@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Folder, Home } from 'lucide-react'
-import { getHealth, getOrphanedSessions, getTerminals } from '../hooks/useDashboard'
+import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Home } from 'lucide-react'
+import { getHealth, getOrphanedSessions, getTerminals, getAllTmuxSessions } from '../hooks/useDashboard'
+import { ActiveTerminalsList, type TerminalItem } from '../components/ActiveTerminalsList'
 
 interface HealthData {
   uptime: number
@@ -21,39 +22,55 @@ interface OrphanedData {
   count: number
 }
 
-interface TerminalData {
-  id: string
-  name: string
-  terminalType?: string
-  state: string
-  workingDir?: string
-  createdAt: string
-}
-
 export default function HomeSection() {
   const [health, setHealth] = useState<HealthData | null>(null)
   const [orphaned, setOrphaned] = useState<OrphanedData | null>(null)
-  const [terminals, setTerminals] = useState<TerminalData[]>([])
+  const [terminals, setTerminals] = useState<TerminalItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [healthRes, orphanedRes, terminalsRes] = await Promise.all([
+      const [healthRes, orphanedRes, tmuxRes] = await Promise.all([
         getHealth(),
         getOrphanedSessions(),
-        getTerminals(),
+        getAllTmuxSessions(),
       ])
 
       setHealth(healthRes.data)
       setOrphaned({ count: orphanedRes.data?.count || 0 })
-      setTerminals(terminalsRes.data || [])
+
+      // Map tmux sessions to TerminalItem format, filtering to ctt- sessions
+      const sessions = tmuxRes.data?.sessions || []
+      const mappedTerminals: TerminalItem[] = sessions
+        .filter((s: any) => s.name.startsWith('ctt-'))
+        .map((s: any) => ({
+          id: s.name,
+          name: s.name.replace(/^ctt-/, '').replace(/-[a-f0-9]+$/, ''), // Extract profile name
+          sessionName: s.name,
+          workingDir: s.workingDir,
+          createdAt: s.created ? new Date(parseInt(s.created) * 1000).toISOString() : undefined,
+          state: 'active',
+          gitBranch: s.gitBranch,
+          claudeState: s.claudeState,
+          aiTool: s.aiTool,
+        }))
+      setTerminals(mappedTerminals)
       setError(null)
     } catch (err) {
       setError('Failed to connect to backend')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Switch to terminal in sidebar
+  const switchToTerminal = async (terminalId: string) => {
+    try {
+      await chrome.runtime.sendMessage({ type: 'SWITCH_TO_TERMINAL', terminalId })
+    } catch (err) {
+      console.error('Failed to switch to terminal:', err)
     }
   }
 
@@ -68,26 +85,6 @@ export default function HomeSection() {
     const mins = Math.floor((seconds % 3600) / 60)
     if (hours > 0) return `${hours}h ${mins}m`
     return `${mins}m`
-  }
-
-  const formatRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${diffDays}d ago`
-  }
-
-  const shortenPath = (path: string, maxLen = 25) => {
-    if (!path) return '-'
-    if (path.length <= maxLen) return path
-    return '...' + path.slice(-maxLen + 3)
   }
 
   const stats = [
@@ -195,52 +192,13 @@ export default function HomeSection() {
           </a>
         </div>
 
-        {terminals.length === 0 ? (
-          <div className="text-center py-8">
-            <Terminal className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No active terminals</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">Spawn a new terminal to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {terminals.slice(0, 5).map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{t.name || 'Unnamed'}</span>
-                    <span className="text-xs text-muted-foreground">• {t.terminalType || 'bash'}</span>
-                  </div>
-                  {t.workingDir && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Folder className="w-3 h-3" />
-                      <span className="font-mono">{shortenPath(t.workingDir)}</span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {formatRelativeTime(t.createdAt)}
-                </span>
-                <span
-                  className={`px-2 py-0.5 text-xs rounded-full ${
-                    t.state === 'active'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-amber-500/20 text-amber-400'
-                  }`}
-                >
-                  {t.state}
-                </span>
-              </div>
-            ))}
-            {terminals.length > 5 && (
-              <p className="text-center text-sm text-muted-foreground pt-2">
-                +{terminals.length - 5} more terminals
-              </p>
-            )}
-          </div>
-        )}
+        <ActiveTerminalsList
+          terminals={terminals}
+          loading={loading}
+          maxItems={5}
+          onSwitchTo={switchToTerminal}
+          emptyMessage="No active Tabz terminals"
+        />
       </div>
 
       {/* System Info Panel */}

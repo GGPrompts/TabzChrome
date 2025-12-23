@@ -335,6 +335,16 @@ function SidePanelTerminal() {
         // Open settings modal with specific profile to edit
         setEditProfileId(message.profileId)
         setIsSettingsOpen(true)
+      } else if (message.type === 'SWITCH_TO_TERMINAL') {
+        // Switch to a specific terminal tab (from dashboard click)
+        const terminalId = (message as any).terminalId
+        // Find session by id or sessionName (dashboard sends tmux session name)
+        const targetSession = sessionsRef.current?.find(s =>
+          s.id === terminalId || s.sessionName === terminalId
+        )
+        if (targetSession) {
+          switchToSession(targetSession.id)
+        }
       } else if (message.type === 'FOCUS_IN_3D') {
         // 3D Focus page opened/refreshed - mark terminal as in 3D mode
         setSessions(prev => prev.map(s =>

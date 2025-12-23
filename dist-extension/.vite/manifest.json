@@ -6,14 +6,14 @@
     "isEntry": true
   },
   "3d/3d-focus.html": {
-    "file": "assets/3d-focus-BPFQAIUK.js",
+    "file": "assets/3d-focus-DBGxIWQz.js",
     "name": "3d-focus",
     "src": "3d/3d-focus.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_globals-CgWDzBvN.js",
+      "_globals-Dgetf13a.js",
       "_extends-CF3RwP-h.js"
     ]
   },
@@ -22,17 +22,17 @@
     "name": "extends"
   },
   "_globals-!~{008}~.js": {
-    "file": "assets/globals-Bfphatjq.css",
+    "file": "assets/globals-C1cGst9C.css",
     "src": "_globals-!~{008}~.js"
   },
-  "_globals-CgWDzBvN.js": {
-    "file": "assets/globals-CgWDzBvN.js",
+  "_globals-Dgetf13a.js": {
+    "file": "assets/globals-Dgetf13a.js",
     "name": "globals",
     "imports": [
       "_themes-Dxk98ACV.js"
     ],
     "css": [
-      "assets/globals-Bfphatjq.css"
+      "assets/globals-C1cGst9C.css"
     ]
   },
   "_modulepreload-polyfill-B5Qt9EMX.js": {
@@ -43,15 +43,15 @@
     "file": "assets/themes-Dxk98ACV.js",
     "name": "themes"
   },
-  "_useWorkingDirectory-Cfe08W2h.js": {
-    "file": "assets/useWorkingDirectory-Cfe08W2h.js",
+  "_useWorkingDirectory-Bx_ClsUV.js": {
+    "file": "assets/useWorkingDirectory-Bx_ClsUV.js",
     "name": "useWorkingDirectory",
     "imports": [
       "_themes-Dxk98ACV.js"
     ]
   },
   "background/index.ts": {
-    "file": "assets/index.ts-bhG1hcWB.js",
+    "file": "assets/index.ts-Pzw2CLnn.js",
     "name": "index.ts",
     "src": "background/index.ts",
     "isEntry": true
@@ -63,18 +63,18 @@
     "isEntry": true
   },
   "dashboard/index.html": {
-    "file": "assets/dashboard-DT4nB0rI.js",
+    "file": "assets/dashboard-DXA8G46l.js",
     "name": "dashboard",
     "src": "dashboard/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_useWorkingDirectory-Cfe08W2h.js",
+      "_useWorkingDirectory-Bx_ClsUV.js",
       "_extends-CF3RwP-h.js"
     ],
     "css": [
-      "assets/dashboard-D2kaeI7w.css"
+      "assets/dashboard-BFIrcMbw.css"
     ]
   },
   "devtools/devtools.html": {
@@ -87,15 +87,15 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-9vZ2QabS.js",
+    "file": "assets/sidepanel.html-CnirrZ9u.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_globals-CgWDzBvN.js",
-      "_useWorkingDirectory-Cfe08W2h.js"
+      "_globals-Dgetf13a.js",
+      "_useWorkingDirectory-Bx_ClsUV.js"
     ]
   }
 }

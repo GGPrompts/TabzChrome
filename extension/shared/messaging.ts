@@ -38,6 +38,8 @@ export type MessageType =
   | 'OPEN_TAB'
   // Dashboard -> Sidebar: Open settings modal to edit a specific profile
   | 'OPEN_SETTINGS_EDIT_PROFILE'
+  // Dashboard -> Sidebar: Switch to a specific terminal tab
+  | 'SWITCH_TO_TERMINAL'
   // Browser MCP - Console capture
   | 'CONSOLE_LOG'
   | 'GET_CONSOLE_LOGS'
@@ -292,6 +294,12 @@ export interface OpenSettingsEditProfileMessage extends BaseMessage {
   profileId: string;
 }
 
+// Switch to a specific terminal tab in the sidebar (dashboard -> sidebar)
+export interface SwitchToTerminalMessage extends BaseMessage {
+  type: 'SWITCH_TO_TERMINAL';
+  terminalId: string;
+}
+
 // 3D Focus Mode - notify sidebar when opening in 3D view
 export interface FocusIn3DMessage extends BaseMessage {
   type: 'FOCUS_IN_3D';
@@ -336,6 +344,7 @@ export type ExtensionMessage =
   | ReconnectMessage
   | OpenTabMessage
   | OpenSettingsEditProfileMessage
+  | SwitchToTerminalMessage
   // Browser MCP messages
   | ConsoleLogMessage
   | GetConsoleLogsMessage
