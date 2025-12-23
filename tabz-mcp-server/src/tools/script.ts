@@ -80,7 +80,7 @@ CLI Quoting (mcp-cli):
     ExecuteScriptSchema.shape,
     async (params: ExecuteScriptInput) => {
       try {
-        const response = await executeScript(backendUrl, {
+        const response = await executeScript({
           code: params.code,
           tabId: params.tabId,
           allFrames: params.allFrames

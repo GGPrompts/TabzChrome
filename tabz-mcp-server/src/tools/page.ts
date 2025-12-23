@@ -61,7 +61,7 @@ Error Handling:
     GetPageInfoSchema.shape,
     async (params: GetPageInfoInput) => {
       try {
-        const pageInfo = await getPageInfo(backendUrl, params.tabId);
+        const pageInfo = await getPageInfo(params.tabId);
 
         let result: string;
         if (params.response_format === ResponseFormat.JSON) {

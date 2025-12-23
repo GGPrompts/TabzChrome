@@ -163,7 +163,7 @@ Error Handling:
     GetConsoleLogsSchema.shape,
     async (params: GetConsoleLogsInput) => {
       try {
-        const response = await getConsoleLogs(backendUrl, {
+        const response = await getConsoleLogs({
           level: params.level === 'all' ? undefined : params.level,
           limit: params.limit,
           since: params.since,
