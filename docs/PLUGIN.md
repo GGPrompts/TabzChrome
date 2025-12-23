@@ -59,29 +59,14 @@ Or use the dev script (runs in tmux):
 ./scripts/dev.sh
 ```
 
-### 4. Set Up Chrome with Debugging (WSL2/Windows)
-
-Create `Chrome-Debug.bat` on Windows:
-```batch
-@echo off
-taskkill /F /IM chrome.exe 2>nul
-timeout /t 2 /nobreak >nul
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" ^
-    --remote-debugging-port=9222 ^
-    --user-data-dir=C:\Temp\chrome-debug ^
-    --no-first-run
-```
-
-**Always launch Chrome using this script** for browser automation to work.
-
-### 5. Load the Extension in Chrome
+### 4. Load the Extension in Chrome
 
 1. Open `chrome://extensions`
 2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `dist-extension/` folder
 
-### 6. Install the Claude Code Plugin
+### 5. Install the Claude Code Plugin
 
 ```bash
 # From the TabzChrome directory
@@ -90,7 +75,7 @@ start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" ^
 
 Or via `/plugin` menu → Install from local path.
 
-### 7. Restart Claude Code
+### 6. Restart Claude Code
 
 Exit and restart Claude Code to load the plugin:
 ```
@@ -98,7 +83,7 @@ Exit and restart Claude Code to load the plugin:
 claude
 ```
 
-### 8. Verify Setup
+### 7. Verify Setup
 
 ```bash
 # Check MCP connection
@@ -137,15 +122,15 @@ mcp-cli call plugin_tabz-chrome_tabz/tabz_list_tabs '{}'
    git checkout .claude-plugin/plugin.json
    ```
 
-### "Chrome not reachable" / CDP errors
+### "Chrome not reachable" errors
 
-1. **Chrome not started with debugging:**
-   - Use the Chrome-Debug.bat script
-   - Verify: `curl http://localhost:9222/json/version` (from PowerShell)
+1. **TabzChrome extension not installed:**
+   - Load the extension at `chrome://extensions`
+   - Ensure it's enabled
 
-2. **Wrong Chrome profile:**
-   - Close all Chrome windows
-   - Only use the debug shortcut
+2. **Backend not running:**
+   - Start the backend: `cd backend && npm start`
+   - Verify: `curl http://localhost:8129/api/health`
 
 ### After Git Pull
 
@@ -158,7 +143,7 @@ cd tabz-mcp-server && npm run build
 
 ### MCP Server: Tabz
 
-**26 browser automation tools** for controlling Chrome programmatically (all use Extension APIs, no CDP required):
+**29 browser automation tools** for controlling Chrome programmatically (all use Extension APIs, no CDP required):
 
 | Category | Tools | Purpose |
 |----------|-------|---------|

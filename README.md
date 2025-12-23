@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-1.1.8-blue)
+![Version](https://img.shields.io/badge/version-1.2.8-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -448,7 +448,7 @@ The URL opens in a new tab and the sidebar activates automatically.
 
 ## Tabz MCP Integration
 
-Tabz includes an **MCP server** with 20 tools that let Claude Code control your browser:
+Tabz includes an **MCP server** with 29 tools that let Claude Code control your browser:
 
 ![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/pages/screenshots/mcp-dalle-demo.png)
 
