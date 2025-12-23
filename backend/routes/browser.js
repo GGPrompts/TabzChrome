@@ -1602,6 +1602,166 @@ router.post('/network-requests/clear', async (req, res) => {
   }
 });
 
+// ============================================
+// DEBUGGER ROUTES (DOM Tree, Performance, Coverage)
+// ============================================
+
+// POST /api/browser/debugger/dom-tree - Get DOM tree using chrome.debugger
+router.post('/debugger/dom-tree', async (req, res) => {
+  const { tabId, maxDepth, selector } = req.body;
+
+  log.debug('POST /debugger/dom-tree', { tabId, maxDepth, selector });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out - debugger operation may still be in progress'));
+      }, 30000); // 30s timeout for debugger operations
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-get-dom-tree',
+      requestId,
+      tabId,
+      maxDepth: maxDepth || 4,
+      selector
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('debugger/dom-tree error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/debugger/performance - Profile page performance
+router.post('/debugger/performance', async (req, res) => {
+  const { tabId } = req.body;
+
+  log.debug('POST /debugger/performance', { tabId });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 15000); // 15s timeout
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-profile-performance',
+      requestId,
+      tabId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('debugger/performance error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/debugger/coverage - Get JS/CSS code coverage
+router.post('/debugger/coverage', async (req, res) => {
+  const { tabId, type } = req.body;
+
+  log.debug('POST /debugger/coverage', { tabId, type });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 20000); // 20s timeout for coverage
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-get-coverage',
+      requestId,
+      tabId,
+      coverageType: type || 'both'
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('debugger/coverage error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
 module.exports.addConsoleLog = addConsoleLog;
 module.exports.getConsoleLogs = getConsoleLogs;

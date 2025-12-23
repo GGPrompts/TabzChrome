@@ -15,6 +15,25 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.8] - 2025-12-23
+
+### Added
+- **Chrome Debugger MCP Tools** - Three new DevTools-level inspection tools:
+  - `tabz_get_dom_tree` - Get full DOM tree structure including shadow DOM (uses chrome.debugger)
+  - `tabz_profile_performance` - Profile page timing, memory, and DOM metrics
+  - `tabz_get_coverage` - Analyze JS/CSS code coverage to find unused code
+- Tools use Chrome DevTools Protocol via chrome.debugger API
+- User sees "debugging" banner in Chrome while tools run (auto-detaches after operation)
+- **MCP Settings UI** - New "Debugger" category in MCP settings (sidebar + dashboard)
+
+### Fixed
+- **DOM tree returning empty** - Handle document nodeType 9 (was filtering out root node)
+- **Coverage tool timeout** - Fixed duplicate `type` property overwriting message type with coverage type
+- **CSS coverage error** - Enable DOM domain before CSS domain (Chrome requirement)
+- **Debugger commands hanging** - Added 10s timeout to `sendDebuggerCommand` to prevent infinite hangs
+
+---
+
 ## [1.2.7] - 2025-12-23
 
 ### Fixed

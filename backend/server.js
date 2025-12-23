@@ -1309,6 +1309,45 @@ wss.on('connection', (ws, req) => {
           break;
 
         // ============================================
+        // DEBUGGER RESPONSES - From Chrome extension (DevTools access)
+        // ============================================
+        case 'browser-get-dom-tree-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              tree: data.tree,
+              nodeCount: data.nodeCount,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-profile-performance-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              timing: data.timing,
+              memory: data.memory,
+              dom: data.dom,
+              other: data.other,
+              rawMetrics: data.rawMetrics,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-get-coverage-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              coverage: data.coverage,
+              summary: data.summary,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
         // QUEUE_COMMAND - Forward to Chrome extension
         // ============================================
         case 'QUEUE_COMMAND':

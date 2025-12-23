@@ -47,6 +47,10 @@ const MCP_TOOLS: McpTool[] = [
   { id: 'tabz_create_folder', name: 'Create Folder', desc: 'Create bookmark folder', tokens: 800, category: 'Bookmarks' },
   { id: 'tabz_move_bookmark', name: 'Move Bookmark', desc: 'Move to different folder', tokens: 800, category: 'Bookmarks' },
   { id: 'tabz_delete_bookmark', name: 'Delete Bookmark', desc: 'Remove bookmark or folder', tokens: 600, category: 'Bookmarks' },
+  // Debugger (chrome.debugger API - DevTools access)
+  { id: 'tabz_get_dom_tree', name: 'DOM Tree', desc: 'Get full DOM structure via DevTools', tokens: 1400, category: 'Debugger' },
+  { id: 'tabz_profile_performance', name: 'Performance', desc: 'Profile timing, memory, DOM metrics', tokens: 1300, category: 'Debugger' },
+  { id: 'tabz_get_coverage', name: 'Coverage', desc: 'JS/CSS code coverage analysis', tokens: 1200, category: 'Debugger' },
 ]
 
 const CORE_TOOL_IDS = MCP_TOOLS.filter(t => t.locked).map(t => t.id)

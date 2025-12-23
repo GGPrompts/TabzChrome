@@ -32,6 +32,9 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_create_folder` | "create folder", "new bookmark folder" | Create bookmark folder |
 | `tabz_move_bookmark` | "move bookmark", "organize bookmarks" | Move bookmark to different folder |
 | `tabz_delete_bookmark` | "delete bookmark", "remove bookmark" | Delete bookmark or folder |
+| `tabz_get_dom_tree` | "DOM tree", "page structure", "inspect DOM" | Get full DOM tree via chrome.debugger |
+| `tabz_profile_performance` | "performance metrics", "page speed", "memory usage" | Profile timing, memory, and DOM metrics |
+| `tabz_get_coverage` | "code coverage", "unused CSS", "unused JavaScript" | Get JS/CSS code coverage analysis |
 
 > **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
@@ -986,6 +989,150 @@ Confirmation of deletion.
 
 ---
 
+## tabz_get_dom_tree
+
+**Purpose:** Get the full DOM tree structure of the current page using Chrome DevTools Protocol.
+
+**Trigger phrases:**
+- "Show me the DOM structure"
+- "What's the page hierarchy?"
+- "Inspect the DOM tree"
+- "Get the HTML structure"
+
+**Parameters:**
+- `tabId` (optional): Chrome tab ID. Omit for active tab.
+- `maxDepth` (optional): Maximum depth to traverse (1-10, default: 4). Higher values = more detail.
+- `selector` (optional): CSS selector to focus on a specific subtree.
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- `tree`: Simplified DOM tree with tag names, IDs, and classes
+- `nodeCount`: Total nodes in returned tree
+- Child counts shown for truncated branches
+
+**Examples:**
+```javascript
+// Full document (shallow)
+{ maxDepth: 2 }
+
+// Navigation only
+{ selector: "nav" }
+
+// Deep inspection of main content
+{ maxDepth: 8, selector: "main" }
+
+// Specific component
+{ selector: "#app", maxDepth: 5 }
+```
+
+**Note:** The user will see a "debugging" banner in Chrome while this runs. The debugger automatically detaches after operation completes.
+
+**Use cases:**
+- Understand page structure for web scraping
+- Debug complex layouts
+- Find element hierarchies for automation
+- Analyze shadow DOM content
+
+---
+
+## tabz_profile_performance
+
+**Purpose:** Profile the current page's performance metrics using Chrome DevTools Protocol.
+
+**Trigger phrases:**
+- "Check page performance"
+- "How much memory is this using?"
+- "Profile this page"
+- "Get performance metrics"
+
+**Parameters:**
+- `tabId` (optional): Chrome tab ID. Omit for active tab.
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- **Timing metrics (ms):** TaskDuration, ScriptDuration, LayoutDuration, etc.
+- **Memory metrics (MB):** JSHeapUsedSize, JSHeapTotalSize, etc.
+- **DOM metrics:** Nodes, Documents, Frames, LayoutCount
+- **Other metrics:** Process-level stats
+
+**Examples:**
+```javascript
+// Profile current tab
+{}
+
+// Profile specific tab
+{ tabId: 1762559892 }
+
+// JSON for programmatic analysis
+{ response_format: "json" }
+```
+
+**Note:** The user will see a "debugging" banner in Chrome while metrics are collected.
+
+**Key metrics to watch:**
+- **TaskDuration** - High values indicate slow JavaScript
+- **JSHeapUsedSize** - Memory usage, watch for leaks
+- **Nodes** - DOM size, large numbers slow rendering
+- **LayoutCount** - Frequent layouts cause jank
+
+**Use cases:**
+- Diagnose slow pages
+- Identify memory leaks
+- Monitor DOM bloat
+- Performance optimization
+
+---
+
+## tabz_get_coverage
+
+**Purpose:** Analyze JavaScript and/or CSS code coverage to find unused code.
+
+**Trigger phrases:**
+- "How much code is unused?"
+- "Check CSS coverage"
+- "Find unused JavaScript"
+- "Code coverage analysis"
+
+**Parameters:**
+- `tabId` (optional): Chrome tab ID. Omit for active tab.
+- `type` (optional): `'js'` (JavaScript only), `'css'` (CSS only), or `'both'` (default)
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- **Per-file coverage:** URL, used bytes, total bytes, usage percentage
+- **Summary:** Total files, bytes used/total, overall percentage
+- Files sorted by total size (largest first)
+
+**Examples:**
+```javascript
+// Full audit (JS + CSS)
+{}
+
+// JavaScript only
+{ type: "js" }
+
+// CSS only
+{ type: "css" }
+
+// JSON for analysis
+{ type: "both", response_format: "json" }
+```
+
+**Note:** Coverage reflects code used since page load. Interact with the page for fuller coverage data.
+
+**Interpreting results:**
+- **Low usage %** = Opportunity for code splitting
+- **Large unused files** = Consider lazy loading
+- **CSS < 50%** = May have dead CSS rules
+
+**Use cases:**
+- Find code splitting opportunities
+- Identify dead CSS
+- Measure bundle efficiency
+- Optimize page load time
+
+---
+
 ## Architecture
 
 ```
@@ -1083,6 +1230,9 @@ All tools use **Chrome Extension APIs** - no CDP or `--remote-debugging-port=922
 | `tabz_create_folder` | ✅ Required | Chrome bookmarks API |
 | `tabz_move_bookmark` | ✅ Required | Chrome bookmarks API |
 | `tabz_delete_bookmark` | ✅ Required | Chrome bookmarks API |
+| `tabz_get_dom_tree` | ✅ Required | chrome.debugger API |
+| `tabz_profile_performance` | ✅ Required | chrome.debugger API |
+| `tabz_get_coverage` | ✅ Required | chrome.debugger API |
 
 **Summary:**
 - **All tools use Chrome Extension APIs** - no CDP required

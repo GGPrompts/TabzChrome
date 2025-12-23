@@ -169,3 +169,67 @@ export interface SavePageResult {
   mimeType?: string;
   error?: string;
 }
+
+// Debugger types (DOM Tree, Performance, Coverage)
+
+export interface SimplifiedDOMNode {
+  tag: string;
+  id?: string;
+  classes?: string[];
+  text?: string;
+  children?: SimplifiedDOMNode[];
+  childCount?: number;
+}
+
+export interface DOMTreeResult {
+  success: boolean;
+  tree?: SimplifiedDOMNode;
+  nodeCount?: number;
+  error?: string;
+}
+
+export interface PerformanceMetrics {
+  timing: Record<string, number>;      // Timing metrics in ms
+  memory: Record<string, number>;      // Memory metrics in MB
+  dom: Record<string, number>;         // DOM node counts
+  other: Record<string, number>;       // Other metrics
+  rawMetrics: Array<{ name: string; value: number }>;
+}
+
+export interface PerformanceResult {
+  success: boolean;
+  timing?: Record<string, number>;
+  memory?: Record<string, number>;
+  dom?: Record<string, number>;
+  other?: Record<string, number>;
+  rawMetrics?: Array<{ name: string; value: number }>;
+  error?: string;
+}
+
+export interface FileCoverage {
+  url: string;
+  usedBytes: number;
+  totalBytes: number;
+  usedPercent: number;
+  unusedRanges?: number;  // JS only
+}
+
+export interface CoverageSummary {
+  files: number;
+  totalBytes: number;
+  usedBytes: number;
+  usedPercent: number;
+}
+
+export interface CoverageResult {
+  success: boolean;
+  coverage?: {
+    js?: FileCoverage[];
+    css?: FileCoverage[];
+  };
+  summary?: {
+    js?: CoverageSummary;
+    css?: CoverageSummary;
+  };
+  error?: string;
+}

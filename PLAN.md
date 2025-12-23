@@ -1,7 +1,7 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 22, 2025
-**Current Version**: 1.2.0
+**Last Updated**: December 23, 2025
+**Current Version**: 1.2.8
 
 ---
 
@@ -50,14 +50,14 @@
 
 ### Priority 2: Medium Value
 
-#### `chrome.debugger` - DevTools Access
+#### `chrome.debugger` - DevTools Access ✓
 **Permission**: `"debugger"` (shows warning to user)
 
 | Tool | Description | Status |
 |------|-------------|--------|
-| `tabz_get_dom_tree` | Full DOM inspection | Planned |
-| `tabz_profile_performance` | Profile page performance metrics | Planned |
-| `tabz_get_coverage` | Code coverage analysis | Planned |
+| `tabz_get_dom_tree` | Full DOM inspection | Done |
+| `tabz_profile_performance` | Profile page performance metrics | Done |
+| `tabz_get_coverage` | Code coverage analysis | Done |
 
 ### Priority 3: Lower Value / Complex
 

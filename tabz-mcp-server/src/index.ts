@@ -13,6 +13,7 @@
  * - network: tabz_enable_network_capture, tabz_get_network_requests, tabz_clear_network_requests
  * - downloads: tabz_download_file, tabz_get_downloads, tabz_cancel_download, tabz_save_page
  * - bookmarks: tabz_get_bookmark_tree, tabz_search_bookmarks, tabz_save_bookmark, tabz_create_folder, tabz_move_bookmark, tabz_delete_bookmark
+ * - debugger: tabz_get_dom_tree, tabz_profile_performance, tabz_get_coverage
  * - cookies: (future) tabz_check_auth, tabz_get_cookies
  * - history: (future) tabz_search_history
  *
@@ -32,12 +33,13 @@ import { registerOmniboxTools } from "./tools/omnibox.js";
 import { registerNetworkTools } from "./tools/network.js";
 import { registerDownloadTools } from "./tools/downloads.js";
 import { registerBookmarkTools } from "./tools/bookmarks.js";
+import { registerDebuggerTools } from "./tools/debugger.js";
 
 // Backend URL (TabzChrome backend running in WSL)
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8129";
 
 // Default enabled tool groups (used if backend is not reachable)
-const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console', 'network', 'downloads', 'bookmarks'];
+const DEFAULT_ENABLED_GROUPS = ['core', 'interaction', 'navigation', 'console', 'network', 'downloads', 'bookmarks', 'debugger'];
 
 // Tool group registration functions
 // Maps group names to their registration functions
@@ -75,6 +77,10 @@ const TOOL_GROUPS: Record<string, ToolGroupRegistrar> = {
   // Bookmark tools (Chrome bookmarks API)
   bookmarks: (server) => {
     registerBookmarkTools(server);    // tabz_get_bookmark_tree, tabz_search_bookmarks, tabz_save_bookmark, tabz_create_folder, tabz_move_bookmark, tabz_delete_bookmark
+  },
+  // Debugger tools (Chrome debugger API - DevTools access)
+  debugger: (server) => {
+    registerDebuggerTools(server);    // tabz_get_dom_tree, tabz_profile_performance, tabz_get_coverage
   },
   // cookies: (server) => registerCookieTools(server),
   // history: (server) => registerHistoryTools(server),
