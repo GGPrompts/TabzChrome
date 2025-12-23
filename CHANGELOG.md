@@ -15,6 +15,32 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.5] - 2025-12-22
+
+### Added
+- **AI-relevant files always visible** - Critical files now show even with "hidden files" off:
+  - `.claude/`, `.prompts/` (Claude ecosystem)
+  - `.obsidian/` (Obsidian vault indicator)
+  - `.env`, `.env.local`, `.env.*` (environment files)
+  - `.gitignore`, `.dockerignore`
+  - `.pem`, `.key`, `.crt` (certificate/secret files)
+- **Obsidian vault detection** - Folders containing `.obsidian` get 🧠 brain icon (violet color)
+- **New file type icons and colors** in file tree:
+  - Docker (Container icon, sky blue): `Dockerfile`, `docker-compose.yml`, `.dockerignore`
+  - Gitignore (GitBranch icon, orange): `.gitignore`
+  - Environment (Lock icon, yellow): `.env`, `.env.local`, `.env.*`
+  - Secrets (Key icon, red): `.pem`, `.key`, `.crt`, `credentials.*`
+- **Send to Terminal** - New toolbar button to send file content to any open terminal:
+  - Dropdown lists all open terminals
+  - Claude sessions highlighted with 🤖 indicator
+  - "Send + Enter" option for Claude sessions (auto-submit prompt)
+  - Uses `TMUX_SESSION_SEND` for reliable Claude delivery
+
+### Changed
+- Backend `buildFileTree` now returns `isObsidianVault` flag for folders containing `.obsidian`
+
+---
+
 ## [1.2.4] - 2025-12-22
 
 ### Added

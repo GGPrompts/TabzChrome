@@ -7,6 +7,32 @@ const fs = require('fs').promises;
 const path = require('path');
 const router = express.Router();
 
+/**
+ * Check if a file/folder should always be visible even when showHidden=false
+ * These are AI-relevant files that developers need to monitor
+ */
+function shouldAlwaysShow(name) {
+  // Core Claude ecosystem
+  if (name === '.claude' || name === '.prompts') return true;
+
+  // Obsidian vault indicator
+  if (name === '.obsidian') return true;
+
+  // Environment files (.env, .env.local, .env.production, etc.)
+  if (/^\.env(\.[\w.-]+)?$/i.test(name)) return true;
+
+  // Git files
+  if (name === '.gitignore') return true;
+
+  // Docker files
+  if (name === '.dockerignore') return true;
+
+  // Secrets/credentials files (for awareness)
+  if (/\.(pem|key|crt|cer|pfx|p12)$/i.test(name)) return true;
+
+  return false;
+}
+
 // Helper function to build file tree recursively
 async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = false) {
   try {
@@ -40,6 +66,9 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const children = [];
 
+    // Check if this directory is an Obsidian vault (contains .obsidian folder)
+    const isObsidianVault = entries.some(e => e.name === '.obsidian' && e.isDirectory());
+
     // Debug: Log entry counts for top-level directories
     if (currentDepth <= 1) {
       console.log(`[buildFileTree] Read ${entries.length} raw entries from ${dirPath}`);
@@ -52,8 +81,8 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
         if (entry.name === 'node_modules') return false;
         // If showHidden is true, show all files, otherwise filter hidden files
         if (!showHidden && entry.name.startsWith('.')) {
-          // But always include .claude folder
-          return entry.name === '.claude';
+          // Always include AI-relevant hidden files/folders
+          return shouldAlwaysShow(entry.name);
         }
         return true;
       })
@@ -107,7 +136,8 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
       path: dirPath,
       type: 'directory',
       children,
-      modified: stats.mtime.toISOString()
+      modified: stats.mtime.toISOString(),
+      ...(isObsidianVault && { isObsidianVault: true })
     };
   } catch (err) {
     console.error(`Error building tree for ${dirPath}:`, err);

@@ -1,16 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FileTree } from '../components/files/FileTree'
 import { FilteredFileList } from '../components/files/FilteredFileList'
-import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin } from 'lucide-react'
+import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin, Send, Terminal, ChevronDown } from 'lucide-react'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
 import { useFilesContext } from '../contexts/FilesContext'
-import { FileFilter } from '../utils/claudeFileTypes'
+import { FileFilter, isPromptFile } from '../utils/claudeFileTypes'
+import { sendMessage } from '../../shared/messaging'
+
+interface TerminalInfo {
+  id: string
+  name: string
+  sessionName?: string
+  isClaudeSession?: boolean
+}
 
 // Get icon color class based on file type (matches FileTree.tsx colors)
 const getIconColorClass = (fileType: FileType): string => {
@@ -128,6 +136,12 @@ export default function FilesSection() {
   const [imageDimensions, setImageDimensions] = useState<{width: number, height: number} | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
+  // Send to Terminal state
+  const [showSendDropdown, setShowSendDropdown] = useState(false)
+  const [terminals, setTerminals] = useState<TerminalInfo[]>([])
+  const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const sendDropdownRef = useRef<HTMLDivElement>(null)
+
   // Share working directory with rest of dashboard (working dir dropdown is in sidebar now)
   const { globalWorkingDir, isLoaded: workingDirLoaded } = useWorkingDirectory()
 
@@ -147,12 +161,65 @@ export default function FilesSection() {
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettingsDropdown(false)
       }
+      if (sendDropdownRef.current && !sendDropdownRef.current.contains(e.target as Node)) {
+        setShowSendDropdown(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const activeFile = openFiles.find(f => f.id === activeFileId)
+
+  // Fetch available terminals when dropdown opens
+  const fetchTerminals = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8129/api/agents')
+      if (!response.ok) return
+      const data = await response.json()
+      const terminalList: TerminalInfo[] = (data.data || []).map((t: any) => ({
+        id: t.id,
+        name: t.name || t.id,
+        sessionName: t.sessionName,
+        isClaudeSession: t.name?.toLowerCase().includes('claude') || t.id?.includes('claude')
+      }))
+      setTerminals(terminalList)
+    } catch (err) {
+      console.error('Failed to fetch terminals:', err)
+    }
+  }, [])
+
+  // Send content to a terminal
+  const sendToTerminal = useCallback(async (terminal: TerminalInfo, sendEnter: boolean = false) => {
+    if (!activeFile?.content) return
+
+    setSendStatus('sending')
+    try {
+      if (terminal.sessionName) {
+        // Use TMUX_SESSION_SEND for tmux-based terminals (better for Claude)
+        await sendMessage({
+          type: 'TMUX_SESSION_SEND',
+          sessionName: terminal.sessionName,
+          text: activeFile.content,
+          sendEnter
+        })
+      } else {
+        // Fall back to TERMINAL_INPUT for non-tmux terminals
+        await sendMessage({
+          type: 'TERMINAL_INPUT',
+          terminalId: terminal.id,
+          data: activeFile.content
+        })
+      }
+      setSendStatus('sent')
+      setShowSendDropdown(false)
+      // Reset status after a moment
+      setTimeout(() => setSendStatus('idle'), 2000)
+    } catch (err) {
+      console.error('Failed to send to terminal:', err)
+      setSendStatus('idle')
+    }
+  }, [activeFile])
 
   const copyContent = async () => {
     if (activeFile?.content) {
@@ -529,6 +596,57 @@ export default function FilesSection() {
                 <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <ExternalLink className="w-4 h-4" /> Open in Editor
                 </button>
+                {/* Send to Terminal dropdown */}
+                <div className="relative" ref={sendDropdownRef}>
+                  <button
+                    onClick={() => {
+                      if (!showSendDropdown) fetchTerminals()
+                      setShowSendDropdown(!showSendDropdown)
+                    }}
+                    className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${
+                      sendStatus === 'sent' ? 'text-green-400' : ''
+                    }`}
+                    title="Send content to terminal"
+                  >
+                    <Send className="w-4 h-4" />
+                    {sendStatus === 'sent' ? 'Sent!' : 'Send'}
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  {showSendDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-card border border-border rounded-lg shadow-xl z-50 py-1">
+                      {terminals.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">No terminals found</div>
+                      ) : (
+                        <>
+                          <div className="px-3 py-1 text-xs text-muted-foreground border-b border-border mb-1">
+                            Send to terminal
+                          </div>
+                          {terminals.map(t => (
+                            <div key={t.id} className="px-2">
+                              <button
+                                onClick={() => sendToTerminal(t, false)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded text-left"
+                              >
+                                <Terminal className={`w-4 h-4 ${t.isClaudeSession ? 'text-orange-400' : ''}`} />
+                                <span className="truncate flex-1">{t.name}</span>
+                                {t.isClaudeSession && <span className="text-xs text-orange-400">🤖</span>}
+                              </button>
+                              {t.isClaudeSession && (
+                                <button
+                                  onClick={() => sendToTerminal(t, true)}
+                                  className="w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-muted rounded text-left text-muted-foreground ml-6"
+                                  title="Send and press Enter to submit"
+                                >
+                                  <Send className="w-3 h-3" /> Send + Enter (submit)
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
               {/* Content */}

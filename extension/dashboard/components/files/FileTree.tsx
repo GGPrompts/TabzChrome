@@ -20,6 +20,12 @@ import {
   Bot,
   Terminal,
   Plug,
+  // New icons for AI-relevant files
+  Container,  // Docker
+  GitBranch,  // .gitignore
+  Lock,       // .env files
+  Key,        // secrets
+  Brain,      // Obsidian (using Brain as closest match)
 } from "lucide-react"
 import { useFilesContext } from "../../contexts/FilesContext"
 import { getClaudeFileType, claudeFileColors, ClaudeFileType } from "../../utils/claudeFileTypes"
@@ -31,6 +37,7 @@ interface FileNode {
   size?: number
   modified?: string
   children?: FileNode[]
+  isObsidianVault?: boolean  // True if this folder contains .obsidian
 }
 
 interface FileTreeProps {
@@ -154,6 +161,12 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       case 'mcp': return Plug
       case 'command': return FileCode
       case 'plugin': return FileJson
+      // AI-relevant file types
+      case 'obsidian-vault': return Brain
+      case 'docker': return Container
+      case 'gitignore': return GitBranch
+      case 'env': return Lock
+      case 'secrets': return Key
       default: return null
     }
   }
@@ -188,7 +201,12 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   }
 
   // Get folder icon with Claude coloring
-  const getFolderIcon = (folderName: string, folderPath: string, isExpanded: boolean) => {
+  const getFolderIcon = (folderName: string, folderPath: string, isExpanded: boolean, isObsidianVault?: boolean) => {
+    // Obsidian vault gets brain icon (folder containing .obsidian)
+    if (isObsidianVault) {
+      return <Brain className="w-4 h-4 text-violet-400" />
+    }
+
     const claudeType = getClaudeFileType(folderName, folderPath)
     if (claudeType) {
       const colorClass = claudeFileColors[claudeType]?.tailwind || 'text-yellow-400'
@@ -295,7 +313,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           </span>
           <span className="mr-2">
             {isDirectory ? (
-              getFolderIcon(node.name, node.path, isExpanded)
+              getFolderIcon(node.name, node.path, isExpanded, node.isObsidianVault)
             ) : (
               getFileIcon(node.name, node.path)
             )}

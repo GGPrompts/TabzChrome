@@ -1,6 +1,6 @@
 # Files Section for TabzChrome Dashboard
 
-## Status: Phase 1, 2, 3, 3.5, 4 & 4.5 Complete ✅
+## Status: Phase 1, 2, 3, 3.5, 4, 4.5 & 4.6 Complete ✅
 
 **Completed:** 2025-12-22
 **Source:** Adapted from Opustrator's FileTree component
@@ -135,6 +135,26 @@ Add a "Files" section to the dashboard for browsing and viewing files with synta
   - Green: code files
   - Gray: .txt files
   - Folders always yellow (except Claude ecosystem folders)
+
+### Phase 4.6: AI-Relevant Files & Terminal Integration ✅
+
+- [x] **Always-visible AI files** - These files show even when hidden files are off:
+  - `.claude/`, `.prompts/` (Claude ecosystem)
+  - `.obsidian/` (Obsidian vault indicator)
+  - `.env`, `.env.local`, `.env.*` (environment files)
+  - `.gitignore`, `.dockerignore`
+  - `.pem`, `.key`, `.crt` (certificate/secret files)
+- [x] **Obsidian vault detection** - Folders containing `.obsidian` get 🧠 brain icon (violet)
+- [x] **New file type icons and colors**:
+  - Docker (🐳 Container icon, sky blue): Dockerfile, docker-compose.yml
+  - Gitignore (GitBranch icon, orange)
+  - Env files (🔒 Lock icon, yellow)
+  - Secrets (🔑 Key icon, red)
+- [x] **Send to Terminal** - Toolbar button to send file content to terminals:
+  - Dropdown lists all open terminals
+  - Claude sessions highlighted with 🤖
+  - "Send + Enter" option for Claude sessions (auto-submit)
+  - Uses `TMUX_SESSION_SEND` for reliable Claude delivery
 
 ### Phase 5: Future Enhancements
 
