@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-1.2.8-blue)
+![Version](https://img.shields.io/badge/version-1.2.9-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -366,12 +366,15 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 |------|-----|----------|
 | **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector, quick spawn |
 | **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
+| **Files** | `/files` | File browser with syntax highlighting, image/video preview, favorites |
 
 **Features:**
 - **Working directory sync** - Changes in dashboard sync to extension sidebar and vice versa
 - **Real-time stats** - Active terminals, backend uptime, memory usage
 - **Orphan cleanup** - Find and kill detached tmux sessions
 - **Quick spawn** - Launch new terminals directly from the dashboard
+- **File tree context menu** - Right-click for copy path, favorite, pin, open in editor
+- **Folder favorites** - Star entire folders, view contents in favorites filter
 
 ### Custom Terminal Triggers
 

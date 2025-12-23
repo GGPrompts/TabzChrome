@@ -75,20 +75,18 @@ export function getClaudeFileType(name: string, path: string): ClaudeFileType {
     if (path.includes('/commands/')) return 'command'
   }
 
-  // .prompts directory
+  // .prompts directory itself (not contents)
   if (name === '.prompts') {
     return 'prompt'
   }
 
-  // .prompty files
+  // .prompty files get pink coloring
   if (/\.prompty$/i.test(name)) {
     return 'prompt'
   }
 
-  // Files inside .prompts/
-  if (path.includes('/.prompts/')) {
-    return 'prompt'
-  }
+  // NOTE: Subfolders and other files inside .prompts/ use normal colors
+  // Only the .prompts folder itself and .prompty files are pink
 
   // plugins directory itself (not contents - those get their own types)
   if (name === 'plugins') {

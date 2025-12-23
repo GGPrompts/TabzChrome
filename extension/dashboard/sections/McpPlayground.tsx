@@ -187,7 +187,7 @@ export default function McpPlayground() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold terminal-glow flex items-center gap-3">
+          <h1 className="text-3xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
             <Wrench className="w-8 h-8" />
             MCP Settings
           </h1>

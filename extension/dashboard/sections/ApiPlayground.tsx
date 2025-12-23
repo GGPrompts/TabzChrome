@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Send, Copy, Check, Clock, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { Send, Copy, Check, Clock, ChevronDown, ChevronRight, Plus, Trash2, Code2 } from 'lucide-react'
 
 const API_BASE = 'http://localhost:8129'
 
@@ -185,7 +185,10 @@ export default function ApiPlayground() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold terminal-glow">API Playground</h1>
+        <h1 className="text-3xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
+          <Code2 className="w-8 h-8" />
+          API Playground
+        </h1>
         <p className="text-muted-foreground mt-1">Test TabzChrome REST API endpoints</p>
       </div>
 

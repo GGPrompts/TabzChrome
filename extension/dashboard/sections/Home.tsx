@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Folder } from 'lucide-react'
+import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Folder, Home } from 'lucide-react'
 import { getHealth, getOrphanedSessions, getTerminals } from '../hooks/useDashboard'
 
 interface HealthData {
@@ -126,7 +126,10 @@ export default function HomeSection() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold terminal-glow">Dashboard</h1>
+          <h1 className="text-3xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
+            <Home className="w-8 h-8" />
+            Dashboard
+          </h1>
           <p className="text-muted-foreground mt-1">
             TabzChrome backend status and quick stats
           </p>

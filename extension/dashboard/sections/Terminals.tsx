@@ -238,7 +238,10 @@ export default function TerminalsSection() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold terminal-glow">Terminals</h1>
+          <h1 className="text-3xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
+            <Terminal className="w-8 h-8" />
+            Terminals
+          </h1>
           <p className="text-muted-foreground mt-1">
             {terminals.length} active, {orphaned.length} orphaned
             <span className="text-xs ml-2 opacity-60">• auto-refreshes every 5s</span>

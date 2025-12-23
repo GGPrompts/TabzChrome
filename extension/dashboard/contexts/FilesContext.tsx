@@ -155,25 +155,94 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Handle favorites filter locally (using legacy groups format)
+    // Handle favorites filter - fetch folder contents for favorited folders
     if (filter === 'favorites') {
       const favArray = Array.from(favorites)
       if (favArray.length === 0) {
         setFilteredFiles({ trees: [], groups: [] })
         return
       }
-      setFilteredFiles({
-        trees: [],
-        groups: [{
-          name: 'Favorites',
-          icon: '⭐',
-          files: favArray.map(path => ({
-            name: path.split('/').pop() || path,
-            path,
-            type: null // Will use default icon
-          }))
-        }]
-      })
+
+      setFilteredFilesLoading(true)
+      try {
+        // Fetch info for each favorited path to determine if file or folder
+        const favoriteTrees: FilteredTree[] = []
+        const favoriteFiles: { name: string; path: string; type: string | null }[] = []
+
+        await Promise.all(favArray.map(async (path) => {
+          try {
+            // Try to fetch as a tree (will fail for files)
+            const response = await fetch(
+              `${API_BASE}/api/files/tree?${new URLSearchParams({
+                path,
+                depth: '3', // Show 3 levels deep for favorited folders
+                showHidden: 'false',
+              })}`
+            )
+
+            if (response.ok) {
+              const data = await response.json()
+              // If it has children, it's a folder
+              if (data && data.type === 'directory') {
+                favoriteTrees.push({
+                  name: data.name,
+                  icon: '📁',
+                  basePath: data.path,
+                  tree: data as TreeNode
+                })
+              } else {
+                // Single file
+                favoriteFiles.push({
+                  name: path.split('/').pop() || path,
+                  path,
+                  type: null
+                })
+              }
+            } else {
+              // API error - treat as file
+              favoriteFiles.push({
+                name: path.split('/').pop() || path,
+                path,
+                type: null
+              })
+            }
+          } catch {
+            // Network error - still show in list
+            favoriteFiles.push({
+              name: path.split('/').pop() || path,
+              path,
+              type: null
+            })
+          }
+        }))
+
+        // Build response with both trees (folders) and groups (files)
+        setFilteredFiles({
+          trees: favoriteTrees,
+          groups: favoriteFiles.length > 0 ? [{
+            name: 'Favorite Files',
+            icon: '⭐',
+            files: favoriteFiles
+          }] : []
+        })
+      } catch (err) {
+        console.error('Failed to load favorites:', err)
+        // Fallback to simple list
+        setFilteredFiles({
+          trees: [],
+          groups: [{
+            name: 'Favorites',
+            icon: '⭐',
+            files: favArray.map(path => ({
+              name: path.split('/').pop() || path,
+              path,
+              type: null
+            }))
+          }]
+        })
+      } finally {
+        setFilteredFilesLoading(false)
+      }
       return
     }
 

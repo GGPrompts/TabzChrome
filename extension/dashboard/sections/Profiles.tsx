@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Grid, List, Search, Play, RefreshCw, Terminal, Folder, X, Settings, GripVertical, Star, Copy } from 'lucide-react'
+import { Grid, Grid3X3, List, Search, Play, RefreshCw, Terminal, Folder, X, Settings, GripVertical, Star, Copy } from 'lucide-react'
 import { spawnTerminal, getProfiles } from '../hooks/useDashboard'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import type { Profile } from '../../components/SettingsModal'
@@ -321,7 +321,10 @@ export default function ProfilesSection() {
       {/* Header */}
       <div className="flex items-start sm:items-center justify-between gap-4 mb-6">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold terminal-glow truncate">Profiles</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary terminal-glow truncate flex items-center gap-3">
+            <Grid3X3 className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" />
+            Profiles
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {profiles.length} profile{profiles.length !== 1 ? 's' : ''} · {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'}
           </p>

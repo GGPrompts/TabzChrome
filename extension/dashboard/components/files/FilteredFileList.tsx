@@ -102,12 +102,13 @@ function getFolderIcon(folderName: string, folderPath: string, isExpanded: boole
     : <Folder className="w-4 h-4 text-yellow-400" />
 }
 
-// Get text color for files (extension-based, not all pink)
+// Get text color for files (extension-based)
 function getTextColorClass(name: string, path: string, isDirectory: boolean): string {
   if (isDirectory) return '' // Folders use default text color
 
   const ext = name.split('.').pop()?.toLowerCase()
-  if (ext === 'prompty') return 'text-pink-400'
+  // prompty files: pink icon but white text (no color class)
+  if (ext === 'prompty') return ''
   if (ext === 'md') return 'text-blue-400'
   if (ext === 'yaml' || ext === 'yml') return 'text-amber-400'
   if (ext === 'json') return 'text-orange-400'
@@ -193,15 +194,17 @@ function TreeSection({
   source,
   onFileSelect,
   selectedPath,
+  startCollapsed = false,
 }: {
   source: FilteredTree
   onFileSelect: (path: string) => void
   selectedPath: string | null
+  startCollapsed?: boolean
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(startCollapsed)
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
-    // Start with root expanded
-    return new Set([source.tree.path])
+    // Start collapsed for favorites, expanded for other filters
+    return startCollapsed ? new Set() : new Set([source.tree.path])
   })
 
   const toggleExpand = (path: string) => {
@@ -323,6 +326,7 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
             source={source}
             onFileSelect={handleFileSelect}
             selectedPath={selectedPath}
+            startCollapsed={filter === 'favorites'}
           />
         ))}
 

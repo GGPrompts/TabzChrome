@@ -108,7 +108,7 @@ export default function SettingsSection() {
     <div className="p-6 max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold terminal-glow flex items-center gap-3">
+        <h1 className="text-3xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
           <SettingsIcon className="w-8 h-8" />
           Settings
         </h1>

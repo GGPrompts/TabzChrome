@@ -264,3 +264,48 @@ code, pre, .font-mono {
 .file-viewer-markdown em {
   font-style: italic;
 }
+
+/* ============================================
+   CONTEXT MENU STYLES
+   ============================================ */
+
+.tab-context-menu {
+  background: rgba(30, 30, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: background-color 0.15s ease;
+}
+
+.context-menu-item:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.context-menu-item.disabled {
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}

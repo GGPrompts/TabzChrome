@@ -15,6 +15,38 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.9] - 2025-12-23
+
+### Added
+- **File tree context menu** - Right-click any file or folder in the dashboard Files section:
+  - **Copy Path** - Copy full path to clipboard
+  - **Copy @Path** - Copy `@/path/to/file` format for Claude references
+  - **Favorite** - Toggle star status (works for files AND folders now)
+  - **Pin** - Open file as pinned tab (files only)
+  - **Open in Editor** - Launch `$EDITOR` in a new terminal (files only)
+- **Folder favorites** - Can now favorite entire folders, not just files
+  - Favorited folders show their contents in the favorites filter view
+  - Folders start collapsed to prevent scroll overload
+- **Star indicator in file tree** - Small star icon appears on hover for all items
+  - Always visible (filled yellow) when item is favorited
+  - Click star to toggle favorite status directly from tree
+- **Expand all button** - New button in file tree header expands all folders
+  - Works with filtered tree during search (expands only matching folders)
+- **Dashboard header styling** - Page headers now use JetBrains Mono font with primary green color
+- **Dashboard header icons** - All page headers now have matching icons (Dashboard, Profiles, Terminals, Files, API Playground, MCP Settings, Settings)
+
+### Changed
+- **Prompts filter coloring** - Only `.prompts` folder and `.prompty` files are pink; subfolders inside `.prompts/` now use normal yellow folder color and white text
+- **Prompty file text** - `.prompty` files now have pink icon but white text (previously both were pink)
+- **Open in Editor icon** - Changed from external link icon to terminal icon to better indicate it spawns a terminal
+
+### Fixed
+- **Context menu CSS missing** - Added `.tab-context-menu` styles to dashboard's globals.css (was only in sidepanel CSS)
+- **Memory leak in context menu** - Fixed race condition where event listeners could be added after component unmount
+- **Chrome messaging pattern** - FileTree now uses `sendMessage` helper instead of direct `chrome.runtime?.sendMessage` for consistent error handling
+
+---
+
 ## [1.2.8] - 2025-12-23
 
 ### Added

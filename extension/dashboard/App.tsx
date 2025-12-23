@@ -207,7 +207,7 @@ export default function App() {
           />
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-lg terminal-glow">TabzChrome</span>
+              <span className="font-semibold text-lg font-mono text-primary terminal-glow">TabzChrome</span>
               <ConnectionStatus connected={connected} />
             </div>
           )}

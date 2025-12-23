@@ -13,6 +13,7 @@ import {
   FileCode,
   Home,
   Minimize2,
+  Maximize2,
   Video,
   Table,
   Settings,
@@ -26,9 +27,12 @@ import {
   Lock,       // .env files
   Key,        // secrets
   Brain,      // Obsidian (using Brain as closest match)
+  Star,       // Favorites
 } from "lucide-react"
 import { useFilesContext } from "../../contexts/FilesContext"
 import { getClaudeFileType, claudeFileColors, ClaudeFileType } from "../../utils/claudeFileTypes"
+import { FileTreeContextMenu } from "./FileTreeContextMenu"
+import { sendMessage } from "../../../shared/messaging"
 
 interface FileNode {
   name: string
@@ -52,9 +56,17 @@ const API_BASE = "http://localhost:8129"
 
 export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenProp = false, maxDepth = 5, waitForLoad = false }: FileTreeProps) {
   // Use context for caching file tree across tab switches
-  const { fileTree, setFileTree, fileTreePath, setFileTreePath } = useFilesContext()
+  const { fileTree, setFileTree, fileTreePath, setFileTreePath, toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean
+    x: number
+    y: number
+    node: FileNode | null
+  }>({ show: false, x: 0, y: 0, node: null })
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -311,24 +323,94 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
   }, [fileTree])
 
+  // Expand all - collect all folder paths recursively
+  const expandAll = useCallback(() => {
+    const collectFolders = (node: FileNode): string[] => {
+      const paths: string[] = []
+      if (node.type === 'directory') {
+        paths.push(node.path)
+        if (node.children) {
+          node.children.forEach(child => {
+            paths.push(...collectFolders(child))
+          })
+        }
+      }
+      return paths
+    }
+
+    // Use filtered tree if search is active, otherwise full tree
+    const treeToExpand = filteredTree || fileTree
+    if (treeToExpand) {
+      const allFolders = collectFolders(treeToExpand)
+      setExpandedFolders(new Set(allFolders))
+    }
+  }, [filteredTree, fileTree])
+
+  // Context menu handlers
+  const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ show: true, x: e.clientX, y: e.clientY, node })
+    setSelectedPath(node.path)
+  }, [])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(prev => ({ ...prev, show: false }))
+  }, [])
+
+  const handleCopyPath = useCallback(() => {
+    if (contextMenu.node) {
+      navigator.clipboard.writeText(contextMenu.node.path)
+    }
+  }, [contextMenu.node])
+
+  const handleCopyAtPath = useCallback(() => {
+    if (contextMenu.node) {
+      navigator.clipboard.writeText(`@${contextMenu.node.path}`)
+    }
+  }, [contextMenu.node])
+
+  const handlePin = useCallback(() => {
+    if (contextMenu.node && contextMenu.node.type === 'file') {
+      openFile(contextMenu.node.path, true) // Open as pinned
+    }
+  }, [contextMenu.node, openFile])
+
+  const handleOpenInEditor = useCallback(() => {
+    if (!contextMenu.node || contextMenu.node.type !== 'file') return
+    const dir = contextMenu.node.path.split('/').slice(0, -1).join('/')
+    const fileName = contextMenu.node.name
+
+    // Use sendMessage helper to spawn terminal with editor (has error handling)
+    sendMessage({
+      type: 'SPAWN_TERMINAL',
+      name: `Edit: ${fileName}`,
+      command: `\${EDITOR:-nano} "${contextMenu.node.path}"`,
+      workingDir: dir,
+    })
+  }, [contextMenu.node])
+
   // Render file tree recursively
   const renderFileTree = useCallback((node: FileNode, depth = 0): React.ReactNode => {
     const isExpanded = expandedFolders.has(node.path)
     const isSelected = selectedPath === node.path
     const isDirectory = node.type === "directory"
+    const isNodeFavorite = isFavorite(node.path)
 
     // Check if this is a Claude file for text coloring
+    // Note: 'prompt' type excluded - prompty files have pink icon but white text
     const claudeType = getClaudeFileType(node.name, node.path)
-    const textColorClass = claudeType ? claudeFileColors[claudeType]?.tailwind : ''
+    const textColorClass = (claudeType && claudeType !== 'prompt') ? claudeFileColors[claudeType]?.tailwind : ''
 
     return (
       <div key={node.path}>
         <div
-          className={`flex items-center py-1 px-2 cursor-pointer hover:bg-muted/50 rounded ${
+          className={`group flex items-center py-1 px-2 cursor-pointer hover:bg-muted/50 rounded ${
             isSelected ? "bg-primary/20 text-primary" : ""
           }`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => handleNodeClick(node)}
+          onContextMenu={(e) => handleContextMenu(e, node)}
           title={node.path}
         >
           <span className="w-4 h-4 flex items-center justify-center mr-1 text-muted-foreground">
@@ -341,14 +423,27 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
               getFileIcon(node.name, node.path)
             )}
           </span>
-          <span className={`text-sm truncate ${isDirectory ? "font-medium" : ""} ${textColorClass}`}>{node.name}</span>
+          <span className={`text-sm truncate flex-1 ${isDirectory ? "font-medium" : ""} ${textColorClass}`}>{node.name}</span>
+          {/* Favorite star - visible on hover or if favorited */}
+          <button
+            className={`p-0.5 rounded hover:bg-muted/50 ${isNodeFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(node.path)
+            }}
+            title={isNodeFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star
+              className={`w-3 h-3 ${isNodeFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
+            />
+          </button>
         </div>
         {isDirectory && isExpanded && node.children && (
           <div>{node.children.map((child) => renderFileTree(child, depth + 1))}</div>
         )}
       </div>
     )
-  }, [expandedFolders, selectedPath, handleNodeClick])
+  }, [expandedFolders, selectedPath, handleNodeClick, handleContextMenu, isFavorite, toggleFavorite])
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border border-border">
@@ -371,6 +466,9 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
             title={showHidden ? "Hide hidden" : "Show hidden"}
           >
             {showHidden ? "👁️" : "🙈"}
+          </button>
+          <button onClick={expandAll} className="p-1.5 hover:bg-muted rounded" title="Expand all">
+            <Maximize2 className="w-4 h-4" />
           </button>
           <button onClick={collapseAll} className="p-1.5 hover:bg-muted rounded" title="Collapse all">
             <Minimize2 className="w-4 h-4" />
@@ -406,6 +504,21 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         {error && <div className="text-center text-red-400 py-4">{error}</div>}
         {!loading && !error && filteredTree && renderFileTree(filteredTree)}
       </div>
+
+      {/* Context Menu */}
+      <FileTreeContextMenu
+        show={contextMenu.show}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        node={contextMenu.node}
+        isFavorite={contextMenu.node ? isFavorite(contextMenu.node.path) : false}
+        onClose={closeContextMenu}
+        onCopy={handleCopyPath}
+        onCopyAtPath={handleCopyAtPath}
+        onToggleFavorite={() => contextMenu.node && toggleFavorite(contextMenu.node.path)}
+        onPin={handlePin}
+        onOpenInEditor={handleOpenInEditor}
+      />
     </div>
   )
 }

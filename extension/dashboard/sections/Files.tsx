@@ -7,7 +7,7 @@ import { FileTree } from '../components/files/FileTree'
 import { FilteredFileList } from '../components/files/FilteredFileList'
 import { PromptyViewer } from '../components/files/PromptyViewer'
 import { isPromptyFile } from '../utils/promptyUtils'
-import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin, Send, Terminal, ChevronDown, AtSign } from 'lucide-react'
+import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin, Send, Terminal, ChevronDown, AtSign, FolderOpen } from 'lucide-react'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
@@ -252,7 +252,10 @@ export default function FilesSection() {
     <div className="flex flex-col h-full">
       {/* Header with Filters and Settings */}
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border bg-card/50">
-        <h2 className="text-lg font-semibold">Files</h2>
+        <h2 className="text-lg font-semibold font-mono text-primary flex items-center gap-2">
+          <FolderOpen className="w-5 h-5" />
+          Files
+        </h2>
 
         {/* Filter toggles */}
         <div className="flex items-center gap-1">
