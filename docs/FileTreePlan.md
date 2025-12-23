@@ -1,6 +1,6 @@
 # Files Section for TabzChrome Dashboard
 
-## Status: Phase 1, 2, 3, 3.5 & 4 Complete ✅
+## Status: Phase 1, 2, 3, 3.5, 4 & 4.5 Complete ✅
 
 **Completed:** 2025-12-22
 **Source:** Adapted from Opustrator's FileTree component
@@ -116,6 +116,26 @@ Add a "Files" section to the dashboard for browsing and viewing files with synta
 - [x] **Backend API** - GET /api/files/list?filter=X&workingDir=Y
 - [x] **Broken symlink handling** - Skips broken symlinks in filtered results
 
+### Phase 4.5: Tree Views & Preview Tabs ✅
+
+- [x] **Tree-based filtered views** - Prompts/Claude filters now show proper collapsible tree structure
+  - Each source (Global, Project) is a collapsible section
+  - Folders within each source expand/collapse independently
+  - No more redundant folder names in file paths
+- [x] **Preview/Pin tab system** - VS Code-style file previewing
+  - Single-click opens file as preview (italic tab, replaces previous preview)
+  - Double-click tab to pin (keeps it open)
+  - Pin button in toolbar for current preview
+  - Pinned tabs show normal text, previews show italic/faded
+- [x] **Extension-based file colors** - More variety in filtered views
+  - Pink: .prompty files only
+  - Blue: .md markdown files
+  - Amber: .yaml/.yml files
+  - Orange: .json files
+  - Green: code files
+  - Gray: .txt files
+  - Folders always yellow (except Claude ecosystem folders)
+
 ### Phase 5: Future Enhancements
 
 - [ ] Split view toggle (2-pane mode for ultrawide)
@@ -130,7 +150,7 @@ GET /api/files/tree?path=X&depth=5&showHidden=false  → FileNode tree
 GET /api/files/content?path=X                        → { content, fileName, fileSize }
 GET /api/files/image?path=X                          → { dataUri, mimeType, size }
 GET /api/files/video?path=X                          → { dataUri, mimeType, size } (100MB limit)
-GET /api/files/list?filter=X&workingDir=Y            → { groups: [{ name, icon, files }] }
+GET /api/files/list?filter=X&workingDir=Y            → { trees: [{ name, icon, basePath, tree }] }
 ```
 
 **Backend Enhancements:**
@@ -150,6 +170,7 @@ interface OpenFile {
   mediaDataUri?: string  // for images and videos
   loading: boolean
   error?: string
+  pinned: boolean  // Pinned tabs stay open, unpinned is preview (gets replaced)
 }
 
 // From FilesContext (persists across dashboard tab switches)

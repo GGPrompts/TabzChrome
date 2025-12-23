@@ -78,8 +78,13 @@ export function getClaudeFileType(name: string, path: string): ClaudeFileType {
     return 'prompt'
   }
 
-  // plugins directory
-  if (name === 'plugins' || path.includes('/plugins/')) {
+  // plugins directory itself (not contents - those get their own types)
+  if (name === 'plugins') {
+    return 'plugin'
+  }
+
+  // plugin.json manifest files
+  if (name === 'plugin.json' && path.includes('/plugins/')) {
     return 'plugin'
   }
 

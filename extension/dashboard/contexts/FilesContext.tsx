@@ -14,20 +14,24 @@ interface FileNode {
   children?: FileNode[]
 }
 
-interface FilteredFile {
+interface TreeNode {
   name: string
   path: string
-  type: ClaudeFileType
+  type: 'file' | 'directory'
+  children?: TreeNode[]
+  modified?: string
 }
 
-interface FilteredGroup {
+interface FilteredTree {
   name: string
-  icon?: string
-  files: FilteredFile[]
+  icon: string
+  basePath: string
+  tree: TreeNode
 }
 
 interface FilteredFilesResponse {
-  groups: FilteredGroup[]
+  trees: FilteredTree[]
+  groups?: any[] // Legacy format for backwards compatibility
 }
 
 interface OpenFile {
@@ -39,6 +43,7 @@ interface OpenFile {
   mediaDataUri?: string
   loading: boolean
   error?: string
+  pinned: boolean  // Pinned tabs stay open, unpinned is preview (gets replaced)
 }
 
 interface FilesContextType {
@@ -67,8 +72,9 @@ interface FilesContextType {
   isFavorite: (path: string) => boolean
 
   // Actions
-  openFile: (path: string) => Promise<void>
+  openFile: (path: string, pin?: boolean) => Promise<void>
   closeFile: (id: string) => void
+  pinFile: (id: string) => void
 }
 
 const FilesContext = createContext<FilesContextType | null>(null)
@@ -142,14 +148,15 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Handle favorites filter locally
+    // Handle favorites filter locally (using legacy groups format)
     if (filter === 'favorites') {
       const favArray = Array.from(favorites)
       if (favArray.length === 0) {
-        setFilteredFiles({ groups: [] })
+        setFilteredFiles({ trees: [], groups: [] })
         return
       }
       setFilteredFiles({
+        trees: [],
         groups: [{
           name: 'Favorites',
           icon: '⭐',
@@ -184,11 +191,15 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     }
   }, [favorites])
 
-  const openFile = useCallback(async (path: string) => {
+  const openFile = useCallback(async (path: string, pin: boolean = false) => {
     // Check if already open
     const existing = openFiles.find(f => f.path === path)
     if (existing) {
       setActiveFileId(existing.id)
+      // If explicitly pinning, pin it
+      if (pin && !existing.pinned) {
+        setOpenFiles(prev => prev.map(f => f.id === existing.id ? { ...f, pinned: true } : f))
+      }
       return
     }
 
@@ -196,9 +207,19 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     const name = path.split('/').pop() || path
     const { type: fileType } = getFileTypeAndLanguage(path)
 
-    // Add file in loading state
-    const newFile: OpenFile = { id, path, name, content: null, fileType, loading: true }
-    setOpenFiles(prev => [...prev, newFile])
+    // Find existing unpinned preview to replace
+    const existingPreview = openFiles.find(f => !f.pinned)
+
+    // Add file in loading state (unpinned by default, unless explicitly pinning)
+    const newFile: OpenFile = { id, path, name, content: null, fileType, loading: true, pinned: pin }
+
+    if (existingPreview && !pin) {
+      // Replace the existing preview
+      setOpenFiles(prev => prev.map(f => f.id === existingPreview.id ? newFile : f))
+    } else {
+      // Add new file
+      setOpenFiles(prev => [...prev, newFile])
+    }
     setActiveFileId(id)
 
     try {
@@ -231,6 +252,10 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     }
   }, [openFiles])
 
+  const pinFile = useCallback((id: string) => {
+    setOpenFiles(prev => prev.map(f => f.id === id ? { ...f, pinned: true } : f))
+  }, [])
+
   const closeFile = useCallback((id: string) => {
     setOpenFiles(prev => {
       const remaining = prev.filter(f => f.id !== id)
@@ -262,6 +287,7 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       isFavorite,
       openFile,
       closeFile,
+      pinFile,
     }}>
       {children}
     </FilesContext.Provider>

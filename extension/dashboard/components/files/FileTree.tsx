@@ -135,8 +135,13 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     if (waitForLoad) {
       return
     }
+    // Don't fetch if currentPath is still "~" but basePath has a real project path
+    // This prevents a race condition where fetch runs before currentPath syncs
+    if (currentPath === "~" && basePath !== "~" && basePath !== "/home/matt") {
+      return
+    }
     fetchFileTree()
-  }, [currentPath, showHidden, maxDepth, waitForLoad])
+  }, [currentPath, showHidden, maxDepth, waitForLoad, basePath])
 
   // Get icon for Claude file types
   const getClaudeIcon = (claudeType: ClaudeFileType) => {
@@ -148,7 +153,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       case 'hook': return Terminal
       case 'mcp': return Plug
       case 'command': return FileCode
-      case 'plugin': return Folder
+      case 'plugin': return FileJson
       default: return null
     }
   }

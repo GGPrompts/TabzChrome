@@ -737,6 +737,78 @@ async function findFilesRecursive(dir, matcher, maxDepth = 5, currentDepth = 0) 
   return results
 }
 
+// Helper to build a filtered tree (only including matching files, but preserving folder structure)
+async function buildFilteredTree(dirPath, matcher, maxDepth = 5, currentDepth = 0) {
+  try {
+    const stats = await fs.stat(dirPath)
+    const name = path.basename(dirPath)
+
+    if (!stats.isDirectory()) {
+      // It's a file - check if it matches
+      if (matcher(name, dirPath)) {
+        return {
+          name,
+          path: dirPath,
+          type: 'file',
+          modified: stats.mtime.toISOString()
+        }
+      }
+      return null
+    }
+
+    // It's a directory
+    if (currentDepth >= maxDepth) {
+      return null // Don't go deeper
+    }
+
+    const entries = await fs.readdir(dirPath, { withFileTypes: true })
+    const children = []
+
+    // Sort: directories first, then alphabetically
+    const sortedEntries = entries
+      .filter(entry => entry.name !== 'node_modules' && entry.name !== '.git')
+      .sort((a, b) => {
+        if (a.isDirectory() !== b.isDirectory()) {
+          return a.isDirectory() ? -1 : 1
+        }
+        return a.name.localeCompare(b.name)
+      })
+
+    for (const entry of sortedEntries) {
+      const childPath = path.join(dirPath, entry.name)
+
+      // Handle symlinks
+      if (entry.isSymbolicLink()) {
+        try {
+          await fs.stat(childPath)
+        } catch {
+          continue // Broken symlink
+        }
+      }
+
+      const child = await buildFilteredTree(childPath, matcher, maxDepth, currentDepth + 1)
+      if (child) {
+        children.push(child)
+      }
+    }
+
+    // Only include directory if it has matching children
+    if (children.length > 0) {
+      return {
+        name,
+        path: dirPath,
+        type: 'directory',
+        children,
+        modified: stats.mtime.toISOString()
+      }
+    }
+
+    return null
+  } catch (err) {
+    return null
+  }
+}
+
 // GET /api/files/list - Get filtered file list (prompts, claude, favorites)
 router.get('/list', async (req, res) => {
   try {
@@ -745,106 +817,105 @@ router.get('/list', async (req, res) => {
     workingDir = expandTilde(workingDir)
 
     const homeDir = process.env.HOME || process.env.USERPROFILE
-    const groups = []
+    const trees = [] // Now returning trees instead of flat groups
 
     if (filter === 'claude') {
+      // Claude file matcher
+      const claudeMatcher = (name, filePath) => {
+        return getClaudeFileType(name, filePath) !== null
+      }
+
       // Global ~/.claude/
       const globalClaudeDir = path.join(homeDir, '.claude')
       try {
         await fs.access(globalClaudeDir)
-        const globalFiles = await findFilesRecursive(globalClaudeDir, (name, filePath) => {
-          const type = getClaudeFileType(name, filePath)
-          return type !== null
-        }, 3)
-
-        if (globalFiles.length > 0) {
-          groups.push({
+        const tree = await buildFilteredTree(globalClaudeDir, claudeMatcher, 4)
+        if (tree) {
+          trees.push({
             name: 'Global (~/.claude/)',
             icon: '🌐',
-            files: globalFiles.map(f => ({
-              name: f.name,
-              path: f.path,
-              type: getClaudeFileType(f.name, f.path)
-            }))
+            basePath: globalClaudeDir,
+            tree
           })
         }
       } catch {}
 
-      // Project-level Claude files
-      const projectFiles = []
-
-      // Check for CLAUDE.md, CLAUDE.local.md
-      for (const name of ['CLAUDE.md', 'CLAUDE.local.md']) {
-        const filePath = path.join(workingDir, name)
-        try {
-          await fs.access(filePath)
-          projectFiles.push({ name, path: filePath, type: 'claude-config' })
-        } catch {}
-      }
-
-      // Check for .mcp.json
-      const mcpPath = path.join(workingDir, '.mcp.json')
-      try {
-        await fs.access(mcpPath)
-        projectFiles.push({ name: '.mcp.json', path: mcpPath, type: 'mcp' })
-      } catch {}
-
-      // Check for .claude/ directory
+      // Project .claude/ and root config files
       const projectClaudeDir = path.join(workingDir, '.claude')
       try {
         await fs.access(projectClaudeDir)
-        const claudeFiles = await findFilesRecursive(projectClaudeDir, (name, filePath) => {
-          const type = getClaudeFileType(name, filePath)
-          return type !== null
-        }, 3)
-        projectFiles.push(...claudeFiles.map(f => ({
-          name: f.name,
-          path: f.path,
-          type: getClaudeFileType(f.name, f.path)
-        })))
-      } catch {}
-
-      // Check for plugins/ directory
-      const pluginsDir = path.join(workingDir, 'plugins')
-      try {
-        await fs.access(pluginsDir)
-        const pluginFiles = await findFilesRecursive(pluginsDir, () => true, 2)
-        if (pluginFiles.length > 0) {
-          projectFiles.push(...pluginFiles.map(f => ({
-            name: f.name,
-            path: f.path,
-            type: 'plugin'
-          })))
+        const tree = await buildFilteredTree(projectClaudeDir, claudeMatcher, 4)
+        if (tree) {
+          trees.push({
+            name: 'Project (.claude/)',
+            icon: '📁',
+            basePath: projectClaudeDir,
+            tree
+          })
         }
       } catch {}
 
-      if (projectFiles.length > 0) {
-        groups.push({
-          name: 'Project',
-          icon: '📁',
-          files: projectFiles
+      // Project root files (CLAUDE.md, .mcp.json)
+      const rootFiles = []
+      for (const name of ['CLAUDE.md', 'CLAUDE.local.md', '.mcp.json']) {
+        const filePath = path.join(workingDir, name)
+        try {
+          await fs.access(filePath)
+          const stats = await fs.stat(filePath)
+          rootFiles.push({
+            name,
+            path: filePath,
+            type: 'file',
+            modified: stats.mtime.toISOString()
+          })
+        } catch {}
+      }
+      if (rootFiles.length > 0) {
+        trees.push({
+          name: 'Project Root',
+          icon: '📄',
+          basePath: workingDir,
+          tree: {
+            name: path.basename(workingDir),
+            path: workingDir,
+            type: 'directory',
+            children: rootFiles
+          }
         })
       }
 
+      // Project plugins/
+      const pluginsDir = path.join(workingDir, 'plugins')
+      try {
+        await fs.access(pluginsDir)
+        const tree = await buildFilteredTree(pluginsDir, () => true, 3)
+        if (tree) {
+          trees.push({
+            name: 'Plugins',
+            icon: '🔌',
+            basePath: pluginsDir,
+            tree
+          })
+        }
+      } catch {}
+
     } else if (filter === 'prompts') {
+      // Prompt file matcher
+      const promptMatcher = (name, filePath) => {
+        return /\.(prompty|md|yaml|yml|txt)$/i.test(name)
+      }
+
       // Global ~/.prompts/
       const globalPromptsDir = path.join(homeDir, '.prompts')
       try {
         await fs.access(globalPromptsDir)
-        const globalFiles = await findFilesRecursive(globalPromptsDir, (name, filePath, isDir) => {
-          if (isDir) return false
-          return /\.(prompty|md|yaml|yml|txt)$/i.test(name)
-        }, 3)
-
-        if (globalFiles.length > 0) {
-          groups.push({
+        const tree = await buildFilteredTree(globalPromptsDir, promptMatcher, 5)
+        if (tree) {
+          trees.push({
             name: 'Global (~/.prompts/)',
             icon: '🌐',
-            files: globalFiles.map(f => ({
-              name: f.name,
-              path: f.path,
-              type: 'prompt'
-            }))
+            basePath: globalPromptsDir,
+            tree
           })
         }
       } catch {}
@@ -853,20 +924,13 @@ router.get('/list', async (req, res) => {
       const globalCommandsDir = path.join(homeDir, '.claude', 'commands')
       try {
         await fs.access(globalCommandsDir)
-        const commandFiles = await findFilesRecursive(globalCommandsDir, (name, filePath, isDir) => {
-          if (isDir) return false
-          return /\.md$/i.test(name)
-        }, 3)
-
-        if (commandFiles.length > 0) {
-          groups.push({
+        const tree = await buildFilteredTree(globalCommandsDir, (name) => /\.md$/i.test(name), 3)
+        if (tree) {
+          trees.push({
             name: 'Global Commands (~/.claude/commands/)',
             icon: '⚡',
-            files: commandFiles.map(f => ({
-              name: f.name,
-              path: f.path,
-              type: 'command'
-            }))
+            basePath: globalCommandsDir,
+            tree
           })
         }
       } catch {}
@@ -875,20 +939,13 @@ router.get('/list', async (req, res) => {
       const projectPromptsDir = path.join(workingDir, '.prompts')
       try {
         await fs.access(projectPromptsDir)
-        const projectPromptFiles = await findFilesRecursive(projectPromptsDir, (name, filePath, isDir) => {
-          if (isDir) return false
-          return /\.(prompty|md|yaml|yml|txt)$/i.test(name)
-        }, 3)
-
-        if (projectPromptFiles.length > 0) {
-          groups.push({
-            name: 'Project Prompts (.prompts/)',
+        const tree = await buildFilteredTree(projectPromptsDir, promptMatcher, 5)
+        if (tree) {
+          trees.push({
+            name: 'Project (.prompts/)',
             icon: '📁',
-            files: projectPromptFiles.map(f => ({
-              name: f.name,
-              path: f.path,
-              type: 'prompt'
-            }))
+            basePath: projectPromptsDir,
+            tree
           })
         }
       } catch {}
@@ -897,35 +954,23 @@ router.get('/list', async (req, res) => {
       const projectCommandsDir = path.join(workingDir, '.claude', 'commands')
       try {
         await fs.access(projectCommandsDir)
-        const projectCommandFiles = await findFilesRecursive(projectCommandsDir, (name, filePath, isDir) => {
-          if (isDir) return false
-          return /\.md$/i.test(name)
-        }, 3)
-
-        if (projectCommandFiles.length > 0) {
-          groups.push({
+        const tree = await buildFilteredTree(projectCommandsDir, (name) => /\.md$/i.test(name), 3)
+        if (tree) {
+          trees.push({
             name: 'Project Commands (.claude/commands/)',
             icon: '⚡',
-            files: projectCommandFiles.map(f => ({
-              name: f.name,
-              path: f.path,
-              type: 'command'
-            }))
+            basePath: projectCommandsDir,
+            tree
           })
         }
       } catch {}
 
     } else if (filter === 'favorites') {
-      // Favorites would need to be stored somewhere (localStorage on frontend, or a config file)
-      // For now, return empty - will be implemented when favorites feature is added
-      groups.push({
-        name: 'Favorites',
-        icon: '⭐',
-        files: []
-      })
+      // Favorites are handled client-side from localStorage
+      // Return empty trees array
     }
 
-    res.json({ groups })
+    res.json({ trees })
 
   } catch (error) {
     console.error('Error listing filtered files:', error)

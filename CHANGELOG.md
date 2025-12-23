@@ -15,6 +15,36 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.4] - 2025-12-22
+
+### Added
+- **Tree-based filtered views** - Prompts and Claude filters now show proper collapsible tree structure:
+  - Each source (Global ~/.prompts/, Project .prompts/, etc.) is a collapsible section
+  - Folders within each source expand/collapse independently
+  - No more redundant folder paths in file names
+- **Preview/Pin tab system** - VS Code-style file previewing:
+  - Single-click opens file as preview (italic tab, replaces previous preview)
+  - Double-click tab to pin it (keeps tab open permanently)
+  - Pin button in toolbar to pin current preview
+  - Reduces tab clutter when browsing many files
+- **Extension-based file colors** - More visual variety in filtered views:
+  - Pink: .prompty files only
+  - Blue: .md markdown files
+  - Amber: .yaml/.yml files
+  - Orange: .json files
+  - Green: code files (.js, .ts, .py, etc.)
+  - Gray: .txt files
+  - Folders stay yellow (except Claude ecosystem folders like skills/, agents/)
+
+### Fixed
+- **README.md showing as yellow folder** - Files inside plugins/ no longer incorrectly get folder icons
+- **File tree reverting to home directory** - Fixed race condition where file tree loaded ~ before working directory was ready
+
+### Changed
+- Backend `/api/files/list` now returns tree structures instead of flat groups
+
+---
+
 ## [1.2.3] - 2025-12-22
 
 ### Added

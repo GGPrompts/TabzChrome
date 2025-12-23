@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FileTree } from '../components/files/FileTree'
 import { FilteredFileList } from '../components/files/FilteredFileList'
-import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star } from 'lucide-react'
+import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin } from 'lucide-react'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
@@ -113,6 +113,7 @@ export default function FilesSection() {
     setActiveFileId,
     openFile,
     closeFile,
+    pinFile,
     activeFilter,
     setActiveFilter,
     filteredFiles,
@@ -277,9 +278,13 @@ export default function FilesSection() {
                   activeFileId === file.id ? 'bg-muted text-foreground' : 'text-muted-foreground'
                 }`}
                 onClick={() => setActiveFileId(file.id)}
+                onDoubleClick={() => pinFile(file.id)}
+                title={file.pinned ? file.name : `${file.name} (preview - double-click to pin)`}
               >
                 <FileIcon className={`w-4 h-4 ${iconColor}`} />
-                <span className="text-sm truncate max-w-32">{file.name}</span>
+                <span className={`text-sm truncate max-w-32 ${!file.pinned ? 'italic opacity-75' : ''}`}>
+                  {file.name}
+                </span>
                 <button
                   onClick={(e) => { e.stopPropagation(); closeFile(file.id) }}
                   className="hover:bg-muted rounded p-0.5"
@@ -359,6 +364,15 @@ export default function FilesSection() {
                 >
                   <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
                 </button>
+                {!activeFile.pinned && (
+                  <button
+                    onClick={() => pinFile(activeFile.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
+                    title="Pin this file (keep tab open)"
+                  >
+                    <Pin className="w-4 h-4" /> Pin
+                  </button>
+                )}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {imageDimensions && `${imageDimensions.width} × ${imageDimensions.height}`}
                   {activeFile.path && <span className="ml-2">{activeFile.path}</span>}
@@ -402,8 +416,16 @@ export default function FilesSection() {
                   title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
-                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
                 </button>
+                {!activeFile.pinned && (
+                  <button
+                    onClick={() => pinFile(activeFile.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
+                    title="Pin this file (keep tab open)"
+                  >
+                    <Pin className="w-4 h-4" /> Pin
+                  </button>
+                )}
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
               {/* Video Player */}
@@ -431,8 +453,16 @@ export default function FilesSection() {
                   title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
-                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
                 </button>
+                {!activeFile.pinned && (
+                  <button
+                    onClick={() => pinFile(activeFile.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
+                    title="Pin this file (keep tab open)"
+                  >
+                    <Pin className="w-4 h-4" /> Pin
+                  </button>
+                )}
                 <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <ExternalLink className="w-4 h-4" /> Open in Editor
                 </button>
@@ -486,8 +516,16 @@ export default function FilesSection() {
                   title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
-                  {isFavorite(activeFile.path) ? 'Starred' : 'Star'}
                 </button>
+                {!activeFile.pinned && (
+                  <button
+                    onClick={() => pinFile(activeFile.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
+                    title="Pin this file (keep tab open)"
+                  >
+                    <Pin className="w-4 h-4" /> Pin
+                  </button>
+                )}
                 <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
                   <ExternalLink className="w-4 h-4" /> Open in Editor
                 </button>
