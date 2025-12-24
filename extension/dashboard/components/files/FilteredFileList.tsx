@@ -438,6 +438,7 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
                 <div
                   key={file.path}
                   onClick={() => handleFileSelect(file.path)}
+                  onContextMenu={(e) => handleContextMenu(e, { name: file.name, path: file.path, type: 'file' })}
                   className={`flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded ${
                     selectedPath === file.path ? 'bg-primary/20 text-primary' : ''
                   }`}

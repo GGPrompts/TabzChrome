@@ -15,6 +15,21 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.12] - 2025-12-24
+
+### Added
+- **File Actions dropdown menu** - Clean ⋮ dropdown replacing cluttered toolbar buttons
+  - Consolidates: Copy Path, Copy @Path, Favorite, Pin, Paste to Terminal, Read Aloud, Open in Editor
+  - Works in file viewer toolbar and via right-click on file tabs
+  - TTS loading indicator shows spinner while generating audio for long files
+- **Send to Chat in toolbar** - Quick icon button to send file content to sidebar chat
+
+### Changed
+- **Cleaner file viewer toolbar** - Now shows only Copy and Send icons plus ⋮ menu
+- **Filtered file lists context menu** - Fixed missing right-click menu on favorites/prompts/claude filtered views
+
+---
+
 ## [1.2.11] - 2025-12-24
 
 ### Added

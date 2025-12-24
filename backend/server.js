@@ -206,6 +206,21 @@ app.get('/api/audio/list', (req, res) => {
   }
 });
 
+// Helper: Strip markdown formatting for cleaner TTS (backticks cause major slowdowns)
+function stripMarkdown(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, ' code block ')  // Remove code blocks
+    .replace(/`[^`]+`/g, '')                      // Remove inline code
+    .replace(/#{1,6}\s*/g, '')                    // Remove headers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')            // Bold to plain
+    .replace(/\*([^*]+)\*/g, '$1')                // Italic to plain
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')      // Links to just text
+    .replace(/^\s*[-*+]\s+/gm, '')                // Remove list markers
+    .replace(/^\s*\d+\.\s+/gm, '')                // Remove numbered list markers
+    .replace(/\n{3,}/g, '\n\n')                   // Collapse multiple newlines
+    .trim();
+}
+
 // Generate audio using edge-tts (with caching)
 // POST /api/audio/generate { text: string, voice?: string, rate?: string, pitch?: string }
 // Rate limited: 30 requests per minute per IP
@@ -226,6 +241,9 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing text parameter' });
   }
+
+  // Strip markdown for faster TTS processing
+  text = stripMarkdown(text);
 
   // Truncate very long text - Microsoft TTS has ~3000 char limit per request
   const MAX_TEXT_LENGTH = 3000;
@@ -319,8 +337,8 @@ app.post('/api/audio/generate', audioRateLimiter, async (req, res) => {
     // Specify full path with extension - edge-tts uses the exact filename given
     args.push('--write-media', cacheFile);
 
-    // Scale timeout with text length: 10s base + 1s per 1000 chars, max 120s
-    const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
+    // Scale timeout with text length: 30s base + 5s per 1000 chars, max 180s
+    const timeoutMs = Math.min(180000, 30000 + Math.floor(text.length / 1000) * 5000);
     await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
     // Verify file was created with content
@@ -373,6 +391,9 @@ app.post('/api/audio/speak', async (req, res) => {
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing text parameter' });
   }
+
+  // Strip markdown for faster TTS processing
+  text = stripMarkdown(text);
 
   // Truncate very long text - Microsoft TTS has ~3000 char limit per request
   const MAX_TEXT_LENGTH = 3000;
@@ -463,8 +484,8 @@ app.post('/api/audio/speak', async (req, res) => {
       // Specify full path with extension - edge-tts uses the exact filename given
       args.push('--write-media', cacheFile);
 
-      // Scale timeout with text length: 10s base + 1s per 1000 chars, max 120s
-      const timeoutMs = Math.min(120000, 10000 + Math.floor(text.length / 1000) * 1000);
+      // Scale timeout with text length: 60s base + 30s per 1000 chars, max 300s (5 min)
+      const timeoutMs = Math.min(300000, 60000 + Math.floor(text.length / 1000) * 30000);
       await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
       // Verify file was created with content

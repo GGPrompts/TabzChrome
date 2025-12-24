@@ -64,6 +64,17 @@ export function setupMessageHandlers(): void {
         }, 300)
         break
 
+      case 'PASTE_COMMAND':
+        // Paste command directly to active terminal
+        await tryOpenSidebar()
+        setTimeout(() => {
+          broadcastToClients({
+            type: 'PASTE_COMMAND',
+            command: message.command,
+          })
+        }, 300)
+        break
+
       case 'OPEN_TAB':
         // Open URL in a new tab (used by content script FAB)
         try {

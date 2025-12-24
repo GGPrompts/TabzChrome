@@ -7,20 +7,13 @@ import { FileTree } from '../components/files/FileTree'
 import { FilteredFileList } from '../components/files/FilteredFileList'
 import { PromptyViewer } from '../components/files/PromptyViewer'
 import { isPromptyFile } from '../utils/promptyUtils'
-import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin, Send, Terminal, ChevronDown, AtSign, FolderOpen } from 'lucide-react'
+import { X, Copy, ExternalLink, Code, Image as ImageIcon, FileText, FileJson, Settings, ZoomIn, ZoomOut, Maximize, Download, Video, Table, Star, Pin, Send, AtSign, FolderOpen, Terminal, Volume2, Square, MoreVertical, Loader2 } from 'lucide-react'
+import { FileActionsMenu } from '../components/files/FileActionsMenu'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
 import { getFileTypeAndLanguage, FileType } from '../utils/fileTypeUtils'
 import { useFilesContext } from '../contexts/FilesContext'
 import { FileFilter, isPromptFile } from '../utils/claudeFileTypes'
-import { sendMessage } from '../../shared/messaging'
-
-interface TerminalInfo {
-  id: string
-  name: string
-  sessionName?: string
-  isClaudeSession?: boolean
-}
 
 // Get icon color class based on file type (matches FileTree.tsx colors)
 const getIconColorClass = (fileType: FileType): string => {
@@ -138,11 +131,21 @@ export default function FilesSection() {
   const [imageDimensions, setImageDimensions] = useState<{width: number, height: number} | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
-  // Send to Terminal state
-  const [showSendDropdown, setShowSendDropdown] = useState(false)
-  const [terminals, setTerminals] = useState<TerminalInfo[]>([])
+  // Send to Chat state
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
-  const sendDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Audio playback state
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // File actions menu state (for toolbar dropdown and tab context menu)
+  const [fileActionsMenu, setFileActionsMenu] = useState<{
+    show: boolean
+    x: number
+    y: number
+    fileId: string | null
+  }>({ show: false, x: 0, y: 0, fileId: null })
 
   // Share working directory with rest of dashboard (working dir dropdown is in sidebar now)
   const { globalWorkingDir, isLoaded: workingDirLoaded } = useWorkingDirectory()
@@ -163,9 +166,6 @@ export default function FilesSection() {
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettingsDropdown(false)
       }
-      if (sendDropdownRef.current && !sendDropdownRef.current.contains(e.target as Node)) {
-        setShowSendDropdown(false)
-      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -173,55 +173,114 @@ export default function FilesSection() {
 
   const activeFile = openFiles.find(f => f.id === activeFileId)
 
-  // Fetch available terminals when dropdown opens
-  const fetchTerminals = useCallback(async () => {
-    try {
-      const response = await fetch('http://localhost:8129/api/agents')
-      if (!response.ok) return
-      const data = await response.json()
-      const terminalList: TerminalInfo[] = (data.data || []).map((t: any) => ({
-        id: t.id,
-        name: t.name || t.id,
-        sessionName: t.sessionName,
-        isClaudeSession: t.name?.toLowerCase().includes('claude') || t.id?.includes('claude')
-      }))
-      setTerminals(terminalList)
-    } catch (err) {
-      console.error('Failed to fetch terminals:', err)
-    }
-  }, [])
-
-  // Send content to a terminal
-  const sendToTerminal = useCallback(async (terminal: TerminalInfo, sendEnter: boolean = false) => {
+  // Send content to sidebar chat input
+  const sendToChat = useCallback(() => {
     if (!activeFile?.content) return
 
     setSendStatus('sending')
+
+    // Send QUEUE_COMMAND to background, which broadcasts to sidepanel
+    chrome.runtime?.sendMessage({
+      type: 'QUEUE_COMMAND',
+      command: activeFile.content,
+    })
+
+    setSendStatus('sent')
+    setTimeout(() => setSendStatus('idle'), 2000)
+  }, [activeFile])
+
+  // Paste content directly to active terminal
+  const pasteToTerminal = useCallback(() => {
+    if (!activeFile?.content) return
+
+    // Send PASTE_COMMAND to background, which pastes to active terminal
+    chrome.runtime?.sendMessage({
+      type: 'PASTE_COMMAND',
+      command: activeFile.content,
+    })
+  }, [activeFile])
+
+  // Stop any playing audio
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    setIsPlaying(false)
+  }, [])
+
+  // Read content aloud using TTS (short text plays, long text downloads as MP3)
+  const readAloud = useCallback(async () => {
+    if (!activeFile?.content) return
+
+    // Stop any currently playing audio
+    stopAudio()
+
+    const SHORT_TEXT_THRESHOLD = 1000
+
     try {
-      if (terminal.sessionName) {
-        // Use TMUX_SESSION_SEND for tmux-based terminals (better for Claude)
-        await sendMessage({
-          type: 'TMUX_SESSION_SEND',
-          sessionName: terminal.sessionName,
-          text: activeFile.content,
-          sendEnter
+      // Load audio settings from Chrome storage
+      const result = await chrome.storage.local.get(['audioSettings'])
+      const audioSettings = (result.audioSettings || {}) as { voice?: string; rate?: string; pitch?: string; volume?: number }
+
+      const TTS_VOICE_VALUES = [
+        'en-US-AndrewMultilingualNeural', 'en-US-EmmaMultilingualNeural', 'en-US-BrianMultilingualNeural',
+        'en-US-AriaNeural', 'en-US-GuyNeural', 'en-US-JennyNeural', 'en-US-ChristopherNeural', 'en-US-AvaNeural',
+        'en-GB-SoniaNeural', 'en-GB-RyanNeural', 'en-AU-NatashaNeural', 'en-AU-WilliamMultilingualNeural'
+      ]
+      let voice = audioSettings.voice || 'en-US-AndrewMultilingualNeural'
+      if (voice === 'random') {
+        voice = TTS_VOICE_VALUES[Math.floor(Math.random() * TTS_VOICE_VALUES.length)]
+      }
+
+      const rate = audioSettings.rate || '+0%'
+      const pitch = audioSettings.pitch || '+0Hz'
+      const volume = audioSettings.volume ?? 0.7
+
+      if (activeFile.content.length <= SHORT_TEXT_THRESHOLD) {
+        // Short text: play immediately via speak endpoint (broadcasts to sidepanel)
+        await fetch('http://localhost:8129/api/audio/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: activeFile.content, voice, rate, pitch, volume })
         })
       } else {
-        // Fall back to TERMINAL_INPUT for non-tmux terminals
-        await sendMessage({
-          type: 'TERMINAL_INPUT',
-          terminalId: terminal.id,
-          data: activeFile.content
-        })
+        // Long text: generate MP3 and play it locally (show loading state)
+        setIsGeneratingAudio(true)
+        try {
+          const response = await fetch('http://localhost:8129/api/audio/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: activeFile.content, voice, rate, pitch })
+          })
+          const data = await response.json()
+          setIsGeneratingAudio(false)
+          if (data.success && data.url) {
+            setIsPlaying(true)
+            const audio = new Audio(data.url)
+            audio.volume = volume
+            audio.onended = () => {
+              setIsPlaying(false)
+              audioRef.current = null
+            }
+            audio.onerror = () => {
+              setIsPlaying(false)
+              audioRef.current = null
+            }
+            audioRef.current = audio
+            audio.play()
+          }
+        } catch (err) {
+          setIsGeneratingAudio(false)
+          throw err
+        }
       }
-      setSendStatus('sent')
-      setShowSendDropdown(false)
-      // Reset status after a moment
-      setTimeout(() => setSendStatus('idle'), 2000)
     } catch (err) {
-      console.error('Failed to send to terminal:', err)
-      setSendStatus('idle')
+      console.error('Failed to call TTS endpoint:', err)
+      setIsPlaying(false)
+      setIsGeneratingAudio(false)
     }
-  }, [activeFile])
+  }, [activeFile, stopAudio])
 
   const copyContent = async () => {
     if (activeFile?.content) {
@@ -235,18 +294,38 @@ export default function FilesSection() {
     }
   }
 
-  const openInEditor = async () => {
-    if (!activeFile) return
-    const dir = activeFile.path.split('/').slice(0, -1).join('/')
+  const openInEditor = async (file?: typeof activeFile) => {
+    const targetFile = file || activeFile
+    if (!targetFile) return
+    const dir = targetFile.path.split('/').slice(0, -1).join('/')
 
     // Use Chrome messaging to spawn terminal with editor (respects $EDITOR, falls back to nano)
     chrome.runtime?.sendMessage({
       type: 'SPAWN_TERMINAL',
-      name: `Edit: ${activeFile.name}`,
-      command: `\${EDITOR:-nano} "${activeFile.path}"`,
+      name: `Edit: ${targetFile.name}`,
+      command: `\${EDITOR:-nano} "${targetFile.path}"`,
       workingDir: dir,
     })
   }
+
+  // File actions menu handlers
+  const closeFileActionsMenu = useCallback(() => {
+    setFileActionsMenu(prev => ({ ...prev, show: false }))
+  }, [])
+
+  const handleTabContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
+    e.preventDefault()
+    setFileActionsMenu({ show: true, x: e.clientX, y: e.clientY, fileId })
+  }, [])
+
+  const openFileActionsDropdown = useCallback((e: React.MouseEvent) => {
+    if (!activeFile) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setFileActionsMenu({ show: true, x: rect.left, y: rect.bottom + 4, fileId: activeFile.id })
+  }, [activeFile])
+
+  // Get the file for the actions menu (could be from tab context menu or active file)
+  const menuFile = fileActionsMenu.fileId ? openFiles.find(f => f.id === fileActionsMenu.fileId) : null
 
   return (
     <div className="flex flex-col h-full">
@@ -357,6 +436,7 @@ export default function FilesSection() {
                 }`}
                 onClick={() => setActiveFileId(file.id)}
                 onDoubleClick={() => pinFile(file.id)}
+                onContextMenu={(e) => handleTabContextMenu(e, file.id)}
                 title={file.pinned ? file.name : `${file.name} (preview - double-click to pin)`}
               >
                 <FileIcon className={`w-4 h-4 ${iconColor}`} />
@@ -436,21 +516,12 @@ export default function FilesSection() {
                   <Download className="w-4 h-4" /> Download
                 </a>
                 <button
-                  onClick={() => toggleFavorite(activeFile.path)}
-                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
-                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                  onClick={openFileActionsDropdown}
+                  className="p-1.5 hover:bg-muted rounded"
+                  title="More actions"
                 >
-                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  <MoreVertical className="w-4 h-4" />
                 </button>
-                {!activeFile.pinned && (
-                  <button
-                    onClick={() => pinFile(activeFile.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
-                    title="Pin this file (keep tab open)"
-                  >
-                    <Pin className="w-4 h-4" /> Pin
-                  </button>
-                )}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {imageDimensions && `${imageDimensions.width} × ${imageDimensions.height}`}
                   {activeFile.path && <span className="ml-2">{activeFile.path}</span>}
@@ -489,21 +560,12 @@ export default function FilesSection() {
                   <Download className="w-4 h-4" /> Download
                 </a>
                 <button
-                  onClick={() => toggleFavorite(activeFile.path)}
-                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
-                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                  onClick={openFileActionsDropdown}
+                  className="p-1.5 hover:bg-muted rounded"
+                  title="More actions"
                 >
-                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  <MoreVertical className="w-4 h-4" />
                 </button>
-                {!activeFile.pinned && (
-                  <button
-                    onClick={() => pinFile(activeFile.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
-                    title="Pin this file (keep tab open)"
-                  >
-                    <Pin className="w-4 h-4" /> Pin
-                  </button>
-                )}
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
               {/* Video Player */}
@@ -525,27 +587,12 @@ export default function FilesSection() {
                 <button onClick={copyContent} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded" title="Copy file content">
                   <Copy className="w-4 h-4" /> Copy
                 </button>
-                <button onClick={copyPath} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded" title="Copy @path to clipboard">
-                  <AtSign className="w-4 h-4" /> Path
-                </button>
                 <button
-                  onClick={() => toggleFavorite(activeFile.path)}
-                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
-                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                  onClick={openFileActionsDropdown}
+                  className="p-1.5 hover:bg-muted rounded"
+                  title="More actions"
                 >
-                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
-                </button>
-                {!activeFile.pinned && (
-                  <button
-                    onClick={() => pinFile(activeFile.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
-                    title="Pin this file (keep tab open)"
-                  >
-                    <Pin className="w-4 h-4" /> Pin
-                  </button>
-                )}
-                <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
-                  <ExternalLink className="w-4 h-4" /> Open in Editor
+                  <MoreVertical className="w-4 h-4" />
                 </button>
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
@@ -600,83 +647,38 @@ export default function FilesSection() {
             return (
             <div className="h-full flex flex-col">
               {/* Toolbar */}
-              <div className="flex items-center gap-2 p-2 border-b border-border bg-card/50">
-                <button onClick={copyContent} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded" title="Copy file content">
-                  <Copy className="w-4 h-4" /> Copy
-                </button>
-                <button onClick={copyPath} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded" title="Copy @path to clipboard">
-                  <AtSign className="w-4 h-4" /> Path
+              <div className="flex items-center gap-1 p-2 border-b border-border bg-card/50">
+                <button onClick={copyContent} className="p-1.5 hover:bg-muted rounded" title="Copy file content">
+                  <Copy className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => toggleFavorite(activeFile.path)}
-                  className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${isFavorite(activeFile.path) ? 'text-yellow-400' : ''}`}
-                  title={isFavorite(activeFile.path) ? 'Remove from favorites' : 'Add to favorites'}
+                  onClick={sendToChat}
+                  className={`p-1.5 hover:bg-muted rounded ${sendStatus === 'sent' ? 'text-green-400' : ''}`}
+                  title="Send to sidebar chat"
                 >
-                  <Star className={`w-4 h-4 ${isFavorite(activeFile.path) ? 'fill-current' : ''}`} />
+                  <Send className="w-4 h-4" />
                 </button>
-                {!activeFile.pinned && (
+                {/* Audio status indicator (shows when generating or playing) */}
+                {isGeneratingAudio ? (
+                  <span className="flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </span>
+                ) : isPlaying ? (
                   <button
-                    onClick={() => pinFile(activeFile.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded text-primary"
-                    title="Pin this file (keep tab open)"
+                    onClick={stopAudio}
+                    className="p-1.5 hover:bg-muted rounded text-red-400"
+                    title="Stop audio"
                   >
-                    <Pin className="w-4 h-4" /> Pin
+                    <Square className="w-4 h-4" />
                   </button>
-                )}
-                <button onClick={openInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
-                  <ExternalLink className="w-4 h-4" /> Open in Editor
+                ) : null}
+                <button
+                  onClick={openFileActionsDropdown}
+                  className="p-1.5 hover:bg-muted rounded"
+                  title="More actions"
+                >
+                  <MoreVertical className="w-4 h-4" />
                 </button>
-                {/* Send to Terminal dropdown */}
-                <div className="relative" ref={sendDropdownRef}>
-                  <button
-                    onClick={() => {
-                      if (!showSendDropdown) fetchTerminals()
-                      setShowSendDropdown(!showSendDropdown)
-                    }}
-                    className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${
-                      sendStatus === 'sent' ? 'text-green-400' : ''
-                    }`}
-                    title="Send content to terminal"
-                  >
-                    <Send className="w-4 h-4" />
-                    {sendStatus === 'sent' ? 'Sent!' : 'Send'}
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  {showSendDropdown && (
-                    <div className="absolute top-full left-0 mt-1 w-64 bg-card border border-border rounded-lg shadow-xl z-50 py-1">
-                      {terminals.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">No terminals found</div>
-                      ) : (
-                        <>
-                          <div className="px-3 py-1 text-xs text-muted-foreground border-b border-border mb-1">
-                            Send to terminal
-                          </div>
-                          {terminals.map(t => (
-                            <div key={t.id} className="px-2">
-                              <button
-                                onClick={() => sendToTerminal(t, false)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded text-left"
-                              >
-                                <Terminal className={`w-4 h-4 ${t.isClaudeSession ? 'text-orange-400' : ''}`} />
-                                <span className="truncate flex-1">{t.name}</span>
-                                {t.isClaudeSession && <span className="text-xs text-orange-400">🤖</span>}
-                              </button>
-                              {t.isClaudeSession && (
-                                <button
-                                  onClick={() => sendToTerminal(t, true)}
-                                  className="w-full flex items-center gap-2 px-2 py-1 text-xs hover:bg-muted rounded text-left text-muted-foreground ml-6"
-                                  title="Send and press Enter to submit"
-                                >
-                                  <Send className="w-3 h-3" /> Send + Enter (submit)
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
                 <span className="ml-auto text-xs text-muted-foreground">{activeFile.path}</span>
               </div>
               {/* Content */}
@@ -807,6 +809,47 @@ export default function FilesSection() {
         </div>
       </div>
       </div>
+
+      {/* File Actions Menu (for toolbar dropdown and tab context menu) */}
+      {menuFile && (
+        <FileActionsMenu
+          show={fileActionsMenu.show}
+          x={fileActionsMenu.x}
+          y={fileActionsMenu.y}
+          fileName={menuFile.name}
+          filePath={menuFile.path}
+          isPinned={menuFile.pinned}
+          isFavorite={isFavorite(menuFile.path)}
+          isPlaying={isPlaying}
+          isGeneratingAudio={isGeneratingAudio}
+          onClose={closeFileActionsMenu}
+          onCopyPath={() => navigator.clipboard.writeText(menuFile.path)}
+          onCopyAtPath={() => navigator.clipboard.writeText(`@${menuFile.path}`)}
+          onToggleFavorite={() => toggleFavorite(menuFile.path)}
+          onPin={() => pinFile(menuFile.id)}
+          onOpenInEditor={() => openInEditor(menuFile)}
+          onSendToChat={() => {
+            // Set active file first if it's from tab context menu
+            if (menuFile.id !== activeFileId) {
+              setActiveFileId(menuFile.id)
+            }
+            sendToChat()
+          }}
+          onPasteToTerminal={() => {
+            if (menuFile.id !== activeFileId) {
+              setActiveFileId(menuFile.id)
+            }
+            pasteToTerminal()
+          }}
+          onReadAloud={() => {
+            if (menuFile.id !== activeFileId) {
+              setActiveFileId(menuFile.id)
+            }
+            readAloud()
+          }}
+          onStopAudio={stopAudio}
+        />
+      )}
     </div>
   )
 }
