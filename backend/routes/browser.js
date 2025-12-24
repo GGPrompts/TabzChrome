@@ -1762,6 +1762,449 @@ router.post('/debugger/coverage', async (req, res) => {
   }
 });
 
+// ============================================
+// TAB GROUPS ROUTES
+// ============================================
+
+// GET /api/browser/tab-groups - List all tab groups
+router.get('/tab-groups', async (req, res) => {
+  log.debug('GET /tab-groups');
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-list-tab-groups',
+      requestId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('list-tab-groups error:', error);
+    res.json({ success: false, groups: [], error: error.message });
+  }
+});
+
+// POST /api/browser/tab-groups - Create a new tab group
+router.post('/tab-groups', async (req, res) => {
+  const { tabIds, title, color, collapsed } = req.body;
+
+  if (!tabIds || !Array.isArray(tabIds) || tabIds.length === 0) {
+    return res.status(400).json({ success: false, error: 'tabIds array is required' });
+  }
+
+  log.debug('POST /tab-groups', { tabIds, title, color, collapsed });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-create-tab-group',
+      requestId,
+      tabIds,
+      title,
+      color,
+      collapsed
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('create-tab-group error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/browser/tab-groups/:groupId - Update a tab group
+router.put('/tab-groups/:groupId', async (req, res) => {
+  const groupId = parseInt(req.params.groupId);
+  const { title, color, collapsed } = req.body;
+
+  if (isNaN(groupId)) {
+    return res.status(400).json({ success: false, error: 'Invalid groupId' });
+  }
+
+  log.debug('PUT /tab-groups/:groupId', { groupId, title, color, collapsed });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-update-tab-group',
+      requestId,
+      groupId,
+      title,
+      color,
+      collapsed
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('update-tab-group error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/tab-groups/:groupId/tabs - Add tabs to a group
+router.post('/tab-groups/:groupId/tabs', async (req, res) => {
+  const groupId = parseInt(req.params.groupId);
+  const { tabIds } = req.body;
+
+  if (isNaN(groupId)) {
+    return res.status(400).json({ success: false, error: 'Invalid groupId' });
+  }
+
+  if (!tabIds || !Array.isArray(tabIds) || tabIds.length === 0) {
+    return res.status(400).json({ success: false, error: 'tabIds array is required' });
+  }
+
+  log.debug('POST /tab-groups/:groupId/tabs', { groupId, tabIds });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-add-to-tab-group',
+      requestId,
+      groupId,
+      tabIds
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('add-to-tab-group error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/ungroup-tabs - Remove tabs from their groups
+router.post('/ungroup-tabs', async (req, res) => {
+  const { tabIds } = req.body;
+
+  if (!tabIds || !Array.isArray(tabIds) || tabIds.length === 0) {
+    return res.status(400).json({ success: false, error: 'tabIds array is required' });
+  }
+
+  log.debug('POST /ungroup-tabs', { tabIds });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-ungroup-tabs',
+      requestId,
+      tabIds
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('ungroup-tabs error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/claude-group/add - Add tab to Claude Active group
+router.post('/claude-group/add', async (req, res) => {
+  const { tabId } = req.body;
+
+  if (tabId === undefined) {
+    return res.status(400).json({ success: false, error: 'tabId is required' });
+  }
+
+  log.debug('POST /claude-group/add', { tabId });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-add-to-claude-group',
+      requestId,
+      tabId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('add-to-claude-group error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/browser/claude-group/remove - Remove tab from Claude Active group
+router.post('/claude-group/remove', async (req, res) => {
+  const { tabId } = req.body;
+
+  if (tabId === undefined) {
+    return res.status(400).json({ success: false, error: 'tabId is required' });
+  }
+
+  log.debug('POST /claude-group/remove', { tabId });
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-remove-from-claude-group',
+      requestId,
+      tabId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('remove-from-claude-group error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/browser/claude-group/status - Get Claude Active group status
+router.get('/claude-group/status', async (req, res) => {
+  log.debug('GET /claude-group/status');
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const requestId = `browser-${++requestIdCounter}`;
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(requestId);
+        reject(new Error('Request timed out'));
+      }, 10000);
+
+      pendingRequests.set(requestId, {
+        resolve: (data) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      });
+    });
+
+    broadcast({
+      type: 'browser-get-claude-group-status',
+      requestId
+    });
+
+    const result = await resultPromise;
+    res.json(result);
+  } catch (error) {
+    log.error('get-claude-group-status error:', error);
+    res.json({ success: false, exists: false, error: error.message });
+  }
+});
+
 module.exports = router;
 module.exports.addConsoleLog = addConsoleLog;
 module.exports.getConsoleLogs = getConsoleLogs;

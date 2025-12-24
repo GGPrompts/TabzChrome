@@ -72,6 +72,21 @@ Both accept optional `tabId` for background tab capture without switching focus.
 | `tabz_get_downloads` | List recent downloads |
 | `tabz_cancel_download` | Cancel in-progress download |
 
+### Tab Groups
+
+| Tool | Purpose |
+|------|---------|
+| `tabz_list_groups` | List all tab groups with their tabs |
+| `tabz_create_group` | Create group with title and color |
+| `tabz_update_group` | Update group title, color, collapsed state |
+| `tabz_add_to_group` | Add tabs to existing group |
+| `tabz_ungroup_tabs` | Remove tabs from their groups |
+| `tabz_claude_group_add` | Add tab to purple "Claude Active" group |
+| `tabz_claude_group_remove` | Remove tab from Claude group |
+| `tabz_claude_group_status` | Get Claude group status |
+
+> **Claude Active Group:** Use `tabz_claude_group_add` to visually highlight tabs you're working with. Creates a purple "Claude" group in the tab bar.
+
 ## Tab Targeting (Critical)
 
 **Chrome tab IDs are large numbers** (e.g., `1762561083`), NOT sequential indices like 1, 2, 3.

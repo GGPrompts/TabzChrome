@@ -15,6 +15,27 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.11] - 2025-12-24
+
+### Added
+- **Tab Groups MCP tools** - 8 new tools for managing Chrome tab groups:
+  - `tabz_list_groups` - List all tab groups with their tabs
+  - `tabz_create_group` - Create a new tab group with title and color
+  - `tabz_update_group` - Update group title, color, or collapsed state
+  - `tabz_add_to_group` - Add tabs to an existing group
+  - `tabz_ungroup_tabs` - Remove tabs from their groups
+  - `tabz_claude_group_add` - Add tab to purple "Claude Active" group
+  - `tabz_claude_group_remove` - Remove tab from Claude group
+  - `tabz_claude_group_status` - Get status of Claude Active group
+- **Claude Active tab highlighting** - When Claude works with a tab, it can be added to a distinctive purple "Claude" group for visual feedback in the tab bar
+- **Tab Groups in Settings** - All 8 new tools appear in the MCP Tools settings page
+
+### Changed
+- MCP tool count increased from 29 to 37
+- Updated MCP_TOOLS.md with full documentation for all tab group tools
+
+---
+
 ## [1.2.10] - 2025-12-23
 
 ### Added

@@ -73,3 +73,21 @@ export {
   profilePerformance,
   getCoverage
 } from "./debugger.js";
+
+// Tab Groups
+export {
+  listTabGroups,
+  createTabGroup,
+  updateTabGroup,
+  addToTabGroup,
+  ungroupTabs,
+  addToClaudeGroup,
+  removeFromClaudeGroup,
+  getClaudeGroupStatus,
+  type TabGroupColor,
+  type TabGroupInfo,
+  type ListTabGroupsResult,
+  type TabGroupResult,
+  type UngroupResult,
+  type ClaudeGroupStatus
+} from "./tabGroups.js";

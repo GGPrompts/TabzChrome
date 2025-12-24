@@ -1,5 +1,23 @@
 # TabzChrome Recent Changes
 
+## 1.2.11 (Dec 24, 2025)
+
+**Tab Groups MCP Tools (8 new tools):**
+- `tabz_list_groups` - List all tab groups with their tabs
+- `tabz_create_group` - Create group with title and color
+- `tabz_update_group` - Change title, color, or collapsed state
+- `tabz_add_to_group` - Add tabs to existing group
+- `tabz_ungroup_tabs` - Remove tabs from groups
+- `tabz_claude_group_add` - Add tab to purple "Claude Active" group
+- `tabz_claude_group_remove` - Remove from Claude group
+- `tabz_claude_group_status` - Check Claude group status
+
+**Claude Active Highlighting:**
+- When working with tabs, call `tabz_claude_group_add` to mark them with a purple "Claude" group
+- Visual feedback in Chrome's tab bar shows which tabs Claude is using
+
+---
+
 ## 1.2.8 (Dec 23, 2025)
 
 **Chrome Debugger MCP Tools:**

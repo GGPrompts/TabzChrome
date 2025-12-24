@@ -60,3 +60,15 @@ export {
   handleBrowserExecuteScript,
   handleBrowserGetPageInfo
 } from './script'
+
+// Tab groups
+export {
+  handleBrowserListTabGroups,
+  handleBrowserCreateTabGroup,
+  handleBrowserUpdateTabGroup,
+  handleBrowserAddToTabGroup,
+  handleBrowserUngroupTabs,
+  handleBrowserAddToClaudeGroup,
+  handleBrowserRemoveFromClaudeGroup,
+  handleBrowserGetClaudeGroupStatus
+} from './tabGroups'

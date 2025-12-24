@@ -35,6 +35,14 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_get_dom_tree` | "DOM tree", "page structure", "inspect DOM" | Get full DOM tree via chrome.debugger |
 | `tabz_profile_performance` | "performance metrics", "page speed", "memory usage" | Profile timing, memory, and DOM metrics |
 | `tabz_get_coverage` | "code coverage", "unused CSS", "unused JavaScript" | Get JS/CSS code coverage analysis |
+| `tabz_list_groups` | "list groups", "tab groups", "show groups" | List all tab groups with their tabs |
+| `tabz_create_group` | "create group", "group tabs", "new group" | Create a new tab group from specified tabs |
+| `tabz_update_group` | "update group", "rename group", "change group color" | Update group title, color, or collapsed state |
+| `tabz_add_to_group` | "add to group", "move to group" | Add tabs to an existing group |
+| `tabz_ungroup_tabs` | "ungroup tabs", "remove from group" | Remove tabs from their groups |
+| `tabz_claude_group_add` | "mark tab active", "highlight tab" | Add tab to Claude Active group (auto-creates purple group) |
+| `tabz_claude_group_remove` | "unmark tab", "done with tab" | Remove tab from Claude Active group |
+| `tabz_claude_group_status` | "claude group status", "active tabs" | Get status of Claude Active group |
 
 > **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
@@ -1133,6 +1141,218 @@ Confirmation of deletion.
 
 ---
 
+## tabz_list_groups
+
+**Purpose:** List all tab groups in the current browser window.
+
+**Trigger phrases:**
+- "Show me tab groups"
+- "What groups are open?"
+- "List all groups"
+
+**Parameters:**
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- `groups`: Array of tab groups with groupId, title, color, collapsed, tabCount, tabIds
+- `claudeActiveGroupId`: ID of the Claude Active group (if it exists)
+
+**Examples:**
+```javascript
+// List all groups
+{}
+
+// Get JSON for programmatic use
+{ response_format: "json" }
+```
+
+---
+
+## tabz_create_group
+
+**Purpose:** Create a new tab group from specified tabs.
+
+**Trigger phrases:**
+- "Group these tabs"
+- "Create a new group"
+- "Put tabs in a group"
+
+**Parameters:**
+- `tabIds` (required): Array of Chrome tab IDs to group
+- `title` (optional): Group title (max 50 chars)
+- `color` (optional): grey, blue, red, yellow, green, pink, purple, or cyan
+- `collapsed` (optional): Whether to collapse the group (default: false)
+
+**Returns:**
+- `groupId`: New group's ID
+- `title`, `color`, `tabCount`
+
+**Examples:**
+```javascript
+// Create a research group
+{ tabIds: [123, 456], title: "Research", color: "blue" }
+
+// Quick group without title
+{ tabIds: [789, 101112] }
+
+// Create collapsed group
+{ tabIds: [123], title: "Done", color: "grey", collapsed: true }
+```
+
+---
+
+## tabz_update_group
+
+**Purpose:** Update an existing tab group's properties.
+
+**Trigger phrases:**
+- "Rename the group"
+- "Change group color"
+- "Collapse the group"
+
+**Parameters:**
+- `groupId` (required): The tab group ID to update
+- `title` (optional): New title
+- `color` (optional): New color
+- `collapsed` (optional): true to collapse, false to expand
+
+**Examples:**
+```javascript
+// Rename a group
+{ groupId: 12345, title: "Work" }
+
+// Change color to red
+{ groupId: 12345, color: "red" }
+
+// Collapse finished work
+{ groupId: 12345, collapsed: true }
+```
+
+---
+
+## tabz_add_to_group
+
+**Purpose:** Add tabs to an existing tab group.
+
+**Trigger phrases:**
+- "Add tab to group"
+- "Move this to the research group"
+
+**Parameters:**
+- `groupId` (required): The group ID to add tabs to
+- `tabIds` (required): Array of tab IDs to add
+
+**Examples:**
+```javascript
+// Add one tab
+{ groupId: 12345, tabIds: [789] }
+
+// Add multiple tabs
+{ groupId: 12345, tabIds: [789, 101112, 131415] }
+```
+
+---
+
+## tabz_ungroup_tabs
+
+**Purpose:** Remove tabs from their groups (ungroup them).
+
+**Trigger phrases:**
+- "Ungroup this tab"
+- "Remove from group"
+
+**Parameters:**
+- `tabIds` (required): Array of tab IDs to ungroup
+
+**Returns:**
+- `ungroupedCount`: Number of tabs ungrouped
+
+**Note:** Empty groups are automatically deleted by Chrome.
+
+**Examples:**
+```javascript
+// Ungroup one tab
+{ tabIds: [123] }
+
+// Ungroup multiple
+{ tabIds: [123, 456, 789] }
+```
+
+---
+
+## tabz_claude_group_add
+
+**Purpose:** Add a tab to the "Claude Active" group. Creates the group if it doesn't exist.
+
+This is the **recommended way to highlight tabs Claude is working with**. The Claude group has a distinctive purple color and "Claude" title.
+
+**Trigger phrases:**
+- "Mark this tab as active"
+- "Highlight this tab"
+- "Add to Claude group"
+
+**Parameters:**
+- `tabId` (required): Chrome tab ID to add
+
+**Returns:**
+- Group info with groupId, title, color, tabCount
+
+**Example:**
+```javascript
+{ tabId: 123456789 }
+```
+
+**Use case:**
+When Claude starts working with a browser tab (e.g., taking screenshots, clicking elements), call this tool to visually mark it. The user will see a purple "Claude" group in their tab bar.
+
+---
+
+## tabz_claude_group_remove
+
+**Purpose:** Remove a tab from the "Claude Active" group.
+
+**Trigger phrases:**
+- "Done with this tab"
+- "Unmark this tab"
+- "Remove from Claude group"
+
+**Parameters:**
+- `tabId` (required): Chrome tab ID to remove
+
+**Example:**
+```javascript
+{ tabId: 123456789 }
+```
+
+**Note:** If this was the last tab in the Claude group, the group is automatically deleted.
+
+---
+
+## tabz_claude_group_status
+
+**Purpose:** Get the status of the "Claude Active" group.
+
+**Trigger phrases:**
+- "What tabs am I working with?"
+- "Show Claude active tabs"
+
+**Parameters:**
+- `response_format`: `markdown` (default) or `json`
+
+**Returns:**
+- `exists`: Whether the Claude group exists
+- `groupId`: The group ID (if exists)
+- `tabCount`: Number of tabs in the group
+- `tabIds`: Array of tab IDs in the group
+
+**Example:**
+```javascript
+// Check status
+{}
+```
+
+---
+
 ## Architecture
 
 ```
@@ -1233,6 +1453,14 @@ All tools use **Chrome Extension APIs** - no CDP or `--remote-debugging-port=922
 | `tabz_get_dom_tree` | ✅ Required | chrome.debugger API |
 | `tabz_profile_performance` | ✅ Required | chrome.debugger API |
 | `tabz_get_coverage` | ✅ Required | chrome.debugger API |
+| `tabz_list_groups` | ✅ Required | chrome.tabGroups API |
+| `tabz_create_group` | ✅ Required | chrome.tabs.group + tabGroups |
+| `tabz_update_group` | ✅ Required | chrome.tabGroups.update |
+| `tabz_add_to_group` | ✅ Required | chrome.tabs.group |
+| `tabz_ungroup_tabs` | ✅ Required | chrome.tabs.ungroup |
+| `tabz_claude_group_add` | ✅ Required | chrome.tabs.group + tabGroups |
+| `tabz_claude_group_remove` | ✅ Required | chrome.tabs.ungroup |
+| `tabz_claude_group_status` | ✅ Required | chrome.tabGroups API |
 
 **Summary:**
 - **All tools use Chrome Extension APIs** - no CDP required

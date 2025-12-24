@@ -509,10 +509,10 @@ export function ProfilesTab({
                 value={formData.category || ''}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder="e.g., Claude Code, TUI Tools"
-                list="category-suggestions"
+                list={`category-suggestions-${editingIndex !== null ? `edit-${editingIndex}` : 'add'}`}
                 className="flex-1 px-3 py-2 bg-black/50 border border-gray-700 rounded text-white text-sm focus:border-[#00ff88] focus:outline-none"
               />
-              <datalist id="category-suggestions">
+              <datalist id={`category-suggestions-${editingIndex !== null ? `edit-${editingIndex}` : 'add'}`}>
                 {getUniqueCategories().map(cat => (
                   <option key={cat} value={cat} />
                 ))}

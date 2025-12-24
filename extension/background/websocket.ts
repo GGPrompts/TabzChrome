@@ -40,7 +40,15 @@ import {
   handleBrowserProfilePerformance,
   handleBrowserGetCoverage,
   handleBrowserExecuteScript,
-  handleBrowserGetPageInfo
+  handleBrowserGetPageInfo,
+  handleBrowserListTabGroups,
+  handleBrowserCreateTabGroup,
+  handleBrowserUpdateTabGroup,
+  handleBrowserAddToTabGroup,
+  handleBrowserUngroupTabs,
+  handleBrowserAddToClaudeGroup,
+  handleBrowserRemoveFromClaudeGroup,
+  handleBrowserGetClaudeGroupStatus
 } from './browserMcp'
 
 // Forward declaration - will be set by alarms module
@@ -471,6 +479,55 @@ function routeWebSocketMessage(message: any): void {
   if (message.type === 'browser-get-coverage') {
     console.log('Browser MCP: get-coverage request', message.requestId)
     handleBrowserGetCoverage(message)
+    return
+  }
+
+  // Tab group handlers
+  if (message.type === 'browser-list-tab-groups') {
+    console.log('Browser MCP: list-tab-groups request', message.requestId)
+    handleBrowserListTabGroups(message)
+    return
+  }
+
+  if (message.type === 'browser-create-tab-group') {
+    console.log('Browser MCP: create-tab-group request', message.requestId)
+    handleBrowserCreateTabGroup(message)
+    return
+  }
+
+  if (message.type === 'browser-update-tab-group') {
+    console.log('Browser MCP: update-tab-group request', message.requestId, message.groupId)
+    handleBrowserUpdateTabGroup(message)
+    return
+  }
+
+  if (message.type === 'browser-add-to-tab-group') {
+    console.log('Browser MCP: add-to-tab-group request', message.requestId, message.groupId)
+    handleBrowserAddToTabGroup(message)
+    return
+  }
+
+  if (message.type === 'browser-ungroup-tabs') {
+    console.log('Browser MCP: ungroup-tabs request', message.requestId)
+    handleBrowserUngroupTabs(message)
+    return
+  }
+
+  if (message.type === 'browser-add-to-claude-group') {
+    console.log('Browser MCP: add-to-claude-group request', message.requestId, message.tabId)
+    handleBrowserAddToClaudeGroup(message)
+    return
+  }
+
+  if (message.type === 'browser-remove-from-claude-group') {
+    console.log('Browser MCP: remove-from-claude-group request', message.requestId, message.tabId)
+    handleBrowserRemoveFromClaudeGroup(message)
+    return
+  }
+
+  if (message.type === 'browser-get-claude-group-status') {
+    console.log('Browser MCP: get-claude-group-status request', message.requestId)
+    handleBrowserGetClaudeGroupStatus(message)
     return
   }
 

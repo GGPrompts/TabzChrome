@@ -1,19 +1,19 @@
 {
   "../../../../../@crx/manifest": {
-    "file": "assets/crx-manifest.js-DgJVdd1X.js",
+    "file": "assets/crx-manifest.js-Ctta-zQq.js",
     "name": "crx-manifest.js",
     "src": "../../../../../@crx/manifest",
     "isEntry": true
   },
   "3d/3d-focus.html": {
-    "file": "assets/3d-focus-DBGxIWQz.js",
+    "file": "assets/3d-focus-D4FTIl5o.js",
     "name": "3d-focus",
     "src": "3d/3d-focus.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_globals-Dgetf13a.js",
+      "_globals-I6dFVUfn.js",
       "_extends-CF3RwP-h.js"
     ]
   },
@@ -22,17 +22,17 @@
     "name": "extends"
   },
   "_globals-!~{008}~.js": {
-    "file": "assets/globals-C1cGst9C.css",
+    "file": "assets/globals-C5yKSY2A.css",
     "src": "_globals-!~{008}~.js"
   },
-  "_globals-Dgetf13a.js": {
-    "file": "assets/globals-Dgetf13a.js",
+  "_globals-I6dFVUfn.js": {
+    "file": "assets/globals-I6dFVUfn.js",
     "name": "globals",
     "imports": [
       "_themes-Dxk98ACV.js"
     ],
     "css": [
-      "assets/globals-C1cGst9C.css"
+      "assets/globals-C5yKSY2A.css"
     ]
   },
   "_modulepreload-polyfill-B5Qt9EMX.js": {
@@ -43,15 +43,15 @@
     "file": "assets/themes-Dxk98ACV.js",
     "name": "themes"
   },
-  "_useWorkingDirectory-Bx_ClsUV.js": {
-    "file": "assets/useWorkingDirectory-Bx_ClsUV.js",
+  "_useWorkingDirectory-B20tmDwK.js": {
+    "file": "assets/useWorkingDirectory-B20tmDwK.js",
     "name": "useWorkingDirectory",
     "imports": [
       "_themes-Dxk98ACV.js"
     ]
   },
   "background/index.ts": {
-    "file": "assets/index.ts-Pzw2CLnn.js",
+    "file": "assets/index.ts-z3sfltzG.js",
     "name": "index.ts",
     "src": "background/index.ts",
     "isEntry": true
@@ -63,18 +63,18 @@
     "isEntry": true
   },
   "dashboard/index.html": {
-    "file": "assets/dashboard-DXA8G46l.js",
+    "file": "assets/dashboard-B5ZpYWMG.js",
     "name": "dashboard",
     "src": "dashboard/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_useWorkingDirectory-Bx_ClsUV.js",
+      "_useWorkingDirectory-B20tmDwK.js",
       "_extends-CF3RwP-h.js"
     ],
     "css": [
-      "assets/dashboard-BFIrcMbw.css"
+      "assets/dashboard-C39tN20a.css"
     ]
   },
   "devtools/devtools.html": {
@@ -87,15 +87,15 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-CnirrZ9u.js",
+    "file": "assets/sidepanel.html-BIzc9TsP.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_themes-Dxk98ACV.js",
-      "_globals-Dgetf13a.js",
-      "_useWorkingDirectory-Bx_ClsUV.js"
+      "_globals-I6dFVUfn.js",
+      "_useWorkingDirectory-B20tmDwK.js"
     ]
   }
 }

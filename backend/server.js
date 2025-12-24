@@ -1348,6 +1348,94 @@ wss.on('connection', (ws, req) => {
           break;
 
         // ============================================
+        // TAB GROUPS - Result handlers
+        // ============================================
+        case 'browser-list-tab-groups-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              groups: data.groups,
+              claudeActiveGroupId: data.claudeActiveGroupId,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-create-tab-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              group: data.group,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-update-tab-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              group: data.group,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-add-to-tab-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              group: data.group,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-ungroup-tabs-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              ungroupedCount: data.ungroupedCount,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-add-to-claude-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              group: data.group,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-remove-from-claude-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-get-claude-group-status-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              exists: data.exists,
+              groupId: data.groupId,
+              group: data.group,
+              tabCount: data.tabCount,
+              tabIds: data.tabIds,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
         // QUEUE_COMMAND - Forward to Chrome extension
         // ============================================
         case 'QUEUE_COMMAND':
