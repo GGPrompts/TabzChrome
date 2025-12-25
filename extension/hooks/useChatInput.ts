@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { sendMessage } from '../shared/messaging'
+import { useOutsideClick } from './useOutsideClick'
 import type { TerminalSession } from './useTerminalSessions'
 
 interface ClaudeStatus {
@@ -56,31 +57,9 @@ export function useChatInput({
 
   const { addToHistory, navigateHistory, resetNavigation } = commandHistory
 
-  // Close target dropdown when clicking outside
-  useEffect(() => {
-    if (!showTargetDropdown) return
-    const handleClick = () => setShowTargetDropdown(false)
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showTargetDropdown])
-
-  // Close history dropdown when clicking outside
-  useEffect(() => {
-    if (!showHistoryDropdown) return
-    const handleClick = () => setShowHistoryDropdown(false)
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showHistoryDropdown])
+  // Close dropdowns when clicking outside (using shared hook)
+  useOutsideClick(showTargetDropdown, useCallback(() => setShowTargetDropdown(false), []))
+  useOutsideClick(showHistoryDropdown, useCallback(() => setShowHistoryDropdown(false), []))
 
   // Chat input send handler
   const handleChatInputSend = useCallback(() => {
