@@ -65,6 +65,18 @@ const navItems: NavItem[] = [
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<Section>(() => {
+    // Check URL hash first (e.g., #/files?path=...) - must be synchronous
+    // to prevent race condition with FilesContext clearing the hash
+    const hash = window.location.hash
+    if (hash.startsWith('#/')) {
+      const hashPath = hash.slice(2) // Remove '#/'
+      const [section] = hashPath.split('?')
+      const validSections: Section[] = ['home', 'profiles', 'terminals', 'files', 'api', 'mcp', 'settings']
+      if (validSections.includes(section as Section)) {
+        return section as Section
+      }
+    }
+    // Fall back to localStorage
     const saved = localStorage.getItem('tabz-dashboard-section')
     return (saved as Section) || 'home'
   })
@@ -118,22 +130,8 @@ export default function App() {
     }
   }, [])
 
-  // Check for hash-based navigation (e.g., #/files?path=...)
-  useEffect(() => {
-    const hash = window.location.hash
-    if (hash.startsWith('#/')) {
-      // Parse section from hash (e.g., #/files?path=... -> files)
-      const hashPath = hash.slice(2) // Remove '#/'
-      const [section] = hashPath.split('?')
-
-      // Navigate to the section if valid
-      const validSections: Section[] = ['home', 'profiles', 'terminals', 'files', 'api', 'mcp', 'settings']
-      if (validSections.includes(section as Section)) {
-        setActiveSection(section as Section)
-      }
-      // Note: FilesContext handles the ?path= parameter directly
-    }
-  }, [])
+  // Note: Hash-based navigation (e.g., #/files?path=...) is handled synchronously
+  // in the useState initializer above to prevent race condition with FilesContext
 
   const handleCloseCapture = () => {
     // Get capture ID from URL to clean up localStorage
