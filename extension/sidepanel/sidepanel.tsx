@@ -22,6 +22,7 @@ import { useTerminalSessions, type TerminalSession } from '../hooks/useTerminalS
 import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
 import '../styles/globals.css'
 
@@ -423,71 +424,14 @@ function SidePanelTerminal() {
     chrome.storage.local.set({ isDark })
   }, [isDark])
 
-  // Close dir dropdown when clicking outside
-  useEffect(() => {
-    if (!showDirDropdown) return
-    const handleClick = () => setShowDirDropdown(false)
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showDirDropdown])
-
-  // Close ghost dropdown when clicking outside
-  useEffect(() => {
-    if (!showGhostDropdown) return
-    const handleClick = () => {
-      setShowGhostDropdown(false)
-      setSelectedOrphans(new Set())
-    }
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showGhostDropdown])
-
-  // Close profile dropdown when clicking outside
-  useEffect(() => {
-    if (!showProfileDropdown) return
-
-    const handleClick = () => {
-      setShowProfileDropdown(false)
-    }
-
-    // Add small delay to prevent immediate closing when opening
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showProfileDropdown])
-
-  // Close empty state dropdown when clicking outside
-  useEffect(() => {
-    if (!showEmptyStateDropdown) return
-
-    const handleClick = () => {
-      setShowEmptyStateDropdown(false)
-    }
-
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [showEmptyStateDropdown])
+  // Close dropdowns when clicking outside (using shared hook)
+  useOutsideClick(showDirDropdown, useCallback(() => setShowDirDropdown(false), []))
+  useOutsideClick(showGhostDropdown, useCallback(() => {
+    setShowGhostDropdown(false)
+    setSelectedOrphans(new Set())
+  }, []))
+  useOutsideClick(showProfileDropdown, useCallback(() => setShowProfileDropdown(false), []))
+  useOutsideClick(showEmptyStateDropdown, useCallback(() => setShowEmptyStateDropdown(false), []))
 
   const handleSpawnTerminal = () => {
     sendMessage({

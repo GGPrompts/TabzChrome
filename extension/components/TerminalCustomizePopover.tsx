@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import { RotateCcw, X } from 'lucide-react'
 import { themes, themeNames, getBackgroundGradient as getThemeBackgroundGradient } from '../styles/themes'
 import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
@@ -47,28 +48,8 @@ export function TerminalCustomizePopover({
   onResetFontSize,
   onClose,
 }: TerminalCustomizePopoverProps) {
-  const popoverRef = useRef<HTMLDivElement>(null)
-
-  // Close on click outside
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-
-    // Small delay to prevent immediate close from the context menu click
-    const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside)
-    }, 100)
-
-    return () => {
-      clearTimeout(timeoutId)
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen, onClose])
+  // Close on click outside (using shared hook)
+  useOutsideClick(isOpen, useCallback(() => onClose(), [onClose]))
 
   // Close on Escape
   useEffect(() => {
@@ -140,9 +121,9 @@ export function TerminalCustomizePopover({
 
   return (
     <div
-      ref={popoverRef}
       className="fixed w-72 rounded-lg shadow-xl z-[10001] overflow-hidden border border-gray-600/50"
       style={{ left: `${left}px`, top: `${top}px` }}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Background layers - same as Terminal.tsx */}
       <div
