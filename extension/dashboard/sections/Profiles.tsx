@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Grid, Grid3X3, List, Search, Play, RefreshCw, Terminal, Folder, X, Settings, GripVertical, Star, Copy, ClipboardType, Paperclip } from 'lucide-react'
 import { spawnTerminal, getProfiles } from '../hooks/useDashboard'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
+import { useDragDrop } from '../../hooks/useDragDrop'
 import type { Profile } from '../../components/SettingsModal'
 import type { CategorySettings } from '../../components/settings/types'
 import { sendMessage } from '../../shared/messaging'
@@ -22,15 +23,27 @@ export default function ProfilesSection() {
   const [categorySettings, setCategorySettings] = useState<CategorySettings>({})
   const [defaultProfile, setDefaultProfile] = useState<string>('')
 
-  // Category drag-and-drop state
-  const [draggedCategory, setDraggedCategory] = useState<string | null>(null)
-  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null)
-  const [categoryDropPosition, setCategoryDropPosition] = useState<'above' | 'below' | null>(null)
+  // Category drag-and-drop state (using shared hook)
+  const {
+    draggedItem: draggedCategory,
+    dragOverItem: dragOverCategory,
+    dropPosition: categoryDropPosition,
+    setDraggedItem: setDraggedCategory,
+    setDragOverItem: setDragOverCategory,
+    setDropPosition: setCategoryDropPosition,
+    resetDragState: resetCategoryDragState,
+  } = useDragDrop<string>()
 
-  // Drag and drop state
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null)
+  // Profile drag-and-drop state (using shared hook)
+  const {
+    draggedItem: draggedIndex,
+    dragOverItem: dragOverIndex,
+    dropPosition,
+    setDraggedItem: setDraggedIndex,
+    setDragOverItem: setDragOverIndex,
+    setDropPosition,
+    resetDragState: resetProfileDragState,
+  } = useDragDrop<number>()
 
   // Working directory (dropdown is now in sidebar)
   const { globalWorkingDir } = useWorkingDirectory()
@@ -189,9 +202,7 @@ export default function ProfilesSection() {
 
   const handleDrop = (index: number, targetCategory: string) => {
     if (draggedIndex === null || draggedIndex === index) {
-      setDraggedIndex(null)
-      setDragOverIndex(null)
-      setDropPosition(null)
+      resetProfileDragState()
       return
     }
 
@@ -223,15 +234,11 @@ export default function ProfilesSection() {
     // Dispatch event so other components update
     window.dispatchEvent(new CustomEvent('categorySettingsChanged', { detail: categorySettings }))
 
-    setDraggedIndex(null)
-    setDragOverIndex(null)
-    setDropPosition(null)
+    resetProfileDragState()
   }
 
   const handleDragEnd = () => {
-    setDraggedIndex(null)
-    setDragOverIndex(null)
-    setDropPosition(null)
+    resetProfileDragState()
   }
 
   // Get sorted categories (by order, then alphabetically)
@@ -273,9 +280,7 @@ export default function ProfilesSection() {
 
   const handleCategoryDrop = (targetCategory: string) => {
     if (draggedCategory === null || draggedCategory === targetCategory) {
-      setDraggedCategory(null)
-      setDragOverCategory(null)
-      setCategoryDropPosition(null)
+      resetCategoryDragState()
       return
     }
 
@@ -284,9 +289,7 @@ export default function ProfilesSection() {
     let targetIdx = sortedCategories.indexOf(targetCategory)
 
     if (draggedIdx === -1 || targetIdx === -1) {
-      setDraggedCategory(null)
-      setDragOverCategory(null)
-      setCategoryDropPosition(null)
+      resetCategoryDragState()
       return
     }
 
@@ -318,15 +321,11 @@ export default function ProfilesSection() {
     chrome.storage.local.set({ categorySettings: newSettings })
     window.dispatchEvent(new CustomEvent('categorySettingsChanged', { detail: newSettings }))
 
-    setDraggedCategory(null)
-    setDragOverCategory(null)
-    setCategoryDropPosition(null)
+    resetCategoryDragState()
   }
 
   const handleCategoryDragEnd = () => {
-    setDraggedCategory(null)
-    setDragOverCategory(null)
-    setCategoryDropPosition(null)
+    resetCategoryDragState()
   }
 
   return (

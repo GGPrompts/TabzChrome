@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import type { TerminalSession } from './useTerminalSessions'
+import { useDragDrop } from './useDragDrop'
 
 export interface UseTabDragDropParams {
   sessions: TerminalSession[]
@@ -28,14 +29,19 @@ export function useTabDragDrop({
   sessions,
   setSessions,
 }: UseTabDragDropParams): UseTabDragDropReturn {
-  const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
-  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null)
+  const {
+    draggedItem: draggedTabId,
+    dragOverItem: dragOverTabId,
+    setDraggedItem: setDraggedTabId,
+    setDragOverItem: setDragOverTabId,
+    resetDragState,
+  } = useDragDrop<string>()
 
   const handleTabDragStart = useCallback((e: React.DragEvent, tabId: string) => {
     setDraggedTabId(tabId)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', tabId)
-  }, [])
+  }, [setDraggedTabId])
 
   const handleTabDragOver = useCallback((e: React.DragEvent, tabId: string) => {
     e.preventDefault()
@@ -43,17 +49,16 @@ export function useTabDragDrop({
     if (draggedTabId && tabId !== draggedTabId) {
       setDragOverTabId(tabId)
     }
-  }, [draggedTabId])
+  }, [draggedTabId, setDragOverTabId])
 
   const handleTabDragLeave = useCallback(() => {
     setDragOverTabId(null)
-  }, [])
+  }, [setDragOverTabId])
 
   const handleTabDrop = useCallback((e: React.DragEvent, targetTabId: string) => {
     e.preventDefault()
     if (!draggedTabId || draggedTabId === targetTabId) {
-      setDraggedTabId(null)
-      setDragOverTabId(null)
+      resetDragState()
       return
     }
 
@@ -71,21 +76,19 @@ export function useTabDragDrop({
       chrome.storage.local.set({ terminalSessions: newSessions })
     }
 
-    setDraggedTabId(null)
-    setDragOverTabId(null)
-  }, [draggedTabId, sessions, setSessions])
+    resetDragState()
+  }, [draggedTabId, sessions, setSessions, resetDragState])
 
   const handleTabDragEnd = useCallback(() => {
-    setDraggedTabId(null)
-    setDragOverTabId(null)
-  }, [])
+    resetDragState()
+  }, [resetDragState])
 
   // Handle drag over end zone (for dropping at the end of the tab list)
   const handleEndZoneDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOverTabId('__end__')
-  }, [])
+  }, [setDragOverTabId])
 
   // Handle drop on end zone (move tab to end of list)
   const handleEndZoneDrop = useCallback((e: React.DragEvent) => {
@@ -101,9 +104,8 @@ export function useTabDragDrop({
       chrome.storage.local.set({ terminalSessions: newSessions })
     }
 
-    setDraggedTabId(null)
-    setDragOverTabId(null)
-  }, [draggedTabId, sessions, setSessions])
+    resetDragState()
+  }, [draggedTabId, sessions, setSessions, resetDragState])
 
   return {
     draggedTabId,
