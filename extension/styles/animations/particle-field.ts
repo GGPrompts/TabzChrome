@@ -74,9 +74,9 @@ function renderParticles(
   speed: number,
   deltaTime: number,
   time: number,
-  state: ParticleState
+  state: AnimationState
 ): void {
-  const { particles, type } = state
+  const { particles, type } = state as ParticleState
   const adjustedSpeed = speed * deltaTime * 0.016
 
   // Clear with background

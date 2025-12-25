@@ -30,9 +30,10 @@ function renderSynthwaveGrid(
   speed: number,
   deltaTime: number,
   time: number,
-  state: GridState
+  state: AnimationState
 ): void {
   const adjustedTime = time * speed * 0.001
+  void (state as GridState) // Type assertion for state
   const horizonY = height * 0.45
 
   // Background gradient (dark to horizon glow)
@@ -129,9 +130,10 @@ function renderTronGrid(
   speed: number,
   deltaTime: number,
   time: number,
-  state: GridState
+  state: AnimationState
 ): void {
   const adjustedTime = time * speed * 0.001
+  void (state as GridState) // Type assertion for state
   const gridSize = 40
 
   // Clear
@@ -208,9 +210,10 @@ function renderPulseGrid(
   speed: number,
   deltaTime: number,
   time: number,
-  state: GridState
+  state: AnimationState
 ): void {
   const adjustedTime = time * speed * 0.001
+  void (state as GridState) // Type assertion for state
   const centerX = width / 2
   const centerY = height / 2
   const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY)
@@ -261,9 +264,10 @@ function renderScanLines(
   speed: number,
   deltaTime: number,
   time: number,
-  state: GridState
+  state: AnimationState
 ): void {
   const adjustedTime = time * speed * 0.002
+  void (state as GridState) // Type assertion for state
 
   // Clear
   ctx.fillStyle = colors.background

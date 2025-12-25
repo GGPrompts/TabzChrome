@@ -49,9 +49,9 @@ function renderAurora(
   speed: number,
   deltaTime: number,
   time: number,
-  state: AuroraState
+  state: AnimationState
 ): void {
-  const { waves } = state
+  const { waves } = state as AuroraState
   const adjustedTime = time * speed * 0.0003
 
   // Clear with background

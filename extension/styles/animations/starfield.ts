@@ -101,9 +101,9 @@ function renderWarp(
   speed: number,
   deltaTime: number,
   time: number,
-  state: StarfieldState
+  state: AnimationState
 ): void {
-  const { stars, centerX, centerY } = state
+  const { stars, centerX, centerY } = state as StarfieldState
   const adjustedSpeed = speed * deltaTime * 0.00005
 
   // Trail effect - semi-transparent clear
@@ -159,9 +159,9 @@ function renderDrift(
   speed: number,
   deltaTime: number,
   time: number,
-  state: StarfieldState
+  state: AnimationState
 ): void {
-  const { stars } = state
+  const { stars } = state as StarfieldState
   const adjustedSpeed = speed * deltaTime * 0.01
 
   // Clear
@@ -203,9 +203,9 @@ function renderTwinkle(
   speed: number,
   deltaTime: number,
   time: number,
-  state: StarfieldState
+  state: AnimationState
 ): void {
-  const { stars } = state
+  const { stars } = state as StarfieldState
   const adjustedSpeed = speed * deltaTime * 0.001
 
   // Clear
@@ -247,9 +247,9 @@ function renderNebula(
   speed: number,
   deltaTime: number,
   time: number,
-  state: StarfieldState
+  state: AnimationState
 ): void {
-  const { stars, nebulae } = state
+  const { stars, nebulae } = state as StarfieldState
   const adjustedSpeed = speed * deltaTime * 0.0005
 
   // Clear

@@ -8,6 +8,7 @@ import '@xterm/xterm/css/xterm.css'
 import { sendMessage, connectToBackground } from '../shared/messaging'
 import { getThemeColors, getBackgroundGradient as getThemeBackgroundGradient, ThemeColors } from '../styles/themes'
 import { getGradientCSS } from '../styles/terminal-backgrounds'
+import { MemoizedAnimatedBackground } from './AnimatedBackground'
 
 /**
  * Props for the Terminal component
@@ -34,6 +35,10 @@ interface TerminalProps {
   backgroundGradient?: string  // Override gradient key (undefined = use theme default)
   panelColor?: string          // Base panel color (default: #000000)
   transparency?: number        // Gradient opacity 0-100 (default: 100)
+  // Animated background
+  animatedBackground?: string | null  // Animation key (e.g., 'matrix-rain', 'aurora-classic')
+  animationSpeed?: number             // Animation speed multiplier (default: 1)
+  animationPaused?: boolean           // Pause animation
 }
 // NOTE: ClaudeStatus interface removed - status polling handled by sidepanel's useClaudeStatus hook
 
@@ -68,7 +73,7 @@ interface TerminalProps {
  * @param props.onClose - Callback when terminal is closed
  * @returns Terminal container with xterm.js instance
  */
-export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize, backgroundGradient, panelColor = '#000000', transparency = 100 }: TerminalProps) {
+export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize, backgroundGradient, panelColor = '#000000', transparency = 100, animatedBackground = null, animationSpeed = 1, animationPaused = false }: TerminalProps) {
   // Compute effective font size (base + offset)
   const effectiveFontSize = fontSize + (fontSizeOffset || 0)
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -1024,9 +1029,21 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         backgroundColor: panelColor,
       }}
     >
+      {/* Animated background layer - renders behind gradient */}
+      {animatedBackground && (
+        <div className="absolute inset-0 z-0">
+          <MemoizedAnimatedBackground
+            animationKey={animatedBackground}
+            isDark={isDark}
+            speed={animationSpeed}
+            paused={animationPaused}
+            opacity={0.6}
+          />
+        </div>
+      )}
       {/* Gradient overlay with transparency */}
       <div
-        className="absolute inset-0 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none z-[1]"
         style={{
           background: effectiveGradientCSS,
           opacity: gradientOpacity,
@@ -1034,7 +1051,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       />
       {/* Terminal body - full height, status shown in tmux status bar */}
       <div
-        className="flex-1 relative overflow-hidden"
+        className="flex-1 relative overflow-hidden z-[2]"
         onContextMenu={(e) => e.preventDefault()}  // Disable browser context menu so TUI apps/tmux can use right-click
       >
         <div

@@ -23,7 +23,6 @@ import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
-import { MemoizedAnimatedBackground } from '../components/AnimatedBackground'
 import { animatedBackgroundNames, animationCategories, getAnimationsByCategory } from '../styles/animated-backgrounds'
 import '../styles/globals.css'
 
@@ -774,16 +773,6 @@ function SidePanelTerminal() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground relative overflow-hidden">
-      {/* Animated Background Layer */}
-      {animatedBackground && (
-        <MemoizedAnimatedBackground
-          animationKey={animatedBackground}
-          isDark={isDark}
-          speed={animationSpeed}
-          paused={animationPaused}
-          opacity={0.6}
-        />
-      )}
       {/* Header - Windows Terminal style */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a]">
         {/* Left: Title */}
@@ -1285,6 +1274,9 @@ function SidePanelTerminal() {
                           backgroundGradient={session.appearanceOverrides?.backgroundGradient ?? effectiveProfile?.backgroundGradient}
                           panelColor={session.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#000000'}
                           transparency={session.appearanceOverrides?.transparency ?? effectiveProfile?.transparency ?? 100}
+                          animatedBackground={animatedBackground}
+                          animationSpeed={animationSpeed}
+                          animationPaused={animationPaused}
                           onClose={() => {
                             sendMessage({
                               type: 'CLOSE_TERMINAL',

@@ -64,9 +64,9 @@ function renderMatrix(
   speed: number,
   deltaTime: number,
   time: number,
-  state: MatrixState
+  state: AnimationState
 ): void {
-  const { columns, charWidth } = state
+  const { columns, charWidth } = state as MatrixState
   const charHeight = 16
   const adjustedSpeed = speed * deltaTime * 0.05
 
