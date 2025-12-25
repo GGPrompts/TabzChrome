@@ -252,7 +252,21 @@ export function TerminalCustomizePopover({
           <label className="block text-xs mb-1.5" style={{ color: themeColors?.brightBlack || '#888' }}>Text Colors</label>
           <select
             value={effectiveTheme}
-            onChange={(e) => onUpdate(sessionId, { themeName: e.target.value })}
+            onChange={(e) => {
+              // When changing font color theme, lock in the current gradient to prevent
+              // the theme's default gradient from overriding it (decouples font color from gradient)
+              const currentGradient = currentOverrides?.backgroundGradient ?? profileDefaults.backgroundGradient
+              if (currentGradient) {
+                // Already has an explicit gradient, just change the theme
+                onUpdate(sessionId, { themeName: e.target.value })
+              } else {
+                // No explicit gradient - set a neutral default to prevent theme's gradient from changing
+                onUpdate(sessionId, {
+                  themeName: e.target.value,
+                  backgroundGradient: 'dark-neutral'
+                })
+              }
+            }}
             className={`w-full px-2 py-1.5 border rounded text-sm focus:border-[#00ff88] focus:outline-none ${
               isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
             }`}
