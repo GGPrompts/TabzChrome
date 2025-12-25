@@ -1,5 +1,24 @@
 // Shared utilities
 
+// Backend API base URL
+export const API_BASE = "http://localhost:8129"
+
+// Get effective working directory with profile/global inheritance
+export function getEffectiveWorkingDir(profileDir: string | undefined, globalDir: string): string {
+  return (profileDir && profileDir !== "~") ? profileDir : globalDir
+}
+
+// Compact a full path to use ~ for home directory (Linux and macOS)
+export function compactPath(path: string): string {
+  if (!path) return path
+  return path.replace(/^\/home\/[^/]+/, "~").replace(/^\/Users\/[^/]+/, "~")
+}
+
+// Expand ~ to full home directory path
+export function expandPath(path: string, homeDir: string): string {
+  return path.replace(/^~/, homeDir)
+}
+
 // Parse URL to local file path (for GitHub URLs)
 export function parseUrlToPath(url: string): string | null {
   try {

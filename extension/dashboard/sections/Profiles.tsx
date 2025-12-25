@@ -5,6 +5,7 @@ import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import type { Profile } from '../../components/SettingsModal'
 import type { CategorySettings } from '../../components/settings/types'
 import { sendMessage } from '../../shared/messaging'
+import { getEffectiveWorkingDir } from '../../shared/utils'
 import { themes } from '../../styles/themes'
 
 const DEFAULT_CATEGORY_COLOR = '#6b7280'
@@ -122,10 +123,7 @@ export default function ProfilesSection() {
 
   const launchProfile = async (profile: Profile) => {
     try {
-      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-      const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-        ? profile.workingDir
-        : globalWorkingDir
+      const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, globalWorkingDir)
       await spawnTerminal({
         name: profile.name,
         command: profile.command,
@@ -140,9 +138,7 @@ export default function ProfilesSection() {
   // Launch profile but paste command without executing (for TUIs/CLIs with flags)
   const launchProfilePasteOnly = async (profile: Profile) => {
     try {
-      const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-        ? profile.workingDir
-        : globalWorkingDir
+      const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, globalWorkingDir)
       await spawnTerminal({
         name: profile.name,
         command: profile.command,

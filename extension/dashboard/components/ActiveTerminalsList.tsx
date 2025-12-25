@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { Terminal, Trash2, Eye, GitBranch, Folder, GripVertical, Copy, Box } from 'lucide-react'
+import { compactPath } from '../../shared/utils'
 
 export interface TerminalItem {
   id: string
@@ -46,11 +47,6 @@ interface ActiveTerminalsListProps {
   emptyMessage?: string
 }
 
-// Helper to replace home directory with ~
-const compactPath = (path: string) => {
-  if (!path) return path
-  return path.replace(/^\/home\/[^/]+/, '~').replace(/^\/Users\/[^/]+/, '~')
-}
 
 // Format relative time
 const formatRelativeTime = (dateStr: string | number) => {

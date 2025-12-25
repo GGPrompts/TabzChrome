@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { sendMessage } from '../shared/messaging'
+import { getEffectiveWorkingDir } from '../shared/utils'
 import type { Profile } from '../components/SettingsModal'
 import type { TerminalSession } from './useTerminalSessions'
 
@@ -60,10 +61,7 @@ export function useKeyboardShortcuts({
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
-        // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-        const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-          ? profile.workingDir
-          : currentGlobalWorkingDir
+        const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, currentGlobalWorkingDir)
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
@@ -137,10 +135,7 @@ export function useKeyboardShortcuts({
   // Spawn terminal with specific profile (from omnibox)
   const handleOmniboxSpawnProfile = useCallback((profile: Profile) => {
     const currentGlobalWorkingDir = globalWorkingDirRef.current || '~'
-    // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-    const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-      ? profile.workingDir
-      : currentGlobalWorkingDir
+    const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, currentGlobalWorkingDir)
     sendMessage({
       type: 'SPAWN_TERMINAL',
       spawnOption: 'bash',
@@ -163,10 +158,7 @@ export function useKeyboardShortcuts({
       const profiles = (result.profiles as Profile[]) || []
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
-      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-      const effectiveWorkingDir = (profile?.workingDir && profile.workingDir !== '~')
-        ? profile.workingDir
-        : currentGlobalWorkingDir
+      const effectiveWorkingDir = getEffectiveWorkingDir(profile?.workingDir, currentGlobalWorkingDir)
       // Spawn terminal with the command
       // The command will be typed into the terminal after spawn
       sendMessage({

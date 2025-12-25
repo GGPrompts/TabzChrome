@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Terminal, Trash2, RefreshCw, Ghost, AlertTriangle, RotateCcw, Cpu, GitBranch, Eye } from 'lucide-react'
 import { getTerminals, getOrphanedSessions, killSession, killSessions, reattachSessions, getAllTmuxSessions, killTmuxSession } from '../hooks/useDashboard'
 import { ActiveTerminalsList, type TerminalItem } from '../components/ActiveTerminalsList'
+import { compactPath } from '../../shared/utils'
 
 interface TerminalSession {
   id: string
@@ -233,13 +234,7 @@ export default function TerminalsSection() {
     return '...' + path.slice(-maxLen + 3)
   }
 
-  // Helper to replace home directory with ~
-  const compactPath = (path: string) => {
-    if (!path) return path
-    // Match /home/<user> or /Users/<user> patterns
-    return path.replace(/^\/home\/[^/]+/, '~').replace(/^\/Users\/[^/]+/, '~')
-  }
-
+  
   // Switch to a terminal tab in the sidebar
   const switchToTerminal = async (terminalId: string) => {
     try {

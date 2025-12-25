@@ -12,6 +12,7 @@ import { WorkingDirDropdown } from '../components/WorkingDirDropdown'
 import { ChatInputBar } from '../components/ChatInputBar'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { setupConsoleForwarding } from '../shared/consoleForwarder'
+import { getEffectiveWorkingDir } from '../shared/utils'
 import { useClaudeStatus, getStatusEmoji, getStatusText, getFullStatusText, getRobotEmojis, getContextColor, getStatusColor } from '../hooks/useClaudeStatus'
 import { useCommandHistory } from '../hooks/useCommandHistory'
 import { useOrphanedSessions } from '../hooks/useOrphanedSessions'
@@ -519,10 +520,7 @@ function SidePanelTerminal() {
       const profile = profiles.find((p: Profile) => p.id === defaultProfileId)
 
       if (profile) {
-        // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-        const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-          ? profile.workingDir
-          : currentGlobalWorkingDir
+        const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, currentGlobalWorkingDir)
         sendMessage({
           type: 'SPAWN_TERMINAL',
           spawnOption: 'bash',
@@ -549,10 +547,7 @@ function SidePanelTerminal() {
     chrome.storage.local.get(['globalWorkingDir'], (result) => {
       const currentGlobalWorkingDir = (result.globalWorkingDir as string) || globalWorkingDir || '~'
 
-      // Use profile.workingDir only if it's set AND not just "~" (which means "inherit")
-      const effectiveWorkingDir = (profile.workingDir && profile.workingDir !== '~')
-        ? profile.workingDir
-        : currentGlobalWorkingDir
+      const effectiveWorkingDir = getEffectiveWorkingDir(profile.workingDir, currentGlobalWorkingDir)
       sendMessage({
         type: 'SPAWN_TERMINAL',
         spawnOption: 'bash',
