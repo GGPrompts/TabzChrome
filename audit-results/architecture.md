@@ -59,28 +59,29 @@ const hasScheduledRefreshRef = useRef(false)                     // Prevent redr
 
 ---
 
-### Hotspot #2: MCP Five-Layer Abstraction (HIGH)
+### ~~Hotspot #2: MCP Five-Layer Abstraction~~ ✅ FIXED (Wave 2)
 **Location:** `tabz-mcp-server/` + `backend/routes/browser.js` + `extension/background/browserMcp/`
 
-**Problem:** Simple operations traverse 5 layers:
+**Problem (RESOLVED):** ~~Simple operations traversed 5 layers.~~
+
+**Completed in commit `9f255b4`:** Removed entire client/ directory (~1,300 LOC). Now 4 layers:
 ```
 1. MCP tool wrapper (tools/*.ts)           → Input validation, output formatting
-2. Client module (client/*.ts)             → HTTP wrapper (mostly boilerplate)
-3. Backend REST API (routes/browser.js)    → HTTP → WebSocket bridge
-4. Browser handler (browserMcp/*.ts)       → Chrome API calls
-5. Chrome Extension API                    → Actual browser operation
+2. Backend REST API (routes/browser.js)    → HTTP → WebSocket bridge (boilerplate extracted in b2dcbea)
+3. Browser handler (browserMcp/*.ts)       → Chrome API calls
+4. Chrome Extension API                    → Actual browser operation
 ```
 
-**Code Distribution:**
-| Layer | LOC | Purpose |
-|-------|-----|---------|
-| MCP Tools | 4,570 | Tool definitions |
-| Client Modules | 1,347 | HTTP wrappers |
-| Browser Routes | 2,212 | REST endpoints |
-| Browser Handlers | 2,979 | Chrome API |
-| **Total** | **11,108** | Simple browser operations |
+**Code Distribution (After Wave 2):**
+| Layer | LOC | Purpose | Status |
+|-------|-----|---------|--------|
+| MCP Tools | 4,570 | Tool definitions | Unchanged |
+| ~~Client Modules~~ | ~~1,347~~ | ~~HTTP wrappers~~ | **Removed** |
+| Browser Routes | ~1,200 | REST endpoints | Refactored (boilerplate extracted) |
+| Browser Handlers | 2,979 | Chrome API | Unchanged |
+| **Total** | **~8,750** | Simple browser operations | **-2,300 LOC** |
 
-**Impact:** 37 tools × 5 layers = massive surface area for bugs. Each layer adds latency and error handling complexity.
+**Impact:** Reduced from 5 to 4 layers. ~2,300 LOC removed across MCP client and WebSocket boilerplate.
 
 ---
 
@@ -124,45 +125,36 @@ const hasScheduledRefreshRef = useRef(false)                     // Prevent redr
 
 ---
 
-### Hotspot #5: Chrome Storage Access Scatter (MEDIUM)
+### ~~Hotspot #5: Chrome Storage Access Scatter~~ ✅ FIXED (Wave 2)
 **Location:** 30+ direct `chrome.storage` calls throughout UI
 
-**Problem:** Storage accessed directly instead of through typed helpers:
-```typescript
-// storage.ts provides typed helpers but they're underused
-export async function getLocal<K extends keyof StorageData>(keys: K[]): Promise<...>
+**Problem (RESOLVED):** ~~Storage accessed directly instead of through typed helpers.~~
 
-// But components bypass them:
-chrome.storage.local.get(['terminalSessions', 'currentTerminalId'], ...)
-```
-
-**Missing Keys in StorageData Interface:**
+**Completed in commit `fed9f93`:** Expanded `StorageData` interface with all storage keys:
 - `terminalSessions`, `currentTerminalId`
 - `profiles`, `defaultProfile`, `categorySettings`
 - `audioSettings`, `commandHistory`
 
-**Impact:** No compile-time safety for storage access. Each component re-implements storage change listeners.
+**Additional fix in `b3bef41`:** Extracted `useChromeSetting<T>(key, default)` hook to replace duplicate storage listener patterns.
+
+**Impact:** Full type safety for storage access. Common pattern extracted to reusable hook.
 
 ---
 
 ## 3. Recommended Simplifications
 
-### 3.1 Reduce MCP Abstraction Layers (HIGH PRIORITY)
+### 3.1 ~~Reduce MCP Abstraction Layers~~ ✅ DONE (Wave 2)
 
-**Current:** 5 layers
-**Target:** 3 layers
+**Before:** 5 layers → **After:** 4 layers
 
-**Action:** Eliminate the HTTP client layer (tabz-mcp-server/src/client/). Call backend directly from tools:
+**Completed in commit `9f255b4`:** Eliminated the HTTP client layer (tabz-mcp-server/src/client/). Tools now call backend directly.
 
 ```typescript
 // BEFORE: tools/tabs.ts → client/core.ts → HTTP → backend → WebSocket → handler
-// AFTER: tools/tabs.ts → HTTP → backend → WebSocket → handler
-
-// In tools/tabs.ts
-const result = await axios.get(`${BACKEND_URL}/browser/list-tabs`)
+// AFTER: tools/tabs.ts → HTTP → backend → WebSocket → handler ✓
 ```
 
-**Savings:** ~1,347 LOC removed, simpler stack traces
+**Savings:** ~1,347 LOC removed, simpler stack traces.
 
 ---
 
@@ -207,17 +199,15 @@ interface ProfileManagerProps {
 
 ---
 
-### 3.4 Expand StorageData Interface (MEDIUM PRIORITY)
+### 3.4 ~~Expand StorageData Interface~~ ✅ DONE (Wave 2)
 
-**Action:** Add all storage keys to typed interface:
+**Completed in commit `fed9f93`:** Added all storage keys to typed interface:
 
 ```typescript
 interface StorageData {
-  // Existing
+  // All keys now typed
   recentSessions?: SyncedSession[]
   settings?: Settings
-
-  // ADD THESE
   terminalSessions?: TerminalSession[]
   currentTerminalId?: string
   profiles?: Profile[]
@@ -228,7 +218,7 @@ interface StorageData {
 }
 ```
 
-**Action:** Replace all direct `chrome.storage` calls with typed helpers.
+**Impact:** Full type safety for all storage access.
 
 ---
 
@@ -264,13 +254,13 @@ interface DropdownBaseProps {
 
 ### Refactor (Don't Remove)
 
-| Item | Current State | Target State |
-|------|--------------|--------------|
-| Terminal.tsx | 1,068 LOC, justified | Keep - complexity inherent to xterm.js |
-| SettingsModal.tsx | 702 LOC, monolithic | Split into tab components |
-| browser.js | 2,212 LOC, all routes | Split by domain (tabs, screenshots, etc.) |
-| useTerminalSessions.ts | 450 LOC, complex | Extract reconciliation to pure function |
-| MCP client layer | 1,347 LOC | Remove - call backend directly |
+| Item | Current State | Target State | Status |
+|------|--------------|--------------|--------|
+| Terminal.tsx | 1,068 LOC, justified | Keep - complexity inherent to xterm.js | Keep |
+| SettingsModal.tsx | 702 LOC, monolithic | Split into tab components | ✅ SettingsContext extracted |
+| browser.js | 2,212 LOC, all routes | Split by domain (tabs, screenshots, etc.) | ✅ Boilerplate extracted |
+| useTerminalSessions.ts | 450 LOC, complex | Extract reconciliation to pure function | Pending |
+| ~~MCP client layer~~ | ~~1,347 LOC~~ | ~~Remove - call backend directly~~ | ✅ **Removed** |
 
 ### Consider Removing (Feature Creep)
 
@@ -286,17 +276,17 @@ interface DropdownBaseProps {
 
 ### P0 - Critical (Do First)
 1. **Consolidate messaging systems** - Prevents bugs, enables type safety
-2. **Reduce MCP layers** - Major simplification, 1,300+ LOC removed
+2. ~~**Reduce MCP layers** - Major simplification, 1,300+ LOC removed~~ ✅ Wave 2
 
 ### P1 - High Priority
-3. **Expand StorageData interface** - Type safety for all storage access
+3. ~~**Expand StorageData interface** - Type safety for all storage access~~ ✅ Wave 2
 4. **Extract terminal reconciliation** - Make testable, document edge cases
-5. **Split SettingsModal** - Reduce component complexity
+5. ~~**Split SettingsModal** - Reduce component complexity~~ ✅ Wave 2 (SettingsContext)
 
 ### P2 - Medium Priority
 6. **Extract ProfileManager** - Remove duplication
-7. **Remove unused dependencies** - jsdom, @dnd-kit
-8. **Split browser.js routes** - Better organization
+7. ~~**Remove unused dependencies** - jsdom, @dnd-kit~~ ✅ Wave 1
+8. ~~**Split browser.js routes** - Better organization~~ ✅ Wave 2 (boilerplate extracted)
 
 ### P3 - Low Priority
 9. **Extract DropdownBase** - Nice to have

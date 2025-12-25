@@ -104,17 +104,17 @@ DELETE /api/tmux/sessions/bulk   (api.js:836) - Multiple sessions
 
 ## 3. Over-Engineered Modules
 
-### 3.1 Audio Generation Duplication (server.js)
+### 3.1 ~~Audio Generation Duplication~~ ✅ DONE (Wave 2)
 
-**Lines affected:** 210-527 (~150 LOC duplicated)
+~~**Lines affected:** 210-527 (~150 LOC duplicated)~~
 
-Both `/api/audio/generate` and `/api/audio/speak` contain:
-- Identical `stripMarkdown()` function (appears twice)
-- Identical VOICE_OPTIONS array (appears twice)
-- Identical voice/rate/pitch validation
-- Identical caching and TTS generation logic
+**Completed in commit `3f2cbac`:** Extracted shared audio generation to `backend/modules/audio-generator.js`:
+- `stripMarkdown()` function
+- VOICE_OPTIONS array
+- Voice/rate/pitch validation
+- Caching and TTS generation logic
 
-**Savings:** Extract to `audioGenerator.js` → ~100 LOC reduction
+**Savings:** ~250 LOC saved, single source of truth for audio generation.
 
 ### 3.2 Handler Pattern in unified-spawn.js
 
@@ -132,25 +132,12 @@ Maintains counter state for terminal naming. Overcomplicated.
 
 **Simplification:** Scan existing terminals at spawn time instead → ~30 LOC reduction
 
-### 3.4 WebSocket Boilerplate (browser.js)
+### 3.4 ~~WebSocket Boilerplate~~ ✅ DONE (Wave 2)
 
-**Lines:** Repeated 30+ times throughout file
+~~**Lines:** Repeated 30+ times throughout file~~
 
-```javascript
-const requestId = `browser-${++requestIdCounter}`;
-const resultPromise = new Promise((resolve, reject) => {
-  const timeout = setTimeout(() => {
-    pendingRequests.delete(requestId);
-    reject(new Error('Request timed out'));
-  }, timeout_ms);
-  // ... setup promise
-});
-broadcast({ type: 'browser-...', requestId, ...params });
-```
+**Completed in commit `b2dcbea`:** Extracted `makeBrowserRequest()` helper function:
 
-**Impact:** 2,200 lines → could be ~1,200 with extraction
-
-**Refactor:**
 ```javascript
 async function makeBrowserRequest(type, payload, timeout = 10000) {
   const requestId = `browser-${++requestIdCounter}`;
@@ -159,6 +146,8 @@ async function makeBrowserRequest(type, payload, timeout = 10000) {
   return resultPromise;
 }
 ```
+
+**Impact:** ~1,000 LOC saved. browser.js reduced from ~2,200 to ~1,200 lines.
 
 ### 3.5 Path Expansion Duplication
 
@@ -268,11 +257,11 @@ const handlers = {
 | Audit offline menu | multiple | Remove if unused | 30 min |
 
 ### Priority 2: Major Simplifications (>100 LOC each)
-| Item | Files | Action | Savings |
-|------|-------|--------|---------|
-| Extract WebSocket helper | browser.js | Create `makeBrowserRequest()` | ~1,000 LOC |
-| Extract audio generation | server.js | Create `audioGenerator.js` | ~150 LOC |
-| Handler map routing | websocket.ts | Replace if/else chain | ~250 LOC |
+| Item | Files | Action | Savings | Status |
+|------|-------|--------|---------|--------|
+| Extract WebSocket helper | browser.js | Create `makeBrowserRequest()` | ~1,000 LOC | ✅ Wave 2 |
+| Extract audio generation | server.js | Create `audioGenerator.js` | ~250 LOC | ✅ Wave 2 |
+| Handler map routing | websocket.ts | Replace if/else chain | ~250 LOC | Pending |
 
 ### Priority 3: Consolidate Duplicates
 | Item | Action | Savings |
@@ -354,13 +343,20 @@ Both MCP and REST route browser commands through same WebSocket to Chrome Extens
 
 ## 10. Summary
 
-| Category | Issues Found | LOC Impact |
-|----------|-------------|------------|
-| Duplicate endpoints | 7 | ~150 |
-| Over-engineered code | 5 | ~200 |
-| Boilerplate duplication | 3 | ~1,200 |
-| Unused/dead code | 4 | ~120 |
-| Critical bugs | 1 | - |
-| **Total potential savings** | - | **~1,670 LOC** |
+| Category | Issues Found | LOC Impact | Status |
+|----------|-------------|------------|--------|
+| Duplicate endpoints | 7 | ~150 | Pending |
+| Over-engineered code | 5 | ~200 | Partial |
+| Boilerplate duplication | 3 | ~1,200 | ✅ Done |
+| Unused/dead code | 4 | ~120 | ✅ Done (Wave 1) |
+| Critical bugs | 1 | - | ✅ Done (Wave 1) |
+| **Total addressed** | - | **~1,520 LOC** | - |
 
-The backend is functional but has accumulated duplication over time. The biggest win is extracting the WebSocket boilerplate in browser.js. The second priority is deciding on MCP vs REST for browser operations and deprecating one interface.
+### Wave 2 Completions
+
+| Item | Commit | LOC Saved |
+|------|--------|-----------|
+| WebSocket boilerplate extraction | `b2dcbea` | ~1,000 |
+| Audio generator extraction | `3f2cbac` | ~250 |
+
+The backend has been significantly simplified. WebSocket boilerplate extracted in browser.js (~1,000 LOC saved), audio generation consolidated (~250 LOC saved). Remaining work: messaging unification and MCP vs REST decision.

@@ -8,26 +8,28 @@
 
 | Category | Score | Notes |
 |----------|-------|-------|
-| **Organization** | 6/10 | Clear layer separation, but feature creep |
-| **Maintainability** | 5/10 | Mega-components, scattered state |
-| **Type Safety** | 7/10 | Strict mode, but 38 `any` usages |
-| **Code Reuse** | 5/10 | Significant duplication |
-| **Build System** | 7/10 | Clean Vite config, some unused deps |
+| **Organization** | 7/10 | Clear layer separation, MCP simplified ✓ |
+| **Maintainability** | 6/10 | Audio refactored ✓, settings improved ✓ |
+| **Type Safety** | 8/10 | StorageData expanded ✓, strict mode |
+| **Code Reuse** | 7/10 | Common hooks extracted ✓ |
+| **Build System** | 8/10 | Unused deps removed ✓ |
 
-**Bottom Line:** Functional codebase showing signs of organic growth. Main issues are **over-abstraction** (MCP 5-layer stack), **duplication** (settings/profiles), and **scattered patterns** (messaging, storage).
+**Bottom Line:** Wave 2 addressed major issues. MCP layer removed (~1,300 LOC), audio system refactored (544→85 LOC), WebSocket boilerplate extracted (~1,000 LOC), and common hooks consolidated.
 
 ---
 
 ## Top 5 Simplification Opportunities
 
-### 1. Eliminate MCP Client Layer
+### 1. ~~Eliminate MCP Client Layer~~ ✅ DONE (Wave 2)
 **Impact:** HIGH | **Effort:** Medium | **LOC Saved:** ~1,300
 
-The HTTP client layer (`tabz-mcp-server/src/client/*.ts`) is pure boilerplate. Tools can call the backend directly.
+~~The HTTP client layer (`tabz-mcp-server/src/client/*.ts`) is pure boilerplate. Tools can call the backend directly.~~
+
+**Completed in commit `9f255b4`:** Removed entire client/ directory. Tools now call backend directly.
 
 ```
 BEFORE: Tool → Client → HTTP → Backend → WebSocket → Handler (5 layers)
-AFTER:  Tool → HTTP → Backend → WebSocket → Handler (4 layers)
+AFTER:  Tool → HTTP → Backend → WebSocket → Handler (4 layers) ✓
 ```
 
 ### 2. Unify Messaging Systems
@@ -40,10 +42,12 @@ Three message systems (Chrome, WebSocket, Broadcast) with inconsistent naming an
 
 Same profile CRUD implemented in SettingsModal AND Dashboard. Extract to shared component.
 
-### 4. Type Storage Access
+### 4. ~~Type Storage Access~~ ✅ DONE (Wave 2)
 **Impact:** MEDIUM | **Effort:** Low | **Benefit:** Type Safety
 
-30+ direct `chrome.storage` calls bypass typed helpers. Expand `StorageData` interface and enforce usage.
+~~30+ direct `chrome.storage` calls bypass typed helpers. Expand `StorageData` interface and enforce usage.~~
+
+**Completed in commit `fed9f93`:** StorageData interface now includes all storage keys.
 
 ### 5. Remove Unused Dependencies
 **Impact:** LOW | **Effort:** Minimal | **Savings:** 27 MB + 50 KB
@@ -108,17 +112,17 @@ MCP Tool List
 
 ### Do Now (P0)
 - [ ] Create message transformation layer with type safety
-- [ ] Remove MCP client layer - call backend directly
+- [x] Remove MCP client layer - call backend directly ✅ Wave 2
 
 ### Do Soon (P1)
-- [ ] Expand StorageData interface with all keys
+- [x] Expand StorageData interface with all keys ✅ Wave 2
 - [ ] Extract terminal reconciliation to testable pure function
-- [ ] Split SettingsModal into tab components
+- [x] Split SettingsModal into tab components ✅ Wave 2 (SettingsContext extracted)
 
 ### Do Later (P2)
 - [ ] Extract shared ProfileManager component
-- [ ] Remove jsdom, @dnd-kit dependencies
-- [ ] Split browser.js into domain-specific route files
+- [x] Remove jsdom, @dnd-kit dependencies ✅ Wave 1
+- [x] Split browser.js into domain-specific route files ✅ Wave 2 (WebSocket boilerplate extracted)
 
 ### Nice to Have (P3)
 - [ ] Extract DropdownBase component
@@ -129,14 +133,19 @@ MCP Tool List
 
 ## Estimated Impact
 
-| Action | LOC Removed | LOC Refactored | Type Safety | Maintainability |
-|--------|-------------|----------------|-------------|-----------------|
-| Remove MCP client | 1,300 | 0 | - | ++ |
-| Unify messaging | 0 | 500 | +++ | ++ |
-| Consolidate profiles | 800 | 400 | - | ++ |
-| Type storage | 0 | 200 | +++ | + |
-| Remove unused deps | 0 | 0 | - | + |
-| **Total** | **~2,100** | **~1,100** | **+++** | **+++** |
+| Action | LOC Removed | LOC Refactored | Type Safety | Maintainability | Status |
+|--------|-------------|----------------|-------------|-----------------|--------|
+| Remove MCP client | 1,300 | 0 | - | ++ | ✅ Done |
+| Unify messaging | 0 | 500 | +++ | ++ | Pending |
+| Consolidate profiles | 800 | 400 | - | ++ | Pending |
+| Type storage | 0 | 200 | +++ | + | ✅ Done |
+| Remove unused deps | 0 | 0 | - | + | ✅ Done |
+| Split useAudioNotifications | 459 | 85 | + | +++ | ✅ Done |
+| Extract WebSocket boilerplate | 1,000 | 200 | - | ++ | ✅ Done |
+| Extract useChromeSetting | 100 | 50 | + | + | ✅ Done |
+| Extract useDragDrop | 50 | 30 | + | + | ✅ Done |
+| SettingsContext | 0 | 100 | + | ++ | ✅ Done |
+| **Total Completed** | **~2,900** | **~665** | **+++** | **+++** | - |
 
 ---
 
@@ -148,5 +157,18 @@ Detailed analysis available in:
 Key files to examine:
 - `extension/hooks/useTerminalSessions.ts` - State reconciliation complexity
 - `extension/shared/messaging.ts` - Message type definitions
-- `tabz-mcp-server/src/client/` - Candidate for removal
-- `extension/components/SettingsModal.tsx` - Candidate for splitting
+- ~~`tabz-mcp-server/src/client/`~~ - **Removed in Wave 2**
+- `extension/components/SettingsModal.tsx` - SettingsContext extracted in Wave 2
+
+### Wave 2 Changes Summary
+
+| Change | Commit | Impact |
+|--------|--------|--------|
+| MCP client removed | `9f255b4` | -1,300 LOC |
+| Audio refactored | `bf5ac5e` | 544→85 LOC |
+| Audio generator extracted | `3f2cbac` | -250 LOC |
+| WebSocket boilerplate | `b2dcbea` | -1,000 LOC |
+| useChromeSetting | `b3bef41` | -100 LOC |
+| useDragDrop | `da04357` | -50 LOC |
+| StorageData expanded | `fed9f93` | Type safety |
+| SettingsContext | `8570f66` | Reduced prop drilling |

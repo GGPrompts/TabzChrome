@@ -19,9 +19,9 @@ The TabzChrome codebase has **functional but complex** state management with sev
 | Component with 14+ useState | 1 | Refactor candidate |
 
 **Top 3 Issues:**
-1. `useAudioNotifications.ts` (544 lines) - Too many concerns
+1. ~~`useAudioNotifications.ts` (544 lines) - Too many concerns~~ ✅ Split in Wave 2 (544→85 LOC)
 2. `useTerminalSessions.ts` (467 lines) - Complex reconciliation logic
-3. Duplicate close-on-outside-click pattern (7+ occurrences)
+3. ~~Duplicate close-on-outside-click pattern (7+ occurrences)~~ ✅ Fixed in Wave 1 (useOutsideClick)
 
 ---
 
@@ -90,9 +90,9 @@ useEffect(() => {
 
 ---
 
-### 2.2 Chrome Storage Listener Pattern (MEDIUM PRIORITY)
+### 2.2 ~~Chrome Storage Listener Pattern~~ ✅ DONE (Wave 2)
 
-**5+ hooks** repeat this pattern:
+~~**5+ hooks** repeat this pattern:~~
 
 ```typescript
 useEffect(() => {
@@ -107,14 +107,7 @@ useEffect(() => {
 }, [])
 ```
 
-**Locations:**
-- `useProfiles.ts`
-- `useWorkingDirectory.ts`
-- `useOrphanedSessions.ts`
-- `useAudioNotifications.ts`
-- `useFileViewerSettings.ts`
-
-**Fix:** Extract `useChromeSetting<T>(key, defaultValue)` hook.
+**Completed in commit `b3bef41`:** Extracted `useChromeSetting<T>(key, defaultValue)` hook (~100 LOC saved).
 
 ---
 
@@ -149,9 +142,9 @@ Duplicated between `useDashboard.ts` and `useOrphanedSessions.ts`:
 
 ---
 
-### 2.5 Drag-and-Drop State Pattern (LOW PRIORITY)
+### 2.5 ~~Drag-and-Drop State Pattern~~ ✅ DONE (Wave 2)
 
-**Identical pattern** in 2 places:
+~~**Identical pattern** in 2 places:~~
 
 ```typescript
 const [draggedItem, setDraggedItem] = useState<T | null>(null)
@@ -159,42 +152,39 @@ const [dragOverItem, setDragOverItem] = useState<T | null>(null)
 const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null)
 ```
 
-**Locations:**
-- `extension/hooks/useTabDragDrop.ts` (tabs)
-- `extension/dashboard/sections/Profiles.tsx:24-32` (categories + profiles)
-
-**Fix:** Extract `useDragDrop<T>()` hook.
+**Completed in commit `da04357`:** Extracted `useDragDrop<T>()` hook (~50 LOC saved).
 
 ---
 
 ## 3. Recommended Consolidation
 
-### Priority 1: Extract Common Hooks (HIGH IMPACT)
+### Priority 1: Extract Common Hooks (HIGH IMPACT) ✅ DONE
 
-| New Hook | Replaces | Lines Saved |
-|----------|----------|-------------|
-| `useOutsideClick(isOpen, onClose)` | 7 duplicate useEffects | ~70 lines |
-| `useChromeSetting<T>(key, default)` | 5 duplicate patterns | ~100 lines |
-| `useDragDrop<T>()` | 3 duplicate patterns | ~50 lines |
+| New Hook | Replaces | Lines Saved | Status |
+|----------|----------|-------------|--------|
+| `useOutsideClick(isOpen, onClose)` | 7 duplicate useEffects | ~70 lines | ✅ Wave 1 |
+| `useChromeSetting<T>(key, default)` | 5 duplicate patterns | ~100 lines | ✅ Wave 2 |
+| `useDragDrop<T>()` | 3 duplicate patterns | ~50 lines | ✅ Wave 2 |
 
-**Estimated file:** `extension/hooks/useUIPatterns.ts` (~80 new lines, ~220 removed)
+**Completed:** All three hooks extracted. ~220 lines removed across codebase.
 
 ---
 
-### Priority 2: Split useAudioNotifications (HIGH IMPACT)
+### Priority 2: Split useAudioNotifications (HIGH IMPACT) ✅ DONE (Wave 2)
 
-Current: 544 lines, 8 refs, 5 effects
+~~Current: 544 lines, 8 refs, 5 effects~~
 
-**Split into:**
-| New Hook/Module | Purpose | Est. Lines |
-|-----------------|---------|------------|
-| `useAudioPlayback` | Audio API, debouncing | ~80 |
-| `useStatusTransitions` | Status change detection | ~100 |
-| `useToolAnnouncements` | Tool announcement logic | ~80 |
+**Completed in commit `bf5ac5e`:** Split into focused modules:
+| New Hook/Module | Purpose | Actual Lines |
+|-----------------|---------|--------------|
+| `useAudioNotifications.ts` | Main hook (orchestrator) | 85 |
+| `useAudioPlayback.ts` | Audio API, debouncing | ~80 |
+| `useStatusTransitions.ts` | Status change detection | ~100 |
+| `useToolAnnouncements.ts` | Tool announcement logic | ~80 |
 | `constants/audioVoices.ts` | VOICE_POOL, thresholds | ~50 |
 | `utils/textFormatting.ts` | stripEmojis, etc. | ~20 |
 
-**Result:** 5 focused modules instead of 1 monolithic hook.
+**Result:** 544 LOC → 85 LOC main hook + 5 focused modules.
 
 ---
 
@@ -264,33 +254,19 @@ const effectiveProfile = useMemo(() =>
 
 ---
 
-### 4.2 SettingsModal Prop Drilling
+### 4.2 ~~SettingsModal Prop Drilling~~ ✅ DONE (Wave 2)
 
-**Issue:** Modal passes 10+ props to each tab component
+~~**Issue:** Modal passes 10+ props to each tab component~~
 
-**Location:** `extension/components/SettingsModal.tsx:620-665`
-
-**Fix:** Create `SettingsContext` wrapping tabs:
-```typescript
-<SettingsContext.Provider value={{ profiles, setProfiles, ... }}>
-  {activeTab === 'profiles' && <ProfilesTab />}
-  {activeTab === 'mcp' && <McpToolsTab />}
-</SettingsContext.Provider>
-```
+**Completed in commit `8570f66`:** Created `SettingsContext` to reduce prop drilling. Extracted `ModalUI` component.
 
 ---
 
-### 4.3 Hardcoded API URLs
+### 4.3 ~~Hardcoded API URLs~~ ✅ DONE (Wave 1)
 
-**Issue:** `http://localhost:8129` appears 10+ times
+~~**Issue:** `http://localhost:8129` appears 10+ times~~
 
-**Locations:**
-- `useOrphanedSessions.ts` (4 times)
-- `useWorkingDirectory.ts` (4 times)
-- `useClaudeStatus.ts`
-- `useAudioNotifications.ts`
-
-**Fix:** Extract `const API_BASE = 'http://localhost:8129'` to shared constants.
+**Completed:** Extracted `API_BASE` to `extension/shared/utils.ts` and replaced all occurrences.
 
 ---
 
@@ -316,18 +292,18 @@ const RECONNECTION_STAGGER_MS = 150
 
 ## 5. Priority Ranking
 
-| Priority | Task | Impact | Effort | Files Affected |
-|----------|------|--------|--------|----------------|
-| **P1** | Extract `useOutsideClick` | High | Low | 7 files |
-| **P1** | Extract `useChromeSetting` | High | Medium | 5 hooks |
-| **P2** | Split `useAudioNotifications` | High | High | 1 hook → 5 modules |
-| **P2** | Create API constants | Medium | Low | 10+ files |
-| **P3** | Extract `getEffectiveWorkingDir` | Medium | Low | 4 files |
-| **P3** | Reduce `useTerminalSessions` | Medium | Medium | 1 hook → 3 modules |
-| **P4** | Simplify sidepanel useState | Medium | Medium | 1 file |
-| **P4** | Split FilesContext | Low-Med | Medium | 1 context → 3 |
-| **P5** | Extract magic numbers | Low | Low | 5+ files |
-| **P5** | SettingsModal context | Low | Medium | 1 file |
+| Priority | Task | Impact | Effort | Files Affected | Status |
+|----------|------|--------|--------|----------------|--------|
+| **P1** | Extract `useOutsideClick` | High | Low | 7 files | ✅ Wave 1 |
+| **P1** | Extract `useChromeSetting` | High | Medium | 5 hooks | ✅ Wave 2 |
+| **P2** | Split `useAudioNotifications` | High | High | 1 hook → 5 modules | ✅ Wave 2 |
+| **P2** | Create API constants | Medium | Low | 10+ files | ✅ Wave 1 |
+| **P3** | Extract `getEffectiveWorkingDir` | Medium | Low | 4 files | ✅ Wave 1 |
+| **P3** | Reduce `useTerminalSessions` | Medium | Medium | 1 hook → 3 modules | Pending |
+| **P4** | Simplify sidepanel useState | Medium | Medium | 1 file | Pending |
+| **P4** | Split FilesContext | Low-Med | Medium | 1 context → 3 | Pending |
+| **P5** | Extract magic numbers | Low | Low | 5+ files | Pending |
+| **P5** | SettingsModal context | Low | Medium | 1 file | ✅ Wave 2 |
 
 ---
 

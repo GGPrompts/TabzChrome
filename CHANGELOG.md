@@ -24,6 +24,21 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
   - Extracted shared utilities to `extension/shared/utils.ts`: `API_BASE`, `getEffectiveWorkingDir()`, `compactPath()`/`expandPath()`
   - Deleted stale `backend/jest.config.js` (vitest is used instead)
 
+- **Codebase simplification Wave 2** - Major refactoring across 8 commits:
+  - **MCP client layer removed** (`9f255b4`) - Tools now call backend directly (~1,300 LOC removed, `tabz-mcp-server/src/client/` deleted)
+  - **useAudioNotifications split** (`bf5ac5e`) - Monolithic 544 LOC hook → 85 LOC with focused modules:
+    - `useAudioPlayback.ts` - Audio API, debouncing
+    - `useStatusTransitions.ts` - Status change detection
+    - `useToolAnnouncements.ts` - Tool announcement logic
+    - `constants/audioVoices.ts` - VOICE_POOL, thresholds
+    - `utils/textFormatting.ts` - stripEmojis, etc.
+  - **Backend audio-generator extracted** (`3f2cbac`) - Shared audio generation module (~250 LOC saved)
+  - **WebSocket boilerplate extracted** (`b2dcbea`) - `makeBrowserRequest()` helper in browser.js (~1,000 LOC saved)
+  - **useChromeSetting hook extracted** (`b3bef41`) - Reusable Chrome storage listener pattern (~100 LOC saved)
+  - **useDragDrop hook extracted** (`da04357`) - Shared drag-drop state management (~50 LOC saved)
+  - **StorageData interface expanded** (`fed9f93`) - All storage keys now typed
+  - **SettingsContext extracted** (`8570f66`) - Reduced prop drilling in SettingsModal
+
 ### Fixed
 - **tui-tools.js bug** - Fixed call to non-existent `register()` method
 - **Dead code removal** - Removed unused offline menu system (~60 LOC):
