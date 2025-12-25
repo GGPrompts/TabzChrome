@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Plus, Edit, Trash2, GripVertical, Palette, Download, Upload, Volume2, Search, X, ChevronDown, ChevronUp, ChevronRight, Paperclip } from 'lucide-react'
 import { Terminal as TerminalIcon } from 'lucide-react'
 import { themes, themeNames } from '../../styles/themes'
+import { backgroundGradients, gradientNames, PANEL_COLORS } from '../../styles/terminal-backgrounds'
 import {
   Profile,
   CategorySettings,
@@ -573,7 +574,7 @@ export function ProfilesTab({
             <label className="block text-xs text-gray-400 mb-2">
               <div className="flex items-center gap-1">
                 <Palette className="h-3 w-3" />
-                Color Theme
+                Text Colors
               </div>
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -629,6 +630,109 @@ export function ProfilesTab({
             <p className="text-xs text-gray-400 mt-2">
               Use the header toggle to switch between dark/light mode
             </p>
+          </div>
+
+          {/* Background Gradient */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">
+              Background Gradient
+            </label>
+            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              {/* Use theme default option */}
+              <button
+                onClick={() => setFormData({ ...formData, backgroundGradient: undefined })}
+                className={`
+                  px-3 py-2 rounded-lg border transition-all text-left
+                  ${formData.backgroundGradient === undefined
+                    ? 'border-[#00ff88] bg-[#00ff88]/10'
+                    : 'border-gray-700 hover:border-gray-600 bg-black/30'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-4 rounded border border-gray-600 bg-gradient-to-br from-gray-700 to-gray-800" />
+                  <span className={`text-sm ${formData.backgroundGradient === undefined ? 'text-white' : 'text-gray-300'}`}>
+                    Theme Default
+                  </span>
+                </div>
+              </button>
+              {gradientNames.map((gradientKey) => {
+                const gradient = backgroundGradients[gradientKey]
+                const isSelected = formData.backgroundGradient === gradientKey
+
+                return (
+                  <button
+                    key={gradientKey}
+                    onClick={() => setFormData({ ...formData, backgroundGradient: gradientKey })}
+                    className={`
+                      px-3 py-2 rounded-lg border transition-all text-left
+                      ${isSelected
+                        ? 'border-[#00ff88] bg-[#00ff88]/10'
+                        : 'border-gray-700 hover:border-gray-600 bg-black/30'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Gradient preview */}
+                      <div
+                        className="w-6 h-4 rounded border border-gray-600"
+                        style={{ background: gradient.gradient }}
+                      />
+                      <span className={`text-sm truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                        {gradient.name}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Panel Color */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">
+              Panel Color (base color shown at 0% transparency)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {PANEL_COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setFormData({ ...formData, panelColor: color.value })}
+                  className={`
+                    w-8 h-8 rounded-lg border-2 transition-all
+                    ${(formData.panelColor || '#000000') === color.value
+                      ? 'border-[#00ff88] scale-110'
+                      : 'border-gray-600 hover:border-gray-500'
+                    }
+                  `}
+                  style={{ backgroundColor: color.value }}
+                  title={color.name}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Current: {PANEL_COLORS.find(c => c.value === (formData.panelColor || '#000000'))?.name || formData.panelColor}
+            </p>
+          </div>
+
+          {/* Transparency */}
+          <div>
+            <label className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+              Gradient Transparency: {formData.transparency ?? 100}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={formData.transparency ?? 100}
+              onChange={(e) => setFormData({ ...formData, transparency: parseInt(e.target.value) })}
+              className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0% (solid color)</span>
+              <span>100% (full gradient)</span>
+            </div>
           </div>
 
           {/* Audio Settings - Collapsible */}

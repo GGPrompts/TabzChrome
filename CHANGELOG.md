@@ -15,6 +15,33 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.15] - 2025-12-25
+
+### Added
+- **Separated theme system** - Text colors and backgrounds are now independently customizable:
+  - **Text Colors** (11 themes): Control terminal text/ANSI colors - high-contrast, dracula, ocean, neon, amber, matrix, cyberpunk, vaporwave, synthwave, aurora, holographic
+  - **Background Gradient** (28 options): Separate from text colors - dark-neutral, pure-black, ocean-depths, vaporwave-dream, etc.
+  - **Panel Color** (13 presets): Base solid color shown through gradient transparency
+  - **Transparency Slider** (0-100%): Controls gradient visibility over panel color
+- **Footer customize button** (🎨) - Floating button in bottom-right of each terminal:
+  - Opens popover with text colors, background, panel color, transparency controls
+  - Changes are per-terminal and don't save to profile (temporary overrides)
+  - Purple indicator shows when terminal has active overrides
+  - Reset button to return to profile defaults
+- **5 new aesthetic themes** from original Tabz:
+  - Cyberpunk - Neon cyan/magenta with glow
+  - Vaporwave - Retro pink/cyan aesthetic
+  - Synthwave - 80s sunset vibes
+  - Aurora - Northern lights inspired
+  - Holographic - Iridescent green-teal shimmer
+
+### Changed
+- "Color Theme" renamed to "Text Colors" in UI for clarity
+- Profile settings now include Background Gradient, Panel Color, and Transparency
+- All 11 text themes have both dark and light variants
+
+---
+
 ## [1.2.14] - 2025-12-25
 
 ### Added

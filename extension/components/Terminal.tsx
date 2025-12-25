@@ -6,7 +6,8 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { CanvasAddon } from '@xterm/addon-canvas'
 import '@xterm/xterm/css/xterm.css'
 import { sendMessage, connectToBackground } from '../shared/messaging'
-import { getThemeColors, getBackgroundGradient, ThemeColors } from '../styles/themes'
+import { getThemeColors, getBackgroundGradient as getThemeBackgroundGradient, ThemeColors } from '../styles/themes'
+import { getGradientCSS } from '../styles/terminal-backgrounds'
 
 /**
  * Props for the Terminal component
@@ -29,6 +30,10 @@ interface TerminalProps {
   onIncreaseFontSize?: () => void
   onDecreaseFontSize?: () => void
   onResetFontSize?: () => void
+  // Background customization
+  backgroundGradient?: string  // Override gradient key (undefined = use theme default)
+  panelColor?: string          // Base panel color (default: #000000)
+  transparency?: number        // Gradient opacity 0-100 (default: 100)
 }
 // NOTE: ClaudeStatus interface removed - status polling handled by sidepanel's useClaudeStatus hook
 
@@ -63,7 +68,7 @@ interface TerminalProps {
  * @param props.onClose - Callback when terminal is closed
  * @returns Terminal container with xterm.js instance
  */
-export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize }: TerminalProps) {
+export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize, backgroundGradient, panelColor = '#000000', transparency = 100 }: TerminalProps) {
   // Compute effective font size (base + offset)
   const effectiveFontSize = fontSize + (fontSizeOffset || 0)
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -1000,17 +1005,33 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // The sidepanel handles all status polling via useClaudeStatus hook
   // This eliminates duplicate network requests (was 2x requests per terminal)
 
-  // Get the background gradient for this theme
-  const backgroundGradient = getBackgroundGradient(themeName, isDark)
+  // Compute the effective background:
+  // 1. Panel color is the base layer (solid color)
+  // 2. Gradient overlays on top with transparency control
+  // If a custom gradient is specified, use it; otherwise use theme default
+  const effectiveGradientCSS = backgroundGradient
+    ? getGradientCSS(backgroundGradient)
+    : getThemeBackgroundGradient(themeName, isDark)
+
+  // Apply transparency to gradient (0 = solid panel color, 100 = full gradient)
+  const gradientOpacity = transparency / 100
 
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col terminal-container"
+      className="h-full flex flex-col terminal-container relative"
       style={{
-        background: backgroundGradient,
+        backgroundColor: panelColor,
       }}
     >
+      {/* Gradient overlay with transparency */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background: effectiveGradientCSS,
+          opacity: gradientOpacity,
+        }}
+      />
       {/* Terminal body - full height, status shown in tmux status bar */}
       <div
         className="flex-1 relative overflow-hidden"

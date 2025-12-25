@@ -79,6 +79,9 @@ export interface Profile {
   fontSize: number
   fontFamily: string
   themeName: string  // Theme family name (high-contrast, dracula, ocean, etc.)
+  backgroundGradient?: string  // Override gradient (undefined = use theme default)
+  panelColor?: string  // Base panel color shown through gradient (undefined = #000000)
+  transparency?: number  // Gradient opacity 0-100 (undefined = 100)
   audioOverrides?: ProfileAudioOverrides  // Optional per-profile audio settings
   category?: string  // Optional category for grouping (e.g., "Claude Code", "TUI Tools")
   reference?: string  // Optional reference URL or file path (shows paperclip on tab)
@@ -116,6 +119,9 @@ export const DEFAULT_PROFILE: Profile = {
   fontSize: 16,
   fontFamily: 'monospace',
   themeName: 'high-contrast',
+  backgroundGradient: undefined,  // Use theme default
+  panelColor: '#000000',
+  transparency: 100,  // Full gradient visibility
 }
 
 // Platform detection for font filtering

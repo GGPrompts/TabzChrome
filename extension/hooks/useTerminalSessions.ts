@@ -2,6 +2,14 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { sendMessage } from '../shared/messaging'
 import type { Profile } from '../components/SettingsModal'
 
+// Per-terminal appearance overrides (not saved to profile)
+export interface TerminalAppearanceOverrides {
+  themeName?: string
+  backgroundGradient?: string
+  panelColor?: string
+  transparency?: number
+}
+
 export interface TerminalSession {
   id: string
   name: string
@@ -14,6 +22,7 @@ export interface TerminalSession {
   command?: string      // Startup command (for API-spawned terminals without profile)
   focusedIn3D?: boolean // Terminal is currently open in 3D Focus mode
   fontSizeOffset?: number // Per-instance font size offset (-4 to +8), not persisted
+  appearanceOverrides?: TerminalAppearanceOverrides  // Temp appearance customization (footer 🎨 button)
 }
 
 interface UseTerminalSessionsParams {
@@ -36,6 +45,9 @@ interface UseTerminalSessionsReturn {
   increaseFontSize: (terminalId: string) => void
   decreaseFontSize: (terminalId: string) => void
   resetFontSize: (terminalId: string) => void
+  // Appearance override functions (per-instance, not persisted)
+  updateTerminalAppearance: (terminalId: string, overrides: Partial<TerminalAppearanceOverrides>) => void
+  resetTerminalAppearance: (terminalId: string) => void
 }
 
 export function useTerminalSessions({
@@ -412,6 +424,29 @@ export function useTerminalSessions({
     ))
   }, [])
 
+  // Appearance override functions - per-instance customization, NOT persisted
+  const updateTerminalAppearance = useCallback((terminalId: string, overrides: Partial<TerminalAppearanceOverrides>) => {
+    setSessions(prev => prev.map(s =>
+      s.id === terminalId
+        ? {
+            ...s,
+            appearanceOverrides: {
+              ...s.appearanceOverrides,
+              ...overrides,
+            },
+          }
+        : s
+    ))
+  }, [])
+
+  const resetTerminalAppearance = useCallback((terminalId: string) => {
+    setSessions(prev => prev.map(s =>
+      s.id === terminalId
+        ? { ...s, appearanceOverrides: undefined }
+        : s
+    ))
+  }, [])
+
   return {
     sessions,
     setSessions,
@@ -425,5 +460,7 @@ export function useTerminalSessions({
     increaseFontSize,
     decreaseFontSize,
     resetFontSize,
+    updateTerminalAppearance,
+    resetTerminalAppearance,
   }
 }

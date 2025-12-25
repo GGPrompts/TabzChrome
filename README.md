@@ -211,14 +211,21 @@ Click the **+** dropdown to spawn terminals from saved profiles:
 - **Working Directory** - Optional (inherits from header if empty)
 - **Startup Command** - Optional command to run on spawn (e.g., `lazygit`, `htop`)
 - **Font Size** - 12-24px per profile
-- **Theme** - 6 color schemes + dark/light toggle (toggle in header bar)
+- **Appearance** - Fully customizable with separate controls:
+  - **Text Colors** - 11 themes (high-contrast, dracula, ocean, neon, amber, matrix, cyberpunk, vaporwave, synthwave, aurora, holographic)
+  - **Background Gradient** - 28 gradient options, independent of text colors
+  - **Panel Color** - Base solid color with 13 presets
+  - **Transparency** - 0-100% slider for gradient visibility
+  - **Dark/Light Toggle** - Header toggle switches all themes between variants
 
 <details>
 <summary>🎨 Color Themes & Fonts</summary>
 
-| Color Themes | Font Families |
-|:------------:|:-------------:|
-| ![6 color schemes: high-contrast, dracula, ocean, neon, amber, matrix](docs/pages/screenshots/color-themes.png) | ![Font options: monospace, JetBrains Mono, Fira Code, Consolas, etc.](docs/pages/screenshots/font-options.png) |
+| Text Color Themes | Font Families |
+|:-----------------:|:-------------:|
+| high-contrast, dracula, ocean, neon, amber, matrix, cyberpunk, vaporwave, synthwave, aurora, holographic | monospace, JetBrains Mono NF, Fira Code NF, Consolas, Cascadia Code |
+
+**Temporary Customization:** Click the 🎨 button in the bottom-right corner of any terminal to customize appearance without saving to profile.
 
 </details>
 

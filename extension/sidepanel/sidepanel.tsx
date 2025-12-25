@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, LayoutDashboard } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
+import { TerminalCustomizePopover } from '../components/TerminalCustomizePopover'
 import { SettingsModal, type Profile } from '../components/SettingsModal'
 import { ProfileDropdown } from '../components/ProfileDropdown'
 import { SessionContextMenu } from '../components/SessionContextMenu'
@@ -141,6 +142,8 @@ function SidePanelTerminal() {
     increaseFontSize,
     decreaseFontSize,
     resetFontSize,
+    updateTerminalAppearance,
+    resetTerminalAppearance,
   } = useTerminalSessions({
     wsConnected,
     profiles,
@@ -1121,7 +1124,7 @@ function SidePanelTerminal() {
 
                     {/* GitHub Link */}
                     <a
-                      href="https://ggprompts.github.io/TabzChrome/"
+                      href="https://github.com/GGPrompts/TabzChrome"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-8 text-xs text-gray-500 hover:text-[#00ff88] transition-colors flex items-center gap-1.5"
@@ -1157,7 +1160,7 @@ function SidePanelTerminal() {
 
                     {/* GitHub Link */}
                     <a
-                      href="https://ggprompts.github.io/TabzChrome/"
+                      href="https://github.com/GGPrompts/TabzChrome"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-8 text-xs text-gray-500 hover:text-[#00ff88] transition-colors flex items-center gap-1.5"
@@ -1219,29 +1222,49 @@ function SidePanelTerminal() {
                         </p>
                       </div>
                     ) : (
-                      <Terminal
-                        terminalId={session.id}
-                        sessionName={session.name}
-                        terminalType={session.type}
-                        workingDir={session.workingDir || effectiveProfile?.workingDir}
-                        tmuxSession={session.sessionName}
-                        fontSize={effectiveProfile?.fontSize || 16}
-                        fontFamily={effectiveProfile?.fontFamily || 'monospace'}
-                        themeName={effectiveProfile?.themeName || 'high-contrast'}
-                        isDark={isDark}
-                        isActive={session.id === currentSession}
-                        pasteCommand={session.id === currentSession ? pasteCommand : null}
-                        fontSizeOffset={session.fontSizeOffset}
-                        onIncreaseFontSize={() => increaseFontSize(session.id)}
-                        onDecreaseFontSize={() => decreaseFontSize(session.id)}
-                        onResetFontSize={() => resetFontSize(session.id)}
-                        onClose={() => {
-                          sendMessage({
-                            type: 'CLOSE_TERMINAL',
-                            terminalId: session.id,
-                          })
-                        }}
-                      />
+                      <>
+                        <Terminal
+                          terminalId={session.id}
+                          sessionName={session.name}
+                          terminalType={session.type}
+                          workingDir={session.workingDir || effectiveProfile?.workingDir}
+                          tmuxSession={session.sessionName}
+                          fontSize={effectiveProfile?.fontSize || 16}
+                          fontFamily={effectiveProfile?.fontFamily || 'monospace'}
+                          themeName={session.appearanceOverrides?.themeName || effectiveProfile?.themeName || 'high-contrast'}
+                          isDark={isDark}
+                          isActive={session.id === currentSession}
+                          pasteCommand={session.id === currentSession ? pasteCommand : null}
+                          fontSizeOffset={session.fontSizeOffset}
+                          onIncreaseFontSize={() => increaseFontSize(session.id)}
+                          onDecreaseFontSize={() => decreaseFontSize(session.id)}
+                          onResetFontSize={() => resetFontSize(session.id)}
+                          backgroundGradient={session.appearanceOverrides?.backgroundGradient ?? effectiveProfile?.backgroundGradient}
+                          panelColor={session.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#000000'}
+                          transparency={session.appearanceOverrides?.transparency ?? effectiveProfile?.transparency ?? 100}
+                          onClose={() => {
+                            sendMessage({
+                              type: 'CLOSE_TERMINAL',
+                              terminalId: session.id,
+                            })
+                          }}
+                        />
+                        {/* Floating customize button */}
+                        <div className="absolute bottom-2 right-2 z-10">
+                          <TerminalCustomizePopover
+                            sessionId={session.id}
+                            currentOverrides={session.appearanceOverrides}
+                            profileDefaults={{
+                              themeName: effectiveProfile?.themeName,
+                              backgroundGradient: effectiveProfile?.backgroundGradient,
+                              panelColor: effectiveProfile?.panelColor,
+                              transparency: effectiveProfile?.transparency,
+                            }}
+                            onUpdate={updateTerminalAppearance}
+                            onReset={resetTerminalAppearance}
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                   )
