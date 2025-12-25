@@ -7,18 +7,163 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import axios from "axios";
 import {
-  listTabGroups,
-  createTabGroup,
-  updateTabGroup,
-  addToTabGroup,
-  ungroupTabs,
-  addToClaudeGroup,
-  removeFromClaudeGroup,
-  getClaudeGroupStatus,
-  type TabGroupColor
-} from "../client.js";
+  BACKEND_URL,
+  handleApiError,
+  type TabGroupColor,
+  type TabGroupInfo,
+  type ListTabGroupsResult,
+  type TabGroupResult,
+  type UngroupResult,
+  type ClaudeGroupStatus
+} from "../shared.js";
 import { ResponseFormat } from "../types.js";
+
+/**
+ * List all tab groups via Extension API
+ */
+async function listTabGroups(): Promise<ListTabGroupsResult> {
+  try {
+    const response = await axios.get<ListTabGroupsResult>(
+      `${BACKEND_URL}/api/browser/tab-groups`,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, groups: [], claudeActiveGroupId: null, error: handleApiError(error, "Failed to list groups").message };
+  }
+}
+
+/**
+ * Create a new tab group via Extension API
+ */
+async function createTabGroup(options: {
+  tabIds: number[];
+  title?: string;
+  color?: TabGroupColor;
+  collapsed?: boolean;
+}): Promise<TabGroupResult> {
+  try {
+    const response = await axios.post<TabGroupResult>(
+      `${BACKEND_URL}/api/browser/tab-groups/create`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to create group").message };
+  }
+}
+
+/**
+ * Update a tab group via Extension API
+ */
+async function updateTabGroup(options: {
+  groupId: number;
+  title?: string;
+  color?: TabGroupColor;
+  collapsed?: boolean;
+}): Promise<TabGroupResult> {
+  try {
+    const response = await axios.post<TabGroupResult>(
+      `${BACKEND_URL}/api/browser/tab-groups/update`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to update group").message };
+  }
+}
+
+/**
+ * Add tabs to an existing group via Extension API
+ */
+async function addToTabGroup(options: {
+  groupId: number;
+  tabIds: number[];
+}): Promise<TabGroupResult> {
+  try {
+    const response = await axios.post<TabGroupResult>(
+      `${BACKEND_URL}/api/browser/tab-groups/add`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to add to group").message };
+  }
+}
+
+/**
+ * Remove tabs from their groups via Extension API
+ */
+async function ungroupTabs(tabIds: number[]): Promise<UngroupResult> {
+  try {
+    const response = await axios.post<UngroupResult>(
+      `${BACKEND_URL}/api/browser/tab-groups/ungroup`,
+      { tabIds },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to ungroup tabs").message };
+  }
+}
+
+/**
+ * Add a tab to the Claude Active group via Extension API
+ */
+async function addToClaudeGroup(tabId: number): Promise<TabGroupResult> {
+  try {
+    const response = await axios.post<TabGroupResult>(
+      `${BACKEND_URL}/api/browser/tab-groups/claude/add`,
+      { tabId },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to add to Claude group").message };
+  }
+}
+
+/**
+ * Remove a tab from the Claude Active group via Extension API
+ */
+async function removeFromClaudeGroup(tabId: number): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const response = await axios.post<{ success: boolean; message?: string; error?: string }>(
+      `${BACKEND_URL}/api/browser/tab-groups/claude/remove`,
+      { tabId },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: handleApiError(error, "Failed to remove from Claude group").message };
+  }
+}
+
+/**
+ * Get status of the Claude Active group via Extension API
+ */
+async function getClaudeGroupStatus(): Promise<ClaudeGroupStatus> {
+  try {
+    const response = await axios.get<ClaudeGroupStatus>(
+      `${BACKEND_URL}/api/browser/tab-groups/claude/status`,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      exists: false,
+      groupId: null,
+      tabCount: 0,
+      error: handleApiError(error, "Failed to get Claude group status").message
+    };
+  }
+}
 
 // Valid tab group colors
 const TabGroupColorSchema = z.enum(['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan']);

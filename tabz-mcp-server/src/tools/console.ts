@@ -6,8 +6,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConsoleLogs } from "../client.js";
-import { ResponseFormat, type ConsoleLogEntry } from "../types.js";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
+import { ResponseFormat, type ConsoleLogsResponse, type ConsoleLogEntry, type ConsoleLogLevel } from "../types.js";
 
 // Input schema for tabz_get_console_logs
 const GetConsoleLogsSchema = z.object({
@@ -35,6 +36,34 @@ const GetConsoleLogsSchema = z.object({
 }).strict();
 
 type GetConsoleLogsInput = z.infer<typeof GetConsoleLogsSchema>;
+
+/**
+ * Get console logs from the browser via backend
+ */
+async function getConsoleLogs(options: {
+  level?: ConsoleLogLevel | 'all';
+  limit?: number;
+  since?: number;
+  tabId?: number;
+}): Promise<ConsoleLogsResponse> {
+  try {
+    const response = await axios.get<ConsoleLogsResponse>(
+      `${BACKEND_URL}/api/browser/console-logs`,
+      {
+        params: {
+          level: options.level,
+          limit: options.limit,
+          since: options.since,
+          tabId: options.tabId
+        },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get console logs");
+  }
+}
 
 /**
  * Format console logs as markdown

@@ -6,7 +6,40 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { openUrl, getCurrentTabId } from "../client.js";
+import axios from "axios";
+import { BACKEND_URL, setCurrentTabId, type OpenUrlResult } from "../shared.js";
+
+/**
+ * Open a URL in the browser via Extension API
+ */
+async function openUrl(options: {
+  url: string;
+  newTab?: boolean;
+  background?: boolean;
+  reuseExisting?: boolean;
+}): Promise<OpenUrlResult> {
+  try {
+    const response = await axios.post<OpenUrlResult>(
+      `${BACKEND_URL}/api/browser/open-url`,
+      {
+        url: options.url,
+        newTab: options.newTab,
+        background: options.background,
+        reuseExisting: options.reuseExisting
+      },
+      { timeout: 10000 }
+    );
+
+    // Update current tab ID if successful
+    if (response.data.success && response.data.tabId && !options.background) {
+      setCurrentTabId(response.data.tabId);
+    }
+
+    return response.data;
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 // URL settings cache (loaded from backend)
 interface UrlSettings {

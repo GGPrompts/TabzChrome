@@ -7,14 +7,78 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
 import {
-  getDomTree,
-  profilePerformance,
-  getCoverage
-} from "../client.js";
-import { ResponseFormat } from "../types.js";
-import type { SimplifiedDOMNode, FileCoverage } from "../types.js";
+  ResponseFormat,
+  type DOMTreeResult,
+  type PerformanceResult,
+  type CoverageResult,
+  type SimplifiedDOMNode,
+  type FileCoverage
+} from "../types.js";
 import { formatBytes } from "../utils.js";
+
+/**
+ * Get DOM tree via Extension API
+ */
+async function getDomTree(options: {
+  tabId?: number;
+  maxDepth?: number;
+  selector?: string;
+}): Promise<DOMTreeResult> {
+  try {
+    const response = await axios.post<DOMTreeResult>(
+      `${BACKEND_URL}/api/browser/dom-tree`,
+      {
+        tabId: options.tabId,
+        maxDepth: options.maxDepth,
+        selector: options.selector
+      },
+      { timeout: 30000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get DOM tree");
+  }
+}
+
+/**
+ * Profile page performance via Extension API
+ */
+async function profilePerformance(options: {
+  tabId?: number;
+}): Promise<PerformanceResult> {
+  try {
+    const response = await axios.post<PerformanceResult>(
+      `${BACKEND_URL}/api/browser/profile-performance`,
+      { tabId: options.tabId },
+      { timeout: 30000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to profile performance");
+  }
+}
+
+/**
+ * Get code coverage via Extension API
+ */
+async function getCoverage(options: {
+  tabId?: number;
+  type?: string;
+}): Promise<CoverageResult> {
+  try {
+    const response = await axios.post<CoverageResult>(
+      `${BACKEND_URL}/api/browser/coverage`,
+      { tabId: options.tabId, type: options.type },
+      { timeout: 30000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get coverage");
+  }
+}
 
 // =====================================
 // Input Schemas

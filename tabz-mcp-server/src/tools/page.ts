@@ -6,8 +6,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getPageInfo } from "../client.js";
-import { ResponseFormat } from "../types.js";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
+import { ResponseFormat, type PageInfo } from "../types.js";
 
 // Input schema for tabz_get_page_info
 const GetPageInfoSchema = z.object({
@@ -21,6 +22,24 @@ const GetPageInfoSchema = z.object({
 }).strict();
 
 type GetPageInfoInput = z.infer<typeof GetPageInfoSchema>;
+
+/**
+ * Get current page info from the browser via Extension API
+ */
+async function getPageInfo(tabId?: number): Promise<PageInfo> {
+  try {
+    const response = await axios.get<PageInfo>(
+      `${BACKEND_URL}/api/browser/page-info`,
+      {
+        params: { tabId },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get page info");
+  }
+}
 
 /**
  * Register page tools with the MCP server

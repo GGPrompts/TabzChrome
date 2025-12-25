@@ -6,13 +6,13 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import axios from "axios";
 import {
-  enableNetworkCapture,
-  getNetworkRequests,
-  clearNetworkRequests,
-  isNetworkCaptureActive
-} from "../client.js";
-import { ResponseFormat, type NetworkRequest } from "../types.js";
+  BACKEND_URL,
+  isNetworkCaptureActive,
+  setNetworkCaptureActive
+} from "../shared.js";
+import { ResponseFormat, type NetworkRequest, type NetworkRequestsResponse } from "../types.js";
 import { formatBytes } from "../utils.js";
 
 // Input schema for tabz_enable_network_capture
@@ -74,6 +74,76 @@ type GetNetworkRequestsInput = z.infer<typeof GetNetworkRequestsSchema>;
 const ClearNetworkRequestsSchema = z.object({}).strict();
 
 /**
+ * Enable network monitoring via Extension API
+ */
+async function enableNetworkCapture(tabId?: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await axios.post<{ success: boolean; error?: string }>(
+      `${BACKEND_URL}/api/browser/network-capture/enable`,
+      { tabId },
+      { timeout: 10000 }
+    );
+
+    if (response.data.success) {
+      setNetworkCaptureActive(true);
+      return { success: true };
+    }
+
+    return { success: false, error: response.data.error || 'Failed to enable network capture' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Get captured network requests via Extension API
+ */
+async function getNetworkRequests(options: {
+  urlPattern?: string;
+  method?: string;
+  statusMin?: number;
+  statusMax?: number;
+  resourceType?: string;
+  limit?: number;
+  offset?: number;
+  tabId?: number;
+}): Promise<NetworkRequestsResponse> {
+  try {
+    const response = await axios.post<NetworkRequestsResponse>(
+      `${BACKEND_URL}/api/browser/network-requests`,
+      {
+        urlPattern: options.urlPattern,
+        method: options.method,
+        statusMin: options.statusMin,
+        statusMax: options.statusMax,
+        resourceType: options.resourceType,
+        limit: options.limit,
+        offset: options.offset,
+        tabId: options.tabId
+      },
+      { timeout: 10000 }
+    );
+
+    return response.data;
+  } catch (error) {
+    return {
+      requests: [],
+      total: 0,
+      hasMore: false,
+      captureActive: isNetworkCaptureActive()
+    };
+  }
+}
+
+/**
+ * Clear all captured network requests via Extension API
+ */
+function clearNetworkRequests(): void {
+  axios.post(`${BACKEND_URL}/api/browser/network-requests/clear`, {}, { timeout: 5000 })
+    .catch(() => { /* Ignore errors */ });
+}
+
+/**
  * Format a single network request for markdown display
  */
 function formatRequestMarkdown(req: NetworkRequest, index: number): string[] {
@@ -123,6 +193,107 @@ function getStatusEmoji(status?: number): string {
 function truncateUrl(url: string, maxLen: number): string {
   if (url.length <= maxLen) return url;
   return url.slice(0, maxLen - 3) + "...";
+}
+
+/**
+ * Format network requests list as markdown
+ */
+function formatNetworkRequestsMarkdown(
+  response: NetworkRequestsResponse,
+  params: GetNetworkRequestsInput
+): string {
+  const lines: string[] = [];
+
+  lines.push(`# Network Requests`);
+  lines.push("");
+
+  // Show filter info
+  const filters: string[] = [];
+  if (params.urlPattern) filters.push(`URL: "${params.urlPattern}"`);
+  if (params.method !== 'all') filters.push(`Method: ${params.method}`);
+  if (params.statusMin) filters.push(`Status \u2265 ${params.statusMin}`);
+  if (params.statusMax) filters.push(`Status \u2264 ${params.statusMax}`);
+  if (params.resourceType !== 'all') filters.push(`Type: ${params.resourceType}`);
+
+  if (filters.length > 0) {
+    lines.push(`**Filters:** ${filters.join(", ")}`);
+  }
+
+  lines.push(`**Found:** ${response.total} requests${response.hasMore ? ` (showing ${response.requests.length})` : ""}`);
+  lines.push("");
+
+  if (response.requests.length === 0) {
+    lines.push("No matching requests found.");
+    lines.push("");
+    lines.push("**Tips:**");
+    lines.push("- Make sure network capture is enabled (`tabz_enable_network_capture`)");
+    lines.push("- Interact with the page to generate requests");
+    lines.push("- Try removing or adjusting filters");
+    return lines.join("\n");
+  }
+
+  // Group by status category
+  const errors = response.requests.filter(r => r.status && r.status >= 400);
+  const redirects = response.requests.filter(r => r.status && r.status >= 300 && r.status < 400);
+  const success = response.requests.filter(r => r.status && r.status >= 200 && r.status < 300);
+  const pending = response.requests.filter(r => r.status === undefined);
+
+  // Show errors first
+  if (errors.length > 0) {
+    lines.push(`## \u274c Errors (${errors.length})`);
+    lines.push("");
+    for (let i = 0; i < Math.min(errors.length, 10); i++) {
+      lines.push(...formatRequestMarkdown(errors[i], i));
+    }
+    if (errors.length > 10) {
+      lines.push(`_...and ${errors.length - 10} more errors_`);
+      lines.push("");
+    }
+  }
+
+  // Then successful requests
+  if (success.length > 0) {
+    lines.push(`## \u2705 Successful (${success.length})`);
+    lines.push("");
+    for (let i = 0; i < Math.min(success.length, 15); i++) {
+      lines.push(...formatRequestMarkdown(success[i], i));
+    }
+    if (success.length > 15) {
+      lines.push(`_...and ${success.length - 15} more successful requests_`);
+      lines.push("");
+    }
+  }
+
+  // Redirects
+  if (redirects.length > 0) {
+    lines.push(`## \u27a1\ufe0f Redirects (${redirects.length})`);
+    lines.push("");
+    for (let i = 0; i < Math.min(redirects.length, 5); i++) {
+      lines.push(...formatRequestMarkdown(redirects[i], i));
+    }
+    if (redirects.length > 5) {
+      lines.push(`_...and ${redirects.length - 5} more redirects_`);
+      lines.push("");
+    }
+  }
+
+  // Pending
+  if (pending.length > 0) {
+    lines.push(`## ... Pending (${pending.length})`);
+    lines.push("");
+    for (let i = 0; i < Math.min(pending.length, 5); i++) {
+      lines.push(...formatRequestMarkdown(pending[i], i));
+    }
+    lines.push("");
+  }
+
+  // Pagination info
+  if (response.hasMore) {
+    lines.push("---");
+    lines.push(`**More results available.** Use \`offset: ${response.nextOffset}\` to see next page.`);
+  }
+
+  return lines.join("\n");
 }
 
 /**
@@ -365,105 +536,4 @@ Network capture is still active - new requests will continue to be captured.`
       }
     }
   );
-}
-
-/**
- * Format network requests list as markdown
- */
-function formatNetworkRequestsMarkdown(
-  response: { requests: NetworkRequest[]; total: number; hasMore: boolean; nextOffset?: number; captureActive: boolean },
-  params: GetNetworkRequestsInput
-): string {
-  const lines: string[] = [];
-
-  lines.push(`# Network Requests`);
-  lines.push("");
-
-  // Show filter info
-  const filters: string[] = [];
-  if (params.urlPattern) filters.push(`URL: "${params.urlPattern}"`);
-  if (params.method !== 'all') filters.push(`Method: ${params.method}`);
-  if (params.statusMin) filters.push(`Status \u2265 ${params.statusMin}`);
-  if (params.statusMax) filters.push(`Status \u2264 ${params.statusMax}`);
-  if (params.resourceType !== 'all') filters.push(`Type: ${params.resourceType}`);
-
-  if (filters.length > 0) {
-    lines.push(`**Filters:** ${filters.join(", ")}`);
-  }
-
-  lines.push(`**Found:** ${response.total} requests${response.hasMore ? ` (showing ${response.requests.length})` : ""}`);
-  lines.push("");
-
-  if (response.requests.length === 0) {
-    lines.push("No matching requests found.");
-    lines.push("");
-    lines.push("**Tips:**");
-    lines.push("- Make sure network capture is enabled (`tabz_enable_network_capture`)");
-    lines.push("- Interact with the page to generate requests");
-    lines.push("- Try removing or adjusting filters");
-    return lines.join("\n");
-  }
-
-  // Group by status category
-  const errors = response.requests.filter(r => r.status && r.status >= 400);
-  const redirects = response.requests.filter(r => r.status && r.status >= 300 && r.status < 400);
-  const success = response.requests.filter(r => r.status && r.status >= 200 && r.status < 300);
-  const pending = response.requests.filter(r => r.status === undefined);
-
-  // Show errors first
-  if (errors.length > 0) {
-    lines.push(`## \u274c Errors (${errors.length})`);
-    lines.push("");
-    for (let i = 0; i < Math.min(errors.length, 10); i++) {
-      lines.push(...formatRequestMarkdown(errors[i], i));
-    }
-    if (errors.length > 10) {
-      lines.push(`_...and ${errors.length - 10} more errors_`);
-      lines.push("");
-    }
-  }
-
-  // Then successful requests
-  if (success.length > 0) {
-    lines.push(`## \u2705 Successful (${success.length})`);
-    lines.push("");
-    for (let i = 0; i < Math.min(success.length, 15); i++) {
-      lines.push(...formatRequestMarkdown(success[i], i));
-    }
-    if (success.length > 15) {
-      lines.push(`_...and ${success.length - 15} more successful requests_`);
-      lines.push("");
-    }
-  }
-
-  // Redirects
-  if (redirects.length > 0) {
-    lines.push(`## \u27a1\ufe0f Redirects (${redirects.length})`);
-    lines.push("");
-    for (let i = 0; i < Math.min(redirects.length, 5); i++) {
-      lines.push(...formatRequestMarkdown(redirects[i], i));
-    }
-    if (redirects.length > 5) {
-      lines.push(`_...and ${redirects.length - 5} more redirects_`);
-      lines.push("");
-    }
-  }
-
-  // Pending
-  if (pending.length > 0) {
-    lines.push(`## ... Pending (${pending.length})`);
-    lines.push("");
-    for (let i = 0; i < Math.min(pending.length, 5); i++) {
-      lines.push(...formatRequestMarkdown(pending[i], i));
-    }
-    lines.push("");
-  }
-
-  // Pagination info
-  if (response.hasMore) {
-    lines.push("---");
-    lines.push(`**More results available.** Use \`offset: ${response.nextOffset}\` to see next page.`);
-  }
-
-  return lines.join("\n");
 }

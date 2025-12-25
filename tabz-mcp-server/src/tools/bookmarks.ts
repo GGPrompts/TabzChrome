@@ -6,15 +6,138 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
 import {
-  getBookmarkTree,
-  searchBookmarks,
-  createBookmark,
-  createBookmarkFolder,
-  moveBookmark,
-  deleteBookmark
-} from "../client.js";
-import { ResponseFormat } from "../types.js";
+  ResponseFormat,
+  type BookmarkNode,
+  type BookmarkTreeResult,
+  type BookmarkSearchResult,
+  type BookmarkCreateResult,
+  type BookmarkFolderResult,
+  type BookmarkMoveResult,
+  type BookmarkDeleteResult
+} from "../types.js";
+
+/**
+ * Get bookmark tree via Extension API
+ */
+async function getBookmarkTree(options: {
+  folderId?: string;
+  maxDepth?: number;
+}): Promise<BookmarkTreeResult> {
+  try {
+    const response = await axios.get<BookmarkTreeResult>(
+      `${BACKEND_URL}/api/browser/bookmarks`,
+      {
+        params: {
+          folderId: options.folderId,
+          maxDepth: options.maxDepth
+        },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get bookmarks");
+  }
+}
+
+/**
+ * Search bookmarks via Extension API
+ */
+async function searchBookmarks(options: {
+  query: string;
+  limit?: number;
+}): Promise<BookmarkSearchResult> {
+  try {
+    const response = await axios.post<BookmarkSearchResult>(
+      `${BACKEND_URL}/api/browser/bookmarks/search`,
+      { query: options.query, limit: options.limit },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to search bookmarks");
+  }
+}
+
+/**
+ * Create a bookmark via Extension API
+ */
+async function createBookmark(options: {
+  title: string;
+  url: string;
+  parentId?: string;
+  index?: number;
+}): Promise<BookmarkCreateResult> {
+  try {
+    const response = await axios.post<BookmarkCreateResult>(
+      `${BACKEND_URL}/api/browser/bookmarks/create`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to create bookmark");
+  }
+}
+
+/**
+ * Create a bookmark folder via Extension API
+ */
+async function createBookmarkFolder(options: {
+  title: string;
+  parentId?: string;
+  index?: number;
+}): Promise<BookmarkFolderResult> {
+  try {
+    const response = await axios.post<BookmarkFolderResult>(
+      `${BACKEND_URL}/api/browser/bookmarks/create-folder`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to create folder");
+  }
+}
+
+/**
+ * Move a bookmark via Extension API
+ */
+async function moveBookmark(options: {
+  id: string;
+  parentId?: string;
+  index?: number;
+}): Promise<BookmarkMoveResult> {
+  try {
+    const response = await axios.post<BookmarkMoveResult>(
+      `${BACKEND_URL}/api/browser/bookmarks/move`,
+      options,
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to move bookmark");
+  }
+}
+
+/**
+ * Delete a bookmark via Extension API
+ */
+async function deleteBookmark(id: string): Promise<BookmarkDeleteResult> {
+  try {
+    const response = await axios.post<BookmarkDeleteResult>(
+      `${BACKEND_URL}/api/browser/bookmarks/delete`,
+      { id },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to delete bookmark");
+  }
+}
 
 // Special folder IDs
 const BOOKMARKS_BAR_ID = "1";
@@ -117,16 +240,6 @@ type DeleteBookmarkInput = z.infer<typeof DeleteBookmarkSchema>;
 // =====================================
 // Formatting Helpers
 // =====================================
-
-interface BookmarkNode {
-  id: string;
-  title: string;
-  url?: string;
-  parentId?: string;
-  index?: number;
-  dateAdded?: number;
-  children?: BookmarkNode[];
-}
 
 /**
  * Format bookmark tree for markdown display

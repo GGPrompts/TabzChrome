@@ -7,9 +7,104 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { downloadFile, getDownloads, cancelDownload, savePage } from "../client.js";
-import { ResponseFormat, type DownloadItem } from "../types.js";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
+import {
+  ResponseFormat,
+  type DownloadItem,
+  type DownloadResult,
+  type DownloadListResponse,
+  type CancelDownloadResult,
+  type SavePageResult,
+  type ConflictAction
+} from "../types.js";
 import { formatBytes } from "../utils.js";
+
+/**
+ * Download a file using Chrome's download API
+ */
+async function downloadFile(options: {
+  url: string;
+  filename?: string;
+  conflictAction?: ConflictAction;
+}): Promise<DownloadResult> {
+  try {
+    const response = await axios.post<DownloadResult>(
+      `${BACKEND_URL}/api/browser/download-file`,
+      {
+        url: options.url,
+        filename: options.filename,
+        conflictAction: options.conflictAction || 'uniquify'
+      },
+      { timeout: 65000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to download file");
+  }
+}
+
+/**
+ * Get list of recent downloads
+ */
+async function getDownloads(options: {
+  state?: string;
+  limit?: number;
+}): Promise<DownloadListResponse> {
+  try {
+    const response = await axios.get<DownloadListResponse>(
+      `${BACKEND_URL}/api/browser/downloads`,
+      {
+        params: {
+          state: options.state,
+          limit: options.limit
+        },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to get downloads");
+  }
+}
+
+/**
+ * Cancel an in-progress download
+ */
+async function cancelDownload(downloadId: number): Promise<CancelDownloadResult> {
+  try {
+    const response = await axios.post<CancelDownloadResult>(
+      `${BACKEND_URL}/api/browser/cancel-download`,
+      { downloadId },
+      { timeout: 10000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to cancel download");
+  }
+}
+
+/**
+ * Save current page to a file
+ */
+async function savePage(options: {
+  tabId?: number;
+  filename?: string;
+}): Promise<SavePageResult> {
+  try {
+    const response = await axios.post<SavePageResult>(
+      `${BACKEND_URL}/api/browser/save-page`,
+      {
+        tabId: options.tabId,
+        filename: options.filename
+      },
+      { timeout: 30000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to save page");
+  }
+}
 
 // Input schema for tabz_download_file
 const DownloadFileSchema = z.object({

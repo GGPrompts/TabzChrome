@@ -6,7 +6,15 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { listTabs, switchTab, renameTab, getCurrentTabId } from "../client.js";
+import axios from "axios";
+import {
+  BACKEND_URL,
+  getCurrentTabId,
+  setCurrentTabId,
+  getCustomTabName,
+  setCustomTabName,
+  type TabInfo
+} from "../shared.js";
 import { ResponseFormat } from "../types.js";
 
 // Input schema for tabz_list_tabs
@@ -39,6 +47,75 @@ const RenameTabSchema = z.object({
 }).strict();
 
 type RenameTabInput = z.infer<typeof RenameTabSchema>;
+
+/**
+ * List all open browser tabs via Extension API
+ */
+async function listTabs(): Promise<{ tabs: TabInfo[]; error?: string }> {
+  try {
+    const response = await axios.get(`${BACKEND_URL}/api/browser/tabs`, { timeout: 5000 });
+    if (response.data.success && response.data.tabs) {
+      const tabs: TabInfo[] = response.data.tabs.map((tab: any) => ({
+        tabId: tab.tabId,
+        url: tab.url,
+        title: tab.title,
+        customName: getCustomTabName(tab.url),
+        active: tab.active
+      }));
+
+      // Update currentTabId to the actually active tab
+      const activeTab = tabs.find(t => t.active);
+      if (activeTab) {
+        setCurrentTabId(activeTab.tabId);
+      }
+
+      return { tabs };
+    }
+    return { tabs: [], error: response.data.error || 'Failed to list tabs' };
+  } catch (error) {
+    return { tabs: [], error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Switch to a specific tab via Extension API
+ */
+async function switchTab(tabId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await axios.post(`${BACKEND_URL}/api/browser/switch-tab`, { tabId }, { timeout: 5000 });
+    if (response.data.success) {
+      setCurrentTabId(tabId);
+      return { success: true };
+    }
+    return { success: false, error: response.data.error || 'Failed to switch tab' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Rename a tab (assign a custom name)
+ */
+async function renameTab(tabId: number, name: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get the tab list to find the URL for this tabId
+    const tabsResult = await listTabs();
+    const tab = tabsResult.tabs.find(t => t.tabId === tabId);
+
+    if (!tab) {
+      const availableIds = tabsResult.tabs.map(t => t.tabId);
+      const idsStr = availableIds.length > 0
+        ? `Available tab IDs: ${availableIds.join(', ')}`
+        : 'No tabs found';
+      return { success: false, error: `Invalid tab ID: ${tabId}. ${idsStr}` };
+    }
+
+    setCustomTabName(tab.url, name);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 /**
  * Register tab management tools with the MCP server

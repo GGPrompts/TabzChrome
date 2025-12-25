@@ -7,7 +7,8 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getElementInfo } from "../client.js";
+import axios from "axios";
+import { BACKEND_URL, type ElementInfo } from "../shared.js";
 import { ResponseFormat } from "../types.js";
 
 // Input schema for tabz_get_element
@@ -29,9 +30,37 @@ const GetElementSchema = z.object({
 type GetElementInput = z.infer<typeof GetElementSchema>;
 
 /**
+ * Get detailed information about an element via Chrome Extension API
+ */
+async function getElementInfo(
+  selector: string,
+  options: {
+    includeStyles?: boolean;
+    styleProperties?: string[];
+    tabId?: number;
+  } = {}
+): Promise<ElementInfo> {
+  try {
+    const response = await axios.post<ElementInfo>(
+      `${BACKEND_URL}/api/browser/get-element-info`,
+      {
+        selector,
+        tabId: options.tabId,
+        includeStyles: options.includeStyles,
+        styleProperties: options.styleProperties
+      },
+      { timeout: 15000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
  * Format element info as markdown for easy reading
  */
-function formatElementAsMarkdown(info: Awaited<ReturnType<typeof getElementInfo>>, selector: string): string {
+function formatElementAsMarkdown(info: ElementInfo, selector: string): string {
   if (!info.success) {
     return `## Element Not Found
 

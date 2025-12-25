@@ -6,7 +6,8 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { clickElement, fillInput } from "../client.js";
+import axios from "axios";
+import { BACKEND_URL } from "../shared.js";
 
 // Input schema for tabz_click
 const ClickSchema = z.object({
@@ -35,6 +36,38 @@ const FillSchema = z.object({
 }).strict();
 
 type FillInput = z.infer<typeof FillSchema>;
+
+/**
+ * Click an element via Chrome Extension API
+ */
+async function clickElement(selector: string, tabId?: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await axios.post<{ success: boolean; tagName?: string; error?: string }>(
+      `${BACKEND_URL}/api/browser/click-element`,
+      { selector, tabId },
+      { timeout: 20000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Fill an input field via Chrome Extension API
+ */
+async function fillInput(selector: string, value: string, tabId?: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await axios.post<{ success: boolean; tagName?: string; error?: string }>(
+      `${BACKEND_URL}/api/browser/fill-input`,
+      { selector, value, tabId },
+      { timeout: 20000 }
+    );
+    return response.data;
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 /**
  * Register DOM interaction tools with the MCP server

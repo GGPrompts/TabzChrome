@@ -6,7 +6,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { executeScript } from "../client.js";
+import axios from "axios";
+import { BACKEND_URL, handleApiError } from "../shared.js";
+import type { ScriptResult } from "../types.js";
 
 // Input schema for tabz_execute_script
 const ExecuteScriptSchema = z.object({
@@ -24,6 +26,30 @@ const ExecuteScriptSchema = z.object({
 }).strict();
 
 type ExecuteScriptInput = z.infer<typeof ExecuteScriptSchema>;
+
+/**
+ * Execute JavaScript in the browser via Extension API
+ */
+async function executeScript(options: {
+  code: string;
+  tabId?: number;
+  allFrames?: boolean;
+}): Promise<ScriptResult> {
+  try {
+    const response = await axios.post<ScriptResult>(
+      `${BACKEND_URL}/api/browser/execute-script`,
+      {
+        code: options.code,
+        tabId: options.tabId,
+        allFrames: options.allFrames
+      },
+      { timeout: 30000 }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, "Failed to execute script");
+  }
+}
 
 /**
  * Register script tools with the MCP server
