@@ -25,10 +25,12 @@ describe('useWorkingDirectory', () => {
 
       const { result } = renderHook(() => useWorkingDirectory())
 
+      // Wait for async load to complete
       await waitFor(() => {
-        expect(result.current.globalWorkingDir).toBe('~/my-project')
+        expect(result.current.isLoaded).toBe(true)
       })
 
+      expect(result.current.globalWorkingDir).toBe('~/my-project')
       expect(result.current.recentDirs).toEqual(['~/my-project', '~/other', '~'])
     })
 
@@ -77,6 +79,11 @@ describe('useWorkingDirectory', () => {
     it('should persist global working directory to Chrome storage', async () => {
       const { result } = renderHook(() => useWorkingDirectory())
 
+      // Wait for initial load to complete (persistence only happens after isLoaded)
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
+
       act(() => {
         result.current.setGlobalWorkingDir('~/persisted-project')
       })
@@ -102,6 +109,11 @@ describe('useWorkingDirectory', () => {
 
     it('should persist recent directories to Chrome storage', async () => {
       const { result } = renderHook(() => useWorkingDirectory())
+
+      // Wait for initial load to complete (persistence only happens after isLoaded)
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
 
       const newDirs = ['~/stored1', '~/stored2']
       act(() => {
@@ -268,6 +280,11 @@ describe('useWorkingDirectory', () => {
     it('should persist changes immediately', async () => {
       const { result } = renderHook(() => useWorkingDirectory())
 
+      // Wait for initial load to complete (persistence only happens after isLoaded)
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
+
       // Change both values
       act(() => {
         result.current.setGlobalWorkingDir('~/test-project')
@@ -284,6 +301,11 @@ describe('useWorkingDirectory', () => {
 
     it('should handle rapid updates correctly', async () => {
       const { result } = renderHook(() => useWorkingDirectory())
+
+      // Wait for initial load to complete (persistence only happens after isLoaded)
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
 
       // Multiple rapid updates
       act(() => {
