@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import { RotateCcw, X } from 'lucide-react'
 import { themes, themeNames, getBackgroundGradient as getThemeBackgroundGradient } from '../styles/themes'
-import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS } from '../styles/terminal-backgrounds'
+import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 import { FONT_FAMILIES, getAvailableFonts } from './settings/types'
 import type { TerminalAppearanceOverrides } from '../hooks/useTerminalSessions'
 
@@ -87,7 +87,7 @@ export function TerminalCustomizePopover({
   // Get effective values (override > profile default)
   const effectiveTheme = currentOverrides?.themeName ?? profileDefaults.themeName ?? 'high-contrast'
   const effectiveGradient = currentOverrides?.backgroundGradient ?? profileDefaults.backgroundGradient
-  const effectivePanelColor = currentOverrides?.panelColor ?? profileDefaults.panelColor ?? '#000000'
+  const rawPanelColor = currentOverrides?.panelColor ?? profileDefaults.panelColor ?? '#000000'
   const effectiveTransparency = currentOverrides?.transparency ?? profileDefaults.transparency ?? 100
   const effectiveFontFamily = currentOverrides?.fontFamily ?? profileDefaults.fontFamily ?? 'monospace'
   const effectiveFontSize = profileDefaults.fontSize || 16
@@ -97,6 +97,9 @@ export function TerminalCustomizePopover({
     ? getGradientCSS(effectiveGradient, isDark)
     : getThemeBackgroundGradient(effectiveTheme, isDark)
   const gradientOpacity = effectiveTransparency / 100
+
+  // Get appropriate panel color for current mode (dark -> light equivalents)
+  const effectivePanelColor = getPanelColor(rawPanelColor, isDark)
 
   // Get theme colors for text preview
   const themeColors = themes[effectiveTheme]?.[isDark ? 'dark' : 'light']?.colors
@@ -245,11 +248,18 @@ export function TerminalCustomizePopover({
           <select
             value={effectiveFontFamily}
             onChange={(e) => onUpdate(sessionId, { fontFamily: e.target.value })}
-            className="w-full px-2 py-1.5 bg-black/30 border border-white/20 rounded text-sm focus:border-[#00ff88] focus:outline-none"
-            style={{ color: themeColors?.foreground || '#e0e0e0' }}
+            className={`w-full px-2 py-1.5 border rounded text-sm focus:border-[#00ff88] focus:outline-none ${
+              isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
+            }`}
+            style={{ color: themeColors?.foreground || '#e0e0e0', fontFamily: effectiveFontFamily }}
           >
             {availableFonts.map((font) => (
-              <option key={font.value} value={font.value}>
+              <option
+                key={font.value}
+                value={font.value}
+                className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'}
+                style={{ fontFamily: font.value, color: isDark ? '#e0e0e0' : '#1a1a1a' }}
+              >
                 {font.label}
               </option>
             ))}
@@ -262,14 +272,24 @@ export function TerminalCustomizePopover({
           <select
             value={effectiveTheme}
             onChange={(e) => onUpdate(sessionId, { themeName: e.target.value })}
-            className="w-full px-2 py-1.5 bg-black/30 border border-white/20 rounded text-sm focus:border-[#00ff88] focus:outline-none"
+            className={`w-full px-2 py-1.5 border rounded text-sm focus:border-[#00ff88] focus:outline-none ${
+              isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
+            }`}
             style={{ color: themeColors?.foreground || '#e0e0e0' }}
           >
-            {themeNames.map((name) => (
-              <option key={name} value={name}>
-                {themes[name].name}
-              </option>
-            ))}
+            {themeNames.map((name) => {
+              const optionColors = themes[name]?.[isDark ? 'dark' : 'light']?.colors
+              return (
+                <option
+                  key={name}
+                  value={name}
+                  className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'}
+                  style={{ color: optionColors?.foreground || (isDark ? '#e0e0e0' : '#1a1a1a') }}
+                >
+                  {themes[name].name}
+                </option>
+              )
+            })}
           </select>
         </div>
 
@@ -279,12 +299,14 @@ export function TerminalCustomizePopover({
           <select
             value={effectiveGradient || ''}
             onChange={(e) => onUpdate(sessionId, { backgroundGradient: e.target.value || undefined })}
-            className="w-full px-2 py-1.5 bg-black/30 border border-white/20 rounded text-sm focus:border-[#00ff88] focus:outline-none"
+            className={`w-full px-2 py-1.5 border rounded text-sm focus:border-[#00ff88] focus:outline-none ${
+              isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
+            }`}
             style={{ color: themeColors?.foreground || '#e0e0e0' }}
           >
-            <option value="">Theme Default</option>
+            <option value="" className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'} style={{ color: isDark ? '#e0e0e0' : '#1a1a1a' }}>Theme Default</option>
             {gradientNames.map((name) => (
-              <option key={name} value={name}>
+              <option key={name} value={name} className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'} style={{ color: isDark ? '#e0e0e0' : '#1a1a1a' }}>
                 {backgroundGradients[name].name}
               </option>
             ))}

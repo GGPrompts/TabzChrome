@@ -23,7 +23,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'dark-neutral': {
     name: 'Dark Neutral',
     gradient: 'linear-gradient(135deg, #0a0a0f 0%, #1a1b26 100%)',
-    lightGradient: 'linear-gradient(135deg, #3a3a4f 0%, #4a4b56 100%)',
+    lightGradient: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
     preview: ['#0a0a0f', '#1a1b26'],
     description: 'Subtle dark gradient, works with any text theme',
   },
@@ -31,7 +31,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'pure-black': {
     name: 'Pure Black',
     gradient: '#000000',
-    lightGradient: '#2a2a2a',
+    lightGradient: '#ffffff',
     preview: ['#000000'],
     description: 'Solid black for maximum contrast',
   },
@@ -39,7 +39,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'carbon': {
     name: 'Carbon',
     gradient: 'linear-gradient(135deg, #000000 0%, #111111 50%, #1a1a1a 100%)',
-    lightGradient: 'linear-gradient(135deg, #2a2a2a 0%, #3b3b3b 50%, #4a4a4a 100%)',
+    lightGradient: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 50%, #eeeeee 100%)',
     preview: ['#000000', '#111111', '#1a1a1a'],
     description: 'Sleek carbon fiber gradient with subtle depth',
   },
@@ -48,7 +48,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'dracula-purple': {
     name: 'Dracula Purple',
     gradient: 'linear-gradient(135deg, #1a1b26 0%, #282a36 50%, #1a1b26 100%)',
-    lightGradient: 'linear-gradient(135deg, #4a4b56 0%, #585a66 50%, #4a4b56 100%)',
+    lightGradient: 'linear-gradient(135deg, #f5f3f7 0%, #ebe8f0 50%, #f5f3f7 100%)',
     preview: ['#1a1b26', '#282a36'],
     description: 'Dracula theme inspired gradient',
   },
@@ -56,7 +56,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'deep-purple': {
     name: 'Deep Purple',
     gradient: 'linear-gradient(135deg, #14141e 0%, #1e1428 100%)',
-    lightGradient: 'linear-gradient(135deg, #44444e 0%, #4e4458 100%)',
+    lightGradient: 'linear-gradient(135deg, #f8f5fa 0%, #f0e8f5 100%)',
     preview: ['#14141e', '#1e1428'],
     description: 'Rich purple gradient',
   },
@@ -65,7 +65,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'ocean-depths': {
     name: 'Ocean Depths',
     gradient: 'linear-gradient(135deg, #001a33 0%, #003d5c 50%, #001f3d 100%)',
-    lightGradient: 'linear-gradient(135deg, #304a63 0%, #406d8c 50%, #304f6d 100%)',
+    lightGradient: 'linear-gradient(135deg, #e8f4fc 0%, #d0e8f5 50%, #e8f4fc 100%)',
     preview: ['#001a33', '#003d5c', '#001f3d'],
     description: 'Deep blue ocean gradient',
   },
@@ -73,7 +73,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'midnight-blue': {
     name: 'Midnight Blue',
     gradient: 'linear-gradient(135deg, #0a0d1a 0%, #14213d 50%, #0a0f1f 100%)',
-    lightGradient: 'linear-gradient(135deg, #3a3d4a 0%, #44516d 50%, #3a3f4f 100%)',
+    lightGradient: 'linear-gradient(135deg, #f0f4fa 0%, #e0e8f5 50%, #f0f4fa 100%)',
     preview: ['#0a0d1a', '#14213d', '#0a0f1f'],
     description: 'Navy blue midnight gradient',
   },
@@ -82,7 +82,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'matrix-depths': {
     name: 'Matrix Depths',
     gradient: 'linear-gradient(135deg, #001a00 0%, #000d00 50%, #000500 100%)',
-    lightGradient: 'linear-gradient(135deg, #304a30 0%, #303d30 50%, #303530 100%)',
+    lightGradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%)',
     preview: ['#001a00', '#000d00', '#000500'],
     description: 'Deep green gradient for matrix/terminal aesthetics',
   },
@@ -90,7 +90,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'terminal-green': {
     name: 'Terminal Green',
     gradient: 'linear-gradient(135deg, #000f00 0%, #001a00 50%, #000a00 100%)',
-    lightGradient: 'linear-gradient(135deg, #303f30 0%, #304a30 50%, #303a30 100%)',
+    lightGradient: 'linear-gradient(135deg, #f0fff0 0%, #e0f5e0 50%, #f0fff0 100%)',
     preview: ['#000f00', '#001a00', '#000a00'],
     description: 'Classic terminal green background',
   },
@@ -98,7 +98,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'forest-night': {
     name: 'Forest Night',
     gradient: 'linear-gradient(135deg, #0d1f0d 0%, #1a331a 50%, #0a1a0a 100%)',
-    lightGradient: 'linear-gradient(135deg, #3d4f3d 0%, #4a634a 50%, #3a4a3a 100%)',
+    lightGradient: 'linear-gradient(135deg, #f0faf0 0%, #e0f0e0 50%, #f0faf0 100%)',
     preview: ['#0d1f0d', '#1a331a', '#0a1a0a'],
     description: 'Dark green forest gradient',
   },
@@ -107,7 +107,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'amber-warmth': {
     name: 'Amber Warmth',
     gradient: 'linear-gradient(135deg, #2d1810 0%, #1a1308 50%, #0a0603 100%)',
-    lightGradient: 'linear-gradient(135deg, #5d4840 0%, #4a4338 50%, #3a3633 100%)',
+    lightGradient: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fffbeb 100%)',
     preview: ['#2d1810', '#1a1308', '#0a0603'],
     description: 'Warm amber gradient, pairs with amber/retro themes',
   },
@@ -115,7 +115,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'monokai-brown': {
     name: 'Monokai Brown',
     gradient: 'linear-gradient(135deg, #1a1612 0%, #272822 50%, #1a1612 100%)',
-    lightGradient: 'linear-gradient(135deg, #4a4642 0%, #575852 50%, #4a4642 100%)',
+    lightGradient: 'linear-gradient(135deg, #faf8f5 0%, #f5f3f0 50%, #faf8f5 100%)',
     preview: ['#1a1612', '#272822'],
     description: 'Monokai theme inspired gradient',
   },
@@ -124,7 +124,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'cyberpunk-neon': {
     name: 'Cyberpunk Neon',
     gradient: 'linear-gradient(135deg, #14001e 0%, #2d0033 50%, #1a0026 100%)',
-    lightGradient: 'linear-gradient(135deg, #44304e 0%, #5d3063 50%, #4a3056 100%)',
+    lightGradient: 'linear-gradient(135deg, #fdf4ff 0%, #f5d0fe 50%, #fdf4ff 100%)',
     preview: ['#14001e', '#2d0033', '#1a0026'],
     description: 'Purple-pink gradient for cyberpunk vibes',
   },
@@ -132,7 +132,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'vaporwave-dream': {
     name: 'Vaporwave Dream',
     gradient: 'linear-gradient(135deg, #1a0033 0%, #330066 30%, #4d0066 70%, #1a0033 100%)',
-    lightGradient: 'linear-gradient(135deg, #4a3063 0%, #633096 30%, #7d3096 70%, #4a3063 100%)',
+    lightGradient: 'linear-gradient(135deg, #faf0ff 0%, #f0e0ff 30%, #e8d0ff 70%, #faf0ff 100%)',
     preview: ['#1a0033', '#330066', '#4d0066'],
     description: 'Purple gradient with vaporwave aesthetic',
   },
@@ -141,7 +141,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'sunset-fade': {
     name: 'Sunset Fade',
     gradient: 'linear-gradient(135deg, #1a0a0f 0%, #330d1a 30%, #4d1a2b 60%, #1a0a0f 100%)',
-    lightGradient: 'linear-gradient(135deg, #4a3a3f 0%, #633d4a 30%, #7d4a5b 60%, #4a3a3f 100%)',
+    lightGradient: 'linear-gradient(135deg, #fff5f5 0%, #ffe4e6 30%, #fecdd3 60%, #fff5f5 100%)',
     preview: ['#1a0a0f', '#330d1a', '#4d1a2b'],
     description: 'Deep red-purple sunset gradient',
   },
@@ -149,7 +149,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'synthwave-sunset': {
     name: 'Synthwave Sunset',
     gradient: 'linear-gradient(135deg, #190a14 0%, #2d1429 30%, #4d1a3d 60%, #2d1429 100%)',
-    lightGradient: 'linear-gradient(135deg, #493a44 0%, #5d4459 30%, #7d4a6d 60%, #5d4459 100%)',
+    lightGradient: 'linear-gradient(135deg, #fff0fa 0%, #fce7f3 30%, #fbcfe8 60%, #fce7f3 100%)',
     preview: ['#190a14', '#2d1429', '#4d1a3d'],
     description: 'Synthwave sunset gradient',
   },
@@ -158,7 +158,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'aurora-borealis': {
     name: 'Aurora Borealis',
     gradient: 'linear-gradient(135deg, #001420 0%, #002d3d 30%, #004d5c 60%, #002d3d 100%)',
-    lightGradient: 'linear-gradient(135deg, #304450 0%, #405d6d 30%, #507d8c 60%, #405d6d 100%)',
+    lightGradient: 'linear-gradient(135deg, #f0fdff 0%, #e0f7fa 30%, #cffafe 60%, #e0f7fa 100%)',
     preview: ['#001420', '#002d3d', '#004d5c'],
     description: 'Northern lights inspired gradient',
   },
@@ -166,7 +166,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'neon-city': {
     name: 'Neon City',
     gradient: 'radial-gradient(ellipse at top, #1a0033 0%, #0a0a1f 50%, #000000 100%)',
-    lightGradient: 'radial-gradient(ellipse at top, #4a3063 0%, #3a3a4f 50%, #2a2a2a 100%)',
+    lightGradient: 'radial-gradient(ellipse at top, #f5e0ff 0%, #f0f0ff 50%, #ffffff 100%)',
     preview: ['#1a0033', '#0a0a1f', '#000000'],
     description: 'Radial gradient for neon city vibes',
   },
@@ -175,7 +175,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'github-dark': {
     name: 'GitHub Dark',
     gradient: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
-    lightGradient: 'linear-gradient(135deg, #3d4147 0%, #464b52 50%, #3d4147 100%)',
+    lightGradient: 'linear-gradient(135deg, #ffffff 0%, #f6f8fa 50%, #ffffff 100%)',
     preview: ['#0d1117', '#161b22'],
     description: 'GitHub dark theme gradient',
   },
@@ -183,7 +183,7 @@ export const backgroundGradients: Record<string, BackgroundGradient> = {
   'solarized-dark': {
     name: 'Solarized Dark',
     gradient: 'linear-gradient(135deg, #002b36 0%, #073642 50%, #002b36 100%)',
-    lightGradient: 'linear-gradient(135deg, #305b66 0%, #376672 50%, #305b66 100%)',
+    lightGradient: 'linear-gradient(135deg, #fdf6e3 0%, #eee8d5 50%, #fdf6e3 100%)',
     preview: ['#002b36', '#073642'],
     description: 'Solarized dark theme gradient',
   },
@@ -229,3 +229,22 @@ export const PANEL_COLORS = [
 
 export const DEFAULT_PANEL_COLOR = '#000000'
 export const DEFAULT_TRANSPARENCY = 100  // Full gradient by default
+
+// Light mode equivalents for panel colors
+const LIGHT_PANEL_MAP: Record<string, string> = {
+  '#000000': '#ffffff',
+  '#0a0a0f': '#f8f9fa',
+  '#1a1a1a': '#f0f0f0',
+  '#2d2d2d': '#e5e5e5',
+  '#4a4a4a': '#d4d4d4',
+  '#0a0d1a': '#e8f4fc',
+  '#0a1a0a': '#f0fdf4',
+  '#1a0a0f': '#fff5f5',
+  '#14001e': '#fdf4ff',
+}
+
+// Get appropriate panel color for current mode
+export function getPanelColor(panelColor: string, isDark: boolean): string {
+  if (isDark) return panelColor
+  return LIGHT_PANEL_MAP[panelColor] || '#ffffff'
+}

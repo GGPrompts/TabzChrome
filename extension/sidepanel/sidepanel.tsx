@@ -985,14 +985,24 @@ function SidePanelTerminal() {
                       {claudeStatuses.has(session.id) && (
                         <span className="flex-shrink-0">{getRobotEmojis(claudeStatuses.get(session.id))}</span>
                       )}
-                      <span
-                        className="flex-1 min-w-0 truncate"
-                        style={{ color: getStatusColor(claudeStatuses.get(session.id)) || undefined }}
-                      >
-                        {claudeStatuses.has(session.id)
-                          ? getStatusText(claudeStatuses.get(session.id), session.profile?.name || session.name)
-                          : session.name
-                        }
+                      <span className="flex-1 min-w-0 truncate flex items-center gap-0.5">
+                        {claudeStatuses.has(session.id) ? (
+                          <>
+                            {/* Checkmark in green for ready state, other emojis in default color */}
+                            {(claudeStatuses.get(session.id)?.status === 'idle' || claudeStatuses.get(session.id)?.status === 'awaiting_input') ? (
+                              <>
+                                <span style={{ color: '#00ff88' }}>✓</span>
+                                <span>{session.profile?.name || session.name}</span>
+                              </>
+                            ) : (
+                              <span style={{ color: getStatusColor(claudeStatuses.get(session.id)) || undefined }}>
+                                {getStatusText(claudeStatuses.get(session.id), session.profile?.name || session.name)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          session.name
+                        )}
                       </span>
                       {/* Context window percentage - far right, color-coded */}
                       {claudeStatuses.get(session.id)?.context_pct != null && (

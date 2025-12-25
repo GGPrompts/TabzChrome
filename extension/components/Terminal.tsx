@@ -7,7 +7,7 @@ import { CanvasAddon } from '@xterm/addon-canvas'
 import '@xterm/xterm/css/xterm.css'
 import { sendMessage, connectToBackground } from '../shared/messaging'
 import { getThemeColors, getBackgroundGradient as getThemeBackgroundGradient, ThemeColors } from '../styles/themes'
-import { getGradientCSS } from '../styles/terminal-backgrounds'
+import { getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 
 /**
  * Props for the Terminal component
@@ -1016,12 +1016,15 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Apply transparency to gradient (0 = solid panel color, 100 = full gradient)
   const gradientOpacity = transparency / 100
 
+  // Get appropriate panel color for current mode (dark colors -> light equivalents)
+  const effectivePanelColor = getPanelColor(panelColor, isDark)
+
   return (
     <div
       ref={containerRef}
       className="h-full flex flex-col terminal-container relative"
       style={{
-        backgroundColor: panelColor,
+        backgroundColor: effectivePanelColor,
       }}
     >
       {/* Gradient overlay with transparency */}

@@ -15,6 +15,17 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.17] - 2025-12-25
+
+### Fixed
+- **Light mode now works properly** - Panel colors and gradients adapt correctly:
+  - Panel colors auto-convert to light equivalents (black → white, navy → light blue, etc.)
+  - Light gradients are now actual light colors (white/cream/pastels) instead of slightly-lighter-darks
+  - Customize popover dropdowns adapt to light/dark mode (white bg with dark text in light mode)
+- **Terminal tab ready state styling** - Checkmark (✓) is now green while profile name stays white (was coloring both green)
+
+---
+
 ## [1.2.16] - 2025-12-25
 
 ### Changed
