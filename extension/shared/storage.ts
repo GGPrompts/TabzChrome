@@ -1,5 +1,8 @@
 // Chrome Storage helpers
 
+import type { TerminalSession } from '../hooks/useTerminalSessions'
+import type { Profile, AudioSettings, CategorySettings } from '../components/SettingsModal'
+
 export interface SyncedSession {
   name: string;
   created: Date;
@@ -9,8 +12,36 @@ export interface SyncedSession {
 }
 
 export interface StorageData {
-  recentSessions?: SyncedSession[];
+  // Terminal sessions
+  terminalSessions?: TerminalSession[];
+  currentTerminalId?: string;
   activeSessions?: string[];
+  recentSessions?: SyncedSession[];
+
+  // Profiles
+  profiles?: Profile[];
+  defaultProfile?: string;
+  categorySettings?: CategorySettings;
+
+  // Audio
+  audioSettings?: AudioSettings;
+  audioGlobalMute?: boolean;
+
+  // Working directory
+  globalWorkingDir?: string;
+  recentDirs?: string[];
+
+  // Command history
+  commandHistory?: string[];
+
+  // UI settings
+  isDark?: boolean;
+  dashboardTheme?: string;
+  fileViewerFontSize?: number;
+  fileViewerFontFamily?: string;
+  fileTreeMaxDepth?: number;
+
+  // Legacy settings (deprecated, kept for migration)
   settings?: {
     theme?: string;
     fontSize?: number;
