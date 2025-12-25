@@ -148,10 +148,11 @@ class TUIToolsManager {
         workingDir,
         isAvailable,
         usedFallback: !isAvailable && tool.fallback,
-        ptyProcess
+        ptyProcess,
+        isTUITool: true
       };
 
-      this.terminalRegistry.register(terminalId, terminalData);
+      await this.terminalRegistry.registerTerminal(terminalData);
 
       // If tool is not available, send installation instructions
       if (!isAvailable) {

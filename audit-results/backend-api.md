@@ -64,15 +64,14 @@ Terminal management is **REST-only**:
 
 ## 2. Duplicate Endpoints
 
-### 2.1 Tmux Session Listing (3 variants)
+### 2.1 Tmux Session Listing (2 variants)
 
 ```
 GET /api/tmux/sessions       (api.js:535)   - Simple list
-GET /api/tmux/list           (api.js:948)   - Identical to above
 GET /api/tmux/sessions/detailed (api.js:581) - Rich metadata
 ```
 
-**Action:** Remove `/api/tmux/list`, keep only `/sessions/detailed`.
+**Status:** DONE - Removed `/api/tmux/list` (was identical to `/sessions`).
 
 ### 2.2 File Content Reading (2 variants)
 
@@ -278,7 +277,7 @@ const handlers = {
 ### Priority 3: Consolidate Duplicates
 | Item | Action | Savings |
 |------|--------|---------|
-| Tmux listing endpoints | Remove /tmux/list | ~40 LOC |
+| Tmux listing endpoints | DONE - Removed /tmux/list | ~40 LOC |
 | File reading endpoints | Merge /files/content into /files/read | ~70 LOC |
 | Spawn options endpoint | Remove POST duplicate | ~30 LOC |
 | Path expansion | Extract to shared module | ~30 LOC |
@@ -298,7 +297,7 @@ const handlers = {
 
 ### Immediate Removal
 ```
-GET  /api/tmux/list              → Use /api/tmux/sessions/detailed
+GET  /api/tmux/list              → REMOVED (was duplicate of /sessions)
 GET  /api/files/content          → Use /api/files/read
 POST /api/files/write-spawn-options → Use PUT /api/spawn-options
 ```

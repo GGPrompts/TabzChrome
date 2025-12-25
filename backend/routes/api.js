@@ -57,8 +57,7 @@ const spawnAgentSchema = Joi.object({
   icon: Joi.string().max(10).optional(),
   env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
   prompt: Joi.string().max(500).optional(),
-  autoStart: Joi.boolean().default(true),
-  agentConfigPath: Joi.string().optional()
+  autoStart: Joi.boolean().default(true)
 });
 
 const commandSchema = Joi.object({
@@ -937,36 +936,6 @@ router.post('/tmux/detach/:name', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: err.message
-    });
-  }
-}));
-
-/**
- * GET /api/tmux/list - List all active tmux sessions
- * Returns array of session names for preview before cleanup
- */
-router.get('/tmux/list', asyncHandler(async (req, res) => {
-  const { execSync } = require('child_process');
-
-  try {
-    // Get list of all tmux sessions
-    const output = execSync('tmux list-sessions -F "#{session_name}" 2>/dev/null || true', {
-      encoding: 'utf-8'
-    }).trim();
-
-    const sessions = output ? output.split('\n').filter(s => s) : [];
-
-    res.json({
-      success: true,
-      sessions,
-      count: sessions.length
-    });
-  } catch (err) {
-    console.error('[API] Failed to list tmux sessions:', err.message);
-    res.json({
-      success: true,
-      sessions: [],
-      count: 0
     });
   }
 }));

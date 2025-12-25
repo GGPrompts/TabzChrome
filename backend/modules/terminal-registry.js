@@ -98,55 +98,6 @@ class TerminalRegistry extends EventEmitter {
     ptyHandler.on('pty-output', ({ terminalId, data }) => {
       const terminal = this.terminals.get(terminalId);
       if (terminal) {
-        // Check if this is an offline menu action response
-        if (terminal.isOfflineMenu && data.includes('ACTION:')) {
-          const match = data.match(/ACTION:(\w+)/);
-          if (match) {
-            const action = match[1];
-            log.debug(`Offline menu action: ${action} for ${terminal.originalTerminalId}`);
-
-            // Handle the action
-            if (action === 'resume' || action === 'new' || action === 'start' || action === 'launch') {
-              // Close the menu terminal
-              this.closeTerminal(terminalId);
-
-              // Spawn the real terminal
-              const UnifiedSpawn = require('./unified-spawn');
-              const unifiedSpawn = new UnifiedSpawn();
-
-              // Remove the offline menu flags and spawn actual terminal
-              const spawnConfig = {
-                name: terminal.name.replace(' Menu', ''),
-                terminalType: terminal.terminalType,
-                workingDir: terminal.workingDir,
-                sessionId: terminal.sessionId,
-                startCommand: terminal.startCommand,
-                attachedDoc: terminal.attachedDoc
-              };
-
-              // Don't send custom commands for terminals with auto-execute
-              const skipCustomCommand = ['gemini', 'docker-ai', 'claude-code', 'opencode', 'codex'].includes(terminal.terminalType);
-              if (!skipCustomCommand && terminal.startCommand) {
-                spawnConfig.command = terminal.startCommand;
-              }
-
-              unifiedSpawn.spawn(spawnConfig).then((result) => {
-                if (result.success) {
-                  log.success('Successfully spawned actual terminal after menu selection');
-                } else {
-                  log.error('Failed to spawn actual terminal:', result.error);
-                }
-              });
-            } else if (action === 'exit') {
-              // Just close the menu
-              this.closeTerminal(terminalId);
-            }
-
-            // Don't send ACTION: output to frontend
-            return;
-          }
-        }
-
         terminal.lastActivity = new Date();
         this.emit('output', terminalId, data);
       }

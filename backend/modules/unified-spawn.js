@@ -411,11 +411,6 @@ class UnifiedSpawnSystem {
       // All terminals spawn locally (docker-ai uses docker.exe ai command locally)
       const terminal = await this.spawnLocalTerminal(terminalType, finalConfig);
 
-      // Load agent-specific configuration if it exists
-      if (config.agentConfigPath) {
-        await this.loadAgentConfig(terminal.id, config.agentConfigPath);
-      }
-
       return terminal;
 
     } catch (error) {
@@ -446,19 +441,8 @@ class UnifiedSpawnSystem {
 
     log.debug(`Terminal size: ${size.width}x${size.height} -> ${cols}x${rows} (cols x rows)`);
 
-    // Check if this is an offline terminal resuming
-    if (config.isOfflineMenu) {
-      log.debug('Spawning offline menu for terminal type:', terminalType);
-
-      // Override to spawn the offline menu
-      config.command = `node ${__dirname}/../scripts/offline-menu.js ${terminalType} "${config.workingDir || process.cwd()}"`;
-      config.shell = 'bash';
-      config.name = config.name || `${terminalType} (Offline Menu)`;
-      config.icon = typeConfig.icon || '📟';
-      config.color = typeConfig.color || '#6b7280';
-    }
     // Handle special cases
-    else if (terminalType === 'tui-tool') {
+    if (terminalType === 'tui-tool') {
       // Determine the command to run - check command first (from spawn-options.json)
       let command = '';
       if (config.command) {
@@ -503,20 +487,6 @@ class UnifiedSpawnSystem {
     return terminal;
   }
 
-
-  // Load agent configuration from library
-  async loadAgentConfig(terminalId, configPath) {
-    try {
-      const fs = require('fs').promises;
-      const configFile = await fs.readFile(configPath, 'utf-8');
-      const config = JSON.parse(configFile);
-
-      // Agent-specific settings are applied elsewhere
-      // PTY handler manages command execution to avoid duplication
-    } catch (error) {
-      log.error(`Failed to load agent config from ${configPath}:`, error);
-    }
-  }
 
   /**
    * Get spawn statistics

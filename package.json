@@ -32,9 +32,6 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
@@ -48,7 +45,6 @@
     "@xterm/addon-webgl": "^0.18.0",
     "@xterm/xterm": "^5.5.0",
     "cmdk": "^1.1.1",
-    "immer": "^10.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
@@ -66,7 +62,6 @@
     "@types/chrome": "^0.1.29",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/react-resizable": "^3.0.8",
     "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^4.3.3",
     "@vitest/coverage-v8": "^4.0.8",
@@ -74,18 +69,14 @@
     "autoprefixer": "^10.4.22",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "happy-dom": "^20.0.10",
     "jsdom": "^27.2.0",
     "lucide-react": "^0.553.0",
-    "patch-package": "^8.0.1",
     "postcss": "^8.5.6",
-    "react-resizable": "^3.0.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.6.2",
     "vite": "^5.4.10",
-    "vite-plugin-web-extension": "^4.5.0",
     "vitest": "^4.0.8"
   }
 }
