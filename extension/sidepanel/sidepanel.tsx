@@ -1021,6 +1021,16 @@ function SidePanelTerminal() {
                   defaultProfileId={defaultProfileId}
                   className="absolute top-full right-2 mt-1 z-50"
                   onClose={() => setShowProfileDropdown(false)}
+                  onOpenReference={(reference) => {
+                    if (reference.startsWith('http://') || reference.startsWith('https://')) {
+                      chrome.tabs.create({ url: reference })
+                    } else {
+                      const dashboardUrl = chrome.runtime.getURL(
+                        `dashboard/index.html#/files?path=${encodeURIComponent(reference)}`
+                      )
+                      chrome.tabs.create({ url: dashboardUrl })
+                    }
+                  }}
                 />
               )}
             </div>
@@ -1074,6 +1084,16 @@ function SidePanelTerminal() {
                           defaultProfileId={defaultProfileId}
                           className="absolute top-full left-0 mt-1 z-50"
                           onClose={() => setShowEmptyStateDropdown(false)}
+                          onOpenReference={(reference) => {
+                            if (reference.startsWith('http://') || reference.startsWith('https://')) {
+                              chrome.tabs.create({ url: reference })
+                            } else {
+                              const dashboardUrl = chrome.runtime.getURL(
+                                `dashboard/index.html#/files?path=${encodeURIComponent(reference)}`
+                              )
+                              chrome.tabs.create({ url: dashboardUrl })
+                            }
+                          }}
                         />
                       )}
                     </div>

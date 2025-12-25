@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search, X, Paperclip } from 'lucide-react'
 import { type Profile, DEFAULT_CATEGORY_COLOR } from './SettingsModal'
 
 /**
@@ -22,6 +22,8 @@ interface ProfileDropdownProps {
   className?: string
   /** Callback to close the dropdown (for Escape key) */
   onClose?: () => void
+  /** Callback to open a profile's reference (URL or file path) */
+  onOpenReference?: (reference: string) => void
 }
 
 /**
@@ -56,6 +58,7 @@ export function ProfileDropdown({
   defaultProfileId,
   className = '',
   onClose,
+  onOpenReference,
 }: ProfileDropdownProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -301,6 +304,18 @@ export function ProfileDropdown({
                     <span>{profile.name}</span>
                     {defaultProfileId && profile.id === defaultProfileId && (
                       <span className="text-[9px] bg-[#00ff88]/20 text-[#00ff88] px-1.5 py-0.5 rounded">Default</span>
+                    )}
+                    {profile.reference && onOpenReference && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onOpenReference(profile.reference!)
+                        }}
+                        className="p-0.5 hover:bg-blue-500/20 rounded cursor-pointer"
+                        title={`Open reference: ${profile.reference}`}
+                      >
+                        <Paperclip className="h-3 w-3 text-blue-400 hover:text-blue-300" />
+                      </span>
                     )}
                     {truncatedDir && (
                       <span className="text-gray-400 font-normal text-[10px]">{truncatedDir}</span>

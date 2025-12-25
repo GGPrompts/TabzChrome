@@ -1168,9 +1168,24 @@ export function ProfilesTab({
                             </span>
                           )}
                           {profile.reference && (
-                            <span title={profile.reference}>
-                              <Paperclip className="h-3.5 w-3.5 text-blue-400" />
-                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const reference = profile.reference!
+                                if (reference.startsWith('http://') || reference.startsWith('https://')) {
+                                  chrome.tabs.create({ url: reference })
+                                } else {
+                                  const dashboardUrl = chrome.runtime.getURL(
+                                    `dashboard/index.html#/files?path=${encodeURIComponent(reference)}`
+                                  )
+                                  chrome.tabs.create({ url: dashboardUrl })
+                                }
+                              }}
+                              className="p-0.5 hover:bg-blue-500/20 rounded"
+                              title={`Open reference: ${profile.reference}`}
+                            >
+                              <Paperclip className="h-3.5 w-3.5 text-blue-400 hover:text-blue-300" />
+                            </button>
                           )}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">{profile.workingDir || '(inherit from header)'}</div>
