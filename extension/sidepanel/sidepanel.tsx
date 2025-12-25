@@ -256,6 +256,13 @@ function SidePanelTerminal() {
     terminalId: string | null
   }>({ show: false, x: 0, y: 0, terminalId: null })
 
+  // Customize popover state (opened from context menu)
+  const [customizePopover, setCustomizePopover] = useState<{
+    isOpen: boolean
+    position: { x: number; y: number }
+    sessionId: string | null
+  }>({ isOpen: false, position: { x: 0, y: 0 }, sessionId: null })
+
   useEffect(() => {
     // Connect to background worker via port for broadcasts
     const port = connectToBackground('sidepanel', (message) => {
@@ -1222,7 +1229,6 @@ function SidePanelTerminal() {
                         </p>
                       </div>
                     ) : (
-                      <>
                         <Terminal
                           terminalId={session.id}
                           sessionName={session.name}
@@ -1230,7 +1236,7 @@ function SidePanelTerminal() {
                           workingDir={session.workingDir || effectiveProfile?.workingDir}
                           tmuxSession={session.sessionName}
                           fontSize={effectiveProfile?.fontSize || 16}
-                          fontFamily={effectiveProfile?.fontFamily || 'monospace'}
+                          fontFamily={session.appearanceOverrides?.fontFamily || effectiveProfile?.fontFamily || 'monospace'}
                           themeName={session.appearanceOverrides?.themeName || effectiveProfile?.themeName || 'high-contrast'}
                           isDark={isDark}
                           isActive={session.id === currentSession}
@@ -1249,22 +1255,6 @@ function SidePanelTerminal() {
                             })
                           }}
                         />
-                        {/* Floating customize button */}
-                        <div className="absolute bottom-2 right-2 z-10">
-                          <TerminalCustomizePopover
-                            sessionId={session.id}
-                            currentOverrides={session.appearanceOverrides}
-                            profileDefaults={{
-                              themeName: effectiveProfile?.themeName,
-                              backgroundGradient: effectiveProfile?.backgroundGradient,
-                              panelColor: effectiveProfile?.panelColor,
-                              transparency: effectiveProfile?.transparency,
-                            }}
-                            onUpdate={updateTerminalAppearance}
-                            onReset={resetTerminalAppearance}
-                          />
-                        </div>
-                      </>
                     )}
                   </div>
                   )
@@ -1307,10 +1297,15 @@ function SidePanelTerminal() {
         x={contextMenu.x}
         y={contextMenu.y}
         terminal={sessions.find(t => t.id === contextMenu.terminalId) || null}
-        fontSizeOffset={sessions.find(t => t.id === contextMenu.terminalId)?.fontSizeOffset}
-        onIncreaseFontSize={() => contextMenu.terminalId && increaseFontSize(contextMenu.terminalId)}
-        onDecreaseFontSize={() => contextMenu.terminalId && decreaseFontSize(contextMenu.terminalId)}
-        onResetFontSize={() => contextMenu.terminalId && resetFontSize(contextMenu.terminalId)}
+        onCustomize={() => {
+          if (contextMenu.terminalId) {
+            setCustomizePopover({
+              isOpen: true,
+              position: { x: contextMenu.x, y: contextMenu.y },
+              sessionId: contextMenu.terminalId,
+            })
+          }
+        }}
         onEditProfile={() => {
           const terminal = sessions.find(t => t.id === contextMenu.terminalId)
           // Use terminal's profile ID, or fall back to default profile
@@ -1347,6 +1342,36 @@ function SidePanelTerminal() {
         onOpenIn3D={handleOpenIn3D}
         onClose={() => setContextMenu({ show: false, x: 0, y: 0, terminalId: null })}
       />
+
+      {/* Customize Popover (opened from context menu) */}
+      {customizePopover.sessionId && (() => {
+        const session = sessions.find(s => s.id === customizePopover.sessionId)
+        if (!session) return null
+        const effectiveProfile = session.profile || profiles.find(p => p.id === 'default') || profiles[0]
+        return (
+          <TerminalCustomizePopover
+            sessionId={customizePopover.sessionId}
+            isOpen={customizePopover.isOpen}
+            position={customizePopover.position}
+            currentOverrides={session.appearanceOverrides}
+            profileDefaults={{
+              themeName: effectiveProfile?.themeName,
+              backgroundGradient: effectiveProfile?.backgroundGradient,
+              panelColor: effectiveProfile?.panelColor,
+              transparency: effectiveProfile?.transparency,
+              fontSize: effectiveProfile?.fontSize,
+              fontFamily: effectiveProfile?.fontFamily,
+            }}
+            fontSizeOffset={session.fontSizeOffset}
+            onUpdate={updateTerminalAppearance}
+            onReset={resetTerminalAppearance}
+            onIncreaseFontSize={() => increaseFontSize(customizePopover.sessionId!)}
+            onDecreaseFontSize={() => decreaseFontSize(customizePopover.sessionId!)}
+            onResetFontSize={() => resetFontSize(customizePopover.sessionId!)}
+            onClose={() => setCustomizePopover({ isOpen: false, position: { x: 0, y: 0 }, sessionId: null })}
+          />
+        )
+      })()}
 
       {/* Tab Tooltip - styled hover info */}
       {hoveredTab && (() => {

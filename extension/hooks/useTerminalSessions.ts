@@ -8,6 +8,7 @@ export interface TerminalAppearanceOverrides {
   backgroundGradient?: string
   panelColor?: string
   transparency?: number
+  fontFamily?: string
 }
 
 export interface TerminalSession {
