@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, LayoutDashboard } from 'lucide-react'
+import { Terminal as TerminalIcon, Settings, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, LayoutDashboard, Sparkles } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { TerminalCustomizePopover } from '../components/TerminalCustomizePopover'
@@ -23,6 +23,8 @@ import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
+import { MemoizedAnimatedBackground } from '../components/AnimatedBackground'
+import { animatedBackgroundNames, animationCategories, getAnimationsByCategory } from '../styles/animated-backgrounds'
 import '../styles/globals.css'
 
 // Setup console forwarding to backend for Claude debugging
@@ -60,6 +62,11 @@ function SidePanelTerminal() {
   const [customDirInput, setCustomDirInput] = useState('')
   const [isDark, setIsDark] = useState(true)  // Global dark/light mode toggle
   const audioUnlockedRef = useRef(false)  // Track if audio has been unlocked by user interaction
+
+  // Animated background state
+  const [animatedBackground, setAnimatedBackground] = useState<string | null>(null)
+  const [animationSpeed, setAnimationSpeed] = useState(1)
+  const [animationPaused, setAnimationPaused] = useState(false)
 
   // Tab tooltip state
   const [hoveredTab, setHoveredTab] = useState<{ id: string; rect: DOMRect } | null>(null)
@@ -766,7 +773,17 @@ function SidePanelTerminal() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground">
+    <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground relative overflow-hidden">
+      {/* Animated Background Layer */}
+      {animatedBackground && (
+        <MemoizedAnimatedBackground
+          animationKey={animatedBackground}
+          isDark={isDark}
+          speed={animationSpeed}
+          paused={animationPaused}
+          opacity={0.6}
+        />
+      )}
       {/* Header - Windows Terminal style */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a]">
         {/* Left: Title */}
@@ -826,6 +843,26 @@ function SidePanelTerminal() {
               onKill={killSessions}
             />
           )}
+
+          {/* Animated Background Toggle */}
+          <button
+            onClick={() => {
+              // Cycle through animations: off -> matrix -> aurora -> starfield -> particles -> grid -> off
+              const cycle = [null, 'matrix-rain', 'aurora-classic', 'starfield-warp', 'floating-particles', 'synthwave-grid']
+              const currentIndex = cycle.indexOf(animatedBackground)
+              const nextIndex = (currentIndex + 1) % cycle.length
+              setAnimatedBackground(cycle[nextIndex])
+            }}
+            className={`p-1.5 rounded-md transition-colors ${
+              animatedBackground
+                ? 'bg-[#00ff88]/20 text-[#00ff88]'
+                : 'hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88]'
+            }`}
+            title={animatedBackground ? `Animation: ${animatedBackground} (click to cycle)` : 'Enable animated background'}
+            aria-label="Toggle animated background"
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
 
           {/* Dark/Light Mode Toggle */}
           <button
