@@ -181,6 +181,7 @@ export interface AudioEventSettings {
   subagents: boolean
   contextWarning: boolean   // Announce when context hits warning threshold (default 50%)
   contextCritical: boolean  // Announce when context hits critical threshold (default 75%)
+  mcpDownloads: boolean     // Announce when MCP downloads complete (tabz_download_file, tabz_download_image)
 }
 
 export interface AudioSettings {
@@ -216,6 +217,7 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     subagents: false,
     contextWarning: false,
     contextCritical: false,
+    mcpDownloads: true,
   },
   toolDebounceMs: 1000,
 }

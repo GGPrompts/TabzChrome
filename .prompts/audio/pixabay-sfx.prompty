@@ -1,0 +1,135 @@
+---
+name: Pixabay Sound Effects
+description: Download free sound effects from Pixabay via browser automation
+tags: [audio, sfx, sound-effects, free, automation]
+---
+
+# Pixabay Sound Effects via Browser Automation
+
+Download royalty-free sound effects (no attribution required) using TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Download {{search:notification|notification|alert|whoosh|pop|click|beep|chime|bell|game|ui|interface|transition|swoosh|ambient|nature|rain|thunder}} sounds from Pixabay
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{search}}` | notification, alert, whoosh, pop, click, beep, chime, bell, game, ui, interface, transition, swoosh, ambient, nature, rain, thunder | Search term (URL slug) |
+
+## URL Patterns
+
+| Type | URL |
+|------|-----|
+| Home | `https://pixabay.com/sound-effects/` |
+| Search | `https://pixabay.com/sound-effects/search/{query}/` |
+
+### Example Search URLs
+
+```
+https://pixabay.com/sound-effects/search/notification/
+https://pixabay.com/sound-effects/search/whoosh/
+https://pixabay.com/sound-effects/search/ui%20click/
+https://pixabay.com/sound-effects/search/game%20sound/
+```
+
+## Workflow
+
+### 1. Open Pixabay search results (direct URL)
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://pixabay.com/sound-effects/search/notification/"}'
+```
+
+### 2. Dismiss cookie popup (first visit only - OneTrust)
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "#onetrust-accept-btn-handler"}'
+```
+
+### 3. Download first sound from list
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:first-of-type [class*=\"triggerWrapper\"]:nth-child(3) button"}'
+```
+
+### 4. Download nth sound from list
+```bash
+# Download 2nd sound
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:nth-of-type(2) [class*=\"triggerWrapper\"]:nth-child(3) button"}'
+```
+
+### 5. Verify download
+```bash
+mcp-cli call tabz/tabz_get_downloads '{}'
+```
+
+## Alternative: Detail Page Download
+
+### Click sound title to go to detail page
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:first-of-type [class*=\"title\"]"}'
+```
+
+### On detail page, click Download button (via JS)
+```bash
+# Use execute_script since button classes are randomized
+mcp-cli call tabz/tabz_execute_script '{"code": "Array.from(document.querySelectorAll(\"button\")).find(b => b.textContent.trim() === \"Download\").click()"}'
+```
+
+## Key Selectors (Verified)
+
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Cookie accept | `#onetrust-accept-btn-handler` | OneTrust consent |
+| Sound row | `[class*="audioRow"]` | Each sound in list |
+| Sound title | `[class*="audioRow"] [class*="title"]` | Clickable link to detail |
+| Download button | `[class*="triggerWrapper"]:nth-child(3) button` | 3rd action in row |
+| Play button | `[class*="playOverlay"]` | Preview sound |
+
+## Important Notes
+
+1. **CSS Modules**: Pixabay uses randomized class names (e.g., `audioRow--nAm4Z`). Use `[class*="audioRow"]` partial matching.
+2. **File format**: Downloads are `.mp3` files
+3. **License**: Royalty-free, no attribution required (Pixabay Content License)
+4. **Login**: Optional but gives unlimited downloads. Free users may have limits.
+5. **No popups after download**: Unlike Mixkit, no upsell modals
+
+## Search Tips
+
+| Sound Type | Search Terms |
+|------------|--------------|
+| UI/Interface | ui click, button, interface, menu |
+| Notifications | notification, alert, chime, bell, beep |
+| Transitions | whoosh, swoosh, transition, sweep |
+| Game | game, arcade, power up, coin, level up |
+| Ambient | ambient, background, atmosphere |
+| Nature | rain, thunder, wind, birds, forest |
+
+## Example: Download Multiple Notification Sounds
+
+```bash
+# 1. Open notification search
+mcp-cli call tabz/tabz_open_url '{"url": "https://pixabay.com/sound-effects/search/notification/"}'
+
+# 2. Accept cookies (first visit)
+mcp-cli call tabz/tabz_click '{"selector": "#onetrust-accept-btn-handler"}'
+
+# 3. Download first 3 sounds
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:nth-of-type(1) [class*=\"triggerWrapper\"]:nth-child(3) button"}'
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:nth-of-type(2) [class*=\"triggerWrapper\"]:nth-child(3) button"}'
+mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:nth-of-type(3) [class*=\"triggerWrapper\"]:nth-child(3) button"}'
+
+# 4. Check downloads
+mcp-cli call tabz/tabz_get_downloads '{}'
+```
+
+## Comparison: Mixkit vs Pixabay
+
+| Feature | Mixkit | Pixabay |
+|---------|--------|---------|
+| Format | .wav | .mp3 |
+| Login required | No | No (but helps) |
+| Popups | 3 (cookie, toast, download modal) | 1 (cookie only) |
+| Class names | Stable | Randomized (CSS modules) |
+| License | Royalty-free | Royalty-free |

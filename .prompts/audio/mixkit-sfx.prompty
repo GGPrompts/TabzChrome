@@ -1,0 +1,152 @@
+---
+name: Mixkit Sound Effects
+description: Download free sound effects from Mixkit via browser automation
+tags: [audio, sfx, sound-effects, free, automation]
+---
+
+# Mixkit Sound Effects via Browser Automation
+
+Download royalty-free sound effects (no attribution required) using TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Download {{category:alerts|alerts|notification|alarm|beep|chimes|phone|technology|interface|computer|game|arcade|transition|swoosh|whoosh|nature|rain|thunder|animals|birds|human|voices|footsteps|applause|funny|warfare|instrument|lifestyle|misc}} sounds from Mixkit
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{category}}` | alerts, notification, alarm, beep, chimes, phone, technology, interface, computer, game, arcade, transition, swoosh, whoosh, nature, rain, thunder, animals, birds, human, voices, footsteps, applause, funny, warfare, instrument, lifestyle, misc | URL slug for category |
+| `{{search}}` | (free text) | Search term |
+
+## URL Patterns
+
+| Type | URL |
+|------|-----|
+| Home | `https://mixkit.co/free-sound-effects/` |
+| Category | `https://mixkit.co/free-sound-effects/{category}/` |
+| Search | Use search form (redirects to matching category) |
+
+### Category URLs (Direct Navigation)
+
+```
+https://mixkit.co/free-sound-effects/notification/
+https://mixkit.co/free-sound-effects/alerts/
+https://mixkit.co/free-sound-effects/technology/
+https://mixkit.co/free-sound-effects/game/
+https://mixkit.co/free-sound-effects/transition/
+https://mixkit.co/free-sound-effects/chimes/
+https://mixkit.co/free-sound-effects/beep/
+```
+
+## Workflow
+
+### 1. Open Mixkit (direct to category recommended)
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://mixkit.co/free-sound-effects/alerts/"}'
+```
+
+### 2. Dismiss cookie popup (first visit only)
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"}'
+```
+
+### 3. Dismiss Envato promo toast (if appears)
+```bash
+mcp-cli call tabz/tabz_click '{"selector": ".elements-toast-banner__close-button"}'
+```
+
+### 4. Download a sound (clicks first free sound)
+```bash
+mcp-cli call tabz/tabz_click '{"selector": ".download-button--icon"}'
+```
+
+### 5. Close download upsell modal
+```bash
+mcp-cli call tabz/tabz_click '{"selector": ".download-modal__close"}'
+```
+
+### 6. Verify download
+```bash
+mcp-cli call tabz/tabz_get_downloads '{}'
+```
+
+## Search Workflow
+
+### Fill search and submit
+```bash
+mcp-cli call tabz/tabz_fill '{"selector": ".search-form__input", "value": "{{search}}"}'
+mcp-cli call tabz/tabz_click '{"selector": ".search-form__button-submit"}'
+```
+
+### Clear search
+```bash
+mcp-cli call tabz/tabz_click '{"selector": ".search-form__button-clear"}'
+```
+
+## Key Selectors (Verified)
+
+| Element | Selector | Status |
+|---------|----------|--------|
+| Cookie accept | `#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll` | Cookiebot |
+| Envato toast close | `.elements-toast-banner__close-button` | Promo popup |
+| Download modal close | `.download-modal__close` | Post-download upsell |
+| Download button | `.download-button--icon` | Free sounds only |
+| Sound title | `.item-grid-card__title` | Sound name |
+| Play button | `.audio-player__button` | Preview sound |
+| Search input | `.search-form__input` | Search box |
+| Search submit | `.search-form__button-submit` | Search button |
+| Duration | `.item-grid-sfx-preview__meta-time` | e.g., "0:01" |
+
+## Download Specific Sound (by index)
+
+```bash
+# Download 3rd sound on page
+mcp-cli call tabz/tabz_click '{"selector": ".item-grid__item:nth-child(3) .download-button--icon"}'
+```
+
+## Important Notes
+
+1. **Free vs Premium**: Green background cards with "View on Envato" are premium. Free sounds have `.download-button--icon`
+2. **File format**: Downloads are `.wav` files
+3. **License**: Royalty-free, no attribution required
+4. **Popups**: Expect 3 potential popups:
+   - Cookie consent (first visit)
+   - Envato promo toast (may appear)
+   - Download upsell modal (after each download)
+
+## Categories Reference
+
+**Main categories:** notification, technology, game, transition, nature, funny, animals, transport, human, warfare, instrument, lifestyle, misc
+
+**Popular subcategories (direct URL):** alerts, alarm, beep, chimes, phone, interface, computer, arcade, swoosh, whoosh, rain, thunder, birds, voices, footsteps, applause
+
+## Example: Download Notification Sounds
+
+```bash
+# 1. Open alerts category
+mcp-cli call tabz/tabz_open_url '{"url": "https://mixkit.co/free-sound-effects/alerts/"}'
+
+# 2. Wait for load, dismiss any popups
+mcp-cli call tabz/tabz_click '{"selector": "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"}'
+mcp-cli call tabz/tabz_click '{"selector": ".elements-toast-banner__close-button"}'
+
+# 3. Download first free sound
+mcp-cli call tabz/tabz_click '{"selector": ".download-button--icon"}'
+
+# 4. Close download modal
+mcp-cli call tabz/tabz_click '{"selector": ".download-modal__close"}'
+
+# 5. Check downloads
+mcp-cli call tabz/tabz_get_downloads '{}'
+```
+
+## Tips
+
+1. **Direct URLs** - Use category URLs to skip navigation
+2. **Scroll for more** - Page has many sounds, scroll to load more
+3. **Preview first** - Click play button to hear before downloading
+4. **Batch downloads** - Close modal, download next, repeat
+5. **Check downloads** - Use `tabz_get_downloads` to verify files

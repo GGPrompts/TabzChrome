@@ -1,0 +1,233 @@
+---
+name: Add Audio Event
+description: Guide for adding new audio effects or TTS announcements to TabzChrome
+tags: [dev, audio, tts, sound-effects, internal]
+---
+
+# Adding Audio Events to TabzChrome
+
+Guide for adding new TTS announcements or sound effects to the TabzChrome extension.
+
+## Audio Infrastructure Overview
+
+```
+extension/
+├── components/settings/
+│   ├── types.ts              # AudioSettings interface & defaults
+│   └── AudioTab.tsx          # Settings UI toggles
+├── constants/
+│   └── audioVoices.ts        # Voice options, duplicate defaults
+├── hooks/
+│   ├── useAudioNotifications.ts  # Claude status event announcements
+│   ├── useAudioPlayback.ts       # Audio playback utilities
+│   └── useSessionAnnouncements.ts
+├── utils/
+│   └── audioManager.ts       # Audio queue management
+└── background/
+    └── browserMcp/
+        └── downloads.ts      # Example: MCP download announcements
+
+backend/
+└── modules/
+    └── audio-generator.js    # TTS generation via Edge TTS
+```
+
+## API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/audio/speak` | POST | Generate TTS and broadcast to extension |
+| `/api/audio/generate` | POST | Generate TTS, return URL (no auto-play) |
+
+### Speak Request Body
+```json
+{
+  "text": "Downloaded image.png",
+  "voice": "en-US-AndrewMultilingualNeural",
+  "rate": "+0%",
+  "volume": 0.7
+}
+```
+
+## Adding a New Audio Event
+
+### Step 1: Add Setting Type
+
+**File:** `extension/components/settings/types.ts`
+
+```typescript
+export interface AudioEventSettings {
+  ready: boolean
+  sessionStart: boolean
+  tools: boolean
+  toolDetails: boolean
+  subagents: boolean
+  contextWarning: boolean
+  contextCritical: boolean
+  mcpDownloads: boolean
+  {{newEvent}}: boolean     // Add your new event here
+}
+```
+
+### Step 2: Add Default Value
+
+**File:** `extension/components/settings/types.ts` (in DEFAULT_AUDIO_SETTINGS)
+
+```typescript
+events: {
+  ready: true,
+  sessionStart: false,
+  tools: false,
+  toolDetails: false,
+  subagents: false,
+  contextWarning: false,
+  contextCritical: false,
+  mcpDownloads: true,
+  {{newEvent}}: {{defaultValue:true|true|false}},  // Add default
+},
+```
+
+**Also update:** `extension/constants/audioVoices.ts` (keep in sync!)
+
+### Step 3: Add Settings UI Toggle
+
+**File:** `extension/components/settings/AudioTab.tsx`
+
+Add after the last event toggle:
+
+```tsx
+{/* {{NewEventLabel}} */}
+<div className="flex items-center justify-between p-3">
+  <div>
+    <span className="text-sm text-white">{{NewEventLabel}}</span>
+    <p className="text-xs text-gray-400">{{Description}}</p>
+  </div>
+  <label className="relative inline-flex items-center cursor-pointer">
+    <input
+      type="checkbox"
+      checked={audioSettings.events.{{newEvent}}}
+      onChange={(e) => updateAudioEvents({ {{newEvent}}: e.target.checked })}
+      className="sr-only peer"
+    />
+    <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+  </label>
+</div>
+```
+
+### Step 4: Implement the Announcement
+
+#### Option A: From Extension Background Script
+
+```typescript
+// Example from downloads.ts
+async function announce{{NewEvent}}(data: string): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get(['audioSettings', 'audioGlobalMute'])
+    const audioSettings = result.audioSettings || {}
+    const audioGlobalMute = result.audioGlobalMute === true
+
+    // Check if enabled
+    if (!audioSettings.enabled || audioGlobalMute) return
+    if (audioSettings.events?.{{newEvent}} === false) return
+
+    // Handle random voice
+    let voice = audioSettings.voice || 'en-US-AndrewMultilingualNeural'
+    if (voice === 'random') {
+      const voices = ['en-US-AndrewMultilingualNeural', 'en-US-EmmaMultilingualNeural', ...]
+      voice = voices[Math.floor(Math.random() * voices.length)]
+    }
+
+    // Call TTS API
+    await fetch('http://localhost:8129/api/audio/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `{{Announcement text}} ${data}`,
+        voice,
+        rate: audioSettings.rate || '+0%',
+        volume: audioSettings.volume ?? 0.7
+      })
+    })
+  } catch (err) {
+    console.log('[{{NewEvent}} TTS] Error:', err)
+  }
+}
+```
+
+#### Option B: From React Component (using existing hooks)
+
+```typescript
+import { useAudioPlayback } from '../hooks/useAudioPlayback'
+
+function MyComponent() {
+  const { speak } = useAudioPlayback()
+
+  const handleEvent = () => {
+    speak('Something happened')
+  }
+}
+```
+
+## Playing Sound Effects (Not TTS)
+
+For non-TTS audio (sound effects), use the audio playback system:
+
+```typescript
+// From React component
+const audio = new Audio('/path/to/sound.mp3')
+audio.volume = audioSettings.volume ?? 0.7
+audio.play()
+```
+
+Or via backend:
+```bash
+curl -X POST http://localhost:8129/api/audio/play \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/sound.mp3", "volume": 0.7}'
+```
+
+## Voice Options
+
+Available TTS voices (Edge TTS):
+- `en-US-AndrewMultilingualNeural` (default)
+- `en-US-EmmaMultilingualNeural`
+- `en-US-BrianMultilingualNeural`
+- `en-US-AriaNeural`
+- `en-US-GuyNeural`
+- `en-US-JennyNeural`
+- `en-US-AvaNeural`
+- `en-GB-SoniaNeural`
+- `en-GB-RyanNeural`
+- `en-AU-NatashaNeural`
+- `random` (picks randomly)
+
+## Checklist
+
+- [ ] Add to `AudioEventSettings` interface in `types.ts`
+- [ ] Add default in `DEFAULT_AUDIO_SETTINGS` in `types.ts`
+- [ ] Add default in `DEFAULT_AUDIO_SETTINGS` in `audioVoices.ts` (keep in sync!)
+- [ ] Add toggle UI in `AudioTab.tsx`
+- [ ] Implement announcement function
+- [ ] Call announcement at appropriate trigger point
+- [ ] Test with audio enabled/disabled
+- [ ] Test with specific event toggle on/off
+- [ ] Build and reload extension
+
+## Examples in Codebase
+
+| Feature | File | Function |
+|---------|------|----------|
+| MCP downloads | `background/browserMcp/downloads.ts` | `announceDownload()` |
+| Claude status | `hooks/useAudioNotifications.ts` | Various |
+| Session events | `hooks/useSessionAnnouncements.ts` | Various |
+
+## Quick Reference
+
+```typescript
+// Minimal TTS call from background script
+await fetch('http://localhost:8129/api/audio/speak', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: 'Hello world' })
+})
+```

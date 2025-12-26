@@ -29,6 +29,7 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     subagents: false,
     contextWarning: false,
     contextCritical: false,
+    mcpDownloads: true,
   },
   toolDebounceMs: 1000,
 }

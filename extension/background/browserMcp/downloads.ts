@@ -6,6 +6,64 @@
 import { sendToWebSocket } from '../websocket'
 import { windowsToWslPath, waitForDownload } from '../utils'
 
+// Voice options for random selection (matches TTS_VOICES in extension settings)
+const TTS_VOICE_VALUES = [
+  'en-US-AndrewMultilingualNeural', 'en-US-EmmaMultilingualNeural', 'en-US-BrianMultilingualNeural',
+  'en-US-AriaNeural', 'en-US-GuyNeural', 'en-US-JennyNeural', 'en-US-ChristopherNeural', 'en-US-AvaNeural',
+  'en-GB-SoniaNeural', 'en-GB-RyanNeural', 'en-AU-NatashaNeural', 'en-AU-WilliamMultilingualNeural'
+]
+
+/**
+ * Announce download completion via TTS
+ * Uses the audio settings from Chrome storage
+ */
+async function announceDownload(filename: string): Promise<void> {
+  try {
+    // Load audio settings from Chrome storage
+    const result = await chrome.storage.local.get(['audioSettings', 'audioGlobalMute'])
+    const audioSettings = (result.audioSettings || {}) as {
+      enabled?: boolean
+      voice?: string
+      rate?: string
+      volume?: number
+      events?: { mcpDownloads?: boolean }
+    }
+    const audioGlobalMute = result.audioGlobalMute === true
+
+    // Check if audio is enabled and mcpDownloads event is enabled
+    if (!audioSettings.enabled || audioGlobalMute) return
+    if (audioSettings.events?.mcpDownloads === false) return
+
+    // Handle random voice selection
+    let voice = audioSettings.voice || 'en-US-AndrewMultilingualNeural'
+    if (voice === 'random') {
+      voice = TTS_VOICE_VALUES[Math.floor(Math.random() * TTS_VOICE_VALUES.length)]
+    }
+
+    // Extract just the filename (without path)
+    const shortFilename = filename.split(/[/\\]/).pop() || filename
+
+    // Call TTS API using speak endpoint (plays audio directly)
+    const response = await fetch('http://localhost:8129/api/audio/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `Downloaded ${shortFilename}`,
+        voice,
+        rate: audioSettings.rate || '+0%',
+        volume: audioSettings.volume ?? 0.7
+      })
+    })
+    const data = await response.json()
+    if (!data.success) {
+      console.log('[Download TTS] Failed:', data.error)
+    }
+  } catch (err) {
+    // Silently ignore TTS errors - shouldn't affect download functionality
+    console.log('[Download TTS] Error:', (err as Error).message)
+  }
+}
+
 /**
  * Handle download file request from backend (MCP server)
  */
@@ -40,6 +98,11 @@ export async function handleBrowserDownloadFile(message: {
 
     // Wait for download to complete
     const result = await waitForDownload(downloadId)
+
+    // Announce download completion via TTS (if enabled)
+    if (result.success && result.filename) {
+      announceDownload(result.filename)
+    }
 
     sendToWebSocket({
       type: 'browser-download-result',
@@ -329,6 +392,11 @@ export async function handleBrowserCaptureImage(message: {
       setTimeout(checkDownload, 100)
     })
 
+    // Announce download completion via TTS (if enabled)
+    if (downloadResult.success && downloadResult.filePath) {
+      announceDownload(downloadResult.filePath)
+    }
+
     sendToWebSocket({
       type: 'browser-capture-image-result',
       requestId: message.requestId,
@@ -463,6 +531,11 @@ export async function handleBrowserSavePage(message: {
       }
       setTimeout(checkDownload, 100)
     })
+
+    // Announce download completion via TTS (if enabled)
+    if (downloadResult.success && downloadResult.filename) {
+      announceDownload(downloadResult.filename)
+    }
 
     sendToWebSocket({
       type: 'browser-save-page-result',

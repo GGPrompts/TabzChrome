@@ -299,6 +299,23 @@ export function AudioTab({
               <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
             </label>
           </div>
+
+          {/* MCP Downloads */}
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">MCP downloads</span>
+              <p className="text-xs text-gray-400">"Downloaded image.png" when files complete</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.mcpDownloads}
+                onChange={(e) => updateAudioEvents({ mcpDownloads: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
         </div>
 
         {/* Tool Debounce (only shown if tools enabled) */}
