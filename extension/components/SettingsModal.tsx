@@ -143,6 +143,7 @@ function SettingsModalContent({ onClose, editProfileId }: SettingsModalContentPr
                 audioSettings={settings.audioSettings}
                 updateAudioSettings={settings.updateAudioSettings}
                 updateAudioEvents={settings.updateAudioEvents}
+                updateAudioSfx={settings.updateAudioSfx}
               />
             </div>
           )}

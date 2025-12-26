@@ -280,6 +280,124 @@ app.post('/api/audio/speak', async (req, res) => {
   });
 });
 
+// Default SFX file names for each event type
+const DEFAULT_SFX_FILES = {
+  ready: 'ready.mp3',
+  sessionStart: 'session-start.mp3',
+  tools: 'tool.mp3',
+  subagents: 'subagent.mp3',
+  contextWarning: 'warning.mp3',
+  contextCritical: 'critical.mp3',
+  mcpDownloads: 'download.mp3',
+};
+
+// POST /api/audio/sfx - Get SFX URL for an event (with optional custom path)
+// Returns URL to play, handles custom paths and default fallbacks
+app.post('/api/audio/sfx', (req, res) => {
+  const { event, customPath, volume = 0.7, broadcast: shouldBroadcast = false } = req.body;
+
+  // Validate event name
+  if (!event || typeof event !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing event parameter' });
+  }
+
+  let sfxUrl;
+
+  if (customPath && typeof customPath === 'string') {
+    // Custom path provided - try to resolve it
+    // Support ~ for home directory
+    const resolvedPath = customPath.replace(/^~/, process.env.HOME || '/home');
+
+    // Check if custom file exists
+    if (fs.existsSync(resolvedPath)) {
+      // For custom paths, we need to serve them differently
+      // Option 1: Copy to temp and serve
+      // Option 2: Return file:// URL (won't work in browser for security)
+      // For now, we'll check if it's under public/sfx and serve it
+      const publicSfxPath = path.join(__dirname, 'public', 'sfx');
+      if (resolvedPath.startsWith(publicSfxPath)) {
+        const relativePath = path.relative(publicSfxPath, resolvedPath);
+        sfxUrl = `http://localhost:8129/sfx/${relativePath}`;
+      } else {
+        // Copy to temp location and serve from there
+        const fileName = path.basename(resolvedPath);
+        const tempPath = `/tmp/claude-audio-cache/custom-${fileName}`;
+        try {
+          fs.copyFileSync(resolvedPath, tempPath);
+          sfxUrl = `http://localhost:8129/audio/custom-${fileName}`;
+        } catch (err) {
+          console.warn('[SFX] Failed to copy custom file:', err.message);
+          // Fall back to default
+        }
+      }
+    }
+  }
+
+  // Fall back to default SFX
+  if (!sfxUrl) {
+    const defaultFile = DEFAULT_SFX_FILES[event];
+    if (defaultFile) {
+      const defaultPath = path.join(__dirname, 'public', 'sfx', defaultFile);
+      if (fs.existsSync(defaultPath)) {
+        sfxUrl = `http://localhost:8129/sfx/${defaultFile}`;
+      }
+    }
+  }
+
+  // If no SFX found, return error
+  if (!sfxUrl) {
+    return res.status(404).json({
+      success: false,
+      error: `No SFX found for event: ${event}`,
+      suggestion: 'Download SFX files to backend/public/sfx/ or provide a valid customPath'
+    });
+  }
+
+  // Optionally broadcast to extension (for backend-triggered SFX)
+  if (shouldBroadcast) {
+    broadcast({
+      type: 'audio-sfx',
+      url: sfxUrl,
+      event,
+      volume: Math.max(0, Math.min(1, volume)),
+      priority: event.includes('critical') ? 'high' : 'low'
+    });
+  }
+
+  res.json({
+    success: true,
+    url: sfxUrl,
+    event
+  });
+});
+
+// GET /api/audio/sfx/list - List available SFX files
+app.get('/api/audio/sfx/list', (req, res) => {
+  const sfxDir = path.join(__dirname, 'public', 'sfx');
+
+  try {
+    if (!fs.existsSync(sfxDir)) {
+      return res.json({ success: true, files: [], message: 'SFX directory not found' });
+    }
+
+    const files = fs.readdirSync(sfxDir)
+      .filter(f => f.endsWith('.mp3') || f.endsWith('.wav'))
+      .map(f => ({
+        name: f,
+        url: `http://localhost:8129/sfx/${f}`,
+        size: fs.statSync(path.join(sfxDir, f)).size
+      }));
+
+    res.json({
+      success: true,
+      files,
+      defaults: DEFAULT_SFX_FILES
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // app.use('/api/workspace', workspaceRouter); // Archived - workspace-manager removed
 
 // TUI Tools endpoints

@@ -6,6 +6,8 @@ import {
   READY_ANNOUNCEMENT_COOLDOWN_MS,
   STATUS_FRESHNESS_MS,
 } from '../constants/audioVoices'
+import { playSfx } from '../utils/audioManager'
+import { DEFAULT_AUDIO_SETTINGS } from '../components/settings/types'
 
 export interface TerminalSession {
   id: string
@@ -104,8 +106,7 @@ export function useStatusTransitions({
       const statusAge = currentLastUpdated ? (now - new Date(currentLastUpdated).getTime()) : Infinity
       const isNotStale = statusAge < STATUS_FRESHNESS_MS
 
-      const shouldPlayReady = audioSettings.events.ready &&
-                              isValidTransition &&
+      const shouldPlayReady = isValidTransition &&
                               cooldownPassed &&
                               isStatusFresh &&
                               isNotStale
@@ -113,7 +114,17 @@ export function useStatusTransitions({
       if (shouldPlayReady) {
         lastReadyAnnouncementRef.current.set(terminalId, now)
         lastStatusUpdateRef.current.set(terminalId, currentLastUpdated)
-        playAudio(`${getDisplayName()} ready`, session)
+
+        // Play TTS if enabled
+        if (audioSettings.events.ready) {
+          playAudio(`${getDisplayName()} ready`, session)
+        }
+
+        // Play SFX if enabled
+        const sfxSettings = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
+        if (sfxSettings.ready?.enabled) {
+          playSfx('ready', sfxSettings.ready.customPath, audioSettings.volume)
+        }
       }
 
       // Tool announcements
@@ -130,51 +141,72 @@ export function useStatusTransitions({
       const filePath = status.details?.args?.file_path || ''
       const isInternalFile = filePath && (filePath.includes('/.claude/') || filePath.includes('/session-memory/'))
 
-      if (audioSettings.events.tools && isActiveStatus && isNewTool && !isInternalFile) {
-        let announcement = ''
-        switch (currentToolName) {
-          case 'Read': announcement = 'Reading'; break
-          case 'Write': announcement = 'Writing'; break
-          case 'Edit': announcement = 'Edit'; break
-          case 'Bash': announcement = 'Running command'; break
-          case 'Glob': announcement = 'Searching files'; break
-          case 'Grep': announcement = 'Searching code'; break
-          case 'Task': announcement = 'Spawning agent'; break
-          case 'WebFetch': announcement = 'Fetching web'; break
-          case 'WebSearch': announcement = 'Searching web'; break
-          default: announcement = `Using ${currentToolName}`
-        }
+      if (isActiveStatus && isNewTool && !isInternalFile) {
+        const sfxSettings = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
 
-        if (audioSettings.events.toolDetails && status.details?.args) {
-          const args = status.details.args
-          if (args.file_path) {
-            const parts = args.file_path.split('/')
-            const filename = parts[parts.length - 1]
-            announcement += ` ${filename}`
-          } else if (args.pattern && (currentToolName === 'Glob' || currentToolName === 'Grep')) {
-            announcement += ` for ${args.pattern}`
-          } else if (currentToolName === 'Bash' && args.description) {
-            announcement = args.description
+        // Play TTS if enabled
+        if (audioSettings.events.tools) {
+          let announcement = ''
+          switch (currentToolName) {
+            case 'Read': announcement = 'Reading'; break
+            case 'Write': announcement = 'Writing'; break
+            case 'Edit': announcement = 'Edit'; break
+            case 'Bash': announcement = 'Running command'; break
+            case 'Glob': announcement = 'Searching files'; break
+            case 'Grep': announcement = 'Searching code'; break
+            case 'Task': announcement = 'Spawning agent'; break
+            case 'WebFetch': announcement = 'Fetching web'; break
+            case 'WebSearch': announcement = 'Searching web'; break
+            default: announcement = `Using ${currentToolName}`
           }
+
+          if (audioSettings.events.toolDetails && status.details?.args) {
+            const args = status.details.args
+            if (args.file_path) {
+              const parts = args.file_path.split('/')
+              const filename = parts[parts.length - 1]
+              announcement += ` ${filename}`
+            } else if (args.pattern && (currentToolName === 'Glob' || currentToolName === 'Grep')) {
+              announcement += ` for ${args.pattern}`
+            } else if (currentToolName === 'Bash' && args.description) {
+              announcement = args.description
+            }
+          }
+
+          playAudio(announcement, session, true)
         }
 
-        playAudio(announcement, session, true)
+        // Play SFX if enabled
+        if (sfxSettings.tools?.enabled) {
+          playSfx('tools', sfxSettings.tools.customPath, audioSettings.volume)
+        }
       }
 
       prevToolNamesRef.current.set(terminalId, currentToolKey)
 
       // Subagent count changes (chipmunk voice for distinction)
-      if (audioSettings.events.subagents && currentSubagentCount !== prevSubagentCount) {
+      if (currentSubagentCount !== prevSubagentCount) {
+        const sfxSettings = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
         const chipmunkVoice = { pitch: '+50Hz', rate: '+15%' }
+
         if (currentSubagentCount > prevSubagentCount) {
-          playAudio(
-            `${currentSubagentCount} agent${currentSubagentCount > 1 ? 's' : ''} running`,
-            session,
-            true,
-            chipmunkVoice
-          )
+          // Play TTS if enabled
+          if (audioSettings.events.subagents) {
+            playAudio(
+              `${currentSubagentCount} agent${currentSubagentCount > 1 ? 's' : ''} running`,
+              session,
+              true,
+              chipmunkVoice
+            )
+          }
+          // Play SFX if enabled
+          if (sfxSettings.subagents?.enabled) {
+            playSfx('subagents', sfxSettings.subagents.customPath, audioSettings.volume)
+          }
         } else if (currentSubagentCount === 0 && prevSubagentCount > 0) {
-          playAudio('All agents complete', session, false, chipmunkVoice)
+          if (audioSettings.events.subagents) {
+            playAudio('All agents complete', session, false, chipmunkVoice)
+          }
         }
       }
 
@@ -183,12 +215,15 @@ export function useStatusTransitions({
       const prevContextPct = prevContextPctRef.current.get(terminalId)
 
       if (currentContextPct != null && prevContextPct != null) {
+        const sfxSettings = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
         const displayName = getDisplayName()
 
-        if (audioSettings.events.contextWarning) {
-          const crossedWarningUp = prevContextPct < CONTEXT_THRESHOLDS.WARNING &&
-                                   currentContextPct >= CONTEXT_THRESHOLDS.WARNING
-          if (crossedWarningUp) {
+        // Context Warning (50%)
+        const crossedWarningUp = prevContextPct < CONTEXT_THRESHOLDS.WARNING &&
+                                 currentContextPct >= CONTEXT_THRESHOLDS.WARNING
+        if (crossedWarningUp) {
+          // Play TTS if enabled
+          if (audioSettings.events.contextWarning) {
             playAudio(
               `Warning! ${displayName} 50 percent context!`,
               session,
@@ -196,18 +231,28 @@ export function useStatusTransitions({
               { pitch: '+15Hz', rate: '+5%' }
             )
           }
+          // Play SFX if enabled
+          if (sfxSettings.contextWarning?.enabled) {
+            playSfx('contextWarning', sfxSettings.contextWarning.customPath, audioSettings.volume)
+          }
         }
 
-        if (audioSettings.events.contextCritical) {
-          const crossedCriticalUp = prevContextPct < CONTEXT_THRESHOLDS.CRITICAL &&
-                                    currentContextPct >= CONTEXT_THRESHOLDS.CRITICAL
-          if (crossedCriticalUp) {
+        // Context Critical (75%)
+        const crossedCriticalUp = prevContextPct < CONTEXT_THRESHOLDS.CRITICAL &&
+                                  currentContextPct >= CONTEXT_THRESHOLDS.CRITICAL
+        if (crossedCriticalUp) {
+          // Play TTS if enabled
+          if (audioSettings.events.contextCritical) {
             playAudio(
               `Alert! ${displayName} context critical!`,
               session,
               false,
               { pitch: '+25Hz', rate: '+10%' }
             )
+          }
+          // Play SFX if enabled
+          if (sfxSettings.contextCritical?.enabled) {
+            playSfx('contextCritical', sfxSettings.contextCritical.customPath, audioSettings.volume)
           }
         }
       }

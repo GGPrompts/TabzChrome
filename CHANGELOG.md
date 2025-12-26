@@ -15,6 +15,20 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Sound Effects (SFX) Support** - Alternative to TTS for event notifications:
+  - Toggle SFX independently per event (ready, tools, context warnings, etc.)
+  - Custom SFX file paths with fallback to bundled defaults
+  - Test button in settings to preview sounds
+  - Backend endpoint `POST /api/audio/sfx` for SFX playback
+  - SFX uses audio priority system (critical events won't be interrupted)
+  - Place custom sounds in `backend/public/sfx/` or use full paths
+  - Use `.prompts/audio/mixkit-sfx.prompty` and `.prompts/audio/pixabay-sfx.prompty` for downloading free sounds
+
+---
+
 ## [1.2.22] - 2025-12-26
 
 ### Fixed

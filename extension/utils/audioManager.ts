@@ -159,3 +159,40 @@ export function playHighPriority(url: string, volume = 1): Promise<void> {
 export function playLowPriority(url: string, volume = 1): Promise<void> {
   return playWithPriority(url, 'low', volume)
 }
+
+/**
+ * Play SFX for a given event
+ * Fetches the SFX URL from backend and plays with appropriate priority
+ *
+ * @param event - Event name (ready, contextWarning, etc.)
+ * @param customPath - Optional custom SFX file path
+ * @param volume - Volume level 0-1
+ * @returns Promise that resolves when audio finishes or is skipped
+ */
+export async function playSfx(
+  event: string,
+  customPath?: string,
+  volume = 0.7
+): Promise<void> {
+  try {
+    const response = await fetch('http://localhost:8129/api/audio/sfx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, customPath })
+    })
+
+    const data = await response.json()
+
+    if (!data.success || !data.url) {
+      console.warn(`[AudioManager] No SFX found for event: ${event}`)
+      return
+    }
+
+    // Use high priority for critical events, low for others
+    const priority: AudioPriority = event.includes('critical') ? 'high' : 'low'
+
+    return playWithPriority(data.url, priority, volume)
+  } catch (err) {
+    console.warn(`[AudioManager] Failed to play SFX for ${event}:`, err)
+  }
+}

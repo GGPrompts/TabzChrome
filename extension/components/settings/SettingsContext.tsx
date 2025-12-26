@@ -4,6 +4,8 @@ import {
   CategorySettings,
   AudioSettings,
   AudioEventSettings,
+  AudioEventSfxSettings,
+  EventSfxConfig,
   PRESETS,
   DEFAULT_AUDIO_SETTINGS,
 } from './types'
@@ -38,6 +40,7 @@ export interface SettingsContextValue {
   audioSettings: AudioSettings
   updateAudioSettings: (updates: Partial<AudioSettings>) => void
   updateAudioEvents: (eventUpdates: Partial<AudioEventSettings>) => void
+  updateAudioSfx: (event: keyof AudioEventSfxSettings, config: Partial<EventSfxConfig>) => void
 
   // Import/Export
   fileInputRef: React.RefObject<HTMLInputElement>
@@ -247,6 +250,15 @@ export function SettingsProvider({ isOpen, onClose, children }: SettingsProvider
     updateAudioSettings({ events: { ...audioSettings.events, ...eventUpdates } })
   }
 
+  const updateAudioSfx = (event: keyof AudioEventSfxSettings, config: Partial<EventSfxConfig>) => {
+    const currentSfx = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
+    const updatedSfx = {
+      ...currentSfx,
+      [event]: { ...currentSfx[event], ...config }
+    }
+    updateAudioSettings({ sfx: updatedSfx })
+  }
+
   // Profile save handler
   const handleSaveProfiles = () => {
     chrome.storage.local.set({ profiles, defaultProfile }, () => {
@@ -444,6 +456,7 @@ export function SettingsProvider({ isOpen, onClose, children }: SettingsProvider
     audioSettings,
     updateAudioSettings,
     updateAudioEvents,
+    updateAudioSfx,
     fileInputRef,
     showImportDialog,
     setShowImportDialog,
