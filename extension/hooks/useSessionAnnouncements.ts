@@ -1,7 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
 import type { Profile, AudioSettings } from '../components/SettingsModal'
-import { playSfx } from '../utils/audioManager'
-import { DEFAULT_AUDIO_SETTINGS } from '../components/settings/types'
 
 export interface TerminalSession {
   id: string
@@ -70,10 +68,8 @@ export function useSessionAnnouncements({
   // Announce new and closed sessions
   useEffect(() => {
     if (!settingsLoaded) return
-    if (audioGlobalMute) return
+    if (!audioSettings.events.sessionStart || audioGlobalMute) return
     if (initialLoadRef.current) return
-
-    const sfxSettings = audioSettings.sfx || DEFAULT_AUDIO_SETTINGS.sfx
 
     // Announce new sessions
     sessions.forEach(session => {
@@ -83,14 +79,7 @@ export function useSessionAnnouncements({
 
         const settings = getAudioSettingsForProfile(session.profile, session.assignedVoice)
         if (settings.enabled) {
-          // Play TTS if enabled
-          if (audioSettings.events.sessionStart) {
-            playAudio(`${displayName} started`, session)
-          }
-          // Play SFX if enabled
-          if (sfxSettings.sessionStart?.enabled) {
-            playSfx('sessionStart', sfxSettings.sessionStart.customPath, audioSettings.volume)
-          }
+          playAudio(`${displayName} started`, session)
         }
       }
     })
@@ -107,7 +96,7 @@ export function useSessionAnnouncements({
         detachedSessionsRef.current.delete(id)
       }
     }
-  }, [sessions, audioSettings, audioGlobalMute, settingsLoaded, getAudioSettingsForProfile, playAudio])
+  }, [sessions, audioSettings.events.sessionStart, audioGlobalMute, settingsLoaded, getAudioSettingsForProfile, playAudio])
 
   // Mark a session as detached (announces "detached" instead of "closed")
   const markSessionDetached = useCallback((sessionId: string) => {

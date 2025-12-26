@@ -1,5 +1,4 @@
-// Re-export DEFAULT_AUDIO_SETTINGS from types.ts to avoid duplication
-export { DEFAULT_AUDIO_SETTINGS } from '../components/settings/types'
+import type { AudioSettings } from '../components/SettingsModal'
 
 // Voice pool for auto-assignment (rotates through these when no profile override)
 export const VOICE_POOL = [
@@ -14,6 +13,26 @@ export const VOICE_POOL = [
   'en-US-GuyNeural',                 // Guy (US Male)
   'en-US-JennyNeural',               // Jenny (US Female)
 ] as const
+
+// Default audio settings for new users
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  enabled: false,
+  volume: 0.7,
+  voice: 'en-US-AndrewMultilingualNeural',
+  rate: '+0%',
+  pitch: '+0Hz',
+  events: {
+    ready: true,
+    sessionStart: false,
+    tools: false,
+    toolDetails: false,
+    subagents: false,
+    contextWarning: false,
+    contextCritical: false,
+    mcpDownloads: true,
+  },
+  toolDebounceMs: 1000,
+}
 
 // Thresholds for context usage alerts (match statusline colors)
 export const CONTEXT_THRESHOLDS = {

@@ -1,150 +1,19 @@
 import React, { useState } from 'react'
-import { Volume2, Music } from 'lucide-react'
-import { AudioSettings, AudioEventSettings, AudioEventSfxSettings, EventSfxConfig, TTS_VOICES, DEFAULT_SFX_FILES } from './types'
+import { Volume2 } from 'lucide-react'
+import { AudioSettings, AudioEventSettings, TTS_VOICES } from './types'
 
 interface AudioTabProps {
   audioSettings: AudioSettings
   updateAudioSettings: (updates: Partial<AudioSettings>) => void
   updateAudioEvents: (updates: Partial<AudioEventSettings>) => void
-  updateAudioSfx: (event: keyof AudioEventSfxSettings, config: Partial<EventSfxConfig>) => void
-}
-
-// Event row component with TTS and SFX toggles
-interface EventRowProps {
-  label: string
-  description: string
-  eventKey: keyof AudioEventSettings & keyof AudioEventSfxSettings
-  ttsEnabled: boolean
-  sfxConfig: EventSfxConfig
-  onTtsChange: (enabled: boolean) => void
-  onSfxChange: (config: Partial<EventSfxConfig>) => void
-  showSfxPath?: boolean
-  colorClass?: string // For context warning/critical color highlighting
-}
-
-function EventRow({
-  label,
-  description,
-  eventKey,
-  ttsEnabled,
-  sfxConfig,
-  onTtsChange,
-  onSfxChange,
-  showSfxPath = true,
-  colorClass = ''
-}: EventRowProps) {
-  const [sfxTestPlaying, setSfxTestPlaying] = useState(false)
-
-  const handleSfxTest = async () => {
-    if (sfxTestPlaying) return
-    setSfxTestPlaying(true)
-
-    try {
-      const response = await fetch('http://localhost:8129/api/audio/sfx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: eventKey,
-          customPath: sfxConfig.customPath
-        })
-      })
-      const data = await response.json()
-
-      if (data.success && data.url) {
-        const audio = new Audio(data.url)
-        audio.volume = 0.7
-        audio.onended = () => setSfxTestPlaying(false)
-        audio.onerror = () => setSfxTestPlaying(false)
-        await audio.play()
-      } else {
-        console.warn('[SFX Test] No SFX found:', data.error)
-        setSfxTestPlaying(false)
-      }
-    } catch (err) {
-      console.error('[SFX Test] Failed:', err)
-      setSfxTestPlaying(false)
-    }
-  }
-
-  return (
-    <div className="p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <span className="text-sm text-white">{label}</span>
-          <p className={`text-xs text-gray-400 ${colorClass}`}>{description}</p>
-        </div>
-        <div className="flex items-center gap-3 ml-3">
-          {/* TTS Toggle */}
-          <div className="flex items-center gap-1.5" title="Text-to-Speech">
-            <Volume2 className="h-3.5 w-3.5 text-gray-400" />
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={ttsEnabled}
-                onChange={(e) => onTtsChange(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
-            </label>
-          </div>
-          {/* SFX Toggle */}
-          <div className="flex items-center gap-1.5" title="Sound Effect">
-            <Music className="h-3.5 w-3.5 text-gray-400" />
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sfxConfig.enabled}
-                onChange={(e) => onSfxChange({ enabled: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#f59e0b]"></div>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* SFX Path (shown when SFX enabled) */}
-      {showSfxPath && sfxConfig.enabled && (
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder={`Default: ${DEFAULT_SFX_FILES[eventKey]}`}
-            value={sfxConfig.customPath || ''}
-            onChange={(e) => onSfxChange({ customPath: e.target.value || undefined })}
-            className="flex-1 px-2 py-1 bg-black/50 border border-gray-700 rounded text-white text-xs focus:border-[#f59e0b] focus:outline-none"
-          />
-          <button
-            onClick={handleSfxTest}
-            disabled={sfxTestPlaying}
-            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-xs disabled:opacity-50"
-            title="Test SFX"
-          >
-            {sfxTestPlaying ? '...' : '▶'}
-          </button>
-        </div>
-      )}
-    </div>
-  )
 }
 
 export function AudioTab({
   audioSettings,
   updateAudioSettings,
   updateAudioEvents,
-  updateAudioSfx,
 }: AudioTabProps) {
   const [audioTestPlaying, setAudioTestPlaying] = useState(false)
-
-  // Ensure sfx settings exist (for backward compatibility)
-  const sfxSettings = audioSettings.sfx || {
-    ready: { enabled: false },
-    sessionStart: { enabled: false },
-    tools: { enabled: false },
-    subagents: { enabled: false },
-    contextWarning: { enabled: false },
-    contextCritical: { enabled: false },
-    mcpDownloads: { enabled: false },
-  }
 
   const handleAudioTest = async () => {
     if (audioTestPlaying) return
@@ -188,7 +57,7 @@ export function AudioTab({
       <div className="mb-4">
         <p className="text-sm text-gray-400">
           Play audio notifications when Claude Code status changes.
-          Use <Volume2 className="inline h-3.5 w-3.5" /> TTS for spoken announcements or <Music className="inline h-3.5 w-3.5" /> SFX for sound effects.
+          Audio is generated using neural text-to-speech and played through Chrome.
         </p>
       </div>
 
@@ -308,48 +177,60 @@ export function AudioTab({
 
       {/* Event Toggles */}
       <div className={`space-y-3 ${!audioSettings.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-white">Events</h4>
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center gap-1"><Volume2 className="h-3 w-3" /> TTS</span>
-            <span className="flex items-center gap-1"><Music className="h-3 w-3" /> SFX</span>
-          </div>
-        </div>
+        <h4 className="text-sm font-medium text-white">Events</h4>
         <div className="bg-black/30 border border-gray-800 rounded-lg divide-y divide-gray-800">
           {/* Ready */}
-          <EventRow
-            label="Ready notification"
-            description="When Claude finishes and awaits input"
-            eventKey="ready"
-            ttsEnabled={audioSettings.events.ready}
-            sfxConfig={sfxSettings.ready}
-            onTtsChange={(enabled) => updateAudioEvents({ ready: enabled })}
-            onSfxChange={(config) => updateAudioSfx('ready', config)}
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Ready notification</span>
+              <p className="text-xs text-gray-400">When Claude finishes and awaits input</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.ready}
+                onChange={(e) => updateAudioEvents({ ready: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
           {/* Session Start */}
-          <EventRow
-            label="Session start"
-            description="When a new Claude session begins"
-            eventKey="sessionStart"
-            ttsEnabled={audioSettings.events.sessionStart}
-            sfxConfig={sfxSettings.sessionStart}
-            onTtsChange={(enabled) => updateAudioEvents({ sessionStart: enabled })}
-            onSfxChange={(config) => updateAudioSfx('sessionStart', config)}
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Session start</span>
+              <p className="text-xs text-gray-400">When a new Claude session begins</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.sessionStart}
+                onChange={(e) => updateAudioEvents({ sessionStart: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
           {/* Tools */}
-          <EventRow
-            label="Tool announcements"
-            description={`"Reading", "Editing", "Searching"...`}
-            eventKey="tools"
-            ttsEnabled={audioSettings.events.tools}
-            sfxConfig={sfxSettings.tools}
-            onTtsChange={(enabled) => updateAudioEvents({ tools: enabled })}
-            onSfxChange={(config) => updateAudioSfx('tools', config)}
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Tool announcements</span>
+              <p className="text-xs text-gray-400">"Reading", "Editing", "Searching"...</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.tools}
+                onChange={(e) => updateAudioEvents({ tools: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
-          {/* Tool Details (only shown if tools TTS enabled) */}
+          {/* Tool Details (only shown if tools enabled) */}
           {audioSettings.events.tools && (
             <div className="flex items-center justify-between p-3 pl-8 bg-black/20">
               <div>
@@ -369,50 +250,72 @@ export function AudioTab({
           )}
 
           {/* Subagents */}
-          <EventRow
-            label="Subagent activity"
-            description={`"Spawning agent", agent count changes`}
-            eventKey="subagents"
-            ttsEnabled={audioSettings.events.subagents}
-            sfxConfig={sfxSettings.subagents}
-            onTtsChange={(enabled) => updateAudioEvents({ subagents: enabled })}
-            onSfxChange={(config) => updateAudioSfx('subagents', config)}
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Subagent activity</span>
+              <p className="text-xs text-gray-400">"Spawning agent", agent count changes</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.subagents}
+                onChange={(e) => updateAudioEvents({ subagents: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
           {/* Context Warning */}
-          <EventRow
-            label="Context warning"
-            description="Alert when context reaches 50%"
-            eventKey="contextWarning"
-            ttsEnabled={audioSettings.events.contextWarning}
-            sfxConfig={sfxSettings.contextWarning}
-            onTtsChange={(enabled) => updateAudioEvents({ contextWarning: enabled })}
-            onSfxChange={(config) => updateAudioSfx('contextWarning', config)}
-            colorClass="text-yellow-400"
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Context warning</span>
+              <p className="text-xs text-gray-400">Alert when context reaches <span className="text-yellow-400">50%</span></p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.contextWarning}
+                onChange={(e) => updateAudioEvents({ contextWarning: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
           {/* Context Critical */}
-          <EventRow
-            label="Context critical"
-            description="Alert when context reaches 75%"
-            eventKey="contextCritical"
-            ttsEnabled={audioSettings.events.contextCritical}
-            sfxConfig={sfxSettings.contextCritical}
-            onTtsChange={(enabled) => updateAudioEvents({ contextCritical: enabled })}
-            onSfxChange={(config) => updateAudioSfx('contextCritical', config)}
-            colorClass="text-red-400"
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">Context critical</span>
+              <p className="text-xs text-gray-400">Alert when context reaches <span className="text-red-400">75%</span></p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.contextCritical}
+                onChange={(e) => updateAudioEvents({ contextCritical: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
 
           {/* MCP Downloads */}
-          <EventRow
-            label="MCP downloads"
-            description={`"Downloaded image.png" when files complete`}
-            eventKey="mcpDownloads"
-            ttsEnabled={audioSettings.events.mcpDownloads}
-            sfxConfig={sfxSettings.mcpDownloads}
-            onTtsChange={(enabled) => updateAudioEvents({ mcpDownloads: enabled })}
-            onSfxChange={(config) => updateAudioSfx('mcpDownloads', config)}
-          />
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <span className="text-sm text-white">MCP downloads</span>
+              <p className="text-xs text-gray-400">"Downloaded image.png" when files complete</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioSettings.events.mcpDownloads}
+                onChange={(e) => updateAudioEvents({ mcpDownloads: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00ff88]"></div>
+            </label>
+          </div>
         </div>
 
         {/* Tool Debounce (only shown if tools enabled) */}
@@ -445,15 +348,13 @@ export function AudioTab({
           className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-sm transition-colors flex items-center gap-2 disabled:opacity-50"
         >
           <Volume2 className="h-4 w-4" />
-          {audioTestPlaying ? 'Playing...' : 'Test TTS Voice'}
+          {audioTestPlaying ? 'Playing...' : 'Test Sound'}
         </button>
       </div>
 
       {/* Info */}
-      <div className="text-xs text-gray-400 mt-4 p-3 bg-gray-900/50 rounded-lg space-y-2">
-        <p><strong>TTS:</strong> Uses edge-tts neural voices. First playback may have a brief delay while audio is generated.</p>
-        <p><strong>SFX:</strong> Place custom sounds in <code className="bg-black/50 px-1 rounded">backend/public/sfx/</code> or provide a full path.</p>
-        <p className="text-gray-500">Tip: Download free sounds from Mixkit or Pixabay using the prompts in <code className="bg-black/50 px-1 rounded">.prompts/audio/</code></p>
+      <div className="text-xs text-gray-400 mt-4 p-3 bg-gray-900/50 rounded-lg">
+        <p><strong>Note:</strong> Audio uses edge-tts neural voices. First playback may have a brief delay while audio is generated - subsequent plays are instant (cached).</p>
       </div>
     </>
   )
