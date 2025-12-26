@@ -58,6 +58,9 @@
     "_execute_action": {
       "description": "Toggle terminal sidebar"
     },
+    "spawn-quick-terminal": {
+      "description": "Spawn quick popout terminal"
+    },
     "new-tab": {
       "suggested_key": {
         "default": "Alt+T"

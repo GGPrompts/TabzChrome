@@ -7,7 +7,7 @@ import {
   connectedClients, broadcastToClients,
   setPendingPasteCommand, setPendingQueueCommand
 } from './state'
-import { tryOpenSidebar } from './utils'
+import { tryOpenSidebar, spawnQuickTerminal } from './utils'
 
 /**
  * Setup extension icon click handler
@@ -35,6 +35,16 @@ export function setupKeyboardHandler(): void {
 
     // Note: _execute_action command automatically triggers chrome.action.onClicked
     // which opens the sidebar - no handler needed here for it
+
+    // Handle spawn-quick-terminal - spawns a new popout terminal
+    if (command === 'spawn-quick-terminal') {
+      console.log('[Background] Spawn quick terminal shortcut triggered')
+      const result = await spawnQuickTerminal()
+      if (!result.success) {
+        console.error('[Background] Failed to spawn quick terminal:', result.error)
+      }
+      return
+    }
 
     // Handle new-tab
     if (command === 'new-tab') {

@@ -8,7 +8,7 @@ import {
   pendingPasteCommand, pendingQueueCommand,
   setPendingPasteCommand, setPendingQueueCommand
 } from './state'
-import { getValidWindowId, windowsToWslPath } from './utils'
+import { getValidWindowId, windowsToWslPath, spawnQuickTerminal } from './utils'
 
 /**
  * Context menu registration helper
@@ -88,6 +88,17 @@ export function setupContextMenus(): void {
     }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error creating save-page-mhtml menu:', chrome.runtime.lastError.message)
+      }
+    })
+
+    // Context menu for spawning a quick popout terminal
+    chrome.contextMenus.create({
+      id: 'spawn-quick-terminal',
+      title: 'Spawn Quick Terminal',
+      contexts: ['all'],
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating spawn-quick-terminal menu:', chrome.runtime.lastError.message)
       }
     })
 
@@ -253,6 +264,15 @@ export function setupContextMenuListener(): void {
       } catch (err) {
         console.error('Failed to call TTS endpoint:', err)
       }
+    }
+
+    if (menuId === 'spawn-quick-terminal') {
+      console.log('[Background] Spawn quick terminal from context menu')
+      const result = await spawnQuickTerminal()
+      if (!result.success) {
+        console.error('[Background] Failed to spawn quick terminal:', result.error)
+      }
+      return
     }
 
     if (menuId === 'save-page-mhtml' && tab?.id) {
