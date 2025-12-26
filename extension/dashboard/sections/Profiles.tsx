@@ -14,6 +14,17 @@ const DEFAULT_CATEGORY_COLOR = '#6b7280'
 
 type ViewMode = 'grid' | 'list'
 
+// Helper to get media URL (matches Terminal.tsx pattern)
+const getMediaUrl = (path: string | undefined): string | null => {
+  if (!path) return null
+  // If it's already a URL, use it directly
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
+    return path
+  }
+  // For local paths, serve via backend endpoint
+  return `http://localhost:8129/api/media?path=${encodeURIComponent(path)}`
+}
+
 export default function ProfilesSection() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -592,6 +603,8 @@ function ProfileCard({
   onDrop,
   onDragEnd,
 }: ProfileCardProps) {
+  const [mediaError, setMediaError] = useState(false)
+
   // Extract emoji from name if present
   const emojiMatch = profile.name.match(/^(\p{Emoji})\s*/u)
   const emoji = emojiMatch?.[1]
@@ -607,6 +620,11 @@ function ProfileCard({
   const effectiveGradientCSS = getGradientCSS(effectiveGradientKey, true)
   const effectivePanelColor = profile.panelColor ?? DEFAULT_PANEL_COLOR
   const gradientOpacity = (profile.transparency ?? DEFAULT_TRANSPARENCY) / 100
+
+  // Background media (video/image)
+  const mediaUrl = getMediaUrl(profile.backgroundMedia)
+  const mediaOpacity = (profile.backgroundMediaOpacity ?? 50) / 100
+  const showMedia = profile.backgroundMediaType && profile.backgroundMediaType !== 'none' && mediaUrl && !mediaError
 
   return (
     <div
@@ -627,10 +645,34 @@ function ProfileCard({
         className="absolute inset-0 rounded-xl"
         style={{ backgroundColor: effectivePanelColor }}
       />
-      {/* Layer 2: Gradient overlay with transparency */}
+      {/* Layer 2: Background media (video or image) */}
+      {showMedia && profile.backgroundMediaType === 'video' && (
+        <video
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-xl"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setMediaError(true)}
+        />
+      )}
+      {showMedia && profile.backgroundMediaType === 'image' && (
+        <img
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-xl"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          alt=""
+          onError={() => setMediaError(true)}
+        />
+      )}
+      {/* Layer 3: Gradient overlay with transparency */}
       <div
         className="absolute inset-0 rounded-xl"
-        style={{ background: effectiveGradientCSS, opacity: gradientOpacity }}
+        style={{ background: effectiveGradientCSS, opacity: gradientOpacity, zIndex: 1 }}
       />
       {/* Drop indicator line - left (for grid layout) */}
       {isDragOver && dropPosition === 'above' && (
@@ -770,6 +812,8 @@ function ProfileListItem({
   onDrop,
   onDragEnd,
 }: ProfileListItemProps) {
+  const [mediaError, setMediaError] = useState(false)
+
   const emojiMatch = profile.name.match(/^(\p{Emoji})\s*/u)
   const emoji = emojiMatch?.[1]
   const displayName = emoji ? profile.name.replace(emojiMatch[0], '') : profile.name
@@ -784,6 +828,11 @@ function ProfileListItem({
   const effectiveGradientCSS = getGradientCSS(effectiveGradientKey, true)
   const effectivePanelColor = profile.panelColor ?? DEFAULT_PANEL_COLOR
   const gradientOpacity = (profile.transparency ?? DEFAULT_TRANSPARENCY) / 100
+
+  // Background media (video/image)
+  const mediaUrl = getMediaUrl(profile.backgroundMedia)
+  const mediaOpacity = (profile.backgroundMediaOpacity ?? 50) / 100
+  const showMedia = profile.backgroundMediaType && profile.backgroundMediaType !== 'none' && mediaUrl && !mediaError
 
   return (
     <div
@@ -804,10 +853,34 @@ function ProfileListItem({
         className="absolute inset-0 rounded-lg"
         style={{ backgroundColor: effectivePanelColor }}
       />
-      {/* Layer 2: Gradient overlay with transparency */}
+      {/* Layer 2: Background media (video or image) */}
+      {showMedia && profile.backgroundMediaType === 'video' && (
+        <video
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-lg"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setMediaError(true)}
+        />
+      )}
+      {showMedia && profile.backgroundMediaType === 'image' && (
+        <img
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-lg"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          alt=""
+          onError={() => setMediaError(true)}
+        />
+      )}
+      {/* Layer 3: Gradient overlay with transparency */}
       <div
         className="absolute inset-0 rounded-lg"
-        style={{ background: effectiveGradientCSS, opacity: gradientOpacity }}
+        style={{ background: effectiveGradientCSS, opacity: gradientOpacity, zIndex: 1 }}
       />
       {/* Drop indicator line - above */}
       {isDragOver && dropPosition === 'above' && (
