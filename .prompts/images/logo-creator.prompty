@@ -1,0 +1,100 @@
+---
+name: Logo Creator
+description: Generate logos using Logo Creator GPT via browser automation
+tags: [logo, branding, design, automation]
+---
+
+# Logo Creator via ChatGPT
+
+Generate professional logos using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Create a {{style:minimalist|minimalist|modern|vintage|playful|elegant}} logo for {{company:my startup}} in the {{industry:tech}} industry
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{style}}` | minimalist, modern, vintage, playful, elegant, bold | Logo style |
+| `{{type}}` | wordmark, lettermark, icon, combination, emblem | Logo type |
+| `{{industry}}` | tech, food, fashion, health, finance, creative | Business sector |
+| `{{company}}` | (free text) | Company/brand name |
+
+## Workflow
+
+### 1. Open Logo Creator GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-gFt1ghYJl-logo-creator"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (15-30 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save generated logo
+Download logos to:
+```
+.prompts/AI_Logos/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+
+## Example Prompts
+
+### Tech Startup
+```
+Create a minimalist logo for "TabzChrome", a browser extension
+for terminal management. Incorporate a subtle terminal cursor
+or command line element. Should work on both dark and light backgrounds.
+Modern, clean, tech-forward aesthetic.
+```
+
+### Restaurant
+```
+Design a warm, inviting logo for "Harvest Kitchen", a farm-to-table
+restaurant. Include organic/natural elements. Earthy color palette.
+Should feel artisanal and authentic.
+```
+
+### Creative Agency
+```
+Create a bold, creative logo for "Pixel Perfect", a design agency.
+Playful but professional. Can use geometric shapes or abstract elements.
+Vibrant colors that stand out.
+```
+
+### Fitness Brand
+```
+Design an energetic logo for "Peak Performance" fitness studio.
+Dynamic, powerful feel. Could incorporate motion or strength symbols.
+Works well on athletic wear and social media.
+```
+
+## Tips
+
+1. **Include brand name** - Specify the exact text for the logo
+2. **Describe the business** - Context helps create relevant designs
+3. **Mention use cases** - "for app icon", "for business cards", "for signage"
+4. **Color preferences** - List specific colors or general palettes
+5. **Request variations** - "Generate 3 different concepts"
+6. **Specify format** - "transparent background", "square format"

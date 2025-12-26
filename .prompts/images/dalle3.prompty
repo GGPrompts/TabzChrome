@@ -39,7 +39,7 @@ mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt
 
 ### 3. Submit
 ```bash
-mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"composer-button-create-image\"]"}'
 ```
 
 ### 4. Wait and capture result (15-30 seconds for generation)
@@ -59,7 +59,7 @@ Create folder if it doesn't exist. Contents are gitignored (your images stay loc
 | Element | Selector |
 |---------|----------|
 | Prompt input | `#prompt-textarea` |
-| Send button | `button[data-testid="send-button"]` |
+| Create image button | `button[data-testid="composer-button-create-image"]` |
 | Model selector | `button.group.flex.cursor-pointer` |
 | DALL-E in sidebar | `a[href*="dall-e"]` |
 

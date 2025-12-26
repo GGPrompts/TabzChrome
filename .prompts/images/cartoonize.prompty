@@ -1,0 +1,115 @@
+---
+name: Cartoonize Yourself
+description: Create cartoon avatars using Cartoonize GPT via browser automation
+tags: [avatar, cartoon, profile, automation]
+---
+
+# Cartoonize Yourself via ChatGPT
+
+Create cartoon avatars and stylized portraits using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Create a {{style:Pixar|Pixar|anime|comic book|Disney|chibi}} style avatar of {{description:a developer with glasses and headphones}}
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{style}}` | Pixar, anime, comic book, Disney, chibi, cartoon, caricature | Art style |
+| `{{mood}}` | happy, thoughtful, professional, playful, cool | Expression/vibe |
+| `{{background}}` | simple, gradient, scene, transparent | Background type |
+| `{{description}}` | (free text) | Person description |
+
+## Workflow
+
+### 1. Open Cartoonize GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-sr4bMTuVU-cartoonize-yourself"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (15-30 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save generated avatar
+Download avatars to:
+```
+.prompts/AI_Avatars/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+
+## Example Prompts
+
+### Developer Avatar
+```
+Create a Pixar-style avatar of a software developer.
+Features: short dark hair, glasses, friendly smile, wearing a hoodie.
+Sitting at a desk with multiple monitors showing code.
+Warm lighting, cozy office background.
+```
+
+### Professional Profile
+```
+Create a professional cartoon avatar suitable for LinkedIn.
+Style: modern, clean illustration (not too cartoonish).
+Person: confident smile, business casual attire.
+Simple gradient background in blue tones.
+```
+
+### Gaming Avatar
+```
+Create an anime-style avatar for a gaming profile.
+Cool, confident expression with headphones around neck.
+Subtle RGB lighting effects in the background.
+Dynamic pose, looking slightly to the side.
+```
+
+### Team Mascot
+```
+Create a friendly chibi-style mascot character for a tech company.
+Robot/android theme but approachable and cute.
+Holding a laptop or code symbols.
+Transparent background for use on different materials.
+```
+
+## Art Styles
+
+| Style | Characteristics |
+|-------|-----------------|
+| Pixar | 3D, expressive, detailed textures |
+| Anime | Large eyes, stylized hair, clean lines |
+| Comic | Bold outlines, dynamic shading |
+| Disney | Classic animation, warm, friendly |
+| Chibi | Super cute, big head, small body |
+| Caricature | Exaggerated features, humorous |
+
+## Tips
+
+1. **Describe features** - Hair color, eye color, accessories
+2. **Mention clothing** - What they're wearing matters
+3. **Set the mood** - Expression and body language
+4. **Consider use case** - Profile pic vs full character
+5. **Background matters** - Simple for versatility
+6. **Request variations** - Ask for different poses or expressions
+7. **Upload reference** - You can upload a photo for better results

@@ -1,0 +1,108 @@
+---
+name: Consensus Research
+description: Search academic papers using Consensus GPT via browser automation
+tags: [research, academic, papers, automation]
+---
+
+# Consensus Research via ChatGPT
+
+Search and summarize academic research using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Find research on {{topic:the effectiveness of spaced repetition for learning}} from the last {{years:5}} years
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{topic}}` | (free text) | Research question or topic |
+| `{{years}}` | 1, 3, 5, 10, all | Publication date range |
+| `{{type}}` | review, meta-analysis, RCT, observational | Study type filter |
+| `{{focus}}` | findings, methods, limitations | What to emphasize |
+
+## Workflow
+
+### 1. Open Consensus GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-bo0FiWLY7-consensus"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (15-30 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save research findings
+Save research summaries to:
+```
+.prompts/AI_Research/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+
+## Example Prompts
+
+### Literature Review
+```
+What does the research say about the impact of remote work
+on employee productivity? Focus on studies from 2020-2024.
+Summarize key findings and note any conflicting results.
+```
+
+### Health Research
+```
+Find meta-analyses on the effectiveness of intermittent fasting
+for weight loss compared to traditional calorie restriction.
+Include effect sizes if available.
+```
+
+### Technology Research
+```
+What peer-reviewed research exists on the cognitive effects
+of AI coding assistants on software developers?
+Focus on productivity and code quality metrics.
+```
+
+### Education Research
+```
+Summarize the evidence on active learning vs lecture-based
+instruction in STEM education. What are the most robust findings?
+```
+
+## Research Question Types
+
+| Type | Example |
+|------|---------|
+| Effectiveness | "Does X improve Y?" |
+| Comparison | "Is X better than Y for Z?" |
+| Mechanism | "How does X affect Y?" |
+| Prevalence | "How common is X in population Y?" |
+| Risk factors | "What factors predict X?" |
+
+## Tips
+
+1. **Be specific** - Narrow questions get better answers
+2. **Mention study types** - "meta-analyses", "RCTs", "longitudinal studies"
+3. **Time frame** - Specify recency requirements
+4. **Ask for citations** - Request paper titles and authors
+5. **Follow up** - Ask for more details on specific papers
+6. **Check limitations** - Ask about study quality and conflicts

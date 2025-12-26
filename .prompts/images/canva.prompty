@@ -1,0 +1,100 @@
+---
+name: Canva Design
+description: Create designs using Canva GPT via browser automation
+tags: [design, canva, social-media, automation]
+---
+
+# Canva Design via ChatGPT
+
+Create professional designs using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Create a {{type:social media post|social media post|presentation|poster|logo|flyer}} for {{subject:my tech startup}}
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{type}}` | social media post, presentation, poster, logo, flyer, invitation | Design type |
+| `{{platform}}` | Instagram, Facebook, Twitter/X, LinkedIn, Pinterest | Social platform |
+| `{{style}}` | modern, minimalist, bold, elegant, playful, professional | Visual style |
+| `{{subject}}` | (free text) | What the design is about |
+
+## Workflow
+
+### 1. Open Canva GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-alKfVrz9K-canva"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (10-30 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save generated design
+Canva provides a link to edit/download. Save designs to:
+```
+.prompts/AI_Designs/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+| Plus button | `#composer-plus-btn` |
+
+## Example Prompts
+
+### Social Media Post
+```
+Create an Instagram post announcing our new product launch.
+Modern tech aesthetic, dark background with neon accents.
+Include space for headline "Coming Soon" and a subtext area.
+```
+
+### Presentation Slide
+```
+Design a title slide for a tech startup pitch deck.
+Company name: TabzChrome. Tagline: "Terminals in your browser"
+Clean, professional, dark mode aesthetic.
+```
+
+### Logo
+```
+Create a minimalist logo for a developer tools company.
+Incorporate a terminal/command line icon.
+Modern, clean lines, works on dark and light backgrounds.
+```
+
+### Event Poster
+```
+Design a poster for a virtual hackathon event.
+Include: Event name, date placeholder, "Register Now" CTA.
+Cyberpunk/tech aesthetic with code elements.
+```
+
+## Tips
+
+1. **Be specific** - Canva responds well to detailed design briefs
+2. **Mention dimensions** - "Instagram square", "Facebook cover", "A4 poster"
+3. **Reference styles** - "minimalist", "bold typography", "gradient background"
+4. **Include elements** - List what should be on the design
+5. **Color preferences** - Mention brand colors or color schemes
+6. **Iterate** - Ask for variations or modifications

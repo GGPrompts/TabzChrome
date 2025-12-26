@@ -38,7 +38,7 @@ mcp-cli call tabz/tabz_fill '{"selector": "textarea", "value": "{{prompt}}"}'
 
 ### 3. Submit (Click Create video)
 ```bash
-mcp-cli call tabz/tabz_click '{"selector": "div.absolute.bottom-2 button.inline-flex:last-child"}'
+mcp-cli call tabz/tabz_click '{"selector": "div.flex.items-center.justify-between > div:last-child > button:last-child"}'
 ```
 
 ### 4. Wait for generation (60-120 seconds)
@@ -61,7 +61,7 @@ Create folder if it doesn't exist. Contents are gitignored (your videos stay loc
 | Element | Selector |
 |---------|----------|
 | Prompt textarea | `textarea` |
-| Create video button | `div.absolute.bottom-2 button.inline-flex:last-child` |
+| Create video button | `div.flex.items-center.justify-between > div:last-child > button:last-child` |
 | Settings button | `button#radix-:rj:` (near textarea) |
 | Profile link | `div.flex.flex-col.items-center a:last-of-type` |
 | Drafts card (on profile) | `a.relative.block.h-full.w-full.overflow-hidden` |

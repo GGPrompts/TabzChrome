@@ -1,0 +1,111 @@
+---
+name: Video GPT by VEED
+description: Create videos using Video GPT via browser automation
+tags: [video, veed, content, automation]
+---
+
+# Video GPT by VEED via ChatGPT
+
+Create and edit videos using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Create a {{duration:30 second|15 second|30 second|60 second}} {{type:explainer|explainer|promo|tutorial|social}} video about {{subject:my new app}}
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{type}}` | explainer, promo, tutorial, social, ad | Video type |
+| `{{duration}}` | 15 second, 30 second, 60 second, 2 minute | Video length |
+| `{{style}}` | professional, casual, energetic, minimal | Visual style |
+| `{{subject}}` | (free text) | Video topic |
+
+## Workflow
+
+### 1. Open Video GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-Hkqnd7mFT-video-gpt-by-veed"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (30-60 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save generated video
+VEED provides a link to edit/download. Save videos to:
+```
+.prompts/AI_Videos/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+
+## Example Prompts
+
+### Product Explainer
+```
+Create a 30-second explainer video for TabzChrome, a browser
+extension that puts terminal windows in your Chrome sidebar.
+Highlight: multiple terminals, profile customization, keyboard shortcuts.
+Professional tech aesthetic, dark theme.
+```
+
+### Social Media Ad
+```
+Create a 15-second Instagram Reel promoting a productivity app.
+Hook: "Stop wasting time switching between windows"
+Show the problem, then the solution.
+Energetic, modern feel with quick cuts.
+```
+
+### Tutorial Video
+```
+Create a 60-second tutorial on how to use keyboard shortcuts
+to be more productive. Step-by-step format with clear visuals.
+Casual, helpful tone. Include text overlays for each shortcut.
+```
+
+### Company Intro
+```
+Create a 30-second company introduction video for a tech startup.
+Include: who we are, what we do, why it matters.
+Modern, professional, builds trust.
+End with call-to-action.
+```
+
+## Video Types
+
+| Type | Duration | Best For |
+|------|----------|----------|
+| Social | 15-30s | Instagram, TikTok, ads |
+| Explainer | 30-60s | Product demos, features |
+| Tutorial | 1-3min | How-to guides |
+| Promo | 15-30s | Marketing campaigns |
+
+## Tips
+
+1. **Start with the hook** - First 3 seconds matter most
+2. **Keep it short** - Shorter videos have higher completion rates
+3. **Include CTA** - Tell viewers what to do next
+4. **Mention style** - "Fast-paced", "calm", "professional"
+5. **Specify platform** - Different platforms prefer different formats
+6. **Request music** - Mention if you want background music/voiceover

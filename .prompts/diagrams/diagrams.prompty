@@ -1,0 +1,127 @@
+---
+name: Diagrams Show Me
+description: Create diagrams and flowcharts using Diagrams GPT via browser automation
+tags: [diagrams, flowcharts, architecture, automation]
+---
+
+# Diagrams (Show Me) via ChatGPT
+
+Create professional diagrams using browser automation with TabzChrome MCP tools.
+
+## Quick Start
+
+```
+Create a {{type:flowchart|flowchart|sequence diagram|architecture diagram|mindmap|ERD}} showing {{subject:user authentication flow}}
+```
+
+## Fillable Fields
+
+| Field | Options | Notes |
+|-------|---------|-------|
+| `{{type}}` | flowchart, sequence diagram, architecture diagram, mindmap, ERD, class diagram | Diagram type |
+| `{{format}}` | mermaid, plantuml, graphviz | Output format |
+| `{{style}}` | simple, detailed, technical | Level of detail |
+| `{{subject}}` | (free text) | What to diagram |
+
+## Workflow
+
+### 1. Open Diagrams GPT
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-5QhhdsfDj-diagrams-show-me"}'
+```
+
+### 2. Wait for page load, then fill prompt
+```bash
+# Wait 2-3 seconds for page to load
+mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
+```
+
+### 3. Submit
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
+```
+
+### 4. Wait and capture result (10-20 seconds)
+```bash
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+### 5. Save generated diagram
+Download diagrams to:
+```
+.prompts/AI_Diagrams/
+```
+
+## Key Selectors
+
+| Element | Selector |
+|---------|----------|
+| Prompt input | `#prompt-textarea` |
+| Send button | `button[data-testid="send-button"]` |
+
+## Example Prompts
+
+### System Architecture
+```
+Create an architecture diagram for a Chrome extension with:
+- Frontend (React sidepanel)
+- Background service worker
+- WebSocket connection to backend
+- Node.js backend server
+- Terminal PTY processes
+Show the data flow between components.
+```
+
+### User Flow
+```
+Create a flowchart showing user authentication flow:
+1. User clicks login
+2. Redirect to OAuth provider
+3. User authorizes
+4. Callback with token
+5. Validate token
+6. Create session
+7. Redirect to dashboard
+Include error handling branches.
+```
+
+### Database Schema
+```
+Create an ERD for a task management app with:
+- Users (id, email, name)
+- Projects (id, name, owner_id)
+- Tasks (id, title, status, project_id, assignee_id)
+- Comments (id, content, task_id, author_id)
+Show relationships and cardinality.
+```
+
+### API Sequence
+```
+Create a sequence diagram showing:
+1. Client sends request to API Gateway
+2. Gateway validates JWT
+3. Gateway forwards to microservice
+4. Microservice queries database
+5. Response flows back through each layer
+Include async operations where applicable.
+```
+
+## Diagram Types
+
+| Type | Best For |
+|------|----------|
+| Flowchart | Processes, decisions, workflows |
+| Sequence | API calls, interactions over time |
+| Architecture | System components, infrastructure |
+| Mindmap | Brainstorming, concept relationships |
+| ERD | Database schemas, data models |
+| Class | OOP design, code structure |
+
+## Tips
+
+1. **Be specific** - List all components and relationships
+2. **Name things** - Use actual names/labels for nodes
+3. **Show flow direction** - Describe what triggers what
+4. **Include edge cases** - Error handling, alternative paths
+5. **Request format** - Ask for Mermaid code to embed elsewhere
+6. **Iterate** - Ask to add or remove elements
