@@ -1,38 +1,14 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 25, 2025
-**Current Version**: 1.2.21
+**Last Updated**: December 26, 2025
+**Current Version**: 1.2.22
 
 ---
 
-## Current Focus: Codebase Simplification
+## Active Work: Codebase Simplification
 
 **Branch:** `simplify-codebase`
 **Status:** Wave 1-2 complete, Wave 3 pending
-
-### Completed (Wave 1) ✅
-
-| Task | Impact | Status |
-|------|--------|--------|
-| Remove unused dependencies | -221 packages, -2,700 LOC in package-lock | ✅ Done |
-| Extract `useOutsideClick` hook | -90 LOC (7 duplicates removed) | ✅ Done |
-| Extract shared utilities | API_BASE, getEffectiveWorkingDir, compactPath | ✅ Done |
-| Fix bugs & remove dead code | tui-tools.js fix, offline menu scripts deleted | ✅ Done |
-
-### Completed (Wave 2) ✅
-
-| Task | Commit | Impact |
-|------|--------|--------|
-| Remove MCP Client Layer | `9f255b4` | -1,300 LOC (client/ deleted) |
-| Split useAudioNotifications | `bf5ac5e` | 544→85 LOC (5 focused modules) |
-| Extract backend audio-generator | `3f2cbac` | -250 LOC |
-| Extract WebSocket boilerplate | `b2dcbea` | -1,000 LOC |
-| Extract useChromeSetting hook | `b3bef41` | -100 LOC |
-| Extract useDragDrop hook | `da04357` | -50 LOC |
-| Expand StorageData interface | `fed9f93` | Full type safety |
-| Extract SettingsContext | `8570f66` | Reduced prop drilling |
-
-**Wave 2 Total:** ~2,700 LOC removed/refactored across 8 commits.
 
 ### Wave 3: Larger Refactors (Pending)
 
@@ -59,7 +35,7 @@ Detailed analysis in `audit-results/`:
 - `SUMMARY.md` - Executive summary
 - `architecture.md` - Overall architecture
 - `backend-api.md` - API/MCP analysis
-- `components.md` - UI component analysis
+- `components.md` - UI component duplication map
 - `hooks-state.md` - State management review
 
 ---
@@ -68,70 +44,27 @@ Detailed analysis in `audit-results/`:
 
 **Goal**: With dynamic tool discovery (`mcp-cli`), there's no context cost for having many tools. Expand MCP capabilities using Chrome Extension APIs.
 
-### Priority 1: High Value, Easy to Implement
+### Planned Tools
 
 #### `chrome.cookies` - Authentication Debugging
 **Permission**: `"cookies"` + host patterns
 
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_get_cookies` | Get all cookies for a domain | Planned |
-| `tabz_check_auth` | Check if logged into a service (has session cookie) | Planned |
-| `tabz_clear_cookies` | Clear cookies for a domain (logout) | Planned |
+| Tool | Description |
+|------|-------------|
+| `tabz_get_cookies` | Get all cookies for a domain |
+| `tabz_check_auth` | Check if logged into a service (has session cookie) |
+| `tabz_clear_cookies` | Clear cookies for a domain (logout) |
 
 #### `chrome.history` - Research Assistant
 **Permission**: `"history"`
 
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_search_history` | Search browsing history by text/date | Planned |
-| `tabz_frequent_sites` | Get most visited sites | Planned |
-| `tabz_delete_history` | Remove specific URLs from history | Planned |
+| Tool | Description |
+|------|-------------|
+| `tabz_search_history` | Search browsing history by text/date |
+| `tabz_frequent_sites` | Get most visited sites |
+| `tabz_delete_history` | Remove specific URLs from history |
 
-#### `chrome.bookmarks` - Knowledge Management ✓
-**Permission**: `"bookmarks"`
-
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_save_bookmark` | Save URL to bookmarks (with folder support) | Done |
-| `tabz_search_bookmarks` | Find bookmarks by title/URL | Done |
-| `tabz_get_bookmark_tree` | Get full bookmark hierarchy | Done |
-| `tabz_create_folder` | Create bookmark folder | Done |
-| `tabz_move_bookmark` | Move bookmark to different folder | Done |
-| `tabz_delete_bookmark` | Remove a bookmark | Done |
-
-#### `chrome.pageCapture` - Page Saving
-**Permission**: `"pageCapture"`
-
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_save_page` | Save page as MHTML for offline analysis | Done |
-
-### Priority 2: Medium Value
-
-#### `chrome.debugger` - DevTools Access ✓
-**Permission**: `"debugger"` (shows warning to user)
-
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_get_dom_tree` | Full DOM inspection | Done |
-| `tabz_profile_performance` | Profile page performance metrics | Done |
-| `tabz_get_coverage` | Code coverage analysis | Done |
-
-#### `chrome.windows` + `chrome.system.display` - Window Management ✓
-**Permission**: `"system.display"`
-
-| Tool | Description | Status |
-|------|-------------|--------|
-| `tabz_list_windows` | List all Chrome windows with dimensions/state | Done |
-| `tabz_get_displays` | Get monitor info (bounds, work area, position) | Done |
-| `tabz_create_window` | Create new window (normal or popup) | Done |
-| `tabz_update_window` | Resize, move, maximize, minimize, focus | Done |
-| `tabz_close_window` | Close a window | Done |
-| `tabz_tile_windows` | Auto-arrange windows (horizontal/vertical/grid) | Done |
-| `tabz_popout_terminal` | Pop terminal to standalone popup | Done |
-
-### Priority 3: Lower Value / Complex
+### Lower Priority / Complex
 
 | Tool | Description | Why Lower |
 |------|-------------|-----------|
@@ -143,38 +76,14 @@ Detailed analysis in `audit-results/`:
 
 ## Documentation & Testing
 
-### Documentation TODO
-- [x] **Verify --dynamic-tool-discovery flag** - Fixed! Updated README to use `ENABLE_EXPERIMENTAL_MCP_CLI=true` env var
-- [x] **Add Homebrew install note for macOS** - Handled in scripts/dev.sh
-- [x] **Remove CDP documentation** - All docs updated for v1.2.0 (no CDP required)
+### TODO
 - [ ] **Clean archived docs** - Personal paths remain in `docs/archived/*` files
 - [ ] Add homepage/bugs fields to backend/package.json
-
-### Testing TODO
 - [ ] **Cross-platform testing matrix**
   - [ ] Windows 11 + WSL2 + Chrome (current setup)
   - [ ] Native Ubuntu + Chrome
   - [ ] Native macOS + Chrome
   - [ ] Verify all MCP tools work on each platform
-
----
-
-## Conductor Agent Enhancements
-
-**Status**: Mostly complete. Core infrastructure is working.
-
-### Completed
-
-- [x] **Context Window Monitoring** - Statusline writes to `/tmp/claude-code-state/{session}-context.json` with `context_pct`
-- [x] **Sub-Agent Architecture** - All agents created:
-  - `conductor.md` - Multi-session orchestrator (Opus)
-  - `tabz-manager.md` - Browser automation specialist (Opus)
-  - `watcher.md` - Worker health monitor (Haiku)
-  - `skill-picker.md` - SkillsMP integration
-  - `tui-expert.md` - TUI tool specialist
-- [x] **Conductor reads state files** - Can check worker context % before assigning work
-- [x] **Prompt tips in conductor.md** - @ file references, capability triggers documented
-- [x] **Show context % in Tmuxplexer session list**
 
 ---
 
@@ -273,47 +182,6 @@ Benefits: No infrastructure to build, works from CLI, real-time sync, mobile app
 ### Other Features
 - **Tab Context Menu** - Right-click for Rename, Close, Close Others
 - **Chrome Web Store Publication** - Privacy policy, screenshots, version management
-
----
-
-## Terminal Popout System Fix
-
-**Status**: ✅ Complete
-**Priority**: High - Fixed display corruption issue
-
-### Problem (Solved)
-
-The `tabz_popout_terminal` tool was creating popup windows loading `/sidepanel/sidepanel.html`, but each popout:
-1. Loaded ALL terminal sessions (not just one)
-2. Created duplicate xterm.js instances for the same tmux sessions
-3. Multiple xterm instances fought over the same terminal output → garbled display
-
-### Solution Implemented
-
-Popout windows now show **only a single terminal** in dedicated mode:
-
-1. **URL Parameter Detection**
-   - Popout URL: `/sidepanel/sidepanel.html?popout=true&terminal=ctt-profile-uuid`
-   - `extension/sidepanel/sidepanel.tsx` parses `popout` and `terminal` params on load
-
-2. **PopoutTerminalView Component** (`extension/components/PopoutTerminalView.tsx`)
-   - Minimal UI: thin header with terminal name + close button
-   - No tab bar, no + button, no chat bar
-   - Only renders ONE Terminal component (the specified terminal)
-   - Only one xterm.js instance created per popout window
-
-3. **Detach on Close**
-   - When popout window closes, terminal is detached (not killed)
-   - Uses `POST /api/agents/:id/detach` endpoint (for `navigator.sendBeacon`)
-   - Terminal appears as ghost icon in main sidebar
-   - User can reattach from Ghost Badge dropdown
-
-4. **Benefits**
-   - No duplicate xterm instances for same tmux session
-   - Each popout window = dedicated view of one terminal
-   - Can tile multiple terminal windows across monitors
-   - Main sidebar remains full-featured
-   - Closing popout preserves terminal (becomes orphan/ghost)
 
 ---
 
