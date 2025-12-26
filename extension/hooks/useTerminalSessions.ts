@@ -362,9 +362,10 @@ export function useTerminalSessions({
             command: terminal.config?.command,  // Store command for API-spawned terminals
           }]
         })
-        // Only auto-focus new terminal if no current session exists
-        // This prevents popout terminals (and other spawns) from stealing focus
-        setCurrentSession(prev => prev ?? terminal.id)
+        // Auto-focus the new terminal
+        // Note: PopoutTerminalView doesn't use currentSession (it uses sessions.find()),
+        // so this only affects the main sidebar behavior
+        setCurrentSession(terminal.id)
 
         // For API-spawned terminals, send reconnect to register this connection as owner
         // This enables chat input to send commands to the terminal
