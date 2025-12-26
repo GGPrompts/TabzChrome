@@ -118,6 +118,9 @@ interface Terminal3DWrapperProps {
   panelColor?: string
   backgroundGradient?: string
   transparency?: number
+  backgroundMedia?: string
+  backgroundMediaType?: 'none' | 'image' | 'video'
+  backgroundMediaOpacity?: number
   isDark?: boolean
 }
 
@@ -132,6 +135,9 @@ function Terminal3DWrapper({
   panelColor = '#000000',
   backgroundGradient,
   transparency = 100,
+  backgroundMedia,
+  backgroundMediaType,
+  backgroundMediaOpacity,
   isDark = true,
 }: Terminal3DWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -171,6 +177,9 @@ function Terminal3DWrapper({
         panelColor={panelColor}
         backgroundGradient={backgroundGradient}
         transparency={transparency}
+        backgroundMedia={backgroundMedia}
+        backgroundMediaType={backgroundMediaType}
+        backgroundMediaOpacity={backgroundMediaOpacity}
         isDark={isDark}
       />
     </div>
@@ -187,6 +196,9 @@ interface TerminalDisplayProps {
   panelColor?: string
   backgroundGradient?: string
   transparency?: number
+  backgroundMedia?: string
+  backgroundMediaType?: 'none' | 'image' | 'video'
+  backgroundMediaOpacity?: number
   isDark?: boolean
 }
 
@@ -199,6 +211,9 @@ function TerminalDisplay({
   panelColor,
   backgroundGradient,
   transparency,
+  backgroundMedia,
+  backgroundMediaType,
+  backgroundMediaOpacity,
   isDark,
 }: TerminalDisplayProps) {
   const terminalWidth = 1200
@@ -227,6 +242,9 @@ function TerminalDisplay({
           panelColor={panelColor}
           backgroundGradient={backgroundGradient}
           transparency={transparency}
+          backgroundMedia={backgroundMedia}
+          backgroundMediaType={backgroundMediaType}
+          backgroundMediaOpacity={backgroundMediaOpacity}
           isDark={isDark}
         />
       </Html>
@@ -272,6 +290,9 @@ export default function FocusScene() {
   const panelColor = targetSession?.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#000000'
   const backgroundGradient = targetSession?.appearanceOverrides?.backgroundGradient ?? effectiveProfile?.backgroundGradient
   const transparency = targetSession?.appearanceOverrides?.transparency ?? effectiveProfile?.transparency ?? 100
+  const backgroundMedia = effectiveProfile?.backgroundMedia
+  const backgroundMediaType = effectiveProfile?.backgroundMediaType
+  const backgroundMediaOpacity = effectiveProfile?.backgroundMediaOpacity
 
   // Connect to background worker for WebSocket messages (needed for session data)
   useEffect(() => {
@@ -400,6 +421,9 @@ export default function FocusScene() {
           panelColor={panelColor}
           backgroundGradient={backgroundGradient}
           transparency={transparency}
+          backgroundMedia={backgroundMedia}
+          backgroundMediaType={backgroundMediaType}
+          backgroundMediaOpacity={backgroundMediaOpacity}
           isDark={isDark}
         />
 

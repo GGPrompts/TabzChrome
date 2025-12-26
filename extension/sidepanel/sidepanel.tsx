@@ -1315,6 +1315,9 @@ function SidePanelTerminal() {
                           backgroundGradient={session.appearanceOverrides?.backgroundGradient ?? effectiveProfile?.backgroundGradient}
                           panelColor={session.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#000000'}
                           transparency={session.appearanceOverrides?.transparency ?? effectiveProfile?.transparency ?? 100}
+                          backgroundMedia={effectiveProfile?.backgroundMedia}
+                          backgroundMediaType={effectiveProfile?.backgroundMediaType}
+                          backgroundMediaOpacity={effectiveProfile?.backgroundMediaOpacity}
                           onClose={() => {
                             sendMessage({
                               type: 'CLOSE_TERMINAL',

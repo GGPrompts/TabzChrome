@@ -9,6 +9,8 @@ import { sendMessage, connectToBackground } from '../shared/messaging'
 import { getThemeColors, getBackgroundGradient as getThemeBackgroundGradient, ThemeColors } from '../styles/themes'
 import { getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 
+import type { BackgroundMediaType } from './settings/types'
+
 /**
  * Props for the Terminal component
  */
@@ -34,6 +36,10 @@ interface TerminalProps {
   backgroundGradient?: string  // Override gradient key (undefined = use theme default)
   panelColor?: string          // Base panel color (default: #000000)
   transparency?: number        // Gradient opacity 0-100 (default: 100)
+  // Background media (video/image)
+  backgroundMedia?: string            // Path to media file
+  backgroundMediaType?: BackgroundMediaType  // 'none' | 'image' | 'video'
+  backgroundMediaOpacity?: number     // 0-100, controls media visibility
 }
 // NOTE: ClaudeStatus interface removed - status polling handled by sidepanel's useClaudeStatus hook
 
@@ -68,7 +74,7 @@ interface TerminalProps {
  * @param props.onClose - Callback when terminal is closed
  * @returns Terminal container with xterm.js instance
  */
-export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize, backgroundGradient, panelColor = '#000000', transparency = 100 }: TerminalProps) {
+export function Terminal({ terminalId, sessionName, terminalType = 'bash', workingDir, tmuxSession, fontSize = 16, fontFamily = 'monospace', themeName = 'high-contrast', isDark = true, isActive = true, pasteCommand = null, onClose, fontSizeOffset = 0, onIncreaseFontSize, onDecreaseFontSize, onResetFontSize, backgroundGradient, panelColor = '#000000', transparency = 100, backgroundMedia, backgroundMediaType = 'none', backgroundMediaOpacity = 50 }: TerminalProps) {
   // Compute effective font size (base + offset)
   const effectiveFontSize = fontSize + (fontSizeOffset || 0)
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -78,6 +84,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const canvasAddonRef = useRef<CanvasAddon | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)  // Track if xterm has been opened
+  const [mediaError, setMediaError] = useState(false)  // Track if background media failed to load
   const wasDisconnectedRef = useRef(false)  // Track if we were disconnected (for resync on reconnect)
   // NOTE: Claude status polling removed - sidepanel handles it via useClaudeStatus hook
 
@@ -1001,13 +1008,21 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     }
   }, [pasteCommand, terminalId])
 
+  // Reset media error when path changes
+  useEffect(() => {
+    setMediaError(false)
+  }, [backgroundMedia])
+
   // NOTE: Claude status polling removed from Terminal component
   // The sidepanel handles all status polling via useClaudeStatus hook
   // This eliminates duplicate network requests (was 2x requests per terminal)
 
   // Compute the effective background:
-  // 1. Panel color is the base layer (solid color)
-  // 2. Gradient overlays on top with transparency control
+  // Layer order (bottom to top):
+  // 1. Panel color (solid background color)
+  // 2. Video/image media (if configured)
+  // 3. Gradient overlay with transparency control
+  // 4. Terminal (xterm.js)
   // If a custom gradient is specified, use it; otherwise use theme default
   const effectiveGradientCSS = backgroundGradient
     ? getGradientCSS(backgroundGradient, isDark)
@@ -1019,6 +1034,23 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   // Get appropriate panel color for current mode (dark colors -> light equivalents)
   const effectivePanelColor = getPanelColor(panelColor, isDark)
 
+  // Compute media URL - resolve ~ to home directory via backend
+  // Supports: http/https URLs, file:// URLs, or paths served via backend
+  const getMediaUrl = (path: string | undefined): string | null => {
+    if (!path) return null
+    // If it's already a URL, use it directly
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
+      return path
+    }
+    // For local paths, serve via backend endpoint
+    // Backend will resolve ~ and serve the file
+    return `http://localhost:8129/api/media?path=${encodeURIComponent(path)}`
+  }
+
+  const mediaUrl = getMediaUrl(backgroundMedia)
+  const mediaOpacity = backgroundMediaOpacity / 100
+  const showMedia = backgroundMediaType !== 'none' && mediaUrl && !mediaError
+
   return (
     <div
       ref={containerRef}
@@ -1027,17 +1059,49 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         backgroundColor: effectivePanelColor,
       }}
     >
+      {/* Background media layer (video or image) */}
+      {showMedia && backgroundMediaType === 'video' && (
+        <video
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => {
+            console.warn('[Terminal] Failed to load background video:', mediaUrl)
+            setMediaError(true)
+          }}
+        />
+      )}
+      {showMedia && backgroundMediaType === 'image' && (
+        <img
+          key={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: mediaOpacity, zIndex: 0 }}
+          src={mediaUrl}
+          alt=""
+          onError={() => {
+            console.warn('[Terminal] Failed to load background image:', mediaUrl)
+            setMediaError(true)
+          }}
+        />
+      )}
       {/* Gradient overlay with transparency */}
       <div
-        className="absolute inset-0 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background: effectiveGradientCSS,
           opacity: gradientOpacity,
+          zIndex: 1,
         }}
       />
       {/* Terminal body - full height, status shown in tmux status bar */}
       <div
         className="flex-1 relative overflow-hidden"
+        style={{ zIndex: 2 }}
         onContextMenu={(e) => e.preventDefault()}  // Disable browser context menu so TUI apps/tmux can use right-click
       >
         <div

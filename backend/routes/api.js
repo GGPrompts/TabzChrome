@@ -1836,6 +1836,103 @@ router.post('/settings/working-dir', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// MEDIA SERVING (Background videos/images)
+// =============================================================================
+
+// Allowed media file extensions for terminal backgrounds
+const ALLOWED_MEDIA_EXTENSIONS = {
+  // Video
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/x-m4v',
+  // Image
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+};
+
+// GET /api/media - Serve local media files for terminal backgrounds
+router.get('/media', asyncHandler(async (req, res) => {
+  const { path: filePath } = req.query;
+
+  if (!filePath || typeof filePath !== 'string') {
+    return res.status(400).json({
+      error: 'Missing path parameter',
+      message: 'Provide a file path via ?path=<filepath>'
+    });
+  }
+
+  // Resolve ~ to home directory
+  let resolvedPath = filePath;
+  if (resolvedPath.startsWith('~/') || resolvedPath === '~') {
+    resolvedPath = resolvedPath.replace(/^~/, process.env.HOME || process.env.USERPROFILE || '');
+  }
+
+  // Resolve relative paths
+  const path = require('path');
+  const fs = require('fs');
+  resolvedPath = path.resolve(resolvedPath);
+
+  // Security: Validate file extension
+  const ext = path.extname(resolvedPath).toLowerCase();
+  const contentType = ALLOWED_MEDIA_EXTENSIONS[ext];
+
+  if (!contentType) {
+    return res.status(400).json({
+      error: 'Invalid file type',
+      message: `Only media files are allowed: ${Object.keys(ALLOWED_MEDIA_EXTENSIONS).join(', ')}`,
+      extension: ext
+    });
+  }
+
+  // Check if file exists
+  if (!fs.existsSync(resolvedPath)) {
+    return res.status(404).json({
+      error: 'File not found',
+      message: `Media file not found: ${filePath}`,
+      resolvedPath
+    });
+  }
+
+  // Get file stats for content-length
+  const stats = fs.statSync(resolvedPath);
+
+  // Set headers for media streaming
+  res.set({
+    'Content-Type': contentType,
+    'Content-Length': stats.size,
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+  });
+
+  // Handle range requests for video seeking
+  const range = req.headers.range;
+  if (range && contentType.startsWith('video/')) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
+    const chunkSize = end - start + 1;
+
+    res.status(206);
+    res.set({
+      'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+      'Content-Length': chunkSize,
+    });
+
+    const stream = fs.createReadStream(resolvedPath, { start, end });
+    stream.pipe(res);
+  } else {
+    // Stream entire file
+    const stream = fs.createReadStream(resolvedPath);
+    stream.pipe(res);
+  }
+}));
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 

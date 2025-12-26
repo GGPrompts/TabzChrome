@@ -15,6 +15,26 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Video/Image Background Support** - Set videos or images as terminal backgrounds:
+  - Per-profile background media settings (image/video/none)
+  - Supports local files (~/path) and URLs (http/https)
+  - Video formats: mp4, webm, mov (loops silently, muted)
+  - Image formats: jpg, png, gif, webp, svg
+  - Opacity slider to control media visibility (0-100%)
+  - Media layer renders behind gradient overlay
+  - Graceful fallback to panel color if file not found
+
+- **Media Serving Endpoint** - `GET /api/media?path=<filepath>`:
+  - Resolves `~` to home directory
+  - Validates file extension for security
+  - Supports video seeking with range requests
+  - Caches media for 1 hour
+
+---
+
 ## [1.2.22] - 2025-12-26
 
 ### Fixed

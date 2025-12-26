@@ -15,6 +15,7 @@ export type {
   AudioEventSettings,
   AudioMode,
   ProfileAudioOverrides,
+  BackgroundMediaType,
 } from './settings/types'
 
 export { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from './settings/types'
@@ -143,6 +144,7 @@ function SettingsModalContent({ onClose, editProfileId }: SettingsModalContentPr
                 audioSettings={settings.audioSettings}
                 updateAudioSettings={settings.updateAudioSettings}
                 updateAudioEvents={settings.updateAudioEvents}
+                updateAudioSfx={settings.updateAudioSfx}
               />
             </div>
           )}

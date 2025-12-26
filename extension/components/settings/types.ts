@@ -79,6 +79,9 @@ export const PRESETS = {
 
 export type TabType = 'profiles' | 'mcp' | 'audio'
 
+// Background media types
+export type BackgroundMediaType = 'none' | 'image' | 'video'
+
 // Profile types
 export interface Profile {
   id: string
@@ -91,6 +94,10 @@ export interface Profile {
   backgroundGradient?: string  // Override gradient (undefined = use theme default)
   panelColor?: string  // Base panel color shown through gradient (undefined = #000000)
   transparency?: number  // Gradient opacity 0-100 (undefined = 100)
+  // Background media settings
+  backgroundMedia?: string  // Path to image/video file (e.g., ~/Pictures/space.mp4)
+  backgroundMediaType?: BackgroundMediaType  // 'none' | 'image' | 'video'
+  backgroundMediaOpacity?: number  // 0-100, controls media visibility (default: 50)
   audioOverrides?: ProfileAudioOverrides  // Optional per-profile audio settings
   category?: string  // Optional category for grouping (e.g., "Claude Code", "TUI Tools")
   reference?: string  // Optional reference URL or file path (shows paperclip on tab)
@@ -131,6 +138,9 @@ export const DEFAULT_PROFILE: Profile = {
   backgroundGradient: undefined,  // Use theme default
   panelColor: '#000000',
   transparency: 100,  // Full gradient visibility
+  backgroundMedia: undefined,  // No media by default
+  backgroundMediaType: 'none',
+  backgroundMediaOpacity: 50,  // 50% opacity default for media
 }
 
 // Platform detection for font filtering
@@ -184,6 +194,34 @@ export interface AudioEventSettings {
   mcpDownloads: boolean     // Announce when MCP downloads complete (tabz_download_file, tabz_download_image)
 }
 
+// SFX settings for individual events
+export interface EventSfxConfig {
+  enabled: boolean
+  customPath?: string  // Optional custom SFX file path (uses default if not set)
+}
+
+// SFX settings for all events
+export interface AudioEventSfxSettings {
+  ready: EventSfxConfig
+  sessionStart: EventSfxConfig
+  tools: EventSfxConfig
+  subagents: EventSfxConfig
+  contextWarning: EventSfxConfig
+  contextCritical: EventSfxConfig
+  mcpDownloads: EventSfxConfig
+}
+
+// Default SFX file names (served from backend/public/sfx/)
+export const DEFAULT_SFX_FILES: Record<keyof AudioEventSfxSettings, string> = {
+  ready: 'ready.mp3',
+  sessionStart: 'session-start.mp3',
+  tools: 'tool.mp3',
+  subagents: 'subagent.mp3',
+  contextWarning: 'warning.mp3',
+  contextCritical: 'critical.mp3',
+  mcpDownloads: 'download.mp3',
+}
+
 export interface AudioSettings {
   enabled: boolean
   volume: number  // 0-1
@@ -191,6 +229,7 @@ export interface AudioSettings {
   rate: string    // e.g., "+30%", "-10%"
   pitch: string   // e.g., "+20Hz", "-10Hz" (higher = more urgent/alert tone)
   events: AudioEventSettings
+  sfx: AudioEventSfxSettings  // SFX settings per event
   toolDebounceMs: number
 }
 
@@ -202,6 +241,9 @@ export interface ProfileAudioOverrides {
   rate?: string        // Override rate (undefined = use global default)
   pitch?: string       // Override pitch (undefined = use global default)
 }
+
+// Default SFX config (disabled by default)
+const DEFAULT_SFX_CONFIG: EventSfxConfig = { enabled: false }
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   enabled: false,
@@ -218,6 +260,15 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     contextWarning: false,
     contextCritical: false,
     mcpDownloads: true,
+  },
+  sfx: {
+    ready: { ...DEFAULT_SFX_CONFIG },
+    sessionStart: { ...DEFAULT_SFX_CONFIG },
+    tools: { ...DEFAULT_SFX_CONFIG },
+    subagents: { ...DEFAULT_SFX_CONFIG },
+    contextWarning: { ...DEFAULT_SFX_CONFIG },
+    contextCritical: { ...DEFAULT_SFX_CONFIG },
+    mcpDownloads: { ...DEFAULT_SFX_CONFIG },
   },
   toolDebounceMs: 1000,
 }
