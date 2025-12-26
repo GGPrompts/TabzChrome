@@ -1,10 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import { Terminal } from '../components/Terminal'
 import { useTerminal3DMouseFix } from './useTerminal3DMouseFix'
-import { sendMessage } from '../shared/messaging'
+import { connectToBackground, sendMessage } from '../shared/messaging'
+import { useProfiles } from '../hooks/useProfiles'
+import { useTerminalSessions } from '../hooks/useTerminalSessions'
 
 // Camera controller - mouse movement + zoom
 function FocusedCameraController({ locked, onToggleLock }: { locked: boolean; onToggleLock: () => void }) {
@@ -113,9 +115,25 @@ interface Terminal3DWrapperProps {
   themeName?: string
   fontSize?: number
   fontFamily?: string
+  panelColor?: string
+  backgroundGradient?: string
+  transparency?: number
+  isDark?: boolean
 }
 
-function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800, themeName = 'high-contrast', fontSize = 16, fontFamily = 'monospace' }: Terminal3DWrapperProps) {
+function Terminal3DWrapper({
+  sessionName,
+  terminalId,
+  width = 1200,
+  height = 800,
+  themeName = 'high-contrast',
+  fontSize = 16,
+  fontFamily = 'monospace',
+  panelColor = '#000000',
+  backgroundGradient,
+  transparency = 100,
+  isDark = true,
+}: Terminal3DWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useTerminal3DMouseFix(containerRef, true)
@@ -150,6 +168,10 @@ function Terminal3DWrapper({ sessionName, terminalId, width = 1200, height = 800
         themeName={themeName}
         fontSize={fontSize}
         fontFamily={fontFamily}
+        panelColor={panelColor}
+        backgroundGradient={backgroundGradient}
+        transparency={transparency}
+        isDark={isDark}
       />
     </div>
   )
@@ -162,9 +184,23 @@ interface TerminalDisplayProps {
   themeName?: string
   fontSize?: number
   fontFamily?: string
+  panelColor?: string
+  backgroundGradient?: string
+  transparency?: number
+  isDark?: boolean
 }
 
-function TerminalDisplay({ sessionName, terminalId, themeName, fontSize, fontFamily }: TerminalDisplayProps) {
+function TerminalDisplay({
+  sessionName,
+  terminalId,
+  themeName,
+  fontSize,
+  fontFamily,
+  panelColor,
+  backgroundGradient,
+  transparency,
+  isDark,
+}: TerminalDisplayProps) {
   const terminalWidth = 1200
   const terminalHeight = 800
 
@@ -188,6 +224,10 @@ function TerminalDisplay({ sessionName, terminalId, themeName, fontSize, fontFam
           themeName={themeName}
           fontSize={fontSize}
           fontFamily={fontFamily}
+          panelColor={panelColor}
+          backgroundGradient={backgroundGradient}
+          transparency={transparency}
+          isDark={isDark}
         />
       </Html>
     </group>
@@ -199,9 +239,78 @@ export default function FocusScene() {
   const [sessionName, setSessionName] = useState<string>('')
   const [terminalId, setTerminalId] = useState<string>('')
   const [cameraLocked, setCameraLocked] = useState(false)
-  const [themeName, setThemeName] = useState<string>('high-contrast')
-  const [fontSize, setFontSize] = useState<number>(16)
-  const [fontFamily, setFontFamily] = useState<string>('monospace')
+  const [isDark, setIsDark] = useState(true)
+  const [wsConnected, setWsConnected] = useState(false)
+  const portRef = useRef<chrome.runtime.Port | null>(null)
+
+  // Use profiles hook to get current profile settings (syncs with Chrome storage)
+  const { profiles } = useProfiles({})
+
+  // Use terminal sessions hook to get session with appearance overrides
+  const {
+    sessions,
+    handleWebSocketMessage,
+  } = useTerminalSessions({
+    wsConnected,
+    profiles,
+    getNextAvailableVoice: () => 'en-US-AndrewMultilingualNeural',
+  })
+
+  // Find the target session from sessions list (includes appearance overrides)
+  const targetSession = sessions.find(s => s.id === terminalId || s.sessionName === sessionName)
+
+  // Get current profile settings (updates when profiles change in settings)
+  const sessionProfileId = targetSession?.profile?.id
+  const currentProfile = sessionProfileId ? profiles.find(p => p.id === sessionProfileId) : null
+  const defaultProfile = profiles.find(p => p.id === 'default') || profiles[0]
+  const effectiveProfile = currentProfile || defaultProfile
+
+  // Get theme settings - session overrides take precedence over profile settings
+  const themeName = targetSession?.appearanceOverrides?.themeName ?? effectiveProfile?.themeName ?? 'high-contrast'
+  const fontSize = effectiveProfile?.fontSize || 16
+  const fontFamily = targetSession?.appearanceOverrides?.fontFamily ?? effectiveProfile?.fontFamily ?? 'monospace'
+  const panelColor = targetSession?.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#000000'
+  const backgroundGradient = targetSession?.appearanceOverrides?.backgroundGradient ?? effectiveProfile?.backgroundGradient
+  const transparency = targetSession?.appearanceOverrides?.transparency ?? effectiveProfile?.transparency ?? 100
+
+  // Connect to background worker for WebSocket messages (needed for session data)
+  useEffect(() => {
+    const port = connectToBackground('3d-focus', (message) => {
+      if (message.type === 'INITIAL_STATE') {
+        setWsConnected(message.wsConnected)
+      } else if (message.type === 'WS_CONNECTED') {
+        setWsConnected(true)
+      } else if (message.type === 'WS_DISCONNECTED') {
+        setWsConnected(false)
+      } else if (message.type === 'WS_MESSAGE') {
+        handleWebSocketMessage(message.data)
+      }
+    })
+
+    portRef.current = port
+
+    return () => {
+      port.disconnect()
+      portRef.current = null
+    }
+  }, [handleWebSocketMessage])
+
+  // Load dark mode preference and listen for changes
+  useEffect(() => {
+    chrome.storage.local.get(['isDark'], (result) => {
+      if (typeof result.isDark === 'boolean') {
+        setIsDark(result.isDark)
+      }
+    })
+
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.isDark && typeof changes.isDark.newValue === 'boolean') {
+        setIsDark(changes.isDark.newValue)
+      }
+    }
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange)
+  }, [])
 
   useEffect(() => {
     // Get session info from URL params
@@ -210,16 +319,8 @@ export default function FocusScene() {
     // Use session name as terminal ID for consistency with sidebar
     const id = params.get('id') || session || `3d-${Date.now()}`
 
-    // Get theme settings from URL params (passed from sidebar)
-    const theme = params.get('theme') || 'high-contrast'
-    const size = parseInt(params.get('fontSize') || '16', 10)
-    const family = params.get('fontFamily') || 'monospace'
-
     setSessionName(session)
     setTerminalId(id)
-    setThemeName(theme)
-    setFontSize(size)
-    setFontFamily(family)
 
     // Set page title
     document.title = session ? `3D Focus: ${session}` : '3D Focus Mode'
@@ -274,7 +375,7 @@ export default function FocusScene() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
+    <div style={{ width: '100vw', height: '100vh', background: panelColor }}>
       <Canvas
         camera={{ position: [0, 0, 3.5], fov: 60 }}
         dpr={Math.min(window.devicePixelRatio, 2)}
@@ -290,7 +391,17 @@ export default function FocusScene() {
         <Stars radius={100} depth={50} count={2000} factor={4} fade speed={1} />
 
         {/* Terminal */}
-        <TerminalDisplay sessionName={sessionName} terminalId={terminalId} themeName={themeName} fontSize={fontSize} fontFamily={fontFamily} />
+        <TerminalDisplay
+          sessionName={sessionName}
+          terminalId={terminalId}
+          themeName={themeName}
+          fontSize={fontSize}
+          fontFamily={fontFamily}
+          panelColor={panelColor}
+          backgroundGradient={backgroundGradient}
+          transparency={transparency}
+          isDark={isDark}
+        />
 
         {/* Camera controller */}
         <FocusedCameraController locked={cameraLocked} onToggleLock={() => setCameraLocked(l => !l)} />

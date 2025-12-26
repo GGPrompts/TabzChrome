@@ -11,6 +11,8 @@ export type { TerminalSession }
 export interface UseAudioNotificationsParams {
   sessions: TerminalSession[]
   claudeStatuses: Map<string, ClaudeStatus>
+  /** When true, audio is completely disabled (for popout windows to prevent duplicate announcements) */
+  isPopoutMode?: boolean
 }
 
 export interface UseAudioNotificationsReturn {
@@ -40,6 +42,7 @@ export interface UseAudioNotificationsReturn {
 export function useAudioNotifications({
   sessions,
   claudeStatuses,
+  isPopoutMode = false,
 }: UseAudioNotificationsParams): UseAudioNotificationsReturn {
   // Core audio playback and settings
   const {
@@ -52,12 +55,16 @@ export function useAudioNotifications({
     playAudio,
   } = useAudioPlayback({ sessions })
 
+  // In popout mode, treat audio as globally muted to prevent duplicate announcements
+  // The sidebar still tracks all terminals and plays audio - popouts should be silent
+  const effectiveGlobalMute = audioGlobalMute || isPopoutMode
+
   // Status transition tracking (ready, tools, subagents, context alerts)
   useStatusTransitions({
     sessions,
     claudeStatuses,
     audioSettings,
-    audioGlobalMute,
+    audioGlobalMute: effectiveGlobalMute,
     settingsLoaded,
     getAudioSettingsForProfile,
     playAudio,
@@ -67,7 +74,7 @@ export function useAudioNotifications({
   const { markSessionDetached } = useSessionAnnouncements({
     sessions,
     audioSettings,
-    audioGlobalMute,
+    audioGlobalMute: effectiveGlobalMute,
     settingsLoaded,
     getAudioSettingsForProfile,
     playAudio,

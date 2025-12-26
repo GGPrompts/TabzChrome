@@ -172,7 +172,8 @@ function SidePanelTerminal() {
 
   // Audio notifications hook - handles audio settings, category settings, and status announcements
   // IMPORTANT: This must be after useTerminalSessions and useClaudeStatus so it receives real data
-  const audioNotifications = useAudioNotifications({ sessions, claudeStatuses })
+  // In popout mode, audio is disabled to prevent duplicate announcements (sidebar handles all audio)
+  const audioNotifications = useAudioNotifications({ sessions, claudeStatuses, isPopoutMode })
   const {
     audioSettings,
     audioGlobalMute,
@@ -293,7 +294,8 @@ function SidePanelTerminal() {
         // Play audio from /api/audio/speak endpoint (for slash commands, etc.)
         // Uses priority system: 'high' for summaries/handoffs, 'low' for status updates
         // Regenerates audio with user settings (rate, voice, pitch) for consistency
-        if (message.data?.type === 'audio-speak' && message.data?.text) {
+        // Skip in popout mode - sidebar handles all audio to prevent duplicates
+        if (message.data?.type === 'audio-speak' && message.data?.text && !isPopoutMode) {
           const audioData = message.data // Capture in closure
           // Get user audio settings and regenerate with their preferences
           chrome.storage.local.get(['audioSettings'], async (result) => {
@@ -726,20 +728,9 @@ function SidePanelTerminal() {
       s.id === terminal.id ? { ...s, focusedIn3D: true } : s
     ))
 
-    // Look up CURRENT profile settings (not stale snapshot from spawn time)
-    // This ensures theme/font changes made after spawning are respected
-    const sessionProfileId = terminal.profile?.id
-    const currentProfile = sessionProfileId
-      ? profiles.find(p => p.id === sessionProfileId)
-      : null
-    const defaultProfile = profiles.find(p => p.id === 'default') || profiles[0]
-    const effectiveProfile = currentProfile || defaultProfile
-
     // Open new browser tab with 3D focus page
-    const themeName = effectiveProfile?.themeName || 'high-contrast'
-    const fontSize = effectiveProfile?.fontSize || 16
-    const fontFamily = encodeURIComponent(effectiveProfile?.fontFamily || 'monospace')
-    const url = chrome.runtime.getURL(`3d/3d-focus.html?session=${terminal.sessionName}&id=${terminal.id}&theme=${themeName}&fontSize=${fontSize}&fontFamily=${fontFamily}`)
+    // 3D Focus uses useTerminalSessions to get session data including appearance overrides
+    const url = chrome.runtime.getURL(`3d/3d-focus.html?session=${terminal.sessionName}&id=${terminal.id}`)
     chrome.tabs.create({ url })
 
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })

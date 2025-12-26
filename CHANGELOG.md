@@ -15,6 +15,21 @@ For older versions (2.5.0 and earlier), see [CHANGELOG-archive.md](CHANGELOG-arc
 
 ---
 
+## [1.2.22] - 2025-12-26
+
+### Fixed
+- **Duplicate audio in popouts** - Popout windows no longer play audio announcements (sidebar handles all audio)
+- **Theme sync for popouts** - Dark mode changes now propagate to popout terminal windows
+- **Theme sync for 3D Focus** - 3D Focus now uses `useTerminalSessions` to get session appearance overrides
+- **Customize menu in 3D Focus** - Per-session theme customizations now work in 3D Focus mode
+- **Panel color in popouts/3D** - Container backgrounds now respect profile's `panelColor` setting
+
+### Changed
+- 3D Focus connects to background worker to receive session data updates
+- Popout and 3D Focus listen for Chrome storage changes for `isDark` preference
+
+---
+
 ## [1.2.21] - 2025-12-26
 
 ### Added

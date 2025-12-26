@@ -84,13 +84,22 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
     }
   }, [handleWebSocketMessage])
 
-  // Load dark mode preference
+  // Load dark mode preference and listen for changes
   useEffect(() => {
     chrome.storage.local.get(['isDark'], (result) => {
       if (typeof result.isDark === 'boolean') {
         setIsDark(result.isDark)
       }
     })
+
+    // Listen for dark mode changes from sidebar
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.isDark && typeof changes.isDark.newValue === 'boolean') {
+        setIsDark(changes.isDark.newValue)
+      }
+    }
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange)
   }, [])
 
   // Handle window close - detach the terminal (make it a ghost)
@@ -153,8 +162,11 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
     )
   }
 
+  // Get effective panel color for container background
+  const effectivePanelColor = targetSession.appearanceOverrides?.panelColor ?? effectiveProfile?.panelColor ?? '#0a0a0a'
+
   return (
-    <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground">
+    <div className="h-screen flex flex-col text-foreground" style={{ backgroundColor: effectivePanelColor }}>
       {/* Minimal Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a]">
         {/* Left: Terminal info */}
