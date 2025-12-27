@@ -112,7 +112,7 @@ export function TerminalCustomizePopover({
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const popoverWidth = 288 // w-72 = 18rem = 288px
-  const popoverHeight = 450 // approximate
+  const popoverHeight = 550 // approximate (increased for media options)
 
   let left = position.x
   let top = position.y
@@ -203,7 +203,7 @@ export function TerminalCustomizePopover({
         </div>
       </div>
 
-      <div className="relative z-10 px-3 pb-3 space-y-4 max-h-64 overflow-y-auto">
+      <div className="relative z-10 px-3 pb-3 space-y-4 max-h-96 overflow-y-auto">
         {/* Font Size */}
         <div>
           <label className="block text-xs mb-1.5" style={{ color: themeColors?.brightBlack || '#888' }}>Font Size</label>
