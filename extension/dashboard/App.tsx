@@ -15,6 +15,7 @@ import {
   Folder,
   ChevronDown,
   Trash2,
+  GitBranch,
 } from 'lucide-react'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 
@@ -26,6 +27,7 @@ import ApiPlayground from './sections/ApiPlayground'
 import McpPlayground from './sections/McpPlayground'
 import SettingsSection from './sections/Settings'
 import FilesSection from './sections/Files'
+import GitSection from './sections/Git'
 
 // Components
 import CaptureViewer from './components/CaptureViewer'
@@ -45,7 +47,7 @@ interface CaptureData {
   }
 }
 
-type Section = 'home' | 'profiles' | 'terminals' | 'files' | 'api' | 'mcp' | 'settings'
+type Section = 'home' | 'profiles' | 'terminals' | 'files' | 'git' | 'api' | 'mcp' | 'settings'
 
 interface NavItem {
   id: Section
@@ -58,6 +60,7 @@ const navItems: NavItem[] = [
   { id: 'profiles', label: 'Profiles', icon: Grid3X3 },
   { id: 'terminals', label: 'Terminals', icon: Terminal },
   { id: 'files', label: 'Files', icon: FolderOpen },
+  { id: 'git', label: 'Source Control', icon: GitBranch },
   { id: 'api', label: 'API Playground', icon: Code2 },
   { id: 'mcp', label: 'MCP Settings', icon: Wrench },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -71,7 +74,7 @@ export default function App() {
     if (hash.startsWith('#/')) {
       const hashPath = hash.slice(2) // Remove '#/'
       const [section] = hashPath.split('?')
-      const validSections: Section[] = ['home', 'profiles', 'terminals', 'files', 'api', 'mcp', 'settings']
+      const validSections: Section[] = ['home', 'profiles', 'terminals', 'files', 'git', 'api', 'mcp', 'settings']
       if (validSections.includes(section as Section)) {
         return section as Section
       }
@@ -193,6 +196,8 @@ export default function App() {
         return <TerminalsSection />
       case 'files':
         return <FilesSection />
+      case 'git':
+        return <GitSection />
       case 'api':
         return <ApiPlayground />
       case 'mcp':

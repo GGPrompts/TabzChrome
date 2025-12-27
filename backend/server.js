@@ -116,6 +116,7 @@ const audioGenerator = require('./modules/audio-generator');
 const apiRouter = require('./routes/api');
 const filesRouter = require('./routes/files');
 const browserRouter = require('./routes/browser');
+const gitRouter = require('./routes/git');
 // const workspaceRouter = require('./routes/workspace'); // Archived - workspace-manager removed
 
 // Initialize services
@@ -158,6 +159,7 @@ app.use(express.json());
 app.use('/api', apiRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/browser', browserRouter);
+app.use('/api/git', gitRouter);
 
 // Auth token endpoint - needed for WebSocket auth (dashboard, extension)
 // Note: External launchers (GitHub Pages) should use manual token input, not auto-fetch

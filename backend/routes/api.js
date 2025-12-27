@@ -1933,6 +1933,24 @@ router.get('/media', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// AUTH TOKEN ENDPOINT
+// =============================================================================
+
+/**
+ * GET /api/auth-token - Get current auth token (for internal use by dashboard)
+ * Used by git operations to authenticate POST requests
+ */
+router.get('/auth-token', asyncHandler(async (req, res) => {
+  const fs = require('fs');
+  try {
+    const token = fs.readFileSync('/tmp/tabz-auth-token', 'utf8').trim();
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: 'Token not available', message: err.message });
+  }
+}));
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 
