@@ -577,19 +577,23 @@ function SidePanelTerminal() {
     if (!session?.profile) return
 
     const profileId = session.profile.id
+    // Look up current profile from profiles array (not stale session.profile snapshot)
+    const currentProfile = profiles.find(p => p.id === profileId)
+    if (!currentProfile) return
+
     const overrides = session.appearanceOverrides || {}
     const fontSizeOffset = session.fontSizeOffset || 0
 
-    // Get current effective values (override > profile default)
-    const effectiveTheme = overrides.themeName ?? session.profile.themeName ?? 'high-contrast'
-    const effectiveGradient = overrides.backgroundGradient ?? session.profile.backgroundGradient
-    const effectivePanelColor = overrides.panelColor ?? session.profile.panelColor ?? '#000000'
-    const effectiveTransparency = overrides.transparency ?? session.profile.transparency ?? 100
-    const effectiveFontFamily = overrides.fontFamily ?? session.profile.fontFamily ?? 'monospace'
-    const effectiveFontSize = (session.profile.fontSize ?? 16) + fontSizeOffset
-    const effectiveBackgroundMedia = overrides.backgroundMedia ?? session.profile.backgroundMedia
-    const effectiveBackgroundMediaType = overrides.backgroundMediaType ?? session.profile.backgroundMediaType
-    const effectiveBackgroundMediaOpacity = overrides.backgroundMediaOpacity ?? session.profile.backgroundMediaOpacity
+    // Get current effective values (override > current profile default)
+    const effectiveTheme = overrides.themeName ?? currentProfile.themeName ?? 'high-contrast'
+    const effectiveGradient = overrides.backgroundGradient ?? currentProfile.backgroundGradient
+    const effectivePanelColor = overrides.panelColor ?? currentProfile.panelColor ?? '#000000'
+    const effectiveTransparency = overrides.transparency ?? currentProfile.transparency ?? 100
+    const effectiveFontFamily = overrides.fontFamily ?? currentProfile.fontFamily ?? 'monospace'
+    const effectiveFontSize = (currentProfile.fontSize ?? 16) + fontSizeOffset
+    const effectiveBackgroundMedia = overrides.backgroundMedia ?? currentProfile.backgroundMedia
+    const effectiveBackgroundMediaType = overrides.backgroundMediaType ?? currentProfile.backgroundMediaType
+    const effectiveBackgroundMediaOpacity = overrides.backgroundMediaOpacity ?? currentProfile.backgroundMediaOpacity
 
     // Update the profile in the profiles array
     const updatedProfiles = profiles.map(p =>
@@ -1481,7 +1485,12 @@ function SidePanelTerminal() {
       {customizePopover.sessionId && (() => {
         const session = sessions.find(s => s.id === customizePopover.sessionId)
         if (!session) return null
-        const effectiveProfile = session.profile || profiles.find(p => p.id === 'default') || profiles[0]
+        // Look up profile by ID from current profiles array (not stale session.profile snapshot)
+        const sessionProfileId = session.profile?.id
+        const currentProfile = sessionProfileId
+          ? profiles.find(p => p.id === sessionProfileId)
+          : null
+        const effectiveProfile = currentProfile || profiles.find(p => p.id === 'default') || profiles[0]
         return (
           <TerminalCustomizePopover
             sessionId={customizePopover.sessionId}

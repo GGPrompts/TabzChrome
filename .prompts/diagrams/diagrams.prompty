@@ -32,7 +32,7 @@ mcp-cli call tabz/tabz_open_url '{"url": "https://chatgpt.com/g/g-5QhhdsfDj-diag
 
 ### 2. Wait for page load, then fill prompt
 ```bash
-# Wait 2-3 seconds for page to load
+# Wait 3-4 seconds for page to load
 mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt}}"}'
 ```
 
@@ -41,15 +41,41 @@ mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt
 mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"send-button\"]"}'
 ```
 
-### 4. Wait and capture result (10-20 seconds)
+### 4. Allow plugin access (first time)
+The GPT will request permission to use the diagrams plugin. Wait ~15 seconds, then click Allow:
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "div.mx-auto.max-w-\\(--thread-content-max-width\\) button.btn.relative:nth-of-type(1)"}'
+```
+
+### 5. Wait for diagram generation (15-20 seconds)
 ```bash
 mcp-cli call tabz/tabz_screenshot '{}'
 ```
 
-### 5. Save generated diagram
-Download diagrams to:
+### 6. View fullscreen diagram
+Click the "View fullscreen" link:
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "a.decorated-link.cursor-pointer:nth-of-type(1)"}'
 ```
-.prompts/AI_Diagrams/
+
+### 7. Confirm external link dialog
+ChatGPT shows a safety dialog. Click "Open link":
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "div.flex.w-full:nth-of-type(2) > div.flex-0 > div.flex.flex-col > a.btn.relative"}'
+```
+
+### 8. Download PNG
+Go back to ChatGPT tab and click "Download png":
+```bash
+mcp-cli call tabz/tabz_click '{"selector": "a.decorated-link.cursor-pointer:nth-of-type(2)"}'
+# Then click "Open link" in the safety dialog again
+mcp-cli call tabz/tabz_click '{"selector": "div.flex.w-full:nth-of-type(2) > div.flex-0 > div.flex.flex-col > a.btn.relative"}'
+```
+
+### 9. Save generated diagram
+Download saves to `~/Downloads/diagram.png`. Copy to project:
+```bash
+cp ~/Downloads/diagram.png .prompts/AI_Diagrams/{{name}}.png
 ```
 
 ## Key Selectors
@@ -58,6 +84,10 @@ Download diagrams to:
 |---------|----------|
 | Prompt input | `#prompt-textarea` |
 | Send button | `button[data-testid="send-button"]` |
+| Allow button (plugin permission) | `div.mx-auto.max-w-\(--thread-content-max-width\) button.btn.relative:nth-of-type(1)` |
+| View fullscreen link | `a.decorated-link.cursor-pointer:nth-of-type(1)` |
+| Download png link | `a.decorated-link.cursor-pointer:nth-of-type(2)` |
+| Open link button (safety dialog) | `div.flex.w-full:nth-of-type(2) > div.flex-0 > div.flex.flex-col > a.btn.relative` |
 
 ## Example Prompts
 
@@ -125,3 +155,88 @@ Include async operations where applicable.
 4. **Include edge cases** - Error handling, alternative paths
 5. **Request format** - Ask for Mermaid code to embed elsewhere
 6. **Iterate** - Ask to add or remove elements
+
+---
+
+# Alternative: Direct Mermaid (Faster)
+
+Skip ChatGPT entirely - Claude writes Mermaid code directly, you paste into the live editor.
+
+## Workflow
+
+### 1. Describe what you want
+Tell Claude what diagram you need (architecture, flowchart, sequence, etc.)
+
+### 2. Claude writes Mermaid code
+Claude generates the code and copies it to your clipboard:
+```bash
+cat << 'EOF' | clip.exe
+flowchart TB
+    subgraph Example
+        A[Component] --> B[Another]
+    end
+EOF
+```
+
+### 3. Open Mermaid Live Editor
+```bash
+mcp-cli call tabz/tabz_open_url '{"url": "https://mermaid.live/edit"}'
+```
+
+### 4. Paste and export
+1. Click in code editor (left panel)
+2. Ctrl+A to select all
+3. Ctrl+V to paste
+4. Click "Save diagram" or use Actions → Export PNG
+
+## Mermaid Syntax Quick Reference
+
+### Flowchart
+```mermaid
+flowchart TB
+    A[Rectangle] --> B(Rounded)
+    B --> C{Diamond}
+    C -->|Yes| D[Result 1]
+    C -->|No| E[Result 2]
+```
+
+### Subgraphs (for architecture)
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend Layer"]
+        UI[React App]
+        SW[Service Worker]
+    end
+    subgraph Backend["Backend Layer"]
+        API[Express Server]
+        DB[(Database)]
+    end
+    UI --> API
+    API --> DB
+```
+
+### Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant D as Database
+    C->>S: Request
+    S->>D: Query
+    D-->>S: Result
+    S-->>C: Response
+```
+
+### Icons (Font Awesome)
+```mermaid
+flowchart LR
+    A[fa:fa-robot Claude] --> B[fa:fa-server Backend]
+    B --> C[fa:fa-database Storage]
+```
+
+## When to Use Each Method
+
+| Method | Best For |
+|--------|----------|
+| **ChatGPT Diagrams** | Complex diagrams, when you want AI to design the layout |
+| **Direct Mermaid** | Quick diagrams, precise control, faster iteration |
