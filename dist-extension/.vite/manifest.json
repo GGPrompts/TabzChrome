@@ -6,14 +6,14 @@
     "isEntry": true
   },
   "3d/3d-focus.html": {
-    "file": "assets/3d-focus-Dxw3BtJN.js",
+    "file": "assets/3d-focus-sCnKfned.js",
     "name": "3d-focus",
     "src": "3d/3d-focus.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_terminal-backgrounds-P64U3As2.js",
-      "_globals-DnNIb4gR.js",
+      "_globals-DJXeSpUr.js",
       "_extends-CF3RwP-h.js"
     ]
   },
@@ -25,8 +25,8 @@
     "file": "assets/globals-ngTMHqcU.css",
     "src": "_globals-!~{008}~.js"
   },
-  "_globals-DnNIb4gR.js": {
-    "file": "assets/globals-DnNIb4gR.js",
+  "_globals-DJXeSpUr.js": {
+    "file": "assets/globals-DJXeSpUr.js",
     "name": "globals",
     "imports": [
       "_terminal-backgrounds-P64U3As2.js"
@@ -51,7 +51,7 @@
     ]
   },
   "background/index.ts": {
-    "file": "assets/index.ts-Cy6CKFRc.js",
+    "file": "assets/index.ts-CWETEv7h.js",
     "name": "index.ts",
     "src": "background/index.ts",
     "isEntry": true
@@ -87,14 +87,14 @@
     ]
   },
   "sidepanel/sidepanel.html": {
-    "file": "assets/sidepanel.html-MA8qMsOT.js",
+    "file": "assets/sidepanel.html-Dc3VkptI.js",
     "name": "sidepanel.html",
     "src": "sidepanel/sidepanel.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
       "_terminal-backgrounds-P64U3As2.js",
-      "_globals-DnNIb4gR.js",
+      "_globals-DJXeSpUr.js",
       "_useDragDrop-Ky8FTwlj.js"
     ]
   }

@@ -56,7 +56,10 @@ export type MessageType =
   // Popout Mode
   | 'TERMINAL_POPPED_OUT'
   | 'TERMINAL_RETURNED_FROM_POPOUT'
-  | 'UNTRACK_POPOUT_WINDOW';
+  | 'UNTRACK_POPOUT_WINDOW'
+  | 'GET_POPOUT_WINDOWS'
+  | 'POPOUT_WINDOWS_RESPONSE'
+  | 'REGISTER_POPOUT_WINDOW';
 
 export interface BaseMessage {
   type: MessageType;
@@ -336,6 +339,24 @@ export interface UntrackPopoutWindowMessage extends BaseMessage {
   windowId: number;
 }
 
+// Popout Mode - query which windows are currently tracked as popouts
+export interface GetPopoutWindowsMessage extends BaseMessage {
+  type: 'GET_POPOUT_WINDOWS';
+}
+
+// Popout Mode - response with currently tracked popout windows
+export interface PopoutWindowsResponseMessage extends BaseMessage {
+  type: 'POPOUT_WINDOWS_RESPONSE';
+  popouts: Array<{ windowId: number; terminalId: string }>;
+}
+
+// Popout Mode - re-register a popout window (handles service worker restart)
+export interface RegisterPopoutWindowMessage extends BaseMessage {
+  type: 'REGISTER_POPOUT_WINDOW';
+  windowId: number;
+  terminalId: string;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -383,7 +404,10 @@ export type ExtensionMessage =
   // Popout Mode
   | TerminalPoppedOutMessage
   | TerminalReturnedFromPopoutMessage
-  | UntrackPopoutWindowMessage;
+  | UntrackPopoutWindowMessage
+  | GetPopoutWindowsMessage
+  | PopoutWindowsResponseMessage
+  | RegisterPopoutWindowMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {

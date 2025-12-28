@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from './Terminal'
-import { connectToBackground } from '../shared/messaging'
+import { connectToBackground, sendMessage } from '../shared/messaging'
 import { useProfiles } from '../hooks/useProfiles'
 import { useTerminalSessions, type TerminalSession } from '../hooks/useTerminalSessions'
 
@@ -87,6 +87,27 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
     chrome.storage.onChanged.addListener(handleStorageChange)
     return () => chrome.storage.onChanged.removeListener(handleStorageChange)
   }, [])
+
+  // Register this popout window with the background worker
+  // This ensures the window is tracked even if the service worker restarted
+  useEffect(() => {
+    const registerPopout = async () => {
+      try {
+        const currentWindow = await chrome.windows.getCurrent()
+        if (currentWindow.id) {
+          await sendMessage({
+            type: 'REGISTER_POPOUT_WINDOW',
+            windowId: currentWindow.id,
+            terminalId,
+          })
+          console.log(`[Popout] Registered window ${currentWindow.id} for terminal ${terminalId}`)
+        }
+      } catch (e) {
+        console.warn('[Popout] Failed to register popout window:', e)
+      }
+    }
+    registerPopout()
+  }, [terminalId])
 
   // Note: Cleanup on popout close is handled by chrome.windows.onRemoved listener
   // in background/index.ts. When the popout window is closed (via X or "Return to Sidebar"),

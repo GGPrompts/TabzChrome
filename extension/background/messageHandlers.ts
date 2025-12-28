@@ -137,6 +137,25 @@ export function setupMessageHandlers(): void {
         popoutWindows.delete((message as any).windowId)
         break
 
+      case 'GET_POPOUT_WINDOWS':
+        // Return currently tracked popout windows so clients can clean up stale flags
+        const popouts = Array.from(popoutWindows.entries()).map(([windowId, terminalId]) => ({
+          windowId,
+          terminalId,
+        }))
+        sendResponse({
+          type: 'POPOUT_WINDOWS_RESPONSE',
+          popouts,
+        })
+        return true // Keep channel open for sync response
+
+      case 'REGISTER_POPOUT_WINDOW':
+        // Re-register a popout window (handles service worker restart)
+        // Popout windows send this on connect to ensure they're tracked
+        popoutWindows.set((message as any).windowId, (message as any).terminalId)
+        console.log(`[Popout] Registered popout window ${(message as any).windowId} -> ${(message as any).terminalId}`)
+        break
+
       case 'CLOSE_SESSION':
         sendToWebSocket({
           type: 'close-terminal',

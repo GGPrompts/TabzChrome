@@ -124,6 +124,31 @@ export function useTerminalSessions({
           }
         }
 
+        // Check for stale poppedOut flags (popout windows that no longer exist)
+        const poppedOutSessions = loadedSessions.filter(s => s.poppedOut)
+        if (poppedOutSessions.length > 0) {
+          try {
+            // Query background for currently tracked popout windows
+            const response = await chrome.runtime.sendMessage({ type: 'GET_POPOUT_WINDOWS' })
+            if (response?.type === 'POPOUT_WINDOWS_RESPONSE') {
+              const activePopoutTerminalIds = new Set(response.popouts.map((p: { terminalId: string }) => p.terminalId))
+
+              // Reset poppedOut for terminals whose popout windows no longer exist
+              loadedSessions = loadedSessions.map(s => {
+                if (s.poppedOut && !activePopoutTerminalIds.has(s.id)) {
+                  console.log('[Sessions] Resetting stale poppedOut flag for:', s.id)
+                  return { ...s, poppedOut: false, popoutWindowId: undefined }
+                }
+                return s
+              })
+            }
+          } catch (e) {
+            // If query fails, reset all poppedOut flags to be safe
+            console.warn('[Sessions] Could not query popout windows, resetting poppedOut flags:', e)
+            loadedSessions = loadedSessions.map(s => ({ ...s, poppedOut: false, popoutWindowId: undefined }))
+          }
+        }
+
         setSessions(loadedSessions)
         // Restore saved current terminal, or fall back to first
         const savedCurrentId = result.currentTerminalId as string | undefined
