@@ -208,6 +208,33 @@ curl http://localhost:8129/api/tmux/sessions/ctt-Claude-abc123/capture
 
 ---
 
+### POST /api/ai/explain-script
+
+Use Claude to explain what a script does. Used by the File Tree "Explain Script" feature.
+
+**Body:**
+```json
+{
+  "path": "/home/user/scripts/deploy.sh"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "explanation": "This script deploys the application to production. It pulls latest code, builds, and restarts services. Warning: modifies files in /var/www and restarts nginx."
+}
+```
+
+**Notes:**
+- Requires `claude` CLI to be installed and accessible
+- File content limited to 10KB to prevent token overflow
+- 60 second timeout for Claude response
+- Returns concise 2-3 sentence summary focusing on purpose and side effects
+
+---
+
 ## Security Model
 
 - **CLI/Conductor**: Full access via token file

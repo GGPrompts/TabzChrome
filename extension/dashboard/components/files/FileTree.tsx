@@ -30,7 +30,7 @@ import {
   Star,       // Favorites
 } from "lucide-react"
 import { useFilesContext } from "../../contexts/FilesContext"
-import { getClaudeFileType, claudeFileColors, ClaudeFileType, isAlwaysInContext } from "../../utils/claudeFileTypes"
+import { getClaudeFileType, claudeFileColors, ClaudeFileType, isAlwaysInContext, getScriptInfo } from "../../utils/claudeFileTypes"
 import { FileTreeContextMenu } from "./FileTreeContextMenu"
 import { sendMessage } from "../../../shared/messaging"
 
@@ -517,6 +517,69 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     fetchFileTree(contextMenu.node.path, true)
   }, [contextMenu.node, fetchFileTree])
 
+  // Script actions - Run script in new terminal
+  const handleRunScript = useCallback(() => {
+    if (!contextMenu.node || contextMenu.node.type !== 'file') return
+    const scriptInfo = getScriptInfo(contextMenu.node.name, contextMenu.node.path)
+    if (!scriptInfo) return
+
+    const dir = contextMenu.node.path.substring(0, contextMenu.node.path.lastIndexOf('/'))
+    sendMessage({
+      type: 'SPAWN_TERMINAL',
+      name: `Run: ${contextMenu.node.name}`,
+      command: scriptInfo.runCommand,
+      workingDir: dir,
+    })
+  }, [contextMenu.node])
+
+  // Script actions - Syntax check / dry run
+  const handleCheckScript = useCallback(() => {
+    if (!contextMenu.node || contextMenu.node.type !== 'file') return
+    const scriptInfo = getScriptInfo(contextMenu.node.name, contextMenu.node.path)
+    if (!scriptInfo?.syntaxCheckCommand) return
+
+    const dir = contextMenu.node.path.substring(0, contextMenu.node.path.lastIndexOf('/'))
+    sendMessage({
+      type: 'SPAWN_TERMINAL',
+      name: `Check: ${contextMenu.node.name}`,
+      command: scriptInfo.syntaxCheckCommand,
+      workingDir: dir,
+    })
+  }, [contextMenu.node])
+
+  // Script actions - Explain script with Claude
+  const [isExplaining, setIsExplaining] = useState(false)
+  const [explainResult, setExplainResult] = useState<string | null>(null)
+
+  const handleExplainScript = useCallback(async () => {
+    if (!contextMenu.node || contextMenu.node.type !== 'file') return
+    setIsExplaining(true)
+    setExplainResult(null)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/explain-script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: contextMenu.node.path })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setExplainResult(data.explanation)
+      } else {
+        setExplainResult(`Error: ${data.error}`)
+      }
+    } catch (err: any) {
+      setExplainResult(`Error: ${err.message}`)
+    } finally {
+      setIsExplaining(false)
+    }
+  }, [contextMenu.node])
+
+  // Get script info for context menu node
+  const contextMenuScriptInfo = contextMenu.node?.type === 'file'
+    ? getScriptInfo(contextMenu.node.name, contextMenu.node.path)
+    : null
+
   // Render file tree recursively
   const renderFileTree = useCallback((node: FileNode, depth = 0): React.ReactNode => {
     const isExpanded = expandedFolders.has(node.path)
@@ -665,6 +728,14 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         onReadAloud={handleReadAloud}
         isLoadingAudio={isLoadingAudio}
         onSetWorkingDir={handleSetWorkingDir}
+        // Script actions
+        scriptInfo={contextMenuScriptInfo}
+        onRunScript={handleRunScript}
+        onCheckScript={handleCheckScript}
+        onExplainScript={handleExplainScript}
+        isExplaining={isExplaining}
+        explainResult={explainResult}
+        onClearExplainResult={() => setExplainResult(null)}
       />
     </div>
   )

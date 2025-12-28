@@ -1852,6 +1852,98 @@ router.get('/media', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// AI ENDPOINTS
+// =============================================================================
+
+/**
+ * POST /api/ai/explain-script - Use Claude to explain what a script does
+ * Body: { path: string } - Path to the script file
+ * Returns: { success: boolean, explanation: string }
+ */
+router.post('/ai/explain-script', asyncHandler(async (req, res) => {
+  const { path: scriptPath } = req.body;
+  const { execSync, spawn } = require('child_process');
+  const fs = require('fs');
+  const path = require('path');
+
+  if (!scriptPath || typeof scriptPath !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing or invalid path parameter'
+    });
+  }
+
+  // Resolve ~ to home directory
+  let resolvedPath = scriptPath;
+  if (resolvedPath.startsWith('~/')) {
+    resolvedPath = resolvedPath.replace(/^~/, process.env.HOME || '');
+  }
+
+  // Check if file exists
+  if (!fs.existsSync(resolvedPath)) {
+    return res.status(404).json({
+      success: false,
+      error: `File not found: ${scriptPath}`
+    });
+  }
+
+  // Read file content
+  let content;
+  try {
+    content = fs.readFileSync(resolvedPath, 'utf8');
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: `Failed to read file: ${err.message}`
+    });
+  }
+
+  // Limit content size to prevent token overflow
+  const maxChars = 10000;
+  if (content.length > maxChars) {
+    content = content.substring(0, maxChars) + '\n\n... (truncated)';
+  }
+
+  // Get file extension for context
+  const ext = path.extname(resolvedPath).toLowerCase();
+  const fileName = path.basename(resolvedPath);
+
+  // Build prompt
+  const prompt = `Briefly explain what this ${ext || 'script'} file does. Be concise (2-3 sentences max).
+
+File: ${fileName}
+\`\`\`
+${content}
+\`\`\`
+
+Explain what this script does in plain English. Focus on:
+1. What it does (main purpose)
+2. Any potential side effects or dangers (file modifications, network calls, etc.)`;
+
+  try {
+    // Run claude -p with the prompt via stdin (avoids shell escaping issues)
+    const result = execSync('claude -p -', {
+      input: prompt,
+      encoding: 'utf8',
+      timeout: 60000, // 60 second timeout (Claude can be slow)
+      maxBuffer: 1024 * 1024 // 1MB output buffer
+    });
+
+    res.json({
+      success: true,
+      explanation: result.trim()
+    });
+  } catch (err) {
+    // If claude command fails, return a helpful error
+    const errorMsg = err.stderr || err.message;
+    return res.status(500).json({
+      success: false,
+      error: `Claude explanation failed: ${errorMsg}. Make sure 'claude' CLI is installed and accessible.`
+    });
+  }
+}));
+
+// =============================================================================
 // AUTH TOKEN ENDPOINT
 // =============================================================================
 

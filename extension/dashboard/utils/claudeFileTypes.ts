@@ -184,6 +184,139 @@ export function isAlwaysInContext(name: string): boolean {
 }
 
 /**
+ * Script file detection and run command generation
+ */
+export interface ScriptInfo {
+  type: 'shell' | 'python' | 'node' | 'typescript' | 'ruby' | 'perl' | 'php' | 'go' | 'rust' | 'make' | 'npm'
+  runCommand: string
+  syntaxCheckCommand?: string  // For dry-run / validation
+  icon: string
+}
+
+export function getScriptInfo(fileName: string, filePath: string): ScriptInfo | null {
+  const ext = fileName.split('.').pop()?.toLowerCase()
+  const dir = filePath.substring(0, filePath.lastIndexOf('/'))
+
+  // Shell scripts
+  if (ext === 'sh' || ext === 'bash' || ext === 'zsh') {
+    return {
+      type: 'shell',
+      runCommand: `bash "${filePath}"`,
+      syntaxCheckCommand: `bash -n "${filePath}"`,
+      icon: '🐚'
+    }
+  }
+
+  // Python
+  if (ext === 'py') {
+    return {
+      type: 'python',
+      runCommand: `python "${filePath}"`,
+      syntaxCheckCommand: `python -m py_compile "${filePath}"`,
+      icon: '🐍'
+    }
+  }
+
+  // JavaScript
+  if (ext === 'js' || ext === 'mjs') {
+    return {
+      type: 'node',
+      runCommand: `node "${filePath}"`,
+      syntaxCheckCommand: `node --check "${filePath}"`,
+      icon: '📦'
+    }
+  }
+
+  // TypeScript
+  if (ext === 'ts' || ext === 'mts') {
+    return {
+      type: 'typescript',
+      runCommand: `npx tsx "${filePath}"`,
+      syntaxCheckCommand: `npx tsc --noEmit "${filePath}"`,
+      icon: '💠'
+    }
+  }
+
+  // Ruby
+  if (ext === 'rb') {
+    return {
+      type: 'ruby',
+      runCommand: `ruby "${filePath}"`,
+      syntaxCheckCommand: `ruby -c "${filePath}"`,
+      icon: '💎'
+    }
+  }
+
+  // Perl
+  if (ext === 'pl') {
+    return {
+      type: 'perl',
+      runCommand: `perl "${filePath}"`,
+      syntaxCheckCommand: `perl -c "${filePath}"`,
+      icon: '🐪'
+    }
+  }
+
+  // PHP
+  if (ext === 'php') {
+    return {
+      type: 'php',
+      runCommand: `php "${filePath}"`,
+      syntaxCheckCommand: `php -l "${filePath}"`,
+      icon: '🐘'
+    }
+  }
+
+  // Go (single file)
+  if (ext === 'go') {
+    return {
+      type: 'go',
+      runCommand: `go run "${filePath}"`,
+      syntaxCheckCommand: `go vet "${filePath}"`,
+      icon: '🐹'
+    }
+  }
+
+  // Rust (single file)
+  if (ext === 'rs') {
+    return {
+      type: 'rust',
+      runCommand: `rustc "${filePath}" -o /tmp/rust_run && /tmp/rust_run`,
+      syntaxCheckCommand: `rustc --emit=metadata "${filePath}"`,
+      icon: '🦀'
+    }
+  }
+
+  // Makefile
+  if (fileName === 'Makefile' || fileName === 'makefile' || ext === 'mk') {
+    return {
+      type: 'make',
+      runCommand: `make -f "${filePath}"`,
+      syntaxCheckCommand: `make -n -f "${filePath}"`,
+      icon: '🔧'
+    }
+  }
+
+  // package.json - special case, show npm scripts
+  if (fileName === 'package.json') {
+    return {
+      type: 'npm',
+      runCommand: `cd "${dir}" && npm run`,  // Will list available scripts
+      icon: '📦'
+    }
+  }
+
+  return null
+}
+
+/**
+ * Check if a file is a runnable script
+ */
+export function isRunnableScript(fileName: string, filePath: string): boolean {
+  return getScriptInfo(fileName, filePath) !== null
+}
+
+/**
  * Get Tailwind color class for a Claude file type
  */
 export function getClaudeFileColorClass(name: string, path: string): string | null {

@@ -17,6 +17,23 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
 
 ## [Unreleased]
 
+### Added
+- **Script Runner in File Tree** - Right-click scripts to run, check, or explain them:
+  - **Run Script** - Spawns new terminal to execute the script
+  - **Check / Dry Run** - Syntax check without execution (e.g., `bash -n`, `python -m py_compile`)
+  - **Explain Script** - Uses Claude to explain what the script does (inline in context menu)
+  - Supports: `.sh`, `.py`, `.js`, `.ts`, `.rb`, `.pl`, `.php`, `.go`, `.rs`, `Makefile`, `package.json`
+  - Scripts run from their parent directory for correct relative path resolution
+
+- **AI Endpoint** - `POST /api/ai/explain-script`:
+  - Reads script file and sends to `claude -p` for explanation
+  - Returns concise 2-3 sentence summary with potential side effects
+  - 60 second timeout, 10KB file limit for token safety
+
+- **Clickable `tabz:paste` Links in Documentation** - Added paste-to-terminal links for:
+  - API docs (`docs/API.md`, `plugins/tabz-guide/.../api-endpoints.md`)
+  - CLI reference docs (`claude-code.md`, `gemini-cli.md`, `codex.md`)
+
 ### Refactored
 - **Files.tsx component extraction** - Split 1,048-line monolith into focused components (now 590 lines):
   - `fileViewerUtils.ts` (113 lines) - Utility functions (icon colors, relative time, CSV/frontmatter parsing)
