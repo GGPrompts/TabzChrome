@@ -17,7 +17,20 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
 
 ## [1.3.1] - 2025-12-29
 
+### Added
+- **Quick Preview/Reset on Audio Events** - EventCard header now has Preview and Reset icons for quick access:
+  - Preview button (speaker icon) plays the event sound without expanding settings
+  - Reset button (rotate icon) appears only when event has customizations
+  - Both actions still available at bottom of expanded settings too
+
+### Fixed
+- **MCP Audio Tools Missing** - Rebuilt tabz-mcp-server to include `audio.js` (was missing from dist):
+  - `tabz_speak`, `tabz_list_voices`, `tabz_play_audio` now available (47 total tools)
+- **README Images Broken** - Added `docs/pages/screenshots` symlink to fix image paths
+- **Docs Archive Naming** - Renamed `github-pages-2024` → `github-pages` (project started in 2025)
+
 ### Changed
+- **tabz-guide Skill Updated** - Tool count updated from 29 → 47, added Audio/TTS category
 - **Unified Logging** - All backend and browser logs now write to single `logs/unified.log`:
   - Backend module logs (`[Server]`, `[PTY]`, `[TerminalRegistry]`, etc.)
   - Browser console logs (`[Browser:Terminal]`, `[Browser:Sessions]`, etc.)
