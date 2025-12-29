@@ -1,0 +1,56 @@
+{
+  "$schema": "https://lnav.org/schemas/format-v1.schema.json",
+  "tabz_log": {
+    "title": "TabzChrome Unified Log Format",
+    "description": "Log format for TabzChrome backend and browser logs",
+    "url": "https://github.com/GGPrompts/TabzChrome",
+    "regex": {
+      "std": {
+        "pattern": "^\\[(?<timestamp>\\d{2}:\\d{2}:\\d{2})\\]\\s+(?<level>\\w+)\\s+\\[(?<module>[^\\]]+)\\]\\s+(?<body>.*)"
+      }
+    },
+    "timestamp-format": [
+      "%H:%M:%S"
+    ],
+    "level-field": "level",
+    "level": {
+      "fatal": "FATAL",
+      "error": "ERROR",
+      "warning": "WARN",
+      "info": "INFO",
+      "debug": "DEBUG",
+      "trace": "TRACE"
+    },
+    "value": {
+      "module": {
+        "kind": "string",
+        "identifier": true,
+        "description": "Source module (Server, PTY, Browser:Terminal, etc.)"
+      }
+    },
+    "sample": [
+      {
+        "line": "[09:15:32] INFO  [Server] WebSocket server listening on port 8129",
+        "level": "info"
+      },
+      {
+        "line": "[09:15:35] ERROR [PTY] Failed to spawn terminal: command not found",
+        "level": "error"
+      },
+      {
+        "line": "[09:15:40] DEBUG [Browser:Terminal] xterm initialized for ctt-default-abc123",
+        "level": "debug"
+      }
+    ],
+    "highlights": {
+      "terminal-id": {
+        "pattern": "ctt-[a-zA-Z0-9-]+",
+        "color": "#00FFFF"
+      },
+      "websocket": {
+        "pattern": "\\bWebSocket\\b",
+        "color": "#FF00FF"
+      }
+    }
+  }
+}

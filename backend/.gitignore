@@ -1,1 +1,2 @@
-logs/
+# Ignore log files but keep format file
+logs/*.log

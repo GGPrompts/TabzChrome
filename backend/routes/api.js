@@ -1534,19 +1534,9 @@ router.post('/tmux/cleanup', asyncHandler(async (req, res) => {
 
 /**
  * POST /api/console-log - Receive browser console logs
- * Claude-optimized: Structured, compact logs for tmux capture-pane debugging
- * Writes to logs/browser.log for separate viewing in logs window
+ * Writes to unified log (logs/unified.log) for lnav viewing
  */
-const browserLogPath = require('path').join(__dirname, '../logs/browser.log');
-const browserLogDir = require('path').dirname(browserLogPath);
-
-// Ensure logs directory exists
-if (!require('fs').existsSync(browserLogDir)) {
-  require('fs').mkdirSync(browserLogDir, { recursive: true });
-}
-
-// Create/clear browser log file on startup
-require('fs').writeFileSync(browserLogPath, `--- Browser Console Log Started: ${new Date().toISOString()} ---\n`);
+const { appendBrowserLogs } = require('../modules/logger');
 
 router.post('/console-log', asyncHandler(async (req, res) => {
   const { logs } = req.body;
@@ -1555,18 +1545,8 @@ router.post('/console-log', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Expected logs array' });
   }
 
-  const fs = require('fs');
-
-  logs.forEach(({ level, message, source, timestamp }) => {
-    // Format: [HH:MM:SS] [LEVEL] [source] message
-    const time = new Date(timestamp).toLocaleTimeString('en-US', { hour12: false });
-    const levelTag = level.toUpperCase().padEnd(5);
-    const sourceTag = source ? `[${source}]` : '';
-    const line = `[${time}] ${levelTag} ${sourceTag} ${message}\n`;
-
-    // Append to browser log file
-    fs.appendFileSync(browserLogPath, line);
-  });
+  // Append to unified log file
+  appendBrowserLogs(logs);
 
   res.json({ success: true, received: logs.length });
 }));

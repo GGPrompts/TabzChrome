@@ -71,6 +71,11 @@ else
     fi
 fi
 
+# Check lnav (optional - for log filtering in logs window)
+if ! command -v lnav &> /dev/null; then
+    MISSING_OPTIONAL+=("lnav")
+fi
+
 # Check for Nerd Font (optional - for icons in terminal)
 # Skip on WSL - fonts are typically installed on Windows side and Chrome can see them
 NERD_FONT_FOUND=false
@@ -220,6 +225,21 @@ if [ ${#MISSING_OPTIONAL[@]} -gt 0 ]; then
                 echo -e "   ${NC}• edge-tts v${EDGE_TTS_VERSION} is outdated (v6.0+ required)."
                 echo -e "     Upgrade with: ${BLUE}pipx upgrade edge-tts${NC}"
                 echo -e "     (If installed via pip, first: ${BLUE}pip uninstall edge-tts && pipx install edge-tts${NC})"
+                ;;
+            lnav)
+                echo -e "   ${NC}• Log filtering unavailable (will use tail -f instead)."
+                case "$(uname -s)" in
+                    Darwin)
+                        if [ "$HAS_BREW" = true ]; then
+                            echo -e "     Install: ${BLUE}brew install lnav${NC}"
+                        else
+                            echo -e "     Install: ${BLUE}https://lnav.org/downloads${NC}"
+                        fi
+                        ;;
+                    Linux)
+                        echo -e "     Install: ${BLUE}sudo apt install lnav${NC}"
+                        ;;
+                esac
                 ;;
             nerd-font)
                 echo -e "   ${NC}• Terminal icons may not display correctly."
@@ -538,13 +558,19 @@ tmux send-keys -t $SESSION_NAME:backend "npm start" C-m
 
 # Create logs window if enabled
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
-  BROWSER_LOG="$BACKEND_DIR/logs/browser.log"
-  # Ensure log file exists
-  mkdir -p "$(dirname "$BROWSER_LOG")"
-  touch "$BROWSER_LOG"
+  UNIFIED_LOG="$BACKEND_DIR/logs/unified.log"
+  # Ensure log file exists (backend will create it, but ensure dir exists)
+  mkdir -p "$(dirname "$UNIFIED_LOG")"
+  touch "$UNIFIED_LOG"
 
   tmux new-window -t $SESSION_NAME -n logs -c "$SCRIPT_DIR"
-  tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Browser Console Logs${NC} - tail -f $BROWSER_LOG'; echo '(Reload extension to start seeing logs)'; echo ''; tail -f $BROWSER_LOG" C-m
+
+  # Use lnav if available, otherwise fall back to tail -f
+  if command -v lnav &> /dev/null; then
+    tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Unified Logs${NC} - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
+  else
+    tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Unified Logs${NC} - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
+  fi
 fi
 
 # Select the backend window
@@ -568,15 +594,14 @@ echo -e "  Backend:  ${YELLOW}http://localhost:8129${NC}"
 echo ""
 echo -e "${BLUE}Log Level: ${YELLOW}$LOG_LEVEL${NC} ${NC}(0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace)"
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
-  echo -e "${BLUE}Browser Logs: ${GREEN}Enabled${NC} (window 1)"
+  echo -e "${BLUE}Unified Logs: ${GREEN}Enabled${NC} (window 1)"
 else
-  echo -e "${BLUE}Browser Logs: ${YELLOW}Disabled${NC}"
+  echo -e "${BLUE}Unified Logs: ${YELLOW}Disabled${NC}"
 fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${BLUE}Claude can capture logs:${NC}"
-echo -e "  Backend:  ${YELLOW}tmux capture-pane -t $SESSION_NAME:backend -p -S -50${NC}"
-echo -e "  Browser:  ${YELLOW}tail -50 $BACKEND_DIR/logs/browser.log${NC}"
+echo -e "  All logs: ${YELLOW}tail -50 $BACKEND_DIR/logs/unified.log${NC}"
 echo ""
 echo -e "${YELLOW}Attaching to tmux session...${NC}"
 echo ""

@@ -33,22 +33,13 @@
       "themeName": "dracula"
     },
     {
-      "id": "backend-logs",
-      "name": "Backend Logs",
-      "command": "watch -n1 -c 'tmux capture-pane -t tabzchrome:backend -p -S -50 2>/dev/null || echo \"Start backend with: ./scripts/dev.sh\"'",
+      "id": "logs",
+      "name": "Logs",
+      "command": "DIR=$(tmux display-message -t tabzchrome:backend -p '#{pane_current_path}' 2>/dev/null) && LOG=\"$DIR/logs/unified.log\" && [ -f \"$LOG\" ] && (command -v lnav >/dev/null && lnav \"$LOG\" || tail -f \"$LOG\") || echo 'Start backend: ./scripts/dev.sh'",
       "workingDir": "",
       "fontFamily": "JetBrains Mono, monospace",
       "fontSize": 16,
       "themeName": "matrix"
-    },
-    {
-      "id": "browser-logs",
-      "name": "Browser Logs",
-      "command": "watch -n1 -c 'tmux capture-pane -t tabzchrome:logs -p -S -50 2>/dev/null || echo \"Start backend with: ./scripts/dev.sh (enable logs window)\"'",
-      "workingDir": "",
-      "fontFamily": "JetBrains Mono, monospace",
-      "fontSize": 16,
-      "themeName": "ocean"
     }
   ],
   "defaultProfile": "default"

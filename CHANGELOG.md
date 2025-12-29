@@ -15,6 +15,27 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
 
 ---
 
+## [1.3.1] - 2025-12-29
+
+### Changed
+- **Unified Logging** - All backend and browser logs now write to single `logs/unified.log`:
+  - Backend module logs (`[Server]`, `[PTY]`, `[TerminalRegistry]`, etc.)
+  - Browser console logs (`[Browser:Terminal]`, `[Browser:Sessions]`, etc.)
+  - Consistent format: `[HH:MM:SS] LEVEL [Module] message`
+  - `dev.sh` logs window now uses lnav (if installed) for interactive filtering
+  - Included lnav format file (`backend/logs/tabz-log.json`) for enhanced parsing
+  - lnav filtering examples: `:filter-in \[Server\]`, `:filter-in ERROR`, `:filter-out \[buildFileTree\]`
+
+- **Default Profiles** - Consolidated log profiles:
+  - Replaced "Backend Logs" and "Browser Logs" profiles with single "Logs" profile
+  - Dynamically finds log path from running tmux session (works for any install location)
+  - Uses lnav if available, falls back to `tail -f`
+
+### Added
+- lnav optional dependency check in `dev.sh` with install instructions
+
+---
+
 ## [1.3.0] - 2025-12-28
 
 ### Added

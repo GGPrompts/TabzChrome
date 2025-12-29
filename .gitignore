@@ -12,9 +12,9 @@ terminal-tabs-extension.zip
 # Logs
 *.log
 npm-debug.log*
-backend/logs/
-logs/
+/logs/
 *.log.*
+# backend/logs/tabz-log.json is tracked (lnav format file)
 
 # Launch script artifacts
 .backend.pid

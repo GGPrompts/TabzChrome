@@ -122,8 +122,15 @@ npm test                      # Run tests
 
 # Debugging
 tmux ls | grep "^ctt-"                        # List extension terminals
-tmux capture-pane -t tabzchrome:logs -p -S -50  # Capture backend + console logs
+tail -50 backend/logs/unified.log             # View unified logs (backend + browser)
+lnav backend/logs/unified.log                 # Interactive log filtering (if lnav installed)
 ps aux | grep "node server"                   # Check backend running
+
+# lnav filtering (in logs window)
+:filter-in \[Server\]                         # Show only Server logs
+:filter-in \[Browser                          # Show only browser logs
+:filter-in ERROR                              # Show only errors
+:filter-out \[buildFileTree\]                 # Hide verbose file tree logs
 ```
 
 ### Build & Deploy
@@ -194,7 +201,7 @@ See `docs/API.md` for full API documentation.
 # Check backend + terminals without asking user
 ps aux | grep "node server.js" | grep -v grep
 tmux ls | grep "^ctt-"
-tmux capture-pane -t tabzchrome:logs -p -S -50  # Logs window has backend + browser console logs
+tail -50 backend/logs/unified.log              # Unified log (backend + browser)
 ```
 
 ### Key Constraints
