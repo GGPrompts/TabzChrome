@@ -1,6 +1,7 @@
 ---
 name: Mixkit Sound Effects
 description: Download free sound effects from Mixkit via browser automation
+url: https://mixkit.co/free-sound-effects/
 tags: [audio, sfx, sound-effects, free, automation]
 ---
 
@@ -11,7 +12,7 @@ Download royalty-free sound effects (no attribution required) using TabzChrome M
 ## Quick Start
 
 ```
-Download {{category:alerts|alerts|notification|alarm|beep|chimes|phone|technology|interface|computer|game|arcade|transition|swoosh|whoosh|nature|rain|thunder|animals|birds|human|voices|footsteps|applause|funny|warfare|instrument|lifestyle|misc}} sounds from Mixkit
+Download {{category:alerts|notification|alarm|beep|chimes|phone|technology|interface|computer|game|arcade|transition|swoosh|whoosh|nature|rain|thunder|animals|birds|human|voices|footsteps|applause|funny|warfare|instrument|lifestyle|misc}} sounds from Mixkit
 ```
 
 ## Fillable Fields

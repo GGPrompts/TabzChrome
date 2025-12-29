@@ -1,6 +1,7 @@
 ---
 name: Video GPT by VEED
 description: Create videos using Video GPT via browser automation
+url: https://chatgpt.com/g/g-Hkqnd7mFT-video-gpt-by-veed
 tags: [video, veed, content, automation]
 ---
 
@@ -11,7 +12,7 @@ Create and edit videos using browser automation with TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Create a {{duration:30 second|15 second|30 second|60 second}} {{type:explainer|explainer|promo|tutorial|social}} video about {{subject:my new app}}
+Create a {{duration:15 second|30 second|60 second}} {{type:explainer|promo|tutorial|social}} video about {{subject:my new app}}
 ```
 
 ## Fillable Fields

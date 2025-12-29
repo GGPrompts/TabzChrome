@@ -1,6 +1,7 @@
 ---
 name: Pixabay Sound Effects
 description: Download free sound effects from Pixabay via browser automation
+url: https://pixabay.com/sound-effects/
 tags: [audio, sfx, sound-effects, free, automation]
 ---
 
@@ -11,7 +12,7 @@ Download royalty-free sound effects (no attribution required) using TabzChrome M
 ## Quick Start
 
 ```
-Download {{search:notification|notification|alert|whoosh|pop|click|beep|chime|bell|game|ui|interface|transition|swoosh|ambient|nature|rain|thunder}} sounds from Pixabay
+Download {{search:notification|alert|whoosh|pop|click|beep|chime|bell|game|ui|interface|transition|swoosh|ambient|nature|rain|thunder}} sounds from Pixabay
 ```
 
 ## Fillable Fields

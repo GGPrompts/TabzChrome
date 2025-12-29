@@ -1,6 +1,7 @@
 ---
 name: DALL-E 3 Image Generation
 description: Generate images using ChatGPT's DALL-E 3 via browser automation
+url: https://chatgpt.com/g/g-iLoR8U3iA-dall-e3
 tags: [imagegen, dalle, chatgpt, automation]
 ---
 
@@ -11,7 +12,7 @@ Generate images using browser automation with TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Generate a {{subject:robot avatar}} in {{style:digital art|photorealistic|digital art|watercolor|oil painting|3D render|pixel art|minimalist|anime}} style, {{aspect:square|square|wide|portrait}}
+Generate a {{subject:robot avatar}} in {{style:photorealistic|digital art|watercolor|oil painting|3D render|pixel art|minimalist|anime}} style, {{aspect:square|wide|portrait}}
 ```
 
 ## Fillable Fields

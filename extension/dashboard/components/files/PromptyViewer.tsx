@@ -317,7 +317,21 @@ export function PromptyViewer({
       {(parsed.frontmatter.name || parsed.frontmatter.description) && (
         <div className="px-4 py-3 border-b border-border bg-pink-500/5">
           {parsed.frontmatter.name && (
-            <h2 className="text-lg font-semibold text-pink-400">{parsed.frontmatter.name}</h2>
+            <h2 className="text-lg font-semibold text-pink-400">
+              {parsed.frontmatter.url ? (
+                <a
+                  href={parsed.frontmatter.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline inline-flex items-center gap-1.5"
+                >
+                  {parsed.frontmatter.name}
+                  <ExternalLink className="w-4 h-4 opacity-60" />
+                </a>
+              ) : (
+                parsed.frontmatter.name
+              )}
+            </h2>
           )}
           {parsed.frontmatter.description && (
             <p className="text-sm text-muted-foreground mt-1">{parsed.frontmatter.description}</p>

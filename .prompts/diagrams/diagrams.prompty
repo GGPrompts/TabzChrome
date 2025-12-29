@@ -1,6 +1,7 @@
 ---
 name: Diagrams Show Me
 description: Create diagrams and flowcharts using Diagrams GPT via browser automation
+url: https://chatgpt.com/g/g-5QhhdsfDj-diagrams-show-me
 tags: [diagrams, flowcharts, architecture, automation]
 ---
 
@@ -11,7 +12,7 @@ Create professional diagrams using browser automation with TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Create a {{type:flowchart|flowchart|sequence diagram|architecture diagram|mindmap|ERD}} showing {{subject:user authentication flow}}
+Create a {{type:flowchart|sequence diagram|architecture diagram|mindmap|ERD}} showing {{subject:user authentication flow}}
 ```
 
 ## Fillable Fields

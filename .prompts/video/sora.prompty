@@ -1,6 +1,7 @@
 ---
 name: Sora Video Generation
 description: Generate AI videos using OpenAI Sora via browser automation
+url: https://sora.chatgpt.com/drafts
 tags: [video, sora, openai, automation]
 ---
 
@@ -11,7 +12,7 @@ Generate AI videos using TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Generate a {{duration:10s|10s|15s}} video of {{subject:a cozy coding scene}}
+Generate a {{duration:10s|15s}} video of {{subject:a cozy coding scene}}
 ```
 
 ## Fillable Fields
@@ -19,7 +20,7 @@ Generate a {{duration:10s|10s|15s}} video of {{subject:a cozy coding scene}}
 | Field | Options | Notes |
 |-------|---------|-------|
 | `{{duration}}` | 10s, 15s | 15s uses more credits |
-| `{{aspect}}` | 16:9, 9:16, 1:1 | Landscape, portrait, square |
+| `{{aspect}}` | 16:9, 9:16 | Landscape, portrait |
 | `{{style}}` | cinematic, anime, realistic, artistic | Add to prompt |
 | `{{subject}}` | (free text) | Main subject of video |
 

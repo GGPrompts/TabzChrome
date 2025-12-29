@@ -1,6 +1,7 @@
 ---
 name: Logo Creator
 description: Generate logos using Logo Creator GPT via browser automation
+url: https://chatgpt.com/g/g-gFt1ghYJl-logo-creator
 tags: [logo, branding, design, automation]
 ---
 
@@ -11,7 +12,7 @@ Generate professional logos using browser automation with TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Create a {{style:minimalist|minimalist|modern|vintage|playful|elegant}} logo for {{company:my startup}} in the {{industry:tech}} industry
+Create a {{style:minimalist|modern|vintage|playful|elegant}} logo for {{company:my startup}} in the {{industry:tech}} industry
 ```
 
 ## Fillable Fields

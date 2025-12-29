@@ -1,6 +1,7 @@
 ---
 name: Cartoonize Yourself
 description: Create cartoon avatars using Cartoonize GPT via browser automation
+url: https://chatgpt.com/g/g-sr4bMTuVU-cartoonize-yourself
 tags: [avatar, cartoon, profile, automation]
 ---
 
@@ -11,7 +12,7 @@ Create cartoon avatars and stylized portraits using browser automation with Tabz
 ## Quick Start
 
 ```
-Create a {{style:Pixar|Pixar|anime|comic book|Disney|chibi}} style avatar of {{description:a developer with glasses and headphones}}
+Create a {{style:Pixar|anime|comic book|Disney|chibi}} style avatar of {{description:a developer with glasses and headphones}}
 ```
 
 ## Fillable Fields

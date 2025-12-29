@@ -1,6 +1,7 @@
 ---
 name: Canva Design
 description: Create designs using Canva GPT via browser automation
+url: https://chatgpt.com/g/g-alKfVrz9K-canva
 tags: [design, canva, social-media, automation]
 ---
 
@@ -11,7 +12,7 @@ Create professional designs using browser automation with TabzChrome MCP tools.
 ## Quick Start
 
 ```
-Create a {{type:social media post|social media post|presentation|poster|logo|flyer}} for {{subject:my tech startup}}
+Create a {{type:social media post|presentation|poster|logo|flyer}} for {{subject:my tech startup}}
 ```
 
 ## Fillable Fields
