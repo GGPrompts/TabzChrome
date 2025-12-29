@@ -71,7 +71,7 @@ For full API documentation, read `references/api-endpoints.md`.
 
 ### MCP Tools
 
-29 tools for browser automation: screenshots, clicks, downloads, network capture, debugger.
+47 tools for browser automation: screenshots, clicks, downloads, network capture, debugger, audio/TTS.
 
 **Quick example:**
 ```bash
@@ -86,6 +86,7 @@ mcp-cli call tabz/tabz_screenshot '{}'  # Capture viewport
 | Interaction | `click`, `fill`, `execute_script` |
 | Downloads | `download_image`, `download_file`, `cancel_download` |
 | Debugger | `get_dom_tree`, `profile_performance`, `get_coverage` |
+| Audio/TTS | `speak`, `list_voices`, `play_audio` |
 
 **Visual Feedback:** Elements glow when tools interact (🟢 click, 🔵 fill, 🟣 inspect).
 

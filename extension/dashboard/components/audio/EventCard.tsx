@@ -240,19 +240,43 @@ export default function EventCard({
           </div>
         </div>
 
-        {/* Expand button - only show if not nested (nested items don't have per-event config) */}
+        {/* Quick actions - Preview, Reset, Expand */}
         {!nested && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="p-2 rounded-lg hover:bg-muted transition-colors flex-shrink-0 ml-2"
-            title={expanded ? 'Collapse settings' : 'Expand for custom voice/rate/pitch'}
-          >
-            {expanded ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            {/* Preview button */}
+            <button
+              onClick={handlePreview}
+              disabled={previewPlaying || !enabled}
+              className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-30"
+              title="Preview sound"
+            >
+              <Volume2 className={`w-4 h-4 ${previewPlaying ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
+            </button>
+
+            {/* Reset button - only show if has customizations */}
+            {isCustom && (
+              <button
+                onClick={handleResetToGlobal}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                title="Reset to global settings"
+              >
+                <RotateCcw className="w-4 h-4 text-muted-foreground" />
+              </button>
             )}
-          </button>
+
+            {/* Expand button */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              title={expanded ? 'Collapse settings' : 'Expand for custom voice/rate/pitch'}
+            >
+              {expanded ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
         )}
       </div>
 
