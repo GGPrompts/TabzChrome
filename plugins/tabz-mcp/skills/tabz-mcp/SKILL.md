@@ -54,6 +54,11 @@ Discover tools by running `mcp-cli tools tabz`. Common categories include:
 | Downloads | `tabz_download*` | Download files/images |
 | Network | `tabz_enable_network_capture`, `tabz_get_network_requests`, `tabz_clear_network_requests` | Monitor API calls |
 | Scripting | `tabz_execute_script`, `tabz_get_console_logs` | Run JS, debug |
+| History | `tabz_history_search`, `tabz_history_visits`, `tabz_history_recent`, `tabz_history_delete_*` | Search and manage browsing history |
+| Sessions | `tabz_sessions_recently_closed`, `tabz_sessions_restore`, `tabz_sessions_devices` | Recover closed tabs, synced devices |
+| Cookies | `tabz_cookies_get`, `tabz_cookies_list`, `tabz_cookies_set`, `tabz_cookies_delete`, `tabz_cookies_audit` | Debug auth, audit trackers |
+| Emulation | `tabz_emulate_device`, `tabz_emulate_geolocation`, `tabz_emulate_network`, `tabz_emulate_media`, `tabz_emulate_vision` | Responsive testing, accessibility |
+| Notifications | `tabz_notification_show`, `tabz_notification_update`, `tabz_notification_clear`, `tabz_notification_list` | Desktop alerts |
 
 ## Quick Patterns
 

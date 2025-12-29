@@ -71,7 +71,7 @@ For full API documentation, read `references/api-endpoints.md`.
 
 ### MCP Tools
 
-47 tools for browser automation: screenshots, clicks, downloads, network capture, debugger, audio/TTS.
+71 tools for browser automation: screenshots, clicks, downloads, network capture, debugger, audio/TTS, history, sessions, cookies, emulation, and notifications.
 
 **Quick example:**
 ```bash
@@ -87,6 +87,11 @@ mcp-cli call tabz/tabz_screenshot '{}'  # Capture viewport
 | Downloads | `download_image`, `download_file`, `cancel_download` |
 | Debugger | `get_dom_tree`, `profile_performance`, `get_coverage` |
 | Audio/TTS | `speak`, `list_voices`, `play_audio` |
+| History | `history_search`, `history_visits`, `history_recent`, `history_delete_*` |
+| Sessions | `sessions_recently_closed`, `sessions_restore`, `sessions_devices` |
+| Cookies | `cookies_get`, `cookies_list`, `cookies_set`, `cookies_delete`, `cookies_audit` |
+| Emulation | `emulate_device`, `emulate_geolocation`, `emulate_network`, `emulate_media`, `emulate_vision` |
+| Notifications | `notification_show`, `notification_update`, `notification_clear`, `notification_list` |
 
 **Visual Feedback:** Elements glow when tools interact (🟢 click, 🔵 fill, 🟣 inspect).
 
