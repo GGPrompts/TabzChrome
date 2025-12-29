@@ -377,18 +377,33 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
               end: { x: startX + path.length, y: bufferLineNumber }
             },
             text: path,
-            activate: () => {
-              // Open in dashboard Files page
+            activate: async () => {
+              // Open in dashboard Files page (reuses existing dashboard tab if open)
               const extensionId = chrome?.runtime?.id
               if (extensionId) {
                 // Detect if path is likely a directory (no file extension in last segment)
                 const lastSegment = pathWithoutLineNum.split('/').pop() || ''
                 const hasExtension = lastSegment.includes('.') && !lastSegment.startsWith('.')
                 const dirParam = hasExtension ? '' : '&dir=true'
-                window.open(
-                  `chrome-extension://${extensionId}/dashboard/index.html#/files?path=${encodeURIComponent(pathWithoutLineNum)}${dirParam}`,
-                  '_blank'
-                )
+                const dashboardUrl = `chrome-extension://${extensionId}/dashboard/index.html#/files?path=${encodeURIComponent(pathWithoutLineNum)}${dirParam}`
+
+                // Try to find and reuse existing dashboard tab
+                try {
+                  const tabs = await chrome.tabs.query({ url: `chrome-extension://${extensionId}/dashboard/*` })
+                  if (tabs.length > 0 && tabs[0].id) {
+                    // Update existing tab and focus it
+                    await chrome.tabs.update(tabs[0].id, { url: dashboardUrl, active: true })
+                    if (tabs[0].windowId) {
+                      await chrome.windows.update(tabs[0].windowId, { focused: true })
+                    }
+                  } else {
+                    // No existing dashboard tab, create new one
+                    await chrome.tabs.create({ url: dashboardUrl })
+                  }
+                } catch {
+                  // Fallback to window.open if tabs API fails
+                  window.open(dashboardUrl, '_blank')
+                }
               }
             }
           })
