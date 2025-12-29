@@ -4,10 +4,10 @@
  * All logs (backend + browser) go to logs/unified.log with consistent format:
  * [HH:MM:SS] LEVEL  [Module] message
  *
- * Use lnav for filtering: lnav logs/unified.log
- * - Filter by module: :filter-in \[Server\]
- * - Filter by level: :filter-in ERROR
- * - Filter browser logs: :filter-in \[Browser:
+ * Console output: Only errors/warnings (keeps backend terminal clean)
+ * Full logs: View via Logs profile in TabzChrome (lnav or tail -f)
+ *
+ * lnav filtering: :filter-in \[Server\], :filter-in ERROR, :filter-in \[Browser:
  */
 
 const { createConsola } = require('consola');
@@ -69,14 +69,20 @@ const logger = createConsola({
   },
 });
 
-// Create module logger that writes to both console and unified log
+// Levels that should output to console (keeps backend terminal clean)
+// Everything still goes to unified.log
+const CONSOLE_LEVELS = new Set(['fatal', 'error', 'warn', 'ready', 'success']);
+
+// Create module logger that writes to file, with selective console output
 const createModuleLogger = (moduleName) => {
   const createLogMethod = (level, consolaMethod) => {
     return (...args) => {
-      // Write to unified log file
+      // Always write to unified log file
       writeToLog(level, moduleName, args);
-      // Write to console via consola
-      consolaMethod(`[${moduleName}]`, ...args);
+      // Only write to console for important levels (errors, warnings, ready)
+      if (CONSOLE_LEVELS.has(level)) {
+        consolaMethod(`[${moduleName}]`, ...args);
+      }
     };
   };
 

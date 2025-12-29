@@ -6,6 +6,9 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const router = express.Router();
+const { createModuleLogger } = require('../modules/logger');
+
+const log = createModuleLogger('FileTree');
 
 /**
  * Check if a file/folder should always be visible even when showHidden=false
@@ -71,7 +74,7 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
 
     // Debug: Log entry counts for top-level directories
     if (currentDepth <= 1) {
-      console.log(`[buildFileTree] Read ${entries.length} raw entries from ${dirPath}`);
+      log.debug(` Read ${entries.length} raw entries from ${dirPath}`);
     }
 
     // Filter and sort entries
@@ -96,7 +99,7 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
 
     // Debug: Log filter results
     if (currentDepth <= 1) {
-      console.log(`[buildFileTree] After filtering: ${sortedEntries.length} entries (${sortedEntries.filter(e => e.isDirectory()).length} dirs, ${sortedEntries.filter(e => !e.isDirectory()).length} files)`);
+      log.debug(` After filtering: ${sortedEntries.length} entries (${sortedEntries.filter(e => e.isDirectory()).length} dirs, ${sortedEntries.filter(e => !e.isDirectory()).length} files)`);
     }
 
     // Process entries
@@ -111,7 +114,7 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
           } catch (symlinkErr) {
             // Broken symlink - skip it silently
             if (currentDepth <= 2) {
-              console.log(`[buildFileTree] Skipping broken symlink: ${childPath}`);
+              log.debug(` Skipping broken symlink: ${childPath}`);
             }
             continue;
           }
@@ -128,7 +131,7 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
     }
     
     if (currentDepth <= 2) {
-      console.log(`[buildFileTree] ${dirPath} has ${children.length} children (depth=${currentDepth})`);
+      log.debug(` ${dirPath} has ${children.length} children (depth=${currentDepth})`);
     }
 
     return {
@@ -295,7 +298,7 @@ router.get('/tree', async (req, res) => {
     const depth = parseInt(req.query.depth) || 5; // Good balance for most projects
     const showHidden = req.query.showHidden === 'true'; // Parse boolean parameter
 
-    console.log(`[FileTree API] Fetching tree: path=${targetPath}, depth=${depth}, showHidden=${showHidden}`);
+    log.debug(` Fetching tree: path=${targetPath}, depth=${depth}, showHidden=${showHidden}`);
 
     // Security: Resolve the path
     const resolvedPath = path.resolve(targetPath);
