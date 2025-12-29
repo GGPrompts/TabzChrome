@@ -58,6 +58,15 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
   - API docs (`docs/API.md`, `plugins/tabz-guide/.../api-endpoints.md`)
   - CLI reference docs (`claude-code.md`, `gemini-cli.md`, `codex.md`)
 
+- **Plugins Filter in Dashboard Files** - New filter to manage Claude Code plugins:
+  - Shows all installed plugins grouped by marketplace (my-plugins, tabz-chrome, etc.)
+  - Toggle switches to enable/disable individual plugins (requires `/restart` to apply)
+  - Filter by: enabled/disabled status, component type (skill, agent, command, hook, mcp), scope (global/local)
+  - Component badges show counts (e.g., "Agent (5)") - clickable to open first file of that type
+  - Expandable plugins with chevron to reveal individual component files
+  - Search plugins by name or ID
+  - Backend endpoints: `GET /api/plugins`, `POST /api/plugins/toggle`
+
 ### Refactored
 - **Files.tsx component extraction** - Split 1,048-line monolith into focused components (now 590 lines):
   - `fileViewerUtils.ts` (113 lines) - Utility functions (icon colors, relative time, CSV/frontmatter parsing)
@@ -84,6 +93,12 @@ For older versions (1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md
   - Detaches terminal to appear as ghost/orphan for respawning
   - Uses reliable `chrome.windows.onRemoved` listener instead of unreliable `beforeunload` + `sendBeacon`
   - "Return to Sidebar" button returns terminal without detaching
+
+- **Audio mute toggle now respects TTS from slash commands** - The sidebar header mute button now properly silences:
+  - TTS from `/api/audio/speak` (used by slash commands like `/ctthandoff`)
+  - Direct audio playback from `/api/audio/play`
+  - Bug: handlers in useEffect captured stale `audioGlobalMute` state
+  - Fix: uses ref to access current mute value in stale closures
 
 ### Added
 - **Video/Image Background Support** - Set videos or images as terminal backgrounds:

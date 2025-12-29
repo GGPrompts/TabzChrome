@@ -3,6 +3,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { FileTree } from '../components/files/FileTree'
 import { FilteredFileList } from '../components/files/FilteredFileList'
+import { PluginList } from '../components/files/PluginList'
 import { PromptyViewer } from '../components/files/PromptyViewer'
 import { isPromptyFile } from '../utils/promptyUtils'
 import { X, Copy, Send, FolderOpen, Square, MoreVertical, Loader2 } from 'lucide-react'
@@ -47,6 +48,7 @@ const filterOptions: { value: FileFilter; label: string; icon?: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'prompts', label: 'Prompts', icon: '📝' },
   { value: 'claude', label: 'Claude', icon: '🤖' },
+  { value: 'plugins', label: 'Plugins', icon: '🔌' },
   { value: 'favorites', label: '', icon: '⭐' },
 ]
 
@@ -352,10 +354,12 @@ export default function FilesSection() {
 
       {/* Main Content */}
       <div className="flex flex-1 min-h-0">
-        {/* File Tree / Filtered List - Left Side */}
+        {/* File Tree / Filtered List / Plugin List - Left Side */}
         <div className="w-72 border-r border-border flex-shrink-0 overflow-hidden">
           {activeFilter === 'all' ? (
             <FileTree onFileSelect={openFile} basePath={globalWorkingDir} maxDepth={viewerSettings.maxDepth} waitForLoad={!workingDirLoaded} />
+          ) : activeFilter === 'plugins' ? (
+            <PluginList />
           ) : (
             <FilteredFileList
               filter={activeFilter}

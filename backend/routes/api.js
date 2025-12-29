@@ -1944,6 +1944,288 @@ Explain what this script does in plain English. Focus on:
 }));
 
 // =============================================================================
+// CLAUDE CODE PLUGINS API
+// =============================================================================
+
+const os = require('os');
+const homeDir = os.homedir();
+const claudeSettingsPath = require('path').join(homeDir, '.claude', 'settings.json');
+const claudeInstalledPluginsPath = require('path').join(homeDir, '.claude', 'plugins', 'installed_plugins.json');
+
+/**
+ * Detect what components a plugin provides by checking its directory structure
+ * Returns detailed info including file lists for each component type
+ */
+async function detectPluginComponents(installPath) {
+  const { promises: fsAsync } = require('fs');
+  const path = require('path');
+  const components = [];
+  const componentFiles = {};  // Detailed file lists
+
+  if (!installPath) return { components, componentFiles };
+
+  try {
+    // Check for skills/ directory
+    try {
+      const skillsDir = path.join(installPath, 'skills');
+      const stat = await fsAsync.stat(skillsDir);
+      if (stat.isDirectory()) {
+        components.push('skill');
+        // List skill subdirectories (each skill is a folder with SKILL.md)
+        const skillDirs = await fsAsync.readdir(skillsDir);
+        const skills = [];
+        for (const dir of skillDirs) {
+          const skillPath = path.join(skillsDir, dir, 'SKILL.md');
+          try {
+            await fsAsync.access(skillPath);
+            skills.push({ name: dir, path: skillPath });
+          } catch {}
+        }
+        if (skills.length > 0) componentFiles.skills = skills;
+      }
+    } catch {}
+
+    // Check for agents/ directory
+    try {
+      const agentsDir = path.join(installPath, 'agents');
+      const stat = await fsAsync.stat(agentsDir);
+      if (stat.isDirectory()) {
+        components.push('agent');
+        // List agent .md files
+        const files = await fsAsync.readdir(agentsDir);
+        const agents = files
+          .filter(f => f.endsWith('.md'))
+          .map(f => ({ name: f.replace('.md', ''), path: path.join(agentsDir, f) }));
+        if (agents.length > 0) componentFiles.agents = agents;
+      }
+    } catch {}
+
+    // Check for commands/ directory
+    try {
+      const commandsDir = path.join(installPath, 'commands');
+      const stat = await fsAsync.stat(commandsDir);
+      if (stat.isDirectory()) {
+        components.push('command');
+        // List command .md files
+        const files = await fsAsync.readdir(commandsDir);
+        const commands = files
+          .filter(f => f.endsWith('.md'))
+          .map(f => ({ name: f.replace('.md', ''), path: path.join(commandsDir, f) }));
+        if (commands.length > 0) componentFiles.commands = commands;
+      }
+    } catch {}
+
+    // Check for hooks/ directory or hooks in plugin.json
+    try {
+      const hooksDir = path.join(installPath, 'hooks');
+      const stat = await fsAsync.stat(hooksDir);
+      if (stat.isDirectory()) {
+        components.push('hook');
+        // Check for hooks.json
+        const hooksJson = path.join(hooksDir, 'hooks.json');
+        try {
+          await fsAsync.access(hooksJson);
+          componentFiles.hooks = [{ name: 'hooks.json', path: hooksJson }];
+        } catch {}
+      }
+    } catch {}
+
+    // Check for .mcp.json or mcpServers in plugin.json
+    try {
+      const mcpJson = path.join(installPath, '.mcp.json');
+      await fsAsync.access(mcpJson);
+      components.push('mcp');
+      componentFiles.mcp = [{ name: '.mcp.json', path: mcpJson }];
+    } catch {
+      // Check plugin.json for mcpServers
+      try {
+        const pluginJsonPath = path.join(installPath, 'plugin.json');
+        const data = await fsAsync.readFile(pluginJsonPath, 'utf-8');
+        const parsed = JSON.parse(data);
+        if (parsed.mcpServers && Object.keys(parsed.mcpServers).length > 0) {
+          components.push('mcp');
+          componentFiles.mcp = [{ name: 'plugin.json', path: pluginJsonPath }];
+        }
+      } catch {}
+    }
+  } catch (err) {
+    // Silently fail - just return empty components
+  }
+
+  return { components, componentFiles };
+}
+
+/**
+ * GET /api/plugins - List all installed plugins with enabled/disabled status
+ * Returns plugins grouped by marketplace with their enabled state
+ */
+router.get('/plugins', asyncHandler(async (req, res) => {
+  const { promises: fsAsync } = require('fs');
+
+  try {
+    // Read installed plugins
+    let installedPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeInstalledPluginsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      installedPlugins = parsed.plugins || {};
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('[API] Error reading installed plugins:', err.message);
+      }
+    }
+
+    // Read global settings for enabled status
+    let enabledPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeSettingsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      enabledPlugins = parsed.enabledPlugins || {};
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('[API] Error reading claude settings:', err.message);
+      }
+    }
+
+    // Build plugin list grouped by marketplace
+    const marketplaces = {};
+
+    for (const [pluginId, installations] of Object.entries(installedPlugins)) {
+      // pluginId format: "pluginName@marketplace"
+      const [name, marketplace] = pluginId.split('@');
+
+      if (!marketplaces[marketplace]) {
+        marketplaces[marketplace] = [];
+      }
+
+      // Get first installation (usually only one)
+      const install = Array.isArray(installations) ? installations[0] : installations;
+
+      // Check enabled status (default to true if not specified)
+      const enabled = enabledPlugins[pluginId] !== false;
+
+      // Detect what components this plugin provides
+      const { components, componentFiles } = await detectPluginComponents(install.installPath);
+
+      marketplaces[marketplace].push({
+        id: pluginId,
+        name,
+        marketplace,
+        enabled,
+        scope: install.scope || 'user',
+        version: install.version || 'unknown',
+        installPath: install.installPath,
+        installedAt: install.installedAt,
+        isLocal: install.isLocal || false,
+        components,  // array of component types
+        componentFiles  // detailed file lists for each type
+      });
+    }
+
+    // Sort plugins within each marketplace alphabetically
+    for (const marketplace of Object.keys(marketplaces)) {
+      marketplaces[marketplace].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Count enabled/disabled, component types, and scopes
+    let enabledCount = 0;
+    let disabledCount = 0;
+    const componentCounts = { skill: 0, agent: 0, command: 0, hook: 0, mcp: 0 };
+    const scopeCounts = { user: 0, local: 0, project: 0 };
+
+    for (const plugins of Object.values(marketplaces)) {
+      for (const plugin of plugins) {
+        if (plugin.enabled) enabledCount++;
+        else disabledCount++;
+        for (const comp of plugin.components) {
+          if (componentCounts[comp] !== undefined) componentCounts[comp]++;
+        }
+        if (scopeCounts[plugin.scope] !== undefined) scopeCounts[plugin.scope]++;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        marketplaces,
+        totalPlugins: enabledCount + disabledCount,
+        enabledCount,
+        disabledCount,
+        componentCounts,
+        scopeCounts  // NEW: counts by scope
+      }
+    });
+  } catch (err) {
+    console.error('[API] Failed to get plugins:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
+/**
+ * POST /api/plugins/toggle - Toggle a plugin's enabled status
+ * Body: { pluginId: string, enabled: boolean }
+ */
+router.post('/plugins/toggle', asyncHandler(async (req, res) => {
+  const { pluginId, enabled } = req.body;
+  const { promises: fsAsync } = require('fs');
+
+  if (!pluginId || typeof pluginId !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'pluginId is required'
+    });
+  }
+
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({
+      success: false,
+      error: 'enabled must be a boolean'
+    });
+  }
+
+  try {
+    // Read current settings
+    let settings = {};
+    try {
+      const data = await fsAsync.readFile(claudeSettingsPath, 'utf-8');
+      settings = JSON.parse(data);
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
+      // File doesn't exist, start with empty settings
+    }
+
+    // Initialize enabledPlugins if not present
+    if (!settings.enabledPlugins) {
+      settings.enabledPlugins = {};
+    }
+
+    // Update the plugin status
+    settings.enabledPlugins[pluginId] = enabled;
+
+    // Write back to file
+    await fsAsync.writeFile(claudeSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+
+    res.json({
+      success: true,
+      pluginId,
+      enabled,
+      message: `Plugin ${pluginId} ${enabled ? 'enabled' : 'disabled'}. Run /restart to apply changes.`
+    });
+  } catch (err) {
+    console.error('[API] Failed to toggle plugin:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
+// =============================================================================
 // AUTH TOKEN ENDPOINT
 // =============================================================================
 

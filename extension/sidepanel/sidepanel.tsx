@@ -69,6 +69,7 @@ function SidePanelTerminal() {
   const [customDirInput, setCustomDirInput] = useState('')
   const [isDark, setIsDark] = useState(true)  // Global dark/light mode toggle
   const audioUnlockedRef = useRef(false)  // Track if audio has been unlocked by user interaction
+  const audioGlobalMuteRef = useRef(false)  // Track mute state for use in useEffect handlers
 
   // Tab tooltip state
   const [hoveredTab, setHoveredTab] = useState<{ id: string; rect: DOMRect } | null>(null)
@@ -187,6 +188,11 @@ function SidePanelTerminal() {
     getNextAvailableVoiceRef.current = getNextAvailableVoice
   }, [getNextAvailableVoice])
 
+  // Keep audioGlobalMuteRef in sync so useEffect handlers can access current value
+  useEffect(() => {
+    audioGlobalMuteRef.current = audioGlobalMute
+  }, [audioGlobalMute])
+
   // Chat input hook - manages chat bar state and handlers
   const chatInput = useChatInput({
     sessions,
@@ -295,7 +301,8 @@ function SidePanelTerminal() {
         // Uses priority system: 'high' for summaries/handoffs, 'low' for status updates
         // Regenerates audio with user settings (rate, voice, pitch) for consistency
         // Skip in popout mode - sidebar handles all audio to prevent duplicates
-        if (message.data?.type === 'audio-speak' && message.data?.text && !isPopoutMode) {
+        // Skip if audio is globally muted (uses ref for current value in stale closure)
+        if (message.data?.type === 'audio-speak' && message.data?.text && !isPopoutMode && !audioGlobalMuteRef.current) {
           const audioData = message.data // Capture in closure
           // Get user audio settings and regenerate with their preferences
           chrome.storage.local.get(['audioSettings'], async (result) => {
@@ -333,7 +340,8 @@ function SidePanelTerminal() {
         }
         // Play audio file directly (for soundboards, notifications, etc.)
         // Skip in popout mode - sidebar handles all audio to prevent duplicates
-        if (message.data?.type === 'audio-play' && message.data?.url && !isPopoutMode) {
+        // Skip if audio is globally muted (uses ref for current value in stale closure)
+        if (message.data?.type === 'audio-play' && message.data?.url && !isPopoutMode && !audioGlobalMuteRef.current) {
           const audioData = message.data
           const priority: AudioPriority = audioData.priority === 'high' ? 'high' : 'low'
           // Use user's volume setting if available

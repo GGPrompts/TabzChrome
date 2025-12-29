@@ -386,7 +386,7 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 |------|-----|----------|
 | **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector, quick spawn |
 | **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
-| **Files** | `/files` | File browser with syntax highlighting, image/video preview, favorites |
+| **Files** | `/files` | File browser, syntax highlighting, image/video preview, favorites, **Claude Code plugin management** |
 | **Audio** | `/#/audio` | Voice settings, per-event customization, sound effects, phrase templates |
 
 **Features:**
@@ -396,6 +396,10 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 - **Quick spawn** - Launch new terminals directly from the dashboard
 - **File tree context menu** - Right-click for copy path, favorite, pin, open in editor
 - **Folder favorites** - Star entire folders, view contents in favorites filter
+- **Plugins filter** - Manage Claude Code plugins from the Files section:
+  - View plugins grouped by marketplace with enable/disable toggles
+  - Filter by component type (skill, agent, command, hook, mcp) and scope (global/local)
+  - Expand plugins to see individual files, click badges to open in viewer
 
 ### Custom Terminal Triggers
 

@@ -235,6 +235,79 @@ Use Claude to explain what a script does. Used by the File Tree "Explain Script"
 
 ---
 
+### GET /api/plugins
+
+List all installed Claude Code plugins with their enabled/disabled status.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "marketplaces": {
+      "my-plugins": [
+        {
+          "id": "skill-creator@my-plugins",
+          "name": "skill-creator",
+          "marketplace": "my-plugins",
+          "enabled": true,
+          "scope": "user",
+          "version": "1.0.0",
+          "installPath": "/home/user/.claude/plugins/cache/my-plugins/skill-creator/abc123",
+          "components": ["skill"],
+          "componentFiles": {
+            "skills": [{ "name": "skill-creator", "path": "/home/user/.claude/plugins/.../SKILL.md" }]
+          }
+        }
+      ],
+      "tabz-chrome": [...]
+    },
+    "totalPlugins": 21,
+    "enabledCount": 20,
+    "disabledCount": 1,
+    "componentCounts": { "skill": 14, "agent": 5, "command": 6, "hook": 1, "mcp": 0 },
+    "scopeCounts": { "user": 20, "local": 1, "project": 0 }
+  }
+}
+```
+
+**Notes:**
+- Reads from `~/.claude/plugins/installed_plugins.json` and `~/.claude/settings.json`
+- `components` array contains detected component types: skill, agent, command, hook, mcp
+- `componentFiles` provides paths to individual files within each component type
+- Used by Dashboard Files → Plugins filter
+
+---
+
+### POST /api/plugins/toggle
+
+Enable or disable a Claude Code plugin.
+
+**Body:**
+```json
+{
+  "pluginId": "skill-creator@my-plugins",
+  "enabled": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "pluginId": "skill-creator@my-plugins",
+  "enabled": false,
+  "message": "Plugin skill-creator@my-plugins disabled. Run /restart to apply changes."
+}
+```
+
+**Notes:**
+- Modifies `~/.claude/settings.json` → `enabledPlugins` object
+- Changes take effect after running `/restart` in Claude Code
+- Does not require auth token (localhost only, user-initiated action)
+
+---
+
 ## Security Model
 
 - **CLI/Conductor**: Full access via token file

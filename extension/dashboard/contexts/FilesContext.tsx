@@ -34,6 +34,40 @@ interface FilteredFilesResponse {
   groups?: any[] // Legacy format for backwards compatibility
 }
 
+interface ComponentFile {
+  name: string
+  path: string
+}
+
+interface Plugin {
+  id: string
+  name: string
+  marketplace: string
+  enabled: boolean
+  scope: string
+  version: string
+  installPath: string
+  installedAt: string
+  isLocal: boolean
+  components: string[]
+  componentFiles: {
+    skills?: ComponentFile[]
+    agents?: ComponentFile[]
+    commands?: ComponentFile[]
+    hooks?: ComponentFile[]
+    mcp?: ComponentFile[]
+  }
+}
+
+interface PluginsData {
+  marketplaces: Record<string, Plugin[]>
+  totalPlugins: number
+  enabledCount: number
+  disabledCount: number
+  componentCounts: Record<string, number>
+  scopeCounts: Record<string, number>
+}
+
 interface OpenFile {
   id: string
   path: string
@@ -72,6 +106,12 @@ interface FilesContextType {
   favorites: Set<string>
   toggleFavorite: (path: string) => void
   isFavorite: (path: string) => boolean
+
+  // Plugins
+  pluginsData: PluginsData | null
+  pluginsLoading: boolean
+  loadPlugins: () => Promise<void>
+  togglePlugin: (pluginId: string, enabled: boolean) => Promise<boolean>
 
   // Actions
   openFile: (path: string, pin?: boolean) => Promise<void>
@@ -115,6 +155,10 @@ export function FilesProvider({ children }: { children: ReactNode }) {
   })
   const [filteredFiles, setFilteredFiles] = useState<FilteredFilesResponse | null>(null)
   const [filteredFilesLoading, setFilteredFilesLoading] = useState(false)
+
+  // Plugins state
+  const [pluginsData, setPluginsData] = useState<PluginsData | null>(null)
+  const [pluginsLoading, setPluginsLoading] = useState(false)
 
   // Favorites state - persist to localStorage (declared before loadFilteredFiles which uses it)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -269,6 +313,64 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     }
   }, [favorites])
 
+  // Load plugins data from backend
+  const loadPlugins = useCallback(async () => {
+    setPluginsLoading(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins`)
+      if (!response.ok) {
+        throw new Error('Failed to load plugins')
+      }
+      const data = await response.json()
+      if (data.success) {
+        setPluginsData(data.data)
+      }
+    } catch (err) {
+      console.error('Failed to load plugins:', err)
+      setPluginsData(null)
+    } finally {
+      setPluginsLoading(false)
+    }
+  }, [])
+
+  // Toggle plugin enabled status
+  const togglePlugin = useCallback(async (pluginId: string, enabled: boolean): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pluginId, enabled })
+      })
+      if (!response.ok) {
+        throw new Error('Failed to toggle plugin')
+      }
+      const data = await response.json()
+      if (data.success) {
+        // Update local state
+        setPluginsData(prev => {
+          if (!prev) return prev
+          const newMarketplaces = { ...prev.marketplaces }
+          for (const [marketplace, plugins] of Object.entries(newMarketplaces)) {
+            newMarketplaces[marketplace] = plugins.map(p =>
+              p.id === pluginId ? { ...p, enabled } : p
+            )
+          }
+          return {
+            ...prev,
+            marketplaces: newMarketplaces,
+            enabledCount: enabled ? prev.enabledCount + 1 : prev.enabledCount - 1,
+            disabledCount: enabled ? prev.disabledCount - 1 : prev.disabledCount + 1
+          }
+        })
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Failed to toggle plugin:', err)
+      return false
+    }
+  }, [])
+
   const openFile = useCallback(async (path: string, pin: boolean = false) => {
     // Check if already open
     const existing = openFiles.find(f => f.path === path)
@@ -405,6 +507,10 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       favorites,
       toggleFavorite,
       isFavorite,
+      pluginsData,
+      pluginsLoading,
+      loadPlugins,
+      togglePlugin,
       openFile,
       closeFile,
       pinFile,

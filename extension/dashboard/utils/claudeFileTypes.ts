@@ -18,7 +18,7 @@ export type ClaudeFileType =
   | 'secrets'        // credentials, .pem, .key files
   | null
 
-export type FileFilter = 'all' | 'prompts' | 'claude' | 'favorites'
+export type FileFilter = 'all' | 'prompts' | 'claude' | 'plugins' | 'favorites'
 
 // TFE-inspired colors (dark theme optimized)
 export const claudeFileColors: Record<Exclude<ClaudeFileType, null>, { light: string; dark: string; tailwind: string }> = {
@@ -381,6 +381,13 @@ export const filterDefinitions = {
   favorites: {
     label: 'Favorites',
     icon: '⭐',
+    globalPaths: [],
+    projectPaths: [],
+    extensions: [],
+  },
+  plugins: {
+    label: 'Plugins',
+    icon: '🔌',
     globalPaths: [],
     projectPaths: [],
     extensions: [],
