@@ -96,7 +96,8 @@ export default function SettingsProfiles() {
   const filterDropdownRef = useRef<HTMLDivElement>(null)
 
   // Dark mode (for preview)
-  const [isDark, setIsDark] = useState(true)
+  // Always use dark mode for dashboard - light mode only affects sidebar terminals
+  const isDark = true
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -137,7 +138,7 @@ export default function SettingsProfiles() {
   // Load data from Chrome storage
   useEffect(() => {
     setLoading(true)
-    chrome.storage.local.get(['profiles', 'defaultProfile', 'categorySettings', 'audioSettings', 'isDark'], (result) => {
+    chrome.storage.local.get(['profiles', 'defaultProfile', 'categorySettings', 'audioSettings'], (result) => {
       const loadedProfiles = result.profiles as Profile[] || []
       if (result.profiles) {
         setProfiles(loadedProfiles)
@@ -150,9 +151,6 @@ export default function SettingsProfiles() {
       }
       if (result.audioSettings) {
         setAudioSettings(result.audioSettings as AudioSettings)
-      }
-      if (typeof result.isDark === 'boolean') {
-        setIsDark(result.isDark)
       }
       setLoading(false)
 
@@ -190,9 +188,6 @@ export default function SettingsProfiles() {
       }
       if (changes.audioSettings?.newValue) {
         setAudioSettings(changes.audioSettings.newValue as AudioSettings)
-      }
-      if (changes.isDark?.newValue !== undefined) {
-        setIsDark(changes.isDark.newValue as boolean)
       }
     }
 
