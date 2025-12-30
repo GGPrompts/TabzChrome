@@ -1376,6 +1376,90 @@ function ProfileCard({
   )
 }
 
+// Section Card Component for visual grouping
+interface SectionCardProps {
+  title: string
+  icon?: React.ReactNode
+  children: React.ReactNode
+  className?: string
+  collapsible?: boolean
+  defaultExpanded?: boolean
+  badge?: React.ReactNode
+}
+
+function SectionCard({
+  title,
+  icon,
+  children,
+  className = '',
+  collapsible = false,
+  defaultExpanded = true,
+  badge,
+}: SectionCardProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+
+  return (
+    <div className={`relative rounded-xl border border-border/60 bg-card/30 backdrop-blur-sm overflow-hidden ${className}`}>
+      {/* Accent line at top */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/20 to-transparent" />
+
+      {/* Header */}
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            {icon && <span className="text-primary/80">{icon}</span>}
+            <span className="text-sm font-semibold tracking-wide uppercase text-foreground/90">{title}</span>
+            {badge}
+          </div>
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+      ) : (
+        <div className="px-4 py-3 flex items-center gap-2.5 border-b border-border/40">
+          {icon && <span className="text-primary/80">{icon}</span>}
+          <span className="text-sm font-semibold tracking-wide uppercase text-foreground/90">{title}</span>
+          {badge}
+        </div>
+      )}
+
+      {/* Content */}
+      {(!collapsible || isExpanded) && (
+        <div className="p-4 space-y-4">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Form Field Component for consistent styling
+interface FormFieldProps {
+  label: string
+  hint?: string
+  required?: boolean
+  children: React.ReactNode
+}
+
+function FormField({ label, hint, required, children }: FormFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label className="flex items-center gap-1 text-sm font-medium text-foreground/80">
+        {label}
+        {required && <span className="text-primary">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground/70">{hint}</p>}
+    </div>
+  )
+}
+
 // Profile Edit Form Component
 interface ProfileEditFormProps {
   profile: Profile
@@ -1413,225 +1497,217 @@ function ProfileEditForm({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
-          <Grid3X3 className="w-7 h-7" />
-          {isNew ? 'New Profile' : 'Edit Profile'}
-        </h1>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between pb-4 border-b border-border/40">
+        <div>
+          <h1 className="text-2xl font-bold font-mono text-primary terminal-glow flex items-center gap-3">
+            <Grid3X3 className="w-7 h-7" />
+            {isNew ? 'New Profile' : 'Edit Profile'}
+          </h1>
+          {profile.name && (
+            <p className="text-sm text-muted-foreground mt-1 font-mono">ID: {profile.id}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
+            className="px-4 py-2 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm"
           >
             Cancel
           </button>
           <button
             onClick={onSave}
             disabled={!profile.name || !profile.id}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {isNew ? 'Create' : 'Save'}
+            <Check className="w-4 h-4" />
+            {isNew ? 'Create Profile' : 'Save Changes'}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Form Fields */}
-        <div className="space-y-4">
-          {/* Profile Name */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Profile Name *</label>
-            <input
-              type="text"
-              value={profile.name}
-              onChange={(e) => {
-                const name = e.target.value
-                const id = isNew ? name.toLowerCase().replace(/\s+/g, '-') : profile.id
-                updateProfile({ name, id })
-              }}
-              placeholder="e.g., Default, Claude Code, Dev Server"
-              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:border-primary focus:outline-none"
-            />
-            {profile.name && (
-              <p className="text-xs text-muted-foreground mt-1">ID: {profile.id}</p>
-            )}
-          </div>
+        {/* Left Column - Configuration */}
+        <div className="space-y-5">
+          {/* Identity Section */}
+          <SectionCard title="Identity" icon={<TerminalIcon className="w-4 h-4" />}>
+            <FormField label="Profile Name" required>
+              <input
+                type="text"
+                value={profile.name}
+                onChange={(e) => {
+                  const name = e.target.value
+                  const id = isNew ? name.toLowerCase().replace(/\s+/g, '-') : profile.id
+                  updateProfile({ name, id })
+                }}
+                placeholder="e.g., Default, Claude Code, Dev Server"
+                className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+              />
+            </FormField>
 
-          {/* Working Directory */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Working Directory</label>
-            <input
-              type="text"
-              value={profile.workingDir}
-              onChange={(e) => updateProfile({ workingDir: e.target.value })}
-              placeholder="Leave empty to inherit from header"
-              className="w-full px-3 py-2 bg-card border border-border rounded-lg font-mono text-sm focus:border-primary focus:outline-none"
-            />
-          </div>
+            <FormField label="Category" hint="Organize profiles into groups">
+              <CategoryCombobox
+                value={profile.category || ''}
+                onChange={(category) => updateProfile({ category: category || undefined })}
+                categories={categories}
+              />
+            </FormField>
+          </SectionCard>
 
-          {/* Starting Command */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Starting Command</label>
-            <input
-              type="text"
-              value={profile.command || ''}
-              onChange={(e) => updateProfile({ command: e.target.value })}
-              placeholder="e.g., npm run dev, claude, htop"
-              className="w-full px-3 py-2 bg-card border border-border rounded-lg font-mono text-sm focus:border-primary focus:outline-none"
-            />
-          </div>
+          {/* Execution Section */}
+          <SectionCard title="Execution" icon={<Play className="w-4 h-4" />}>
+            <FormField label="Working Directory" hint="Leave empty to inherit from header">
+              <input
+                type="text"
+                value={profile.workingDir}
+                onChange={(e) => updateProfile({ workingDir: e.target.value })}
+                placeholder="~/projects/my-app"
+                className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg font-mono text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+              />
+            </FormField>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
-            <CategoryCombobox
-              value={profile.category || ''}
-              onChange={(category) => updateProfile({ category: category || undefined })}
-              categories={categories}
-            />
-          </div>
+            <FormField label="Starting Command" hint="Runs automatically when terminal opens">
+              <input
+                type="text"
+                value={profile.command || ''}
+                onChange={(e) => updateProfile({ command: e.target.value })}
+                placeholder="e.g., npm run dev, claude, htop"
+                className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg font-mono text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+              />
+            </FormField>
 
-          {/* Reference */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Reference URL/Path</label>
-            <input
-              type="text"
-              value={profile.reference || ''}
-              onChange={(e) => updateProfile({ reference: e.target.value || undefined })}
-              placeholder="https://docs.example.com or ~/docs/flags.md"
-              className="w-full px-3 py-2 bg-card border border-border rounded-lg font-mono text-sm focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          {/* Font Size */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Font Size: {profile.fontSize}px
-            </label>
-            <input
-              type="range"
-              min="12"
-              max="24"
-              value={profile.fontSize}
-              onChange={(e) => updateProfile({ fontSize: parseInt(e.target.value) })}
-              className="w-full accent-primary"
-            />
-          </div>
-
-          {/* Font Family */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Font Family</label>
-            <select
-              value={profile.fontFamily}
-              onChange={(e) => updateProfile({ fontFamily: e.target.value })}
-              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:border-primary focus:outline-none"
-              style={{ fontFamily: profile.fontFamily }}
-            >
-              {getAvailableFonts().map((font) => (
-                <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Audio Settings - Collapsible */}
-          <div className="border border-border rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setProfileAudioExpanded(!profileAudioExpanded)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Volume2 className="w-4 h-4" />
-                <span className="font-medium">Audio Settings</span>
-                {profile.audioOverrides?.mode && profile.audioOverrides.mode !== 'default' && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    profile.audioOverrides.mode === 'disabled'
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-primary/20 text-primary'
-                  }`}>
-                    {profile.audioOverrides.mode === 'disabled' ? 'Off' : 'On'}
-                  </span>
-                )}
+            <FormField label="Reference" hint="URL or file path for quick access">
+              <div className="relative">
+                <Paperclip className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <input
+                  type="text"
+                  value={profile.reference || ''}
+                  onChange={(e) => updateProfile({ reference: e.target.value || undefined })}
+                  placeholder="https://docs.example.com or ~/docs/flags.md"
+                  className="w-full pl-9 pr-3 py-2.5 bg-background/50 border border-border/60 rounded-lg font-mono text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                />
               </div>
-              {profileAudioExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
+            </FormField>
+          </SectionCard>
 
-            {profileAudioExpanded && (
-              <div className="px-4 py-4 border-t border-border space-y-4">
-                {/* Audio Mode */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Audio Mode</label>
+          {/* Typography Section */}
+          <SectionCard title="Typography" icon={<span className="font-mono text-xs font-bold">Aa</span>}>
+            <FormField label={`Font Size: ${profile.fontSize}px`}>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">12</span>
+                <input
+                  type="range"
+                  min="12"
+                  max="24"
+                  value={profile.fontSize}
+                  onChange={(e) => updateProfile({ fontSize: parseInt(e.target.value) })}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-xs text-muted-foreground">24</span>
+              </div>
+            </FormField>
+
+            <FormField label="Font Family">
+              <select
+                value={profile.fontFamily}
+                onChange={(e) => updateProfile({ fontFamily: e.target.value })}
+                className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                style={{ fontFamily: profile.fontFamily }}
+              >
+                {getAvailableFonts().map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </SectionCard>
+
+          {/* Audio Section */}
+          <SectionCard
+            title="Audio"
+            icon={<Volume2 className="w-4 h-4" />}
+            collapsible
+            defaultExpanded={profileAudioExpanded}
+            badge={
+              profile.audioOverrides?.mode && profile.audioOverrides.mode !== 'default' && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  profile.audioOverrides.mode === 'disabled'
+                    ? 'bg-muted text-muted-foreground'
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {profile.audioOverrides.mode === 'disabled' ? 'OFF' : 'ON'}
+                </span>
+              )
+            }
+          >
+            <FormField label="Audio Mode">
+              <select
+                value={profile.audioOverrides?.mode || 'default'}
+                onChange={(e) => {
+                  const mode = e.target.value as AudioMode
+                  updateProfile({
+                    audioOverrides: mode === 'default' && !profile.audioOverrides?.voice && !profile.audioOverrides?.rate
+                      ? undefined
+                      : { ...profile.audioOverrides, mode: mode === 'default' ? undefined : mode }
+                  })
+                }}
+                className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+              >
+                <option value="default">Use default (follows header toggle)</option>
+                <option value="enabled">Enabled (always on, respects mute)</option>
+                <option value="disabled">Disabled (never plays audio)</option>
+              </select>
+            </FormField>
+
+            {profile.audioOverrides?.mode !== 'disabled' && (
+              <>
+                <FormField label="Voice">
                   <select
-                    value={profile.audioOverrides?.mode || 'default'}
+                    value={profile.audioOverrides?.voice || ''}
                     onChange={(e) => {
-                      const mode = e.target.value as AudioMode
-                      updateProfile({
-                        audioOverrides: mode === 'default' && !profile.audioOverrides?.voice && !profile.audioOverrides?.rate
-                          ? undefined
-                          : { ...profile.audioOverrides, mode: mode === 'default' ? undefined : mode }
-                      })
+                      const voice = e.target.value || undefined
+                      const newOverrides = { ...profile.audioOverrides, voice }
+                      if (!newOverrides.mode && !newOverrides.voice && !newOverrides.rate) {
+                        updateProfile({ audioOverrides: undefined })
+                      } else {
+                        updateProfile({ audioOverrides: newOverrides })
+                      }
                     }}
-                    className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:border-primary focus:outline-none"
+                    className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
                   >
-                    <option value="default">Use default (follows header toggle)</option>
-                    <option value="enabled">Enabled (always on, respects mute)</option>
-                    <option value="disabled">Disabled (never plays audio)</option>
-                  </select>
-                </div>
-
-                {/* Voice Override */}
-                {profile.audioOverrides?.mode !== 'disabled' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Voice</label>
-                    <select
-                      value={profile.audioOverrides?.voice || ''}
-                      onChange={(e) => {
-                        const voice = e.target.value || undefined
-                        const newOverrides = { ...profile.audioOverrides, voice }
-                        if (!newOverrides.mode && !newOverrides.voice && !newOverrides.rate) {
-                          updateProfile({ audioOverrides: undefined })
-                        } else {
-                          updateProfile({ audioOverrides: newOverrides })
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:border-primary focus:outline-none"
-                    >
-                      <option value="">
-                        Use default ({TTS_VOICES.find(v => v.value === audioSettings.voice)?.label || audioSettings.voice})
+                    <option value="">
+                      Use default ({TTS_VOICES.find(v => v.value === audioSettings.voice)?.label || audioSettings.voice})
+                    </option>
+                    {TTS_VOICES.map((voice) => (
+                      <option key={voice.value} value={voice.value}>
+                        {voice.label}
                       </option>
-                      {TTS_VOICES.map((voice) => (
-                        <option key={voice.value} value={voice.value}>
-                          {voice.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                    ))}
+                  </select>
+                </FormField>
 
-                {/* Test Button */}
-                {profile.audioOverrides?.mode !== 'disabled' && (
-                  <button
-                    type="button"
-                    onClick={onAudioTest}
-                    disabled={profileAudioTestPlaying}
-                    className="w-full px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    {profileAudioTestPlaying ? 'Playing...' : 'Test Voice'}
-                  </button>
-                )}
-              </div>
+                <button
+                  type="button"
+                  onClick={onAudioTest}
+                  disabled={profileAudioTestPlaying}
+                  className="w-full px-4 py-2.5 bg-muted/50 hover:bg-muted rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors border border-border/40"
+                >
+                  <Volume2 className="w-4 h-4" />
+                  {profileAudioTestPlaying ? 'Playing...' : 'Test Voice'}
+                </button>
+              </>
             )}
-          </div>
+          </SectionCard>
         </div>
 
-        {/* Right Column - Appearance & Preview */}
-        <div className="space-y-4">
-          {/* Live Preview */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Live Preview</label>
+        {/* Right Column - Appearance */}
+        <div className="space-y-5">
+          {/* Live Preview - Prominent */}
+          <div className="rounded-xl border border-primary/30 bg-card/20 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-semibold tracking-wide uppercase text-primary/90">Live Preview</span>
+            </div>
             <TerminalPreview
               themeName={profile.themeName}
               backgroundGradient={profile.backgroundGradient}
@@ -1646,184 +1722,190 @@ function ProfileEditForm({
             />
           </div>
 
-          {/* Theme */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              <Palette className="w-4 h-4 inline mr-1" />
-              Text Colors
-            </label>
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-              {themeNames.map((themeName) => {
-                const theme = themes[themeName]
-                const isSelected = profile.themeName === themeName
-                const previewColors = theme.dark.colors
+          {/* Color Scheme Section */}
+          <SectionCard title="Color Scheme" icon={<Palette className="w-4 h-4" />}>
+            <FormField label="Text Colors">
+              <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1 -mr-1">
+                {themeNames.map((themeName) => {
+                  const theme = themes[themeName]
+                  const isSelected = profile.themeName === themeName
+                  const previewColors = theme.dark.colors
 
-                return (
-                  <button
-                    key={themeName}
-                    onClick={() => updateProfile({ themeName })}
-                    className={`
-                      px-3 py-2 rounded-lg border transition-all text-left
-                      ${isSelected
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: previewColors.red }} />
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: previewColors.green }} />
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: previewColors.blue }} />
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: previewColors.magenta }} />
+                  return (
+                    <button
+                      key={themeName}
+                      onClick={() => updateProfile({ themeName })}
+                      className={`
+                        px-3 py-2 rounded-lg border transition-all text-left
+                        ${isSelected
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                          : 'border-border/60 hover:border-primary/50 bg-background/30'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: previewColors.red }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: previewColors.green }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: previewColors.blue }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: previewColors.magenta }} />
+                        </div>
+                        <span className="text-sm truncate" style={{ color: previewColors.foreground }}>{theme.name}</span>
                       </div>
-                      <span className="text-sm">{theme.name}</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </FormField>
+          </SectionCard>
 
-          {/* Background Gradient */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Background Gradient</label>
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-              <button
-                onClick={() => updateProfile({ backgroundGradient: undefined })}
-                className={`
-                  px-3 py-2 rounded-lg border transition-all text-left
-                  ${profile.backgroundGradient === undefined
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/50'
-                  }
-                `}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-4 rounded border border-border bg-gradient-to-br from-muted to-muted-foreground/20" />
-                  <span className="text-sm">Theme Default</span>
-                </div>
-              </button>
-              {gradientNames.map((gradientKey) => {
-                const gradient = backgroundGradients[gradientKey]
-                const isSelected = profile.backgroundGradient === gradientKey
-
-                return (
+          {/* Background Section */}
+          <SectionCard title="Background" icon={<span className="text-xs">◐</span>}>
+            {/* Panel Color */}
+            <FormField label="Base Color">
+              <div className="flex flex-wrap gap-2">
+                {PANEL_COLORS.map((color) => (
                   <button
-                    key={gradientKey}
-                    onClick={() => updateProfile({ backgroundGradient: gradientKey })}
+                    key={color.value}
+                    onClick={() => updateProfile({ panelColor: color.value })}
                     className={`
-                      px-3 py-2 rounded-lg border transition-all text-left
-                      ${isSelected
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
+                      w-9 h-9 rounded-lg border-2 transition-all relative group
+                      ${(profile.panelColor || '#000000') === color.value
+                        ? 'border-primary scale-110 ring-2 ring-primary/30'
+                        : 'border-border/60 hover:border-primary/50 hover:scale-105'
                       }
                     `}
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
                   >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-6 h-4 rounded border border-border"
-                        style={{ background: gradient.gradient }}
-                      />
-                      <span className="text-sm truncate">{gradient.name}</span>
-                    </div>
+                    {(profile.panelColor || '#000000') === color.value && (
+                      <Check className="absolute inset-0 m-auto w-4 h-4 text-white drop-shadow-md" />
+                    )}
                   </button>
-                )
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
+            </FormField>
 
-          {/* Panel Color */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Panel Color</label>
-            <div className="flex flex-wrap gap-2">
-              {PANEL_COLORS.map((color) => (
+            {/* Gradient */}
+            <FormField label="Gradient Overlay">
+              <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 -mr-1">
                 <button
-                  key={color.value}
-                  onClick={() => updateProfile({ panelColor: color.value })}
+                  onClick={() => updateProfile({ backgroundGradient: undefined })}
                   className={`
-                    w-8 h-8 rounded-lg border-2 transition-all
-                    ${(profile.panelColor || '#000000') === color.value
-                      ? 'border-primary scale-110'
-                      : 'border-border hover:border-primary/50'
-                    }
-                  `}
-                  style={{ backgroundColor: color.value }}
-                  title={color.name}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Transparency */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Gradient Transparency: {profile.transparency ?? 100}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={profile.transparency ?? 100}
-              onChange={(e) => updateProfile({ transparency: parseInt(e.target.value) })}
-              className="w-full accent-primary"
-            />
-          </div>
-
-          {/* Background Media */}
-          <div className="border border-border rounded-lg p-4 space-y-3">
-            <label className="block text-sm font-medium">Background Media</label>
-
-            {/* Media Type */}
-            <div className="flex gap-2">
-              {(['none', 'image', 'video'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => updateProfile({ backgroundMediaType: type })}
-                  className={`
-                    flex-1 px-3 py-2 rounded-lg border text-sm capitalize transition-all
-                    ${(profile.backgroundMediaType || 'none') === type
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
+                    px-3 py-2 rounded-lg border transition-all text-left
+                    ${profile.backgroundGradient === undefined
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                      : 'border-border/60 hover:border-primary/50 bg-background/30'
                     }
                   `}
                 >
-                  {type}
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-4 rounded border border-border/60 bg-gradient-to-br from-muted to-muted-foreground/20" />
+                    <span className="text-sm">Theme Default</span>
+                  </div>
                 </button>
-              ))}
-            </div>
+                {gradientNames.map((gradientKey) => {
+                  const gradient = backgroundGradients[gradientKey]
+                  const isSelected = profile.backgroundGradient === gradientKey
 
-            {/* Media Path */}
+                  return (
+                    <button
+                      key={gradientKey}
+                      onClick={() => updateProfile({ backgroundGradient: gradientKey })}
+                      className={`
+                        px-3 py-2 rounded-lg border transition-all text-left
+                        ${isSelected
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                          : 'border-border/60 hover:border-primary/50 bg-background/30'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-4 rounded border border-border/60 flex-shrink-0"
+                          style={{ background: gradient.gradient }}
+                        />
+                        <span className="text-sm truncate">{gradient.name}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </FormField>
+
+            {/* Transparency */}
+            <FormField label={`Gradient Opacity: ${profile.transparency ?? 100}%`}>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">0%</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={profile.transparency ?? 100}
+                  onChange={(e) => updateProfile({ transparency: parseInt(e.target.value) })}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-xs text-muted-foreground">100%</span>
+              </div>
+            </FormField>
+          </SectionCard>
+
+          {/* Media Section */}
+          <SectionCard title="Background Media" icon={<span className="text-xs">▶</span>} collapsible defaultExpanded={profile.backgroundMediaType !== 'none' && profile.backgroundMediaType !== undefined}>
+            <FormField label="Media Type">
+              <div className="flex gap-2">
+                {(['none', 'image', 'video'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => updateProfile({ backgroundMediaType: type })}
+                    className={`
+                      flex-1 px-3 py-2.5 rounded-lg border text-sm capitalize transition-all
+                      ${(profile.backgroundMediaType || 'none') === type
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/60 hover:border-primary/50 bg-background/30'
+                      }
+                    `}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </FormField>
+
             {profile.backgroundMediaType && profile.backgroundMediaType !== 'none' && (
               <>
-                <input
-                  type="text"
-                  value={profile.backgroundMedia || ''}
-                  onChange={(e) => updateProfile({ backgroundMedia: e.target.value })}
-                  placeholder={profile.backgroundMediaType === 'video'
-                    ? 'e.g., ~/Videos/space.mp4 or https://...'
-                    : 'e.g., ~/Pictures/bg.png or https://...'
-                  }
-                  className="w-full px-3 py-2 bg-card border border-border rounded-lg font-mono text-sm focus:border-primary focus:outline-none"
-                />
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">
-                    Media Opacity: {profile.backgroundMediaOpacity ?? 50}%
-                  </label>
+                <FormField label="Media Path" hint="Local file path or URL">
                   <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={profile.backgroundMediaOpacity ?? 50}
-                    onChange={(e) => updateProfile({ backgroundMediaOpacity: parseInt(e.target.value) })}
-                    className="w-full accent-primary"
+                    type="text"
+                    value={profile.backgroundMedia || ''}
+                    onChange={(e) => updateProfile({ backgroundMedia: e.target.value })}
+                    placeholder={profile.backgroundMediaType === 'video'
+                      ? 'e.g., ~/Videos/space.mp4 or https://...'
+                      : 'e.g., ~/Pictures/bg.png or https://...'
+                    }
+                    className="w-full px-3 py-2.5 bg-background/50 border border-border/60 rounded-lg font-mono text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
                   />
-                </div>
+                </FormField>
+
+                <FormField label={`Media Opacity: ${profile.backgroundMediaOpacity ?? 50}%`}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">0%</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={profile.backgroundMediaOpacity ?? 50}
+                      onChange={(e) => updateProfile({ backgroundMediaOpacity: parseInt(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground">100%</span>
+                  </div>
+                </FormField>
               </>
             )}
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>
