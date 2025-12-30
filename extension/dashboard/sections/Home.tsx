@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Home } from 'lucide-react'
-import { getHealth, getOrphanedSessions, getTerminals, getAllTmuxSessions } from '../hooks/useDashboard'
+import { Terminal, Clock, HardDrive, Ghost, RefreshCw, Server, ChevronRight, Home, AlertTriangle, RotateCcw, Trash2, Cpu, Eye, GitBranch } from 'lucide-react'
+import { getHealth, getOrphanedSessions, getTerminals, getAllTmuxSessions, reattachSessions, killSession, killTmuxSession, getProfiles } from '../hooks/useDashboard'
 import { ActiveTerminalsList, type TerminalItem } from '../components/ActiveTerminalsList'
+import { compactPath } from '../../shared/utils'
+
+interface Profile {
+  name: string
+  [key: string]: any
+}
 
 interface HealthData {
   uptime: number
@@ -18,45 +24,91 @@ interface HealthData {
   platform: string
 }
 
-interface OrphanedData {
-  count: number
+interface OrphanedSession {
+  name: string
+}
+
+interface ExternalTmuxSession {
+  name: string
+  windows: number
+  workingDir: string
+  gitBranch?: string
+  aiTool?: string | null
 }
 
 export default function HomeSection() {
   const [health, setHealth] = useState<HealthData | null>(null)
-  const [orphaned, setOrphaned] = useState<OrphanedData | null>(null)
+  const [orphanedSessions, setOrphanedSessions] = useState<OrphanedSession[]>([])
+  const [externalSessions, setExternalSessions] = useState<ExternalTmuxSession[]>([])
   const [terminals, setTerminals] = useState<TerminalItem[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Helper to find full profile name (with emoji) from extracted name
+  const getProfileDisplayName = (extractedName: string, profilesList: Profile[]): string => {
+    const profile = profilesList.find(p => {
+      const stripped = p.name.replace(/^\p{Emoji_Presentation}\s*|\p{Emoji}\uFE0F?\s*/gu, '').trim()
+      return stripped.toLowerCase() === extractedName.toLowerCase()
+    })
+    return profile?.name || extractedName
+  }
 
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [healthRes, orphanedRes, tmuxRes] = await Promise.all([
+      const [healthRes, orphanedRes, tmuxRes, terminalsRes, profilesRes] = await Promise.all([
         getHealth(),
         getOrphanedSessions(),
         getAllTmuxSessions(),
+        getTerminals(),
+        getProfiles(),
       ])
 
       setHealth(healthRes.data)
-      setOrphaned({ count: orphanedRes.data?.count || 0 })
+      setProfiles(profilesRes || [])
 
-      // Map tmux sessions to TerminalItem format, filtering to ctt- sessions
+      // Get orphaned sessions list
+      const orphanedNames = orphanedRes.data?.orphanedSessions || []
+      setOrphanedSessions(orphanedNames.map((name: string) => ({ name })))
+
+      // Get registered terminal IDs
+      const registeredIds = new Set((terminalsRes.data || []).map((t: any) => t.id))
+
+      // Map tmux sessions
       const sessions = tmuxRes.data?.sessions || []
+
+      // Active terminals (ctt-* AND registered)
       const mappedTerminals: TerminalItem[] = sessions
-        .filter((s: any) => s.name.startsWith('ctt-'))
+        .filter((s: any) => s.name.startsWith('ctt-') && registeredIds.has(s.name))
+        .map((s: any) => {
+          const extractedName = s.name.replace(/^ctt-/, '').replace(/-[a-f0-9]+$/, '')
+          return {
+            id: s.name,
+            name: getProfileDisplayName(extractedName, profilesRes || []),
+            sessionName: s.name,
+            workingDir: s.workingDir,
+            createdAt: s.created ? new Date(parseInt(s.created) * 1000).toISOString() : undefined,
+            state: 'active',
+            gitBranch: s.gitBranch,
+            claudeState: s.claudeState,
+            aiTool: s.aiTool,
+          }
+        })
+      setTerminals(mappedTerminals)
+
+      // External sessions (non-ctt)
+      const external: ExternalTmuxSession[] = sessions
+        .filter((s: any) => !s.name.startsWith('ctt-'))
         .map((s: any) => ({
-          id: s.name,
-          name: s.name.replace(/^ctt-/, '').replace(/-[a-f0-9]+$/, ''), // Extract profile name
-          sessionName: s.name,
+          name: s.name,
+          windows: s.windows,
           workingDir: s.workingDir,
-          createdAt: s.created ? new Date(parseInt(s.created) * 1000).toISOString() : undefined,
-          state: 'active',
           gitBranch: s.gitBranch,
-          claudeState: s.claudeState,
           aiTool: s.aiTool,
         }))
-      setTerminals(mappedTerminals)
+      setExternalSessions(external)
+
       setError(null)
     } catch (err) {
       setError('Failed to connect to backend')
@@ -71,6 +123,48 @@ export default function HomeSection() {
       await chrome.runtime.sendMessage({ type: 'SWITCH_TO_TERMINAL', terminalId })
     } catch (err) {
       console.error('Failed to switch to terminal:', err)
+    }
+  }
+
+  // Orphan session handlers
+  const handleReattachOrphan = async (sessionName: string) => {
+    try {
+      await reattachSessions([sessionName])
+      await fetchData()
+    } catch (err) {
+      console.error('Failed to reattach session:', err)
+    }
+  }
+
+  const handleKillOrphan = async (sessionName: string) => {
+    try {
+      await killSession(sessionName)
+      setOrphanedSessions(prev => prev.filter(s => s.name !== sessionName))
+    } catch (err) {
+      console.error('Failed to kill orphan:', err)
+    }
+  }
+
+  // External session handlers
+  const handleKillExternal = async (sessionName: string) => {
+    try {
+      await killTmuxSession(sessionName)
+      setExternalSessions(prev => prev.filter(s => s.name !== sessionName))
+    } catch (err) {
+      console.error('Failed to kill external session:', err)
+    }
+  }
+
+  const handleViewAsText = async (sessionName: string) => {
+    try {
+      const response = await fetch(`http://localhost:8129/api/tmux/sessions/${sessionName}/capture`)
+      const result = await response.json()
+      if (!result.success) return
+      const captureId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      localStorage.setItem(`tabz-capture-${captureId}`, JSON.stringify(result.data))
+      window.location.search = `?capture=${captureId}`
+    } catch (err) {
+      console.error('Failed to view as text:', err)
     }
   }
 
@@ -90,7 +184,7 @@ export default function HomeSection() {
   const stats = [
     {
       label: 'Active Terminals',
-      value: health?.activeTerminals ?? '-',
+      value: terminals.length,
       icon: Terminal,
       color: 'text-emerald-400',
       bgColor: 'bg-emerald-400/10',
@@ -111,10 +205,10 @@ export default function HomeSection() {
     },
     {
       label: 'Orphaned',
-      value: orphaned?.count ?? '-',
+      value: orphanedSessions.length,
       icon: Ghost,
-      color: orphaned?.count ? 'text-amber-400' : 'text-muted-foreground',
-      bgColor: orphaned?.count ? 'bg-amber-400/10' : 'bg-muted/50',
+      color: orphanedSessions.length ? 'text-amber-400' : 'text-muted-foreground',
+      bgColor: orphanedSessions.length ? 'bg-amber-400/10' : 'bg-muted/50',
     },
   ]
 
@@ -200,6 +294,120 @@ export default function HomeSection() {
           emptyMessage="No active Tabz terminals"
         />
       </div>
+
+      {/* Orphaned Sessions Alert */}
+      {orphanedSessions.length > 0 && (
+        <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
+            <span className="font-semibold text-amber-400">Orphaned Sessions</span>
+            <span className="text-sm text-amber-400/70">({orphanedSessions.length})</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            These terminals are detached from the sidebar. Reattach to restore or kill to clean up.
+          </p>
+          <div className="space-y-2">
+            {orphanedSessions.slice(0, 5).map((session) => (
+              <div
+                key={session.name}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-card border border-border"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Ghost className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span className="font-mono text-sm truncate">{session.name}</span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleReattachOrphan(session.name)}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-sm text-primary hover:bg-primary/20"
+                    title="Reattach to sidebar"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reattach
+                  </button>
+                  <button
+                    onClick={() => handleKillOrphan(session.name)}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-sm text-destructive hover:bg-destructive/20"
+                    title="Kill session"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {orphanedSessions.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center">
+                +{orphanedSessions.length - 5} more orphaned sessions
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* External Tmux Sessions */}
+      {externalSessions.length > 0 && (
+        <div className="rounded-xl bg-card border border-border p-4 mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Cpu className="w-5 h-5 text-blue-400" />
+            <span className="font-semibold">External Tmux Sessions</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+              {externalSessions.length}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Non-Tabz tmux sessions on this system
+          </p>
+          <div className="space-y-2">
+            {externalSessions.slice(0, 5).map((session) => (
+              <div
+                key={session.name}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-muted/30 border border-border"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="min-w-0">
+                    <div className="font-mono text-sm truncate">{session.name}</div>
+                    {session.gitBranch && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <GitBranch className="w-3 h-3" />
+                        {session.gitBranch}
+                      </div>
+                    )}
+                  </div>
+                  {session.aiTool && (
+                    <span className="px-1.5 py-0.5 text-xs rounded bg-black/40 text-orange-400 border border-orange-500/50 flex-shrink-0">
+                      {session.aiTool}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground font-mono truncate hidden sm:block" title={session.workingDir}>
+                    {compactPath(session.workingDir)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleViewAsText(session.name)}
+                    className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                    title="View as text"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleKillExternal(session.name)}
+                    className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Kill session"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {externalSessions.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center">
+                +{externalSessions.length - 5} more external sessions
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* System Info Panel */}
       {health && (

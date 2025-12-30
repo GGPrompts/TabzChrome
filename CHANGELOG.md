@@ -15,6 +15,37 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.3.6] - 2025-12-30
+
+### Added
+- **Terminals Grid View** - New card-based view for Active Terminals page:
+  - Toggle between Grid and Table views (persists to localStorage)
+  - Cards show profile name with emoji, session ID, working dir, git branch
+  - Claude status with context % progress bar
+  - Recent activity history (last 5 status updates)
+  - Click to switch (supports sidebar, popout windows, and 3D focus)
+  - Right-click context menu for Copy Session ID, Open in 3D Focus
+
+- **Dashboard Orphaned Sessions** - Orphaned sessions alert now on main Dashboard:
+  - Shows detached terminals with Reattach/Kill actions
+  - Moved from Terminals page for better visibility
+
+- **Dashboard External Tmux Sessions** - Non-Tabz tmux sessions section:
+  - Shows all tmux sessions not managed by TabzChrome
+  - View as Text and Kill actions
+
+### Changed
+- **Terminals → Active Terminals** - Renamed and simplified:
+  - Now shows only registered terminals (no more duplicates with orphaned)
+  - Fixed filtering bug where orphaned sessions appeared in Active list
+  - Removed redundant "All Tmux Sessions" section (external sessions moved to Dashboard)
+
+- **Profile Emoji Display** - Terminal names now show full profile name with emoji (e.g., "🔧 DevOps" instead of just "DevOps")
+
+- **Popout Window Focus** - Clicking terminals in dashboard now properly brings popout windows to front (moved logic into `switchToSession`)
+
+---
+
 ## [1.3.5] - 2025-12-30
 
 ### Changed

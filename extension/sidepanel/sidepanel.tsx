@@ -215,13 +215,25 @@ function SidePanelTerminal() {
     handleEndZoneDrop,
   } = useTabDragDrop({ sessions, setSessions })
 
-  // Switch to session - handles both selecting the tab and focusing 3D browser tab if needed
+  // Switch to session - handles selecting the tab and focusing popout/3D tab if needed
   const switchToSession = useCallback(async (sessionId: string) => {
     setCurrentSession(sessionId)
 
-    // Find the session to check if it's in 3D mode
     const session = sessionsRef.current?.find(s => s.id === sessionId)
-    if (session?.focusedIn3D && session.sessionName) {
+    if (!session) return
+
+    // If terminal is popped out, focus the popout window
+    if (session.poppedOut && session.popoutWindowId) {
+      try {
+        await chrome.windows.update(session.popoutWindowId, { focused: true })
+      } catch (e) {
+        console.warn('[switchToSession] Could not focus popout window:', e)
+      }
+      return // Don't also try to focus 3D tab
+    }
+
+    // If in 3D mode, focus the 3D tab
+    if (session.focusedIn3D && session.sessionName) {
       try {
         const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
         const targetTab = tabs.find(tab => {
@@ -976,13 +988,7 @@ function SidePanelTerminal() {
                       color: 'white',  // White text works on all category colors
                       borderColor: `${categoryColor}60`,  // 60 = ~37% opacity in hex
                     } : undefined}
-                    onClick={() => {
-                      switchToSession(session.id)
-                      // If terminal is popped out, focus the popout window
-                      if (session.poppedOut && session.popoutWindowId) {
-                        chrome.windows.update(session.popoutWindowId, { focused: true })
-                      }
-                    }}
+                    onClick={() => switchToSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                     onMouseEnter={(e) => {
                       if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current)

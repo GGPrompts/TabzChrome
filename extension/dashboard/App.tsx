@@ -59,7 +59,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'home', label: 'Dashboard', icon: Home },
-  { id: 'terminals', label: 'Terminals', icon: Terminal },
+  { id: 'terminals', label: 'Active Terminals', icon: Terminal },
   { id: 'files', label: 'Files', icon: FolderOpen },
   { id: 'git', label: 'Source Control', icon: GitBranch },
   { id: 'api', label: 'API Playground', icon: Code2 },
