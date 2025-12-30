@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Send, Copy, Check, Clock, ChevronDown, ChevronRight, Plus, Trash2, Code2 } from 'lucide-react'
+import { Send, Copy, Check, Clock, ChevronDown, ChevronRight, Plus, Trash2, Code2, Key } from 'lucide-react'
 
 const API_BASE = 'http://localhost:8129'
 
@@ -158,6 +158,9 @@ export default function ApiPlayground() {
   const [response, setResponse] = useState<ResponseData | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [tokenCopied, setTokenCopied] = useState(false)
+  const [commandCopied, setCommandCopied] = useState(false)
+  const [showAuth, setShowAuth] = useState(true)
   const [showPresets, setShowPresets] = useState(true)
   const [healthStatus, setHealthStatus] = useState<Record<string, HealthStatus>>({})
 
@@ -264,6 +267,26 @@ export default function ApiPlayground() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  const copyToken = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/token`)
+      const data = await res.json()
+      if (data.token) {
+        await navigator.clipboard.writeText(data.token)
+        setTokenCopied(true)
+        setTimeout(() => setTokenCopied(false), 2000)
+      }
+    } catch (err) {
+      console.error('Failed to copy token:', err)
+    }
+  }
+
+  const copyCommand = async () => {
+    await navigator.clipboard.writeText('cat /tmp/tabz-auth-token')
+    setCommandCopied(true)
+    setTimeout(() => setCommandCopied(false), 2000)
   }
 
   const addHeader = () => {
@@ -424,8 +447,55 @@ export default function ApiPlayground() {
           )}
         </div>
 
-        {/* Presets Sidebar */}
+        {/* Sidebar */}
         <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {/* Authentication */}
+          <div className="rounded-xl bg-card border border-border">
+            <button
+              onClick={() => setShowAuth(!showAuth)}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-border"
+            >
+              <span className="font-medium flex items-center gap-2">
+                <Key className="w-4 h-4 text-primary" />
+                Authentication
+              </span>
+              {showAuth ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+            {showAuth && (
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Auth token required for spawn API. Stored at <code className="text-cyan-400">/tmp/tabz-auth-token</code>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={copyToken}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+                  >
+                    {tokenCopied ? <Check className="w-4 h-4" /> : <Key className="w-4 h-4" />}
+                    {tokenCopied ? 'Copied!' : 'Copy Token'}
+                  </button>
+                  <button
+                    onClick={copyCommand}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 text-sm"
+                    title="Copy read command"
+                  >
+                    {commandCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Example usage</summary>
+                  <pre className="mt-2 p-2 rounded bg-muted/50 font-mono text-cyan-400 overflow-x-auto">
+{`TOKEN=$(cat /tmp/tabz-auth-token)
+curl -X POST localhost:8129/api/spawn \\
+  -H "X-Auth-Token: $TOKEN" \\
+  -d '{"name": "Test"}'`}
+                  </pre>
+                </details>
+              </div>
+            )}
+          </div>
+
+          {/* Presets */}
           <div className="rounded-xl bg-card border border-border">
             <button
               onClick={() => setShowPresets(!showPresets)}

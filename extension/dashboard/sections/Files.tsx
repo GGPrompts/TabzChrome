@@ -96,7 +96,7 @@ export default function FilesSection() {
   const { globalWorkingDir, isLoaded: workingDirLoaded } = useWorkingDirectory()
 
   // File viewer settings (font size, family, max depth)
-  const { settings: viewerSettings, setFontSize, setFontFamily } = useFileViewerSettings()
+  const { settings: viewerSettings, setFontSize, setFontFamily, setMaxDepth } = useFileViewerSettings()
 
   // Load filtered files when filter changes
   useEffect(() => {
@@ -346,6 +346,26 @@ export default function FilesSection() {
                   <option value="Cascadia Code">Cascadia Code</option>
                   <option value="monospace">System Monospace</option>
                 </select>
+              </div>
+
+              {/* File Tree Depth */}
+              <div className="pt-3 border-t border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Tree Depth</label>
+                  <span className="text-sm text-muted-foreground">{viewerSettings.maxDepth} levels</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={viewerSettings.maxDepth}
+                  onChange={(e) => setMaxDepth(parseInt(e.target.value))}
+                  className="w-full accent-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Lower values load faster
+                </p>
               </div>
             </div>
           )}

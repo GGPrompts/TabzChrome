@@ -148,7 +148,12 @@ describe('useStatusTransitions', () => {
         rerender({ claudeStatuses: idleStatuses })
       })
 
-      expect(mockPlayAudio).toHaveBeenCalledWith('Claude Code ready', expect.any(Object))
+      expect(mockPlayAudio).toHaveBeenCalledWith(
+        'Claude Code ready',
+        expect.any(Object),
+        false,
+        { eventType: 'ready' }
+      )
     })
 
     it('should play ready announcement on transition from tool_use to awaiting_input', async () => {
@@ -176,7 +181,12 @@ describe('useStatusTransitions', () => {
         rerender({ claudeStatuses: awaitingStatuses })
       })
 
-      expect(mockPlayAudio).toHaveBeenCalledWith('Claude Code ready', expect.any(Object))
+      expect(mockPlayAudio).toHaveBeenCalledWith(
+        'Claude Code ready',
+        expect.any(Object),
+        false,
+        { eventType: 'ready' }
+      )
     })
 
     it('should not play ready announcement if subagent_count > 0', async () => {
@@ -309,7 +319,12 @@ describe('useStatusTransitions', () => {
         )
       })
 
-      expect(mockPlayAudio).toHaveBeenCalledWith('Reading', expect.any(Object), true)
+      expect(mockPlayAudio).toHaveBeenCalledWith(
+        'Reading',
+        expect.any(Object),
+        true,
+        { eventType: 'tools' }
+      )
     })
 
     it('should announce different tools correctly', async () => {
@@ -342,7 +357,8 @@ describe('useStatusTransitions', () => {
         expect(mockPlayAudio).toHaveBeenCalledWith(
           expect.stringContaining(expected),
           expect.any(Object),
-          true
+          true,
+          { eventType: 'tools' }
         )
       }
     })
@@ -365,7 +381,8 @@ describe('useStatusTransitions', () => {
       expect(mockPlayAudio).toHaveBeenCalledWith(
         'Reading App.tsx',
         expect.any(Object),
-        true
+        true,
+        { eventType: 'tools' }
       )
     })
 
@@ -385,9 +402,10 @@ describe('useStatusTransitions', () => {
       })
 
       expect(mockPlayAudio).toHaveBeenCalledWith(
-        'Searching files for **/*.ts',
+        'Searching files **/*.ts',
         expect.any(Object),
-        true
+        true,
+        { eventType: 'tools' }
       )
     })
 
@@ -409,7 +427,8 @@ describe('useStatusTransitions', () => {
       expect(mockPlayAudio).toHaveBeenCalledWith(
         'Running tests',
         expect.any(Object),
-        true
+        true,
+        { eventType: 'tools' }
       )
     })
 
@@ -532,11 +551,12 @@ describe('useStatusTransitions', () => {
       expect(mockPlayAudio).toHaveBeenCalledWith(
         '2 agents running',
         expect.any(Object),
-        true
+        true,
+        { eventType: 'subagents' }
       )
     })
 
-    it('should use singular for 1 agent', async () => {
+    it('should announce 1 agent running', async () => {
       const claudeStatuses1 = new Map<string, ClaudeStatus>([
         ['term-1', { status: 'processing', subagent_count: 0 }],
       ])
@@ -557,9 +577,10 @@ describe('useStatusTransitions', () => {
       })
 
       expect(mockPlayAudio).toHaveBeenCalledWith(
-        '1 agent running',
+        '1 agents running',
         expect.any(Object),
-        true
+        true,
+        { eventType: 'subagents' }
       )
     })
 
@@ -586,7 +607,8 @@ describe('useStatusTransitions', () => {
       expect(mockPlayAudio).toHaveBeenCalledWith(
         'All agents complete',
         expect.any(Object),
-        false
+        false,
+        { eventType: 'subagents' }
       )
     })
   })
@@ -616,7 +638,7 @@ describe('useStatusTransitions', () => {
         'Warning! Claude Code 50 percent context!',
         expect.any(Object),
         false,
-        { pitch: '+15Hz', rate: '+5%' }
+        { pitch: '+15Hz', rate: '+5%', eventType: 'contextWarning' }
       )
     })
 
@@ -644,7 +666,7 @@ describe('useStatusTransitions', () => {
         'Alert! Claude Code context critical!',
         expect.any(Object),
         false,
-        { pitch: '+25Hz', rate: '+10%' }
+        { pitch: '+25Hz', rate: '+10%', eventType: 'contextCritical' }
       )
     })
 
@@ -709,7 +731,8 @@ describe('useStatusTransitions', () => {
       expect(mockPlayAudio).toHaveBeenCalledWith(
         expect.stringContaining('Writing'),
         expect.any(Object),
-        true
+        true,
+        { eventType: 'tools' }
       )
     })
   })
@@ -747,7 +770,9 @@ describe('useStatusTransitions', () => {
 
       expect(mockPlayAudio).toHaveBeenCalledWith(
         'My Claude ready',
-        expect.any(Object)
+        expect.any(Object),
+        false,
+        { eventType: 'ready' }
       )
     })
 
@@ -784,7 +809,9 @@ describe('useStatusTransitions', () => {
 
       expect(mockPlayAudio).toHaveBeenCalledWith(
         'Claude Code 2 ready',
-        expect.any(Object)
+        expect.any(Object),
+        false,
+        { eventType: 'ready' }
       )
     })
   })

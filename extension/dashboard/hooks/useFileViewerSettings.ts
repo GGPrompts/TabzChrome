@@ -27,5 +27,6 @@ export function useFileViewerSettings() {
     loaded: isLoaded,
     setFontSize: setters.fileViewerFontSize,
     setFontFamily: setters.fileViewerFontFamily,
+    setMaxDepth: setters.fileTreeMaxDepth,
   }
 }

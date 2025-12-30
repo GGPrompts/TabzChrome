@@ -5,7 +5,6 @@ import {
   Terminal,
   Code2,
   Wrench,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Github,
@@ -17,7 +16,6 @@ import {
   Trash2,
   GitBranch,
   Volume2,
-  Sliders,
 } from 'lucide-react'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 
@@ -25,7 +23,7 @@ import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 import HomeSection from './sections/Home'
 import TerminalsSection from './sections/Terminals'
 import ApiPlayground from './sections/ApiPlayground'
-import SettingsGeneral from './sections/SettingsGeneral'
+// SettingsGeneral removed - settings moved to Files and API Playground pages
 import SettingsMcp from './sections/SettingsMcp'
 import SettingsAudio from './sections/SettingsAudio'
 import SettingsProfiles from './sections/SettingsProfiles'
@@ -50,7 +48,7 @@ interface CaptureData {
   }
 }
 
-type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'settings' | 'settings-general' | 'settings-mcp' | 'settings-audio' | 'settings-profiles'
+type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'audio'
 
 interface NavItem {
   id: Section
@@ -65,17 +63,9 @@ const navItems: NavItem[] = [
   { id: 'files', label: 'Files', icon: FolderOpen },
   { id: 'git', label: 'Source Control', icon: GitBranch },
   { id: 'api', label: 'API Playground', icon: Code2 },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    children: [
-      { id: 'settings-profiles', label: 'Profiles', icon: Grid3X3 },
-      { id: 'settings-general', label: 'General', icon: Sliders },
-      { id: 'settings-mcp', label: 'Tabz MCP', icon: Wrench },
-      { id: 'settings-audio', label: 'Audio', icon: Volume2 },
-    ]
-  },
+  { id: 'profiles', label: 'Profiles', icon: Grid3X3 },
+  { id: 'mcp', label: 'Tabz MCP', icon: Wrench },
+  { id: 'audio', label: 'Audio', icon: Volume2 },
 ]
 
 export default function App() {
@@ -86,7 +76,7 @@ export default function App() {
     if (hash.startsWith('#/')) {
       const hashPath = hash.slice(2) // Remove '#/'
       const [section] = hashPath.split('?')
-      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'settings', 'settings-general', 'settings-mcp', 'settings-audio', 'settings-profiles']
+      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio']
       if (validSections.includes(section as Section)) {
         return section as Section
       }
@@ -98,7 +88,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('tabz-dashboard-sidebar-collapsed') === 'true'
   })
-  const [expandedNav, setExpandedNav] = useState<Set<string>>(new Set(['settings']))
+  const [expandedNav, setExpandedNav] = useState<Set<string>>(new Set())
   const [connected, setConnected] = useState<boolean | null>(null) // null = checking
   const [captureData, setCaptureData] = useState<CaptureData | null>(null)
   const [showDirDropdown, setShowDirDropdown] = useState(false)
@@ -153,7 +143,7 @@ export default function App() {
       if (hash.startsWith('#/')) {
         const hashPath = hash.slice(2) // Remove '#/'
         const [section] = hashPath.split('?')
-        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'settings', 'settings-general', 'settings-mcp', 'settings-audio', 'settings-profiles']
+        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio']
         if (validSections.includes(section as Section)) {
           setActiveSection(section as Section)
         }
@@ -225,15 +215,12 @@ export default function App() {
         return <GitSection />
       case 'api':
         return <ApiPlayground />
-      case 'settings':
-      case 'settings-general':
-        return <SettingsGeneral />
-      case 'settings-mcp':
-        return <SettingsMcp />
-      case 'settings-audio':
-        return <SettingsAudio />
-      case 'settings-profiles':
+      case 'profiles':
         return <SettingsProfiles />
+      case 'mcp':
+        return <SettingsMcp />
+      case 'audio':
+        return <SettingsAudio />
       default:
         return <HomeSection />
     }
