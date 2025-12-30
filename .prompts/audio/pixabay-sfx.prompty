@@ -125,6 +125,23 @@ mcp-cli call tabz/tabz_click '{"selector": "[class*=\"audioRow\"]:nth-of-type(3)
 mcp-cli call tabz/tabz_get_downloads '{}'
 ```
 
+## Saving Downloaded Files
+
+Downloads go to your browser's default download folder. To organize them for TabzChrome audio events:
+
+### Default SFX Folder: `~/sfx`
+
+```bash
+# Check if folder exists, create if not
+[ -d ~/sfx ] || mkdir -p ~/sfx && echo "Created ~/sfx"
+
+# Move downloaded sounds to sfx folder
+mv ~/Downloads/*.mp3 ~/sfx/
+```
+
+### Alternative: Use a custom folder
+If you prefer a different location, update the Audio settings in TabzChrome Dashboard → Settings → File Picker Defaults.
+
 ## Comparison: Mixkit vs Pixabay
 
 | Feature | Mixkit | Pixabay |

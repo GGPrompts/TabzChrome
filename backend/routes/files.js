@@ -123,8 +123,9 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
         const child = await buildFileTree(childPath, depth, currentDepth + 1, showHidden);
         if (child) children.push(child);
       } catch (err) {
-        // Log permission errors or other issues (only for top-level for brevity)
-        if (currentDepth <= 1) {
+        // Silently skip permission errors (very common on system dirs and WSL mounts)
+        // Only log other errors at top level
+        if (err.code !== 'EACCES' && err.code !== 'EPERM' && currentDepth <= 1) {
           console.warn(`[buildFileTree] Skipping ${childPath}: ${err.message}`);
         }
       }
@@ -143,6 +144,10 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
       ...(isObsidianVault && { isObsidianVault: true })
     };
   } catch (err) {
+    // Silently skip permission denied errors (common on system dirs and WSL mounts)
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      return null;
+    }
     console.error(`Error building tree for ${dirPath}:`, err);
     return null;
   }

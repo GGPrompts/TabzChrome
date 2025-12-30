@@ -95,7 +95,7 @@ export default function App() {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Shared working directory
-  const { globalWorkingDir, setGlobalWorkingDir, recentDirs, setRecentDirs } = useWorkingDirectory()
+  const { globalWorkingDir, setGlobalWorkingDir, recentDirs, setRecentDirs, addToRecentDirs } = useWorkingDirectory()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -281,7 +281,9 @@ export default function App() {
                   defaultValue={globalWorkingDir}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      setGlobalWorkingDir((e.target as HTMLInputElement).value)
+                      const newPath = (e.target as HTMLInputElement).value
+                      setGlobalWorkingDir(newPath)
+                      addToRecentDirs(newPath)  // Save to recent dirs
                       setShowDirDropdown(false)
                     }
                   }}

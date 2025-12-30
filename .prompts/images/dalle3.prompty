@@ -49,11 +49,22 @@ mcp-cli call tabz/tabz_screenshot '{}'
 ```
 
 ### 5. Save generated image
-Download or save images to:
+
+**For terminal backgrounds / personal use:**
+```bash
+# Check and create default Pictures folder
+[ -d ~/Pictures ] || mkdir -p ~/Pictures && echo "Created ~/Pictures"
+
+# Save downloaded images there for easy access in TabzChrome file picker
+```
+
+**For project-specific AI images:**
 ```
 .prompts/AI_Images/
 ```
 Create folder if it doesn't exist. Contents are gitignored (your images stay local).
+
+> **Note:** The default image folder is `~/Pictures`. You can change this in TabzChrome Dashboard → Settings → File Picker Defaults.
 
 ## Key Selectors
 

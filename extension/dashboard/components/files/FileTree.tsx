@@ -24,14 +24,26 @@ import {
   Music,
   // New icons for AI-relevant files
   Container,  // Docker
-  GitBranch,  // .gitignore
+  GitBranch,  // .gitignore, .git
   Lock,       // .env files
   Key,        // secrets
   Brain,      // Obsidian (using Brain as closest match)
   Star,       // Favorites
+  // New icons for developer tool folders
+  Github,     // .github folder
+  Code2,      // .vscode folder
+  Library,    // node_modules
+  BookOpen,   // docs, README
+  FolderCode, // src, source
+  FlaskConical, // test, tests
+  Package,    // build, dist, package.json
+  Globe,      // public, static, assets
+  Scroll,     // scripts, LICENSE
+  Hammer,     // Makefile
+  Gem,        // Gemfile
 } from "lucide-react"
 import { useFilesContext } from "../../contexts/FilesContext"
-import { getClaudeFileType, claudeFileColors, ClaudeFileType, isAlwaysInContext, getScriptInfo } from "../../utils/claudeFileTypes"
+import { getClaudeFileType, claudeFileColors, ClaudeFileType, getScriptInfo } from "../../utils/claudeFileTypes"
 import { FileTreeContextMenu } from "./FileTreeContextMenu"
 import { sendMessage } from "../../../shared/messaging"
 
@@ -204,6 +216,30 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       case 'gitignore': return GitBranch
       case 'env': return Lock
       case 'secrets': return Key
+      // Developer tool folders
+      case 'ai-tool': return Bot       // Other AI assistants like .codex, .copilot
+      case 'git-folder': return GitBranch
+      case 'github': return Github
+      case 'vscode': return Code2
+      case 'devcontainer': return Container
+      case 'node-modules': return Library
+      case 'docs': return BookOpen
+      case 'source': return FolderCode
+      case 'test': return FlaskConical
+      case 'build': return Package
+      case 'assets': return Globe
+      case 'config': return Settings
+      case 'scripts': return Scroll
+      // Special files
+      case 'readme': return BookOpen
+      case 'license': return Scroll
+      case 'makefile': return Hammer
+      case 'package-json': return Package
+      case 'typescript-config': return FileCode
+      case 'go-mod': return FileCode
+      case 'cargo': return FileCode
+      case 'requirements': return FileText
+      case 'gemfile': return Gem
       default: return null
     }
   }
@@ -750,7 +786,6 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
             )}
           </span>
           <span className={`text-sm truncate flex-1 ${isDirectory ? "font-medium" : ""} ${textColorClass}`}>
-            {isAlwaysInContext(node.name) && <span className="mr-1">🤖</span>}
             {node.name}
           </span>
           {/* Favorite star - visible on hover or if favorited */}

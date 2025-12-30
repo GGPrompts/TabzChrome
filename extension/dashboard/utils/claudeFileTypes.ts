@@ -13,9 +13,33 @@ export type ClaudeFileType =
   // AI-relevant file types (always visible, even with showHidden=false)
   | 'obsidian-vault' // .obsidian/
   | 'docker'         // Dockerfile, docker-compose.yml
-  | 'gitignore'      // .gitignore
+  | 'gitignore'      // .gitignore, .claudeignore, .gitattributes
   | 'env'            // .env, .env.*
   | 'secrets'        // credentials, .pem, .key files
+  // Developer tool folders
+  | 'ai-tool'        // .codex, .copilot, .gemini, .opencode
+  | 'git-folder'     // .git folder
+  | 'github'         // .github folder
+  | 'vscode'         // .vscode folder
+  | 'devcontainer'   // .devcontainer
+  | 'node-modules'   // node_modules
+  | 'docs'           // docs, documentation
+  | 'source'         // src, source
+  | 'test'           // test, tests, __tests__
+  | 'build'          // build, dist, out
+  | 'assets'         // public, static, assets
+  | 'config'         // config, configs, .config
+  | 'scripts'        // scripts folder
+  // Special files
+  | 'readme'         // README.md, README
+  | 'license'        // LICENSE, LICENSE.md
+  | 'makefile'       // Makefile
+  | 'package-json'   // package.json
+  | 'typescript-config' // tsconfig.json
+  | 'go-mod'         // go.mod, go.sum
+  | 'cargo'          // Cargo.toml, Cargo.lock
+  | 'requirements'   // requirements.txt
+  | 'gemfile'        // Gemfile
   | null
 
 export type FileFilter = 'all' | 'prompts' | 'claude' | 'plugins' | 'favorites'
@@ -36,6 +60,30 @@ export const claudeFileColors: Record<Exclude<ClaudeFileType, null>, { light: st
   'gitignore':       { light: '#F97316', dark: '#FB923C', tailwind: 'text-orange-300' },
   'env':             { light: '#EAB308', dark: '#FACC15', tailwind: 'text-yellow-400' },
   'secrets':         { light: '#DC2626', dark: '#F87171', tailwind: 'text-red-400' },
+  // Developer tool folders
+  'ai-tool':         { light: '#8B00FF', dark: '#BD93F9', tailwind: 'text-purple-400' },  // Same as agent
+  'git-folder':      { light: '#F97316', dark: '#FB923C', tailwind: 'text-orange-400' },
+  'github':          { light: '#6E5494', dark: '#A78BFA', tailwind: 'text-violet-400' },
+  'vscode':          { light: '#007ACC', dark: '#4FC3F7', tailwind: 'text-blue-400' },
+  'devcontainer':    { light: '#0EA5E9', dark: '#38BDF8', tailwind: 'text-sky-400' },    // Same as docker
+  'node-modules':    { light: '#68A063', dark: '#8BC34A', tailwind: 'text-lime-400' },
+  'docs':            { light: '#0EA5E9', dark: '#38BDF8', tailwind: 'text-sky-300' },
+  'source':          { light: '#22C55E', dark: '#4ADE80', tailwind: 'text-green-400' },
+  'test':            { light: '#F59E0B', dark: '#FCD34D', tailwind: 'text-amber-300' },
+  'build':           { light: '#8B5CF6', dark: '#A78BFA', tailwind: 'text-violet-300' },
+  'assets':          { light: '#06B6D4', dark: '#22D3EE', tailwind: 'text-cyan-300' },
+  'config':          { light: '#6B7280', dark: '#9CA3AF', tailwind: 'text-gray-400' },
+  'scripts':         { light: '#10B981', dark: '#34D399', tailwind: 'text-emerald-400' },
+  // Special files
+  'readme':          { light: '#0EA5E9', dark: '#38BDF8', tailwind: 'text-sky-400' },
+  'license':         { light: '#EAB308', dark: '#FACC15', tailwind: 'text-yellow-400' },
+  'makefile':        { light: '#F97316', dark: '#FB923C', tailwind: 'text-orange-400' },
+  'package-json':    { light: '#CB3837', dark: '#F87171', tailwind: 'text-red-400' },
+  'typescript-config': { light: '#3178C6', dark: '#60A5FA', tailwind: 'text-blue-400' },
+  'go-mod':          { light: '#00ADD8', dark: '#22D3EE', tailwind: 'text-cyan-400' },
+  'cargo':           { light: '#F74C00', dark: '#FB923C', tailwind: 'text-orange-400' },
+  'requirements':    { light: '#3776AB', dark: '#60A5FA', tailwind: 'text-blue-400' },
+  'gemfile':         { light: '#CC342D', dark: '#F87171', tailwind: 'text-red-400' },
 }
 
 /**
@@ -114,8 +162,8 @@ export function getClaudeFileType(name: string, path: string): ClaudeFileType {
     return 'docker'
   }
 
-  // .gitignore
-  if (name === '.gitignore') {
+  // .gitignore and related ignore files
+  if (name === '.gitignore' || name === '.claudeignore' || name === '.gitattributes' || name === '.gitmodules') {
     return 'gitignore'
   }
 
@@ -130,6 +178,120 @@ export function getClaudeFileType(name: string, path: string): ClaudeFileType {
   }
   if (/^(credentials|secrets|\.secrets)(\.[\w.-]+)?$/i.test(name)) {
     return 'secrets'
+  }
+
+  // === Developer tool folders ===
+
+  // AI tool folders (like .claude but for other AI assistants)
+  if (name === '.codex' || name === '.copilot' || name === '.gemini' || name === '.opencode') {
+    return 'ai-tool'
+  }
+
+  // Git folder
+  if (name === '.git') {
+    return 'git-folder'
+  }
+
+  // GitHub folder
+  if (name === '.github') {
+    return 'github'
+  }
+
+  // VS Code folder
+  if (name === '.vscode') {
+    return 'vscode'
+  }
+
+  // Dev container
+  if (name === '.devcontainer') {
+    return 'devcontainer'
+  }
+
+  // Node modules
+  if (name === 'node_modules') {
+    return 'node-modules'
+  }
+
+  // Documentation folders
+  if (name === 'docs' || name === 'documentation') {
+    return 'docs'
+  }
+
+  // Source folders
+  if (name === 'src' || name === 'source' || name === 'lib') {
+    return 'source'
+  }
+
+  // Test folders
+  if (name === 'test' || name === 'tests' || name === '__tests__' || name === 'spec' || name === 'specs') {
+    return 'test'
+  }
+
+  // Build/output folders
+  if (name === 'build' || name === 'dist' || name === 'out' || name === 'target') {
+    return 'build'
+  }
+
+  // Asset folders
+  if (name === 'public' || name === 'static' || name === 'assets') {
+    return 'assets'
+  }
+
+  // Config folders
+  if (name === 'config' || name === 'configs' || name === '.config') {
+    return 'config'
+  }
+
+  // Scripts folder
+  if (name === 'scripts') {
+    return 'scripts'
+  }
+
+  // === Special files ===
+
+  // README files
+  if (/^README(\.md|\.txt)?$/i.test(name)) {
+    return 'readme'
+  }
+
+  // LICENSE files
+  if (/^LICENSE(\.md|\.txt)?$/i.test(name)) {
+    return 'license'
+  }
+
+  // Makefile
+  if (name === 'Makefile' || name === 'makefile' || name === 'GNUmakefile') {
+    return 'makefile'
+  }
+
+  // package.json (npm)
+  if (name === 'package.json') {
+    return 'package-json'
+  }
+
+  // TypeScript config
+  if (name === 'tsconfig.json' || /^tsconfig\.[\w.-]+\.json$/i.test(name)) {
+    return 'typescript-config'
+  }
+
+  // Go modules
+  if (name === 'go.mod' || name === 'go.sum') {
+    return 'go-mod'
+  }
+
+  // Rust Cargo
+  if (name === 'Cargo.toml' || name === 'Cargo.lock') {
+    return 'cargo'
+  }
+
+  // Python requirements
+  if (name === 'requirements.txt' || name === 'pyproject.toml' || name === 'setup.py') {
+    return 'requirements'
+  }
+
+  // Ruby Gemfile
+  if (name === 'Gemfile' || name === 'Gemfile.lock') {
+    return 'gemfile'
   }
 
   return null

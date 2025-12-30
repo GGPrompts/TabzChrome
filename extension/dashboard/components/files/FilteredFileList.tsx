@@ -15,7 +15,7 @@ import {
   Star,
   Search,
 } from 'lucide-react'
-import { FileFilter, ClaudeFileType, claudeFileColors, getClaudeFileType, isAlwaysInContext } from '../../utils/claudeFileTypes'
+import { FileFilter, ClaudeFileType, claudeFileColors, getClaudeFileType } from '../../utils/claudeFileTypes'
 import { FileTreeContextMenu } from './FileTreeContextMenu'
 import { useFilesContext } from '../../contexts/FilesContext'
 import { sendMessage } from '../../../shared/messaging'
@@ -179,7 +179,6 @@ function MiniTree({
             : getFileIcon(node.name, node.path)}
         </span>
         <span className={`text-sm truncate flex-1 ${isDirectory ? 'font-medium' : ''} ${textColorClass}`}>
-          {isAlwaysInContext(node.name) && <span className="mr-1">🤖</span>}
           {node.name}
         </span>
         {/* Favorite star - visible on hover or if favorited */}

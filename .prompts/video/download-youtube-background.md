@@ -18,10 +18,16 @@ Download a YouTube video from the current browser tab and save it as a terminal 
    pipx install yt-dlp
    ```
 
-2. **Ensure the backgrounds folder exists**
+2. **Ensure the video folders exist**
    ```bash
+   # Check and create default video folder
+   [ -d ~/Videos ] || mkdir -p ~/Videos && echo "Created ~/Videos"
+
+   # Create subfolder for terminal backgrounds
    mkdir -p ~/Videos/terminal-backgrounds
    ```
+
+   > **Note:** The default video folder is `~/Videos`. You can change this in TabzChrome Dashboard → Settings → File Picker Defaults.
 
 3. **Check ffmpeg is available** (needed for some format conversions)
    ```bash

@@ -144,6 +144,23 @@ mcp-cli call tabz/tabz_click '{"selector": ".download-modal__close"}'
 mcp-cli call tabz/tabz_get_downloads '{}'
 ```
 
+## Saving Downloaded Files
+
+Downloads go to your browser's default download folder. To organize them for TabzChrome audio events:
+
+### Default SFX Folder: `~/sfx`
+
+```bash
+# Check if folder exists, create if not
+[ -d ~/sfx ] || mkdir -p ~/sfx && echo "Created ~/sfx"
+
+# Move downloaded sounds to sfx folder
+mv ~/Downloads/*.wav ~/sfx/
+```
+
+### Alternative: Use a custom folder
+If you prefer a different location, update the Audio settings in TabzChrome Dashboard → Settings → File Picker Defaults.
+
 ## Tips
 
 1. **Direct URLs** - Use category URLs to skip navigation
@@ -151,3 +168,4 @@ mcp-cli call tabz/tabz_get_downloads '{}'
 3. **Preview first** - Click play button to hear before downloading
 4. **Batch downloads** - Close modal, download next, repeat
 5. **Check downloads** - Use `tabz_get_downloads` to verify files
+6. **Organize files** - Move downloads to `~/sfx` for easy access in file picker

@@ -48,10 +48,21 @@ mcp-cli call tabz/tabz_screenshot '{}'
 ```
 
 ### 5. Save generated design
-Canva provides a link to edit/download. Save designs to:
+
+Canva provides a link to edit/download.
+
+**For terminal backgrounds / personal use:**
+```bash
+# Check and create default Pictures folder
+[ -d ~/Pictures ] || mkdir -p ~/Pictures && echo "Created ~/Pictures"
+```
+
+**For project-specific designs:**
 ```
 .prompts/AI_Designs/
 ```
+
+> **Note:** The default image folder is `~/Pictures`. You can change this in TabzChrome Dashboard → Settings → File Picker Defaults.
 
 ## Key Selectors
 
