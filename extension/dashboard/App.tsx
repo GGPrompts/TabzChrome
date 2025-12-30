@@ -344,7 +344,15 @@ export default function App() {
           )}
 
           {showDirDropdown && (
-            <div className={`absolute ${sidebarCollapsed ? 'left-16' : 'left-2 right-2'} mt-1 bg-card border border-border rounded-lg shadow-xl z-50`} style={sidebarCollapsed ? { width: '280px' } : {}}>
+            <div
+              className="absolute bg-card border border-border rounded-lg shadow-xl z-50"
+              style={{
+                width: sidebarCollapsed ? '320px' : '360px',
+                left: sidebarCollapsed ? '64px' : '8px',
+                top: sidebarCollapsed ? '0' : '100%',
+                marginTop: sidebarCollapsed ? '0' : '4px',
+              }}
+            >
               <div className="p-2 border-b border-border">
                 <input
                   type="text"
@@ -373,6 +381,7 @@ export default function App() {
                       className={`flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors group ${
                         dir === globalWorkingDir ? 'bg-primary/10 text-primary' : ''
                       }`}
+                      title={dir}
                     >
                       <button
                         className="flex-1 text-left font-mono text-sm truncate"
@@ -380,11 +389,12 @@ export default function App() {
                           setGlobalWorkingDir(dir)
                           setShowDirDropdown(false)
                         }}
+                        title={dir}
                       >
                         {dir}
                       </button>
                       <button
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded transition-opacity flex-shrink-0 ml-2"
                         onClick={(e) => {
                           e.stopPropagation()
                           setRecentDirs((prev) => prev.filter((d) => d !== dir))
@@ -392,6 +402,7 @@ export default function App() {
                             setGlobalWorkingDir('~')
                           }
                         }}
+                        title="Remove from recent"
                       >
                         <Trash2 className="w-3 h-3 text-muted-foreground hover:text-red-400" />
                       </button>

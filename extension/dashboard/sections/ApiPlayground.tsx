@@ -198,9 +198,16 @@ export default function ApiPlayground() {
   const [showPresets, setShowPresets] = useState(true)
   const [healthStatus, setHealthStatus] = useState<Record<string, HealthStatus>>({})
   const [resolvedParams, setResolvedParams] = useState<Record<string, string>>({})
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
+    // Start with first category expanded
+    const initial: Record<string, boolean> = {}
+    PRESET_CATEGORIES.forEach((cat, i) => {
+      initial[cat.name] = i === 0
+    })
+    return initial
+  })
 
   const checkHealth = useCallback(async () => {
-    console.log('[ApiPlayground] Starting health check...')
     const newStatus: Record<string, HealthStatus> = {}
 
     // First, fetch resolved values for path params
@@ -212,13 +219,12 @@ export default function ApiPlayground() {
           if (res.ok) {
             const data = await res.json()
             const resolved = resolver.extractId(data)
-            console.log(`[ApiPlayground] Resolved ${param} = "${resolved}"`)
             if (resolved) {
               newResolvedParams[param] = resolved
             }
           }
-        } catch (err) {
-          console.warn(`[ApiPlayground] Failed to resolve ${param}:`, err)
+        } catch {
+          // Ignore errors - param won't be resolved
         }
       })
     )
@@ -246,11 +252,6 @@ export default function ApiPlayground() {
         newStatus[preset.url] = 'neutral'
       }
     })
-
-    const checkingCount = Object.values(newStatus).filter(s => s === 'checking').length
-    const neutralCount = Object.values(newStatus).filter(s => s === 'neutral').length
-    console.log(`[ApiPlayground] Status determined: ${checkingCount} checking, ${neutralCount} neutral`)
-    console.log('[ApiPlayground] Resolved params:', newResolvedParams)
 
     setHealthStatus(newStatus)
     setResolvedParams(newResolvedParams)
@@ -282,10 +283,6 @@ export default function ApiPlayground() {
         finalStatus[url] = 'unhealthy'
       }
     })
-
-    const healthyCount = Object.values(finalStatus).filter(s => s === 'healthy').length
-    const unhealthyCount = Object.values(finalStatus).filter(s => s === 'unhealthy').length
-    console.log(`[ApiPlayground] Health check complete: ${healthyCount} healthy, ${unhealthyCount} unhealthy`)
 
     setHealthStatus(finalStatus)
   }, [])
@@ -386,6 +383,13 @@ export default function ApiPlayground() {
 
   const removeHeader = (id: string) => {
     setHeaders(headers.filter((h) => h.id !== id))
+  }
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryName]: !prev[categoryName],
+    }))
   }
 
   const applyPreset = (preset: Preset) => {
@@ -599,42 +603,66 @@ curl -X POST localhost:8129/api/spawn \\
               {showPresets ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
             {showPresets && (
-              <div className="p-2 space-y-3">
-                {PRESET_CATEGORIES.map((category, catIndex) => (
-                  <div key={catIndex}>
-                    <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {category.name}
+              <div className="p-2 space-y-1">
+                {PRESET_CATEGORIES.map((category, catIndex) => {
+                  const isExpanded = expandedCategories[category.name] ?? false
+                  // Count health status for this category
+                  const healthyCount = category.presets.filter((p) => healthStatus[p.url] === 'healthy').length
+                  const totalCheckable = category.presets.filter((p) => p.method === 'GET').length
+
+                  return (
+                    <div key={catIndex} className="rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => toggleCategory(category.name)}
+                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 text-left"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
+                          {category.name}
+                        </span>
+                        {totalCheckable > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {healthyCount}/{totalCheckable}
+                          </span>
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="space-y-0.5 pl-2">
+                          {category.presets.map((preset, i) => {
+                            const status = healthStatus[preset.url]
+                            const dotColor =
+                              status === 'healthy'
+                                ? 'bg-emerald-400'
+                                : status === 'unhealthy'
+                                  ? 'bg-red-400'
+                                  : status === 'checking'
+                                    ? 'bg-amber-400 animate-pulse'
+                                    : 'bg-gray-500'
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => applyPreset(preset)}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-left"
+                              >
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${METHOD_COLORS[preset.method]}`}
+                                >
+                                  {preset.method.slice(0, 3)}
+                                </span>
+                                <span className="text-sm flex-1 truncate">{preset.name}</span>
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} title={status || 'unknown'} />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-0.5">
-                      {category.presets.map((preset, i) => {
-                        const status = healthStatus[preset.url]
-                        const dotColor =
-                          status === 'healthy'
-                            ? 'bg-emerald-400'
-                            : status === 'unhealthy'
-                              ? 'bg-red-400'
-                              : status === 'checking'
-                                ? 'bg-amber-400 animate-pulse'
-                                : 'bg-gray-500'
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => applyPreset(preset)}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-left"
-                          >
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${METHOD_COLORS[preset.method]}`}
-                            >
-                              {preset.method.slice(0, 3)}
-                            </span>
-                            <span className="text-sm flex-1 truncate">{preset.name}</span>
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} title={status || 'unknown'} />
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

@@ -292,8 +292,8 @@ export function TerminalsGrid({
   }
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-stretch">
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {terminals.map((terminal) => {
           const history = statusHistory.get(terminal.id) || []
           const status = getClaudeStatusDisplay(terminal.claudeState)
@@ -317,7 +317,7 @@ export function TerminalsGrid({
               key={terminal.id}
               onClick={() => onSwitchTo?.(terminal.sessionName || terminal.id, terminal.displayMode)}
               onContextMenu={(e) => handleContextMenu(e, terminal.id)}
-              className="relative rounded-lg border border-[#333] hover:border-primary/50 transition-colors cursor-pointer overflow-hidden h-full flex flex-col"
+              className="relative rounded-xl border border-border hover:border-primary/50 transition-all cursor-pointer overflow-hidden min-h-[200px] flex flex-col hover:shadow-lg"
             >
               {/* Layer 1: Panel color */}
               <div

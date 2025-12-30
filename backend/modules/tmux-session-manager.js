@@ -448,9 +448,9 @@ class TmuxSessionManager {
    * Capture pane content for preview
    * @param {string} sessionName - Session name
    * @param {number} lines - Number of lines to capture (default: 100)
-   * @param {number} windowIndex - Window index (default: 0)
+   * @param {number} windowIndex - Window index (default: 1, tmux windows start at 1)
    */
-  async capturePanePreview(sessionName, lines = 100, windowIndex = 0) {
+  async capturePanePreview(sessionName, lines = 100, windowIndex = 1) {
     try {
       // Get pane ID for the window
       const paneInfo = execSync(
@@ -491,8 +491,9 @@ class TmuxSessionManager {
   /**
    * Capture full pane scrollback (for comprehensive previews)
    * WARNING: Can be slow for long sessions
+   * @param {number} windowIndex - Window index (default: 1, tmux windows start at 1)
    */
-  async captureFullScrollback(sessionName, windowIndex = 0) {
+  async captureFullScrollback(sessionName, windowIndex = 1) {
     try {
       const paneInfo = execSync(
         `tmux list-panes -t "${sessionName}:${windowIndex}" -F "#{pane_id}"`,

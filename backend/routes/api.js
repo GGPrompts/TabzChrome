@@ -577,13 +577,13 @@ router.get('/tmux/sessions/:name', asyncHandler(async (req, res) => {
  * GET /api/tmux/sessions/:name/preview - Capture pane content for preview
  * Query params:
  * - lines: number of lines to capture (default: 100)
- * - window: window index (default: 0)
+ * - window: window index (default: 1, tmux windows start at 1)
  * - full: capture full scrollback (default: false)
  */
 router.get('/tmux/sessions/:name/preview', asyncHandler(async (req, res) => {
   const { name } = req.params;
   const lines = parseInt(req.query.lines || '100', 10);
-  const windowIndex = parseInt(req.query.window || '0', 10);
+  const windowIndex = parseInt(req.query.window || '1', 10);
   const full = req.query.full === 'true';
 
   let result;
