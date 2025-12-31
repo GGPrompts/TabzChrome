@@ -1,5 +1,7 @@
 import React from 'react'
-import { Copy, MoreVertical } from 'lucide-react'
+import { MoreVertical } from 'lucide-react'
+// Animated icons
+import { CopyIcon } from '../../../components/icons'
 import { parseCSV, formatRelativeTime } from './fileViewerUtils'
 
 export interface CsvViewerFile {
@@ -34,7 +36,7 @@ export function CsvViewer({ file, viewerSettings, onCopy, onOpenActions }: CsvVi
           className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded"
           title="Copy file content"
         >
-          <Copy className="w-4 h-4" /> Copy
+          <CopyIcon size={16} /> Copy
         </button>
         <button
           onClick={onOpenActions}

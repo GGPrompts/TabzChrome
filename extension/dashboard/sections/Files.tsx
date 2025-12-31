@@ -6,7 +6,9 @@ import { FilteredFileList } from '../components/files/FilteredFileList'
 import { PluginList } from '../components/files/PluginList'
 import { PromptyViewer } from '../components/files/PromptyViewer'
 import { isPromptyFile } from '../utils/promptyUtils'
-import { X, Copy, Send, FolderOpen, Square, MoreVertical, Loader2, Music, Image, Video, Folder } from 'lucide-react'
+import { Send, Square, MoreVertical, Loader2, Music, Image, Video, Folder } from 'lucide-react'
+// Animated icons
+import { XIcon, CopyIcon, FolderOpenIcon, SettingsIcon } from '../../components/icons'
 import { FileActionsMenu } from '../components/files/FileActionsMenu'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { useFileViewerSettings } from '../hooks/useFileViewerSettings'
@@ -18,7 +20,6 @@ import { ImageViewer } from '../components/files/ImageViewer'
 import { VideoViewer } from '../components/files/VideoViewer'
 import { CsvViewer } from '../components/files/CsvViewer'
 import { MarkdownViewer } from '../components/files/MarkdownViewer'
-import { Settings } from 'lucide-react'
 import { type FilePickerDefaults, DEFAULT_FILE_PICKER_DEFAULTS } from '../../components/settings/types'
 
 // Filter button component
@@ -297,7 +298,7 @@ export default function FilesSection() {
       {/* Header with Filters and Settings */}
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border bg-card/50">
         <h2 className="text-lg font-semibold font-mono text-primary flex items-center gap-2">
-          <FolderOpen className="w-5 h-5" />
+          <FolderOpenIcon size={20} />
           Files
         </h2>
 
@@ -329,7 +330,7 @@ export default function FilesSection() {
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors text-sm"
             title="Font settings"
           >
-            <Settings className="w-4 h-4" />
+            <SettingsIcon size={16} />
             <span className="text-muted-foreground">{viewerSettings.fontSize}px</span>
           </button>
 
@@ -487,7 +488,7 @@ export default function FilesSection() {
                   onClick={(e) => { e.stopPropagation(); closeFile(file.id) }}
                   className="hover:bg-muted rounded p-0.5"
                 >
-                  <X className="w-3 h-3" />
+                  <XIcon size={12} />
                 </button>
               </div>
             )})}
@@ -551,7 +552,7 @@ export default function FilesSection() {
               {/* Toolbar */}
               <div className="flex items-center gap-1 p-2 border-b border-border bg-card/50">
                 <button onClick={copyContent} className="p-1.5 hover:bg-muted rounded" title="Copy file content">
-                  <Copy className="w-4 h-4" />
+                  <CopyIcon size={16} />
                 </button>
                 <button
                   onClick={sendToChat}

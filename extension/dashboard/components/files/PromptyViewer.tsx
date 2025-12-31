@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react'
-import { Copy, Send, Terminal, ChevronDown, AtSign, Star, Pin, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Send, Terminal, AtSign, Star, Pin, CheckCircle2, AlertCircle } from 'lucide-react'
+// Animated icons
+import { CopyIcon, MaximizeIcon, ChevronDownIcon } from '../../../components/icons'
 import { parsePrompty, getPromptForSending, getFieldProgress } from '../../utils/promptyUtils'
 import { InlineField } from './InlineField'
 import { sendMessage } from '../../../shared/messaging'
@@ -221,7 +223,7 @@ export function PromptyViewer({
           className={`flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded ${copyStatus === 'copied' ? 'text-green-400' : ''}`}
           title="Copy prompt (with variables filled)"
         >
-          <Copy className="w-4 h-4" /> {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
+          <CopyIcon size={16} /> {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
         </button>
         <button onClick={copyPath} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded" title="Copy @path to clipboard">
           <AtSign className="w-4 h-4" /> Path
@@ -243,7 +245,7 @@ export function PromptyViewer({
           </button>
         )}
         <button onClick={onOpenInEditor} className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-muted rounded">
-          <ExternalLink className="w-4 h-4" /> Edit
+          <MaximizeIcon size={16} /> Edit
         </button>
 
         {/* Send to Terminal dropdown */}
@@ -260,7 +262,7 @@ export function PromptyViewer({
           >
             <Send className="w-4 h-4" />
             {sendStatus === 'sent' ? 'Sent!' : 'Send'}
-            <ChevronDown className="w-3 h-3" />
+            <ChevronDownIcon size={12} />
           </button>
           {showSendDropdown && (
             <div className="absolute top-full left-0 mt-1 w-64 bg-card border border-border rounded-lg shadow-xl z-50 py-1">
@@ -326,7 +328,7 @@ export function PromptyViewer({
                   className="hover:underline inline-flex items-center gap-1.5"
                 >
                   {parsed.frontmatter.name}
-                  <ExternalLink className="w-4 h-4 opacity-60" />
+                  <MaximizeIcon size={16} className="opacity-60" />
                 </a>
               ) : (
                 parsed.frontmatter.name

@@ -1,33 +1,37 @@
 import React, { useEffect, useState, useRef } from 'react'
 import {
   Grid3X3,
-  Plus,
-  Edit,
-  Trash2,
   GripVertical,
-  Palette,
   Download,
   Upload,
   Search,
-  X,
-  ChevronDown,
   ChevronUp,
   ChevronRight,
   Folder,
   Star,
   Play,
-  Copy,
-  Volume2,
-  Paperclip,
   Filter,
   Tags,
   Check,
   SquareTerminal,
   PanelLeft,
-  ExternalLink,
-  FolderOpen,
 } from 'lucide-react'
-import { Terminal as TerminalIcon } from 'lucide-react'
+import { Terminal as LucideTerminal } from 'lucide-react'
+// Animated icons
+import {
+  PlusIcon,
+  SquarePenIcon,
+  DeleteIcon,
+  SparklesIcon,
+  XIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  VolumeIcon,
+  AttachFileIcon,
+  MaximizeIcon,
+  FolderOpenIcon,
+  TerminalIcon,
+} from '../../components/icons'
 import { TerminalPreview } from '../components/TerminalPreview'
 import { themes, themeNames } from '../../styles/themes'
 import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS, DEFAULT_PANEL_COLOR, DEFAULT_TRANSPARENCY } from '../../styles/terminal-backgrounds'
@@ -800,7 +804,7 @@ export default function SettingsProfiles() {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <XIcon size={14} />
               </button>
             )}
           </div>
@@ -915,7 +919,7 @@ export default function SettingsProfiles() {
             onClick={handleAddProfile}
             className="px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" />
+            <PlusIcon size={16} />
             Add Profile
           </button>
         </div>
@@ -1012,7 +1016,7 @@ export default function SettingsProfiles() {
                     className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                     title="Delete category (profiles will become uncategorized)"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <DeleteIcon size={16} />
                   </button>
                 </div>
               )
@@ -1034,7 +1038,7 @@ export default function SettingsProfiles() {
       {/* Profiles List */}
       {!editingCategories && (profiles.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <TerminalIcon className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <LucideTerminal className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="mb-4">No profiles yet</p>
           <button
             onClick={handleAddProfile}
@@ -1212,7 +1216,7 @@ function ProfileCard({
       {isDragOver && dropPosition === 'above' && (
         <div className="absolute -top-3 left-2 right-2 flex items-center gap-2 z-50">
           <div className="flex-1 h-0.5 bg-primary rounded-full shadow-[0_0_8px_var(--primary)]" />
-          <ChevronDown className="w-4 h-4 text-primary animate-bounce" />
+          <ChevronDownIcon size={16} className="text-primary animate-bounce" />
           <div className="flex-1 h-0.5 bg-primary rounded-full shadow-[0_0_8px_var(--primary)]" />
         </div>
       )}
@@ -1272,7 +1276,7 @@ function ProfileCard({
             {emoji ? (
               <span className="text-2xl">{emoji}</span>
             ) : (
-              <TerminalIcon className="w-5 h-5 text-white/80" />
+              <TerminalIcon size={20} className="text-white/80" />
             )}
             <div className="flex items-center gap-2">
               <h3 className="font-semibold" style={{ color: themeForeground }}>
@@ -1286,7 +1290,7 @@ function ProfileCard({
               )}
               {profile.reference && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-medium">
-                  <Paperclip className="w-2.5 h-2.5" />
+                  <AttachFileIcon size={10} />
                   Ref
                 </span>
               )}
@@ -1336,7 +1340,7 @@ function ProfileCard({
             className="p-1.5 rounded-md hover:bg-white/10 transition-colors"
             title="Launch as popout window"
           >
-            <ExternalLink className="w-4 h-4 text-white/50" />
+            <MaximizeIcon size={16} className="text-white/50" />
           </button>
           {profile.command && (
             <button
@@ -1352,7 +1356,7 @@ function ProfileCard({
             className="p-1.5 rounded-md hover:bg-white/10 transition-colors"
             title="Copy command"
           >
-            <Copy className="w-4 h-4 text-white/50" />
+            <CopyIcon size={16} className="text-white/50" />
           </button>
           {profile.reference && onOpenReference && (
             <button
@@ -1360,7 +1364,7 @@ function ProfileCard({
               className="p-1.5 rounded-md hover:bg-blue-500/20 transition-colors"
               title="Open reference"
             >
-              <Paperclip className="w-4 h-4 text-blue-400/70" />
+              <AttachFileIcon size={16} className="text-blue-400/70" />
             </button>
           )}
 
@@ -1373,7 +1377,7 @@ function ProfileCard({
             className="p-1.5 rounded-md hover:bg-white/10 transition-colors"
             title="Edit profile"
           >
-            <Edit className="w-4 h-4 text-white/50" />
+            <SquarePenIcon size={16} className="text-white/50" />
           </button>
           {!isDefault && (
             <button
@@ -1389,7 +1393,7 @@ function ProfileCard({
             className="p-1.5 rounded-md hover:bg-red-500/20 transition-colors"
             title="Delete"
           >
-            <Trash2 className="w-4 h-4 text-white/50 hover:text-red-400" />
+            <DeleteIcon size={16} className="text-white/50 hover:text-red-400" />
           </button>
         </div>
       </div>
@@ -1440,7 +1444,7 @@ function SectionCard({
           {isExpanded ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDownIcon size={16} className="text-muted-foreground" />
           )}
         </button>
       ) : (
@@ -1579,7 +1583,7 @@ function ProfileEditForm({
         {/* Left Column - Configuration */}
         <div className="space-y-5">
           {/* Identity Section */}
-          <SectionCard title="Identity" icon={<TerminalIcon className="w-4 h-4" />}>
+          <SectionCard title="Identity" icon={<TerminalIcon size={16} />}>
             <FormField label="Profile Name" required>
               <input
                 type="text"
@@ -1627,7 +1631,7 @@ function ProfileEditForm({
 
             <FormField label="Reference" hint="URL or file path for quick access">
               <div className="relative">
-                <Paperclip className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <AttachFileIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                 <input
                   type="text"
                   value={profile.reference || ''}
@@ -1675,7 +1679,7 @@ function ProfileEditForm({
           {/* Audio Section */}
           <SectionCard
             title="Audio"
-            icon={<Volume2 className="w-4 h-4" />}
+            icon={<VolumeIcon size={16} />}
             badge={
               profile.audioOverrides?.mode && profile.audioOverrides.mode !== 'default' && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -1740,7 +1744,7 @@ function ProfileEditForm({
                   disabled={profileAudioTestPlaying}
                   className="w-full px-4 py-2.5 bg-muted/50 hover:bg-muted rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors border border-border/40"
                 >
-                  <Volume2 className="w-4 h-4" />
+                  <VolumeIcon size={16} />
                   {profileAudioTestPlaying ? 'Playing...' : 'Test Voice'}
                 </button>
               </>
@@ -1771,7 +1775,7 @@ function ProfileEditForm({
           </div>
 
           {/* Color Scheme Section */}
-          <SectionCard title="Color Scheme" icon={<Palette className="w-4 h-4" />}>
+          <SectionCard title="Color Scheme" icon={<SparklesIcon size={16} />}>
             <FormField label="Text Colors">
               <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1 -mr-1">
                 {themeNames.map((themeName) => {
@@ -1941,7 +1945,7 @@ function ProfileEditForm({
                       className="p-2.5 rounded-lg bg-muted/50 hover:bg-muted border border-border/60 transition-colors"
                       title="Browse files"
                     >
-                      <FolderOpen className="w-4 h-4 text-muted-foreground" />
+                      <FolderOpenIcon size={16} className="text-muted-foreground" />
                     </button>
                   </div>
                 </FormField>
@@ -2054,10 +2058,10 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
         <div className="flex items-center gap-1">
           {value && (
             <span role="button" onClick={handleClear} className="p-0.5 hover:bg-muted rounded">
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
+              <XIcon size={14} />
             </span>
           )}
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDownIcon size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -2107,7 +2111,7 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
                   onClick={handleCreateNew}
                   className="w-full mt-2 px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-4 h-4" />
+                  <PlusIcon size={16} />
                   Create "{inputValue.trim()}"
                 </button>
               )}
@@ -2118,7 +2122,7 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
               onClick={() => setIsCreatingNew(true)}
               className="w-full px-3 py-2 text-sm text-left text-primary hover:bg-primary/10 transition-colors flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" />
+              <PlusIcon size={16} />
               Create new category...
             </button>
           )}

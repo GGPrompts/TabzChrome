@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Copy, AtSign, Star, Pin, Terminal, Send, Volume2, Loader2, FolderOpen, Play, CheckCircle, Brain, X, Square, Music } from 'lucide-react'
+import { AtSign, Star, Pin, Terminal, Send, Loader2, Play, CheckCircle, Brain, Square, Music } from 'lucide-react'
+// Animated icons
+import { CopyIcon, FolderOpenIcon, XIcon, VolumeIcon } from '../../../components/icons'
 import type { ScriptInfo } from '../../utils/claudeFileTypes'
 
 interface FileNode {
@@ -183,7 +185,7 @@ export function FileTreeContextMenu({
           onClose()
         }}
       >
-        <Copy className="w-4 h-4 inline mr-2" />
+        <CopyIcon size={16} className="inline mr-2" />
         Copy Path
       </button>
       <button
@@ -293,7 +295,7 @@ export function FileTreeContextMenu({
               {isLoadingAudio ? (
                 <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
               ) : (
-                <Volume2 className="w-4 h-4 inline mr-2" />
+                <VolumeIcon size={16} className="inline mr-2" />
               )}
               {isLoadingAudio ? 'Loading...' : 'Read Aloud'}
             </button>
@@ -372,7 +374,7 @@ export function FileTreeContextMenu({
                   onClick={() => onClearExplainResult?.()}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  <X className="w-3 h-3" />
+                  <XIcon size={12} />
                 </button>
               </div>
               <pre className="whitespace-pre-wrap text-foreground">{explainResult}</pre>
@@ -392,7 +394,7 @@ export function FileTreeContextMenu({
               onClose()
             }}
           >
-            <FolderOpen className="w-4 h-4 inline mr-2" />
+            <FolderOpenIcon size={16} className="inline mr-2" />
             Set as Working Dir
           </button>
         </>

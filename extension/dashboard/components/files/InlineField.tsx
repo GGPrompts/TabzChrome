@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown } from 'lucide-react'
+// Animated icons
+import { ChevronDownIcon } from '../../../components/icons'
 
 interface InlineFieldProps {
   fieldId: string
@@ -170,7 +171,7 @@ export function InlineField({
             title={`Select: ${fieldId}`}
           >
             {displayText}
-            <ChevronDown className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+            <ChevronDownIcon size={12} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
           </span>
         )}
         {showDropdown && dropdownPos && createPortal(

@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import {
   ChevronRight,
-  ChevronDown,
   File,
   Folder,
   FolderOpen,
-  RefreshCw,
   Search,
   FileText,
   Image,
   FileJson,
   FileCode,
-  Home,
   Minimize2,
-  Maximize2,
   Video,
   Table,
   Settings,
@@ -42,6 +38,8 @@ import {
   Hammer,     // Makefile
   Gem,        // Gemfile
 } from "lucide-react"
+// Animated icons
+import { HomeIcon, RefreshCwIcon, EyeIcon, ExpandIcon, ChevronDownIcon } from "../../../components/icons"
 import { useFilesContext } from "../../contexts/FilesContext"
 import { getClaudeFileType, claudeFileColors, ClaudeFileType, getScriptInfo } from "../../utils/claudeFileTypes"
 import { FileTreeContextMenu } from "./FileTreeContextMenu"
@@ -776,7 +774,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           title={node.path}
         >
           <span className="w-4 h-4 flex items-center justify-center mr-1 text-muted-foreground">
-            {isDirectory && (isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />)}
+            {isDirectory && (isExpanded ? <ChevronDownIcon size={12} /> : <ChevronRight className="w-3 h-3" />)}
           </span>
           <span className="mr-2">
             {isDirectory ? (
@@ -816,23 +814,23 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         <h3 className="font-semibold text-sm">Files</h3>
         <div className="flex gap-1">
           <button onClick={navigateHome} className="p-1.5 hover:bg-muted rounded" title="Home">
-            <Home className="w-4 h-4" />
+            <HomeIcon size={16} />
           </button>
           <button onClick={navigateUp} className="p-1.5 hover:bg-muted rounded text-lg font-bold" title="Up">
             ↑
           </button>
           <button onClick={() => fetchFileTree(undefined, true)} className="p-1.5 hover:bg-muted rounded" title="Refresh">
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCwIcon size={16} />
           </button>
           <button
             onClick={() => setShowHidden(!showHidden)}
             className={`p-1.5 hover:bg-muted rounded ${showHidden ? "text-yellow-400" : ""}`}
             title={showHidden ? "Hide hidden" : "Show hidden"}
           >
-            {showHidden ? "👁️" : "🙈"}
+            <EyeIcon size={16} className={showHidden ? "" : "opacity-50"} />
           </button>
           <button onClick={expandAll} className="p-1.5 hover:bg-muted rounded" title="Expand all">
-            <Maximize2 className="w-4 h-4" />
+            <ExpandIcon size={16} />
           </button>
           <button onClick={collapseAll} className="p-1.5 hover:bg-muted rounded" title="Collapse all">
             <Minimize2 className="w-4 h-4" />

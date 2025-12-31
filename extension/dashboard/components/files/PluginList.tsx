@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Plug, RefreshCw, Search, Zap, Bot, Terminal, FileCode } from 'lucide-react'
+import { ChevronRight, Plug, Search, Zap, Bot, Terminal, FileCode } from 'lucide-react'
+// Animated icons
+import { ChevronDownIcon, RefreshCwIcon } from '../../../components/icons'
 import { useFilesContext } from '../../contexts/FilesContext'
 
 // Component type icons and colors
@@ -145,7 +147,7 @@ function PluginRow({
               onClick={() => setExpanded(!expanded)}
               className="w-4 h-4 flex-shrink-0 text-muted-foreground hover:text-foreground"
             >
-              {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              {expanded ? <ChevronDownIcon size={12} /> : <ChevronRight className="w-3 h-3" />}
             </button>
           ) : (
             <Plug className={`w-4 h-4 flex-shrink-0 ${plugin.enabled ? 'text-green-400' : 'text-muted-foreground'}`} />
@@ -265,7 +267,7 @@ function MarketplaceSection({
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <span className="text-muted-foreground">
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDownIcon size={16} />}
         </span>
         <span className="text-sm font-medium flex-1">{name}</span>
         <span className="text-xs text-muted-foreground">
@@ -405,7 +407,7 @@ export function PluginList() {
               className="p-1 hover:bg-muted rounded"
               title="Refresh"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCwIcon size={12} />
             </button>
           </div>
         </div>

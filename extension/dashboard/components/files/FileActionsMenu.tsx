@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Copy, AtSign, Star, Pin, Terminal, Send, Volume2, Square, Loader2, ExternalLink } from 'lucide-react'
+import { AtSign, Star, Pin, Terminal, Send, Square, Loader2 } from 'lucide-react'
+// Animated icons
+import { CopyIcon, MaximizeIcon, VolumeIcon } from '../../../components/icons'
 
 interface FileActionsMenuProps {
   show: boolean
@@ -144,7 +146,7 @@ export function FileActionsMenu({
           onClose()
         }}
       >
-        <Copy className="w-4 h-4 inline mr-2" />
+        <CopyIcon size={16} className="inline mr-2" />
         Copy Path
       </button>
       <button
@@ -237,7 +239,7 @@ export function FileActionsMenu({
             // Don't close - let user see loading state
           }}
         >
-          <Volume2 className="w-4 h-4 inline mr-2" />
+          <VolumeIcon size={16} className="inline mr-2" />
           Read Aloud
         </button>
       )}
@@ -252,7 +254,7 @@ export function FileActionsMenu({
           onClose()
         }}
       >
-        <ExternalLink className="w-4 h-4 inline mr-2" />
+        <MaximizeIcon size={16} className="inline mr-2" />
         Open in Editor
       </button>
     </div>
