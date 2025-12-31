@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { File, FilePlus, FileMinus, FileEdit, FileQuestion, ChevronDown, ChevronRight, Plus, Minus } from 'lucide-react'
+import { File, FilePlus, FileMinus, FileEdit, FileQuestion, ChevronDown, ChevronRight, Plus, Minus, Undo2 } from 'lucide-react'
 import { GitFile } from '../../../hooks/useGitRepos'
 
 interface GitChangesTreeProps {
@@ -8,6 +8,8 @@ interface GitChangesTreeProps {
   untracked: GitFile[]
   onStage?: (files: string[]) => void
   onUnstage?: (files: string[]) => void
+  onDiscard?: (files: string[]) => void
+  onDiscardAll?: () => void
   loading?: string | null
 }
 
@@ -29,7 +31,11 @@ interface FileListProps {
   actionIcon?: typeof Plus
   actionLabel?: string
   onAction?: (files: string[]) => void
+  onDiscard?: (files: string[]) => void
+  onDiscardAll?: () => void
+  showDiscard?: boolean
   loading?: boolean
+  discardLoading?: boolean
 }
 
 function FileList({
@@ -39,7 +45,11 @@ function FileList({
   actionIcon: ActionIcon,
   actionLabel,
   onAction,
-  loading
+  onDiscard,
+  onDiscardAll,
+  showDiscard,
+  loading,
+  discardLoading
 }: FileListProps) {
   const [expanded, setExpanded] = useState(true)
 
@@ -55,17 +65,31 @@ function FileList({
         <span className={titleColor}>{title}</span>
         <span className="text-muted-foreground">({files.length})</span>
 
-        {/* Stage/Unstage all button */}
-        {onAction && ActionIcon && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onAction(files.map(f => f.path)) }}
-            disabled={loading}
-            className="ml-auto p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-            title={actionLabel}
-          >
-            <ActionIcon className="w-3 h-3" />
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Discard all button */}
+          {showDiscard && onDiscardAll && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDiscardAll() }}
+              disabled={discardLoading}
+              className="p-1 hover:bg-red-500/20 rounded text-red-400 disabled:opacity-50"
+              title="Discard all changes"
+            >
+              <Undo2 className="w-3 h-3" />
+            </button>
+          )}
+
+          {/* Stage/Unstage all button */}
+          {onAction && ActionIcon && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction(files.map(f => f.path)) }}
+              disabled={loading}
+              className="p-1 hover:bg-muted rounded disabled:opacity-50"
+              title={actionLabel}
+            >
+              <ActionIcon className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </button>
 
       {expanded && (
@@ -78,17 +102,31 @@ function FileList({
               <FileIcon status={file.status} />
               <span className="font-mono truncate flex-1">{file.path}</span>
 
-              {/* Individual stage/unstage */}
-              {onAction && ActionIcon && (
-                <button
-                  onClick={() => onAction([file.path])}
-                  disabled={loading}
-                  className="p-0.5 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                  title={actionLabel}
-                >
-                  <ActionIcon className="w-3 h-3" />
-                </button>
-              )}
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Individual discard */}
+                {showDiscard && onDiscard && (
+                  <button
+                    onClick={() => onDiscard([file.path])}
+                    disabled={discardLoading}
+                    className="p-0.5 hover:bg-red-500/20 rounded text-red-400 disabled:opacity-50"
+                    title="Discard changes"
+                  >
+                    <Undo2 className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Individual stage/unstage */}
+                {onAction && ActionIcon && (
+                  <button
+                    onClick={() => onAction([file.path])}
+                    disabled={loading}
+                    className="p-0.5 hover:bg-muted rounded disabled:opacity-50"
+                    title={actionLabel}
+                  >
+                    <ActionIcon className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -97,7 +135,7 @@ function FileList({
   )
 }
 
-export function GitChangesTree({ staged, unstaged, untracked, onStage, onUnstage, loading }: GitChangesTreeProps) {
+export function GitChangesTree({ staged, unstaged, untracked, onStage, onUnstage, onDiscard, onDiscardAll, loading }: GitChangesTreeProps) {
   const totalChanges = staged.length + unstaged.length + untracked.length
 
   if (totalChanges === 0) {
@@ -128,7 +166,11 @@ export function GitChangesTree({ staged, unstaged, untracked, onStage, onUnstage
         actionIcon={Plus}
         actionLabel="Stage"
         onAction={onStage}
+        onDiscard={onDiscard}
+        onDiscardAll={onDiscardAll}
+        showDiscard={true}
         loading={loading === 'stage'}
+        discardLoading={loading === 'discard'}
       />
       <FileList
         files={untracked}

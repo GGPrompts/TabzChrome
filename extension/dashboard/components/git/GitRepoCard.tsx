@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, Star, GitBranch, ExternalLink, AlertCircle, FolderTree } from 'lucide-react'
 import { GitRepo } from '../../../hooks/useGitRepos'
 import { useGitOperations } from '../../../hooks/useGitOperations'
@@ -21,6 +21,21 @@ interface GitRepoCardProps {
 export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onToggleExpand, onRefresh, isFocused = false }: GitRepoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const hasChanges = repo.staged.length > 0 || repo.unstaged.length > 0 || repo.untracked.length > 0
+  const [stashCount, setStashCount] = useState(0)
+
+  // Fetch stash count when expanded
+  useEffect(() => {
+    if (isExpanded) {
+      window.fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repo.name)}/stashes`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setStashCount(data.data.stashes.length)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [isExpanded, repo.name])
 
   // Scroll into view when expanded
   useEffect(() => {
@@ -47,6 +62,10 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
     fetch,
     openGitlogue,
     generateMessage,
+    discardFiles,
+    discardAll,
+    stash,
+    stashPop,
     clearError
   } = useGitOperations(repo.name)
 
@@ -88,6 +107,38 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
 
   const handleOpenGitlogue = async () => {
     await openGitlogue(repo.path)
+  }
+
+  const handleDiscard = async (files: string[]) => {
+    await discardFiles(files)
+    onRefresh()
+  }
+
+  const handleDiscardAll = async () => {
+    await discardAll()
+    onRefresh()
+  }
+
+  const refreshStashCount = async () => {
+    try {
+      const res = await window.fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repo.name)}/stashes`)
+      const data = await res.json()
+      if (data.success) {
+        setStashCount(data.data.stashes.length)
+      }
+    } catch {}
+  }
+
+  const handleStash = async () => {
+    await stash()
+    await refreshStashCount()
+    onRefresh()
+  }
+
+  const handleStashPop = async () => {
+    await stashPop()
+    await refreshStashCount()
+    onRefresh()
   }
 
   return (
@@ -178,10 +229,14 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
             repoPath={repo.path}
             ahead={repo.ahead}
             behind={repo.behind}
+            hasChanges={hasChanges}
+            stashCount={stashCount}
             onPush={handlePush}
             onPull={handlePull}
             onFetch={handleFetch}
             onOpenGitlogue={handleOpenGitlogue}
+            onStash={handleStash}
+            onStashPop={handleStashPop}
             loading={loading}
           />
 
@@ -227,6 +282,8 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
               untracked={repo.untracked}
               onStage={handleStage}
               onUnstage={handleUnstage}
+              onDiscard={handleDiscard}
+              onDiscardAll={handleDiscardAll}
               loading={loading}
             />
           </div>
@@ -250,7 +307,7 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
             <GitCommitHistory
               repoName={repo.name}
               githubUrl={repo.githubUrl}
-              limit={5}
+              limit={10}
             />
           </div>
 

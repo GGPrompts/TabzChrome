@@ -560,12 +560,12 @@ export function ActiveTerminalsList({
                 <td className="px-2 py-3" style={{ width: columnWidths.activity }}>
                   {claudeStatus ? (
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {/* Animated bot icon - orange color */}
+                      {/* Animated bot icon - orange color, loops continuously */}
                       <span className="flex-shrink-0 text-orange-400">
                         {claudeStatus.isWorking ? (
-                          <BotMessageSquareIcon size={16} />
+                          <BotMessageSquareIcon size={16} animate />
                         ) : (
-                          <BotIcon size={16} />
+                          <BotIcon size={16} animate />
                         )}
                       </span>
                       {/* Green checkmark when ready */}

@@ -1,7 +1,7 @@
 'use client'
 
 import type { HTMLAttributes } from 'react'
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useEffect } from 'react'
 import { motion, useAnimation } from 'motion/react'
 
 import { cn } from '../../lib/utils'
@@ -13,12 +13,24 @@ export interface BotIconHandle {
 
 interface BotIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number
+  /** When true, continuously loops the animation */
+  animate?: boolean
 }
 
 const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 20, ...props }, ref) => {
+  ({ onMouseEnter, onMouseLeave, className, size = 20, animate: animateProp = false, ...props }, ref) => {
     const controls = useAnimation()
     const isControlledRef = useRef(false)
+
+    // Handle animate prop for continuous looping
+    useEffect(() => {
+      if (animateProp) {
+        isControlledRef.current = true
+        controls.start('animate')
+      } else if (isControlledRef.current && !animateProp) {
+        controls.start('normal')
+      }
+    }, [animateProp, controls])
 
     useImperativeHandle(ref, () => {
       isControlledRef.current = true
@@ -31,25 +43,39 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isControlledRef.current) {
+        if (!isControlledRef.current && !animateProp) {
           controls.start('animate')
         } else {
           onMouseEnter?.(e)
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter, animateProp]
     )
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isControlledRef.current) {
+        if (!isControlledRef.current && !animateProp) {
           controls.start('normal')
         } else {
           onMouseLeave?.(e)
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave, animateProp]
     )
+
+    // Animation config - loop infinitely when animateProp is true
+    const eyeAnimation = animateProp
+      ? {
+          y1: [13, 14, 13],
+          y2: [15, 14, 15],
+          transition: {
+            duration: 0.5,
+            ease: 'easeInOut' as const,
+            repeat: Infinity,
+            repeatDelay: 0.3,
+          },
+        }
+      : undefined
 
     return (
       <div
@@ -77,9 +103,9 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
           <motion.line
             x1={15}
             x2={15}
-            initial="normal"
-            animate={controls}
-            variants={{
+            initial={{ y1: 13, y2: 15 }}
+            animate={animateProp ? eyeAnimation : controls}
+            variants={animateProp ? undefined : {
               normal: { y1: 13, y2: 15 },
               animate: {
                 y1: [13, 14, 13],
@@ -96,9 +122,9 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
           <motion.line
             x1={9}
             x2={9}
-            initial="normal"
-            animate={controls}
-            variants={{
+            initial={{ y1: 13, y2: 15 }}
+            animate={animateProp ? eyeAnimation : controls}
+            variants={animateProp ? undefined : {
               normal: { y1: 13, y2: 15 },
               animate: {
                 y1: [13, 14, 13],

@@ -7,7 +7,9 @@ import {
   RefreshCw,
   Loader2,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react'
 
 interface GitQuickActionsProps {
@@ -15,10 +17,14 @@ interface GitQuickActionsProps {
   repoPath: string
   ahead: number
   behind: number
+  hasChanges: boolean
+  stashCount: number
   onPush: () => Promise<void>
   onPull: () => Promise<void>
   onFetch: () => Promise<void>
   onOpenGitlogue: () => Promise<void>
+  onStash: () => Promise<void>
+  onStashPop: () => Promise<void>
   loading?: string | null
 }
 
@@ -26,10 +32,14 @@ export function GitQuickActions({
   githubUrl,
   ahead,
   behind,
+  hasChanges,
+  stashCount,
   onPush,
   onPull,
   onFetch,
   onOpenGitlogue,
+  onStash,
+  onStashPop,
   loading
 }: GitQuickActionsProps) {
   return (
@@ -59,6 +69,41 @@ export function GitQuickActions({
           <Terminal className="w-3.5 h-3.5" />
         )}
         Gitlogue
+      </button>
+
+      {/* Stash */}
+      <button
+        onClick={onStash}
+        disabled={loading === 'stash' || !hasChanges}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Stash changes"
+      >
+        {loading === 'stash' ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Archive className="w-3.5 h-3.5" />
+        )}
+        Stash
+      </button>
+
+      {/* Pop Stash */}
+      <button
+        onClick={onStashPop}
+        disabled={loading === 'stash-pop' || stashCount === 0}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Pop stash"
+      >
+        {loading === 'stash-pop' ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <ArchiveRestore className="w-3.5 h-3.5" />
+        )}
+        Pop
+        {stashCount > 0 && (
+          <span className="text-purple-400">
+            {stashCount}
+          </span>
+        )}
       </button>
 
       {/* Fetch */}

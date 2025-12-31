@@ -231,13 +231,17 @@ async function getRepoStatus(repoPath) {
  */
 async function getRepoLog(repoPath, limit = 20) {
   try {
-    // Format: hash|shortHash|subject|authorName|authorEmail|authorDateISO|refNames
-    const format = '%H|%h|%s|%an|%ae|%aI|%D';
+    // Use a unique separator that won't appear in commit messages
+    const SEP = '<<<TABZ_SEP>>>';
+    const RECORD_SEP = '<<<TABZ_RECORD>>>';
+    // Format: hash|shortHash|subject|body|authorName|authorEmail|authorDateISO|refNames
+    const format = `%H${SEP}%h${SEP}%s${SEP}%b${SEP}%an${SEP}%ae${SEP}%aI${SEP}%D${RECORD_SEP}`;
     const { stdout } = await execAsync(
       `git log --format='${format}' -n ${parseInt(limit, 10)}`,
       {
         cwd: repoPath,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+        maxBuffer: 1024 * 1024 // 1MB for large commit messages
       }
     );
 
@@ -245,16 +249,18 @@ async function getRepoLog(repoPath, limit = 20) {
       return [];
     }
 
-    const commits = stdout.trim().split('\n').map(line => {
-      const [hash, shortHash, message, author, email, date, refs] = line.split('|');
+    const commits = stdout.trim().split(RECORD_SEP).filter(r => r.trim()).map(record => {
+      const parts = record.split(SEP);
+      const [hash, shortHash, subject, body, author, email, date, refs] = parts;
       return {
-        hash,
-        shortHash,
-        message,
-        author,
-        email,
-        date,
-        refs: refs ? refs.split(', ').filter(r => r) : []
+        hash: hash?.trim(),
+        shortHash: shortHash?.trim(),
+        message: subject?.trim(),
+        body: body?.trim() || null,
+        author: author?.trim(),
+        email: email?.trim(),
+        date: date?.trim(),
+        refs: refs ? refs.split(', ').filter(r => r.trim()) : []
       };
     });
 
@@ -570,6 +576,170 @@ async function getWorktrees(repoPath, githubUrl = null) {
   }
 }
 
+/**
+ * Discard changes to files (revert to last commit)
+ * @param {string} repoPath - Full path to repository
+ * @param {string[]} files - Files to discard changes for
+ */
+async function discardFiles(repoPath, files) {
+  if (!Array.isArray(files) || files.length === 0) {
+    throw new Error('No files specified to discard');
+  }
+
+  // Validate files don't contain malicious paths
+  for (const file of files) {
+    if (file.includes('..')) {
+      throw new Error('Invalid file path');
+    }
+  }
+
+  const escapedFiles = files.map(f => escapeShellArg(f)).join(' ');
+
+  try {
+    await execAsync(`git restore ${escapedFiles}`, {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+  } catch (err) {
+    throw new Error(`Failed to discard changes: ${err.message}`);
+  }
+}
+
+/**
+ * Discard all unstaged changes
+ * @param {string} repoPath - Full path to repository
+ */
+async function discardAllChanges(repoPath) {
+  try {
+    await execAsync('git restore .', {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+  } catch (err) {
+    throw new Error(`Failed to discard all changes: ${err.message}`);
+  }
+}
+
+/**
+ * Stash changes
+ * @param {string} repoPath - Full path to repository
+ * @param {string} message - Optional stash message
+ * @param {boolean} includeUntracked - Include untracked files
+ */
+async function stashChanges(repoPath, message = '', includeUntracked = false) {
+  try {
+    let cmd = 'git stash push';
+    if (includeUntracked) {
+      cmd += ' --include-untracked';
+    }
+    if (message) {
+      cmd += ` -m ${escapeShellArg(message)}`;
+    }
+
+    const { stdout, stderr } = await execAsync(cmd, {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+
+    return { stdout, stderr };
+  } catch (err) {
+    throw new Error(`Failed to stash changes: ${err.message}`);
+  }
+}
+
+/**
+ * List stashes
+ * @param {string} repoPath - Full path to repository
+ * @returns {Promise<object[]>} Array of stash objects
+ */
+async function listStashes(repoPath) {
+  try {
+    const { stdout } = await execAsync('git stash list --format="%gd|%gs|%ci"', {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+
+    if (!stdout.trim()) {
+      return [];
+    }
+
+    return stdout.trim().split('\n').map(line => {
+      const [ref, message, date] = line.split('|');
+      return { ref, message, date };
+    });
+  } catch (err) {
+    throw new Error(`Failed to list stashes: ${err.message}`);
+  }
+}
+
+/**
+ * Pop stash (apply and remove)
+ * @param {string} repoPath - Full path to repository
+ * @param {string} ref - Stash reference (e.g., "stash@{0}")
+ */
+async function popStash(repoPath, ref = 'stash@{0}') {
+  try {
+    const { stdout, stderr } = await execAsync(`git stash pop ${escapeShellArg(ref)}`, {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+
+    return { stdout, stderr };
+  } catch (err) {
+    throw new Error(`Failed to pop stash: ${err.message}`);
+  }
+}
+
+/**
+ * Apply stash (without removing)
+ * @param {string} repoPath - Full path to repository
+ * @param {string} ref - Stash reference (e.g., "stash@{0}")
+ */
+async function applyStash(repoPath, ref = 'stash@{0}') {
+  try {
+    const { stdout, stderr } = await execAsync(`git stash apply ${escapeShellArg(ref)}`, {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+
+    return { stdout, stderr };
+  } catch (err) {
+    throw new Error(`Failed to apply stash: ${err.message}`);
+  }
+}
+
+/**
+ * Drop stash
+ * @param {string} repoPath - Full path to repository
+ * @param {string} ref - Stash reference (e.g., "stash@{0}")
+ */
+async function dropStash(repoPath, ref = 'stash@{0}') {
+  try {
+    const { stdout, stderr } = await execAsync(`git stash drop ${escapeShellArg(ref)}`, {
+      cwd: repoPath,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    });
+
+    return { stdout, stderr };
+  } catch (err) {
+    throw new Error(`Failed to drop stash: ${err.message}`);
+  }
+}
+
+/**
+ * Get stash count
+ * @param {string} repoPath - Full path to repository
+ * @returns {Promise<number>} Number of stashes
+ */
+async function getStashCount(repoPath) {
+  try {
+    const stashes = await listStashes(repoPath);
+    return stashes.length;
+  } catch {
+    return 0;
+  }
+}
+
 module.exports = {
   discoverRepos,
   getRepoStatus,
@@ -586,6 +756,14 @@ module.exports = {
   pushToRemote,
   pullFromRemote,
   fetchFromRemote,
+  discardFiles,
+  discardAllChanges,
+  stashChanges,
+  listStashes,
+  popStash,
+  applyStash,
+  dropStash,
+  getStashCount,
   isValidPath,
   escapeShellArg,
   DEFAULT_PROJECTS_DIR

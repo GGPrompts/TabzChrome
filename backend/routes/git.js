@@ -365,6 +365,182 @@ router.post('/repos/:repo/fetch', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/git/repos/:repo/discard - Discard changes to files
+ * Body: { files: ['path1', 'path2'] } or { all: true } for all unstaged changes
+ */
+router.post('/repos/:repo/discard', requireAuth, async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    if (req.body.all) {
+      await gitUtils.discardAllChanges(repoPath);
+      res.json({
+        success: true,
+        message: 'Discarded all unstaged changes'
+      });
+    } else {
+      const files = req.body.files;
+      if (!files || !Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ success: false, error: 'No files specified' });
+      }
+
+      await gitUtils.discardFiles(repoPath, files);
+      res.json({
+        success: true,
+        message: `Discarded changes to ${files.length} file(s)`
+      });
+    }
+  } catch (err) {
+    console.error('[Git API] Error discarding changes:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/git/repos/:repo/stashes - List stashes
+ */
+router.get('/repos/:repo/stashes', async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    const stashes = await gitUtils.listStashes(repoPath);
+
+    res.json({
+      success: true,
+      data: { stashes }
+    });
+  } catch (err) {
+    console.error('[Git API] Error listing stashes:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/git/repos/:repo/stash - Create a stash
+ * Body: { message?: 'stash message', includeUntracked?: true }
+ */
+router.post('/repos/:repo/stash', requireAuth, async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    const message = req.body.message || '';
+    const includeUntracked = req.body.includeUntracked || false;
+
+    await gitUtils.stashChanges(repoPath, message, includeUntracked);
+
+    res.json({
+      success: true,
+      message: 'Changes stashed successfully'
+    });
+  } catch (err) {
+    console.error('[Git API] Error stashing changes:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/git/repos/:repo/stash-pop - Pop the most recent stash
+ * Body: { ref?: 'stash@{0}' }
+ */
+router.post('/repos/:repo/stash-pop', requireAuth, async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    const ref = req.body.ref || 'stash@{0}';
+
+    await gitUtils.popStash(repoPath, ref);
+
+    res.json({
+      success: true,
+      message: 'Stash popped successfully'
+    });
+  } catch (err) {
+    console.error('[Git API] Error popping stash:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/git/repos/:repo/stash-apply - Apply a stash without removing it
+ * Body: { ref?: 'stash@{0}' }
+ */
+router.post('/repos/:repo/stash-apply', requireAuth, async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    const ref = req.body.ref || 'stash@{0}';
+
+    await gitUtils.applyStash(repoPath, ref);
+
+    res.json({
+      success: true,
+      message: 'Stash applied successfully'
+    });
+  } catch (err) {
+    console.error('[Git API] Error applying stash:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/git/repos/:repo/stash-drop - Drop a stash
+ * Body: { ref?: 'stash@{0}' }
+ */
+router.post('/repos/:repo/stash-drop', requireAuth, async (req, res) => {
+  try {
+    let projectsDir = req.query.dir || gitUtils.DEFAULT_PROJECTS_DIR;
+    projectsDir = expandTilde(projectsDir);
+
+    const repoPath = validateRepoPath(req.params.repo, projectsDir);
+    if (!repoPath) {
+      return res.status(400).json({ success: false, error: 'Invalid repository name' });
+    }
+
+    const ref = req.body.ref || 'stash@{0}';
+
+    await gitUtils.dropStash(repoPath, ref);
+
+    res.json({
+      success: true,
+      message: 'Stash dropped successfully'
+    });
+  } catch (err) {
+    console.error('[Git API] Error dropping stash:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/git/repos/:repo/generate-message - Generate commit message using AI
  * Uses Claude CLI with Haiku model for fast, cheap generation
  * Body: { model?: 'haiku' }

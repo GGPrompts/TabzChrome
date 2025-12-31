@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Send, Loader2, Sparkles } from 'lucide-react'
 
 interface GitCommitFormProps {
@@ -12,9 +12,30 @@ interface GitCommitFormProps {
 
 export function GitCommitForm({ onCommit, onStageAll, onGenerateMessage, hasUnstaged, hasStaged, loading }: GitCommitFormProps) {
   const [message, setMessage] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isCommitting = loading === 'commit'
   const isStaging = loading === 'stage'
   const isGenerating = loading === 'generate'
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto'
+
+    // Calculate rows based on content (min 2, max 10)
+    const lineHeight = 20 // approximate line height in pixels
+    const minRows = 2
+    const maxRows = 10
+    const paddingY = 16 // py-2 = 8px top + 8px bottom
+
+    const contentHeight = textarea.scrollHeight - paddingY
+    const rows = Math.max(minRows, Math.min(maxRows, Math.ceil(contentHeight / lineHeight)))
+
+    textarea.style.height = `${rows * lineHeight + paddingY}px`
+  }, [message])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,10 +65,11 @@ export function GitCommitForm({ onCommit, onStageAll, onGenerateMessage, hasUnst
     <form onSubmit={handleSubmit} className="space-y-2">
       <div className="relative">
         <textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Commit message..."
-          className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm resize-none focus:outline-none focus:border-primary/50 font-mono"
+          className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm resize-none focus:outline-none focus:border-primary/50 font-mono overflow-hidden"
           rows={2}
           disabled={isCommitting || isGenerating}
         />

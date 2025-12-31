@@ -1026,9 +1026,9 @@ function SidePanelTerminal() {
                       {claudeStatuses.has(session.id) && (
                         <span className="flex-shrink-0 text-orange-400">
                           {(claudeStatuses.get(session.id)?.status === 'idle' || claudeStatuses.get(session.id)?.status === 'awaiting_input') ? (
-                            <BotIcon size={14} />
+                            <BotIcon size={14} animate />
                           ) : (
-                            <BotMessageSquareIcon size={14} />
+                            <BotMessageSquareIcon size={14} animate />
                           )}
                         </span>
                       )}
@@ -1565,9 +1565,9 @@ function SidePanelTerminal() {
                 <div className="flex items-center gap-2 pt-2 border-t border-[#333] overflow-hidden">
                   <span className="flex-shrink-0 text-orange-400">
                     {(claudeStatus.status === 'idle' || claudeStatus.status === 'awaiting_input') ? (
-                      <BotIcon size={16} />
+                      <BotIcon size={16} animate />
                     ) : (
-                      <BotMessageSquareIcon size={16} />
+                      <BotMessageSquareIcon size={16} animate />
                     )}
                   </span>
                   <span className="text-[13px] text-gray-300 truncate min-w-0" title={getFullStatusText(claudeStatus)}>

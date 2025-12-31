@@ -9,6 +9,7 @@ export interface GitCommit {
   hash: string
   shortHash: string
   message: string
+  body: string | null
   author: string
   email: string
   date: string

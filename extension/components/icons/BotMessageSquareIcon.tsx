@@ -1,7 +1,7 @@
 'use client'
 
 import type { HTMLAttributes } from 'react'
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useEffect } from 'react'
 import { motion, useAnimation } from 'motion/react'
 
 import { cn } from '../../lib/utils'
@@ -13,14 +13,26 @@ export interface BotMessageSquareIconHandle {
 
 interface BotMessageSquareIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number
+  /** When true, continuously loops the animation */
+  animate?: boolean
 }
 
 const BotMessageSquareIcon = forwardRef<
   BotMessageSquareIconHandle,
   BotMessageSquareIconProps
->(({ className, onMouseEnter, onMouseLeave, size = 20, ...props }, ref) => {
+>(({ className, onMouseEnter, onMouseLeave, size = 20, animate: animateProp = false, ...props }, ref) => {
   const controls = useAnimation()
   const isControlledRef = useRef(false)
+
+  // Handle animate prop for continuous looping
+  useEffect(() => {
+    if (animateProp) {
+      isControlledRef.current = true
+      controls.start('animate')
+    } else if (isControlledRef.current && !animateProp) {
+      controls.start('normal')
+    }
+  }, [animateProp, controls])
 
   useImperativeHandle(ref, () => {
     isControlledRef.current = true
@@ -32,19 +44,22 @@ const BotMessageSquareIcon = forwardRef<
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isControlledRef.current) controls.start('animate')
+      if (!isControlledRef.current && !animateProp) controls.start('animate')
       else onMouseEnter?.(e)
     },
-    [controls, onMouseEnter]
+    [controls, onMouseEnter, animateProp]
   )
 
   const handleMouseLeave = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isControlledRef.current) controls.start('normal')
+      if (!isControlledRef.current && !animateProp) controls.start('normal')
       else onMouseLeave?.(e)
     },
-    [controls, onMouseLeave]
+    [controls, onMouseLeave, animateProp]
   )
+
+  // Repeat count based on animate prop
+  const repeatCount = animateProp ? Infinity : 0
 
   return (
     <div
@@ -74,7 +89,8 @@ const BotMessageSquareIcon = forwardRef<
             transition: {
               duration: 1,
               ease: 'easeInOut',
-              repeat: 0,
+              repeat: repeatCount,
+              repeatDelay: 0.5,
             },
           },
         }}
@@ -91,7 +107,8 @@ const BotMessageSquareIcon = forwardRef<
               transition: {
                 duration: 0.6,
                 ease: 'easeInOut',
-                repeat: 1,
+                repeat: repeatCount,
+                repeatDelay: 0.9,
               },
             },
           }}
@@ -102,7 +119,13 @@ const BotMessageSquareIcon = forwardRef<
             normal: { scaleY: 1, originY: 0.5 },
             animate: {
               scaleY: [1, 0.1, 1],
-              transition: { duration: 0.4, ease: 'easeInOut', delay: 0.1 },
+              transition: {
+                duration: 0.4,
+                ease: 'easeInOut',
+                delay: 0.1,
+                repeat: repeatCount,
+                repeatDelay: 1.1,
+              },
             },
           }}
         />
@@ -112,7 +135,13 @@ const BotMessageSquareIcon = forwardRef<
             normal: { scaleY: 1, originY: 0.5 },
             animate: {
               scaleY: [1, 0.1, 1],
-              transition: { duration: 0.4, ease: 'easeInOut', delay: 0.2 },
+              transition: {
+                duration: 0.4,
+                ease: 'easeInOut',
+                delay: 0.2,
+                repeat: repeatCount,
+                repeatDelay: 1.1,
+              },
             },
           }}
         />

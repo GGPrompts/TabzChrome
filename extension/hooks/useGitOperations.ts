@@ -182,6 +182,102 @@ export function useGitOperations(repoName: string) {
     }
   }, [repoName])
 
+  // Discard changes to files
+  const discardFiles = useCallback(async (files: string[]) => {
+    setLoading('discard')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'discard', { files })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Discard failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Discard all unstaged changes
+  const discardAll = useCallback(async () => {
+    setLoading('discard')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'discard', { all: true })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Discard all failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Stash changes
+  const stash = useCallback(async (message?: string, includeUntracked?: boolean) => {
+    setLoading('stash')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'stash', { message, includeUntracked })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stash failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Pop stash
+  const stashPop = useCallback(async (ref?: string) => {
+    setLoading('stash-pop')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'stash-pop', { ref })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stash pop failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Apply stash (without removing)
+  const stashApply = useCallback(async (ref?: string) => {
+    setLoading('stash-apply')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'stash-apply', { ref })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stash apply failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Drop stash
+  const stashDrop = useCallback(async (ref?: string) => {
+    setLoading('stash-drop')
+    setError(null)
+    try {
+      const result = await gitOperation(repoName, 'stash-drop', { ref })
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stash drop failed')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
   return {
     loading,
     error,
@@ -193,6 +289,12 @@ export function useGitOperations(repoName: string) {
     fetch,
     openGitlogue,
     generateMessage,
+    discardFiles,
+    discardAll,
+    stash,
+    stashPop,
+    stashApply,
+    stashDrop,
     clearError: () => setError(null)
   }
 }
