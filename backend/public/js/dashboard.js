@@ -27,6 +27,7 @@ const Dashboard = (function() {
         lastUpdate: null,
         authToken: null,
         claudeStatuses: new Map(),  // Map of terminal ID -> Claude status
+        paneTitles: new Map(),      // Map of terminal ID -> pane title (for non-Claude)
     };
 
     const listeners = {
@@ -35,6 +36,7 @@ const Dashboard = (function() {
         health: [],
         message: [],
         claudeStatuses: [],
+        paneTitles: [],
     };
 
     // ==========================================================================
@@ -377,6 +379,94 @@ const Dashboard = (function() {
         };
     }
 
+    /**
+     * Clean pane_title for display - strips " @ path" suffix
+     */
+    function cleanPaneTitle(paneTitle) {
+        if (!paneTitle) return '';
+        const atIndex = paneTitle.lastIndexOf(' @ ');
+        if (atIndex > 0) {
+            const afterAt = paneTitle.slice(atIndex + 3);
+            if (afterAt.startsWith('/') || afterAt.startsWith('~')) {
+                return paneTitle.slice(0, atIndex);
+            }
+        }
+        return paneTitle;
+    }
+
+    /**
+     * Check if pane_title is generic (hostname, shell name, path)
+     */
+    function isGenericPaneTitle(paneTitle) {
+        if (!paneTitle) return true;
+        const clean = cleanPaneTitle(paneTitle);
+        // Hostname patterns
+        if (/^(localhost|[\w]+-?(desktop|laptop)|ip-[\d-]+)$/i.test(clean)) return true;
+        // Generic shell names
+        if (/^(bash|zsh|sh|fish|python|node)$/i.test(clean)) return true;
+        // Path-like
+        if (clean.startsWith('~') || clean.startsWith('/')) return true;
+        return false;
+    }
+
+    /**
+     * Fetch pane titles for all tmux terminals (for non-Claude terminals like PyRadio)
+     */
+    async function fetchPaneTitles() {
+        const tmuxTerminals = state.terminals.filter(t => t.id?.startsWith('ctt-'));
+        if (tmuxTerminals.length === 0) return;
+
+        const results = await Promise.all(
+            tmuxTerminals.map(async (terminal) => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/tmux/info/${encodeURIComponent(terminal.id)}`);
+                    const result = await response.json();
+                    if (result.success && result.paneTitle) {
+                        return { id: terminal.id, paneTitle: result.paneTitle };
+                    }
+                    return { id: terminal.id, paneTitle: null };
+                } catch (err) {
+                    return { id: terminal.id, paneTitle: null };
+                }
+            })
+        );
+
+        let changed = false;
+        for (const result of results) {
+            if (result.paneTitle) {
+                const prev = state.paneTitles?.get(result.id);
+                if (prev !== result.paneTitle) changed = true;
+                if (!state.paneTitles) state.paneTitles = new Map();
+                state.paneTitles.set(result.id, result.paneTitle);
+            }
+        }
+        if (changed) {
+            emit('paneTitles', state.paneTitles);
+        }
+    }
+
+    /**
+     * Get display name for a terminal (handles both Claude and non-Claude)
+     */
+    function getTerminalDisplayName(terminal) {
+        // Check Claude status first
+        const claudeStatus = getClaudeStatusText(terminal.id, terminal.name || 'Unnamed');
+        if (claudeStatus) {
+            return claudeStatus;
+        }
+
+        // Check pane title for non-Claude terminals
+        const paneTitle = state.paneTitles?.get(terminal.id);
+        if (paneTitle && !isGenericPaneTitle(paneTitle)) {
+            return {
+                text: cleanPaneTitle(paneTitle),
+                isIdle: true,  // Treat as "idle" for display purposes
+            };
+        }
+
+        return null;
+    }
+
     // ==========================================================================
     // Utility Functions
     // ==========================================================================
@@ -472,6 +562,13 @@ const Dashboard = (function() {
             }
         }, 2000);
 
+        // Poll pane titles every 3 seconds (for non-Claude terminals like PyRadio)
+        setInterval(() => {
+            if (wsConnected && state.terminals.length > 0) {
+                fetchPaneTitles();
+            }
+        }, 3000);
+
         console.log('[Dashboard] Initialized');
     }
 
@@ -507,8 +604,12 @@ const Dashboard = (function() {
         killOrphanedSessions,
         spawnTerminal,
 
-        // Claude Status
+        // Claude Status & Pane Titles
         getClaudeStatusText,
+        getTerminalDisplayName,
+        cleanPaneTitle,
+        isGenericPaneTitle,
+        fetchPaneTitles,
 
         // Utilities
         formatUptime,

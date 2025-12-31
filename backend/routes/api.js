@@ -933,8 +933,8 @@ router.get('/tmux/info/:name', asyncHandler(async (req, res) => {
     const homeDir = require('os').homedir();
     const displayPath = currentPath ? currentPath.replace(homeDir, '~') : null;
 
-    // Debug: Log raw tmux values
-    console.log(`[API] Tmux info for ${name}:`, { windowName, paneTitle, windowCount, paneCount, currentPath: displayPath });
+    // Debug: Log raw tmux values (disabled - too verbose with polling)
+    // console.log(`[API] Tmux info for ${name}:`, { windowName, paneTitle, windowCount, paneCount, currentPath: displayPath });
 
     // Prefer window_name when it differs from pane_title and is not generic
     // This makes tab names update dynamically for bash terminals running TUI apps
@@ -980,8 +980,8 @@ router.get('/tmux/info/:name', asyncHandler(async (req, res) => {
       displayName = `${displayName} @ ${displayPath}`
     }
 
-    // Debug: Log final display name
-    console.log(`[API] Display name for ${name}: "${displayName}" (baseName="${baseName}", cmd=${windowNameIsDirectory ? windowName : 'none'}, path=${displayPath})`);
+    // Debug: Log final display name (disabled - too verbose with polling)
+    // console.log(`[API] Display name for ${name}: "${displayName}" (baseName="${baseName}", cmd=${windowNameIsDirectory ? windowName : 'none'}, path=${displayPath})`);
 
     res.json({
       success: true,

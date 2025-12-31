@@ -188,6 +188,10 @@
             // Re-render terminals when Claude statuses update
             updateTerminalsPreview(Dashboard.state.terminals);
         });
+        Dashboard.on('paneTitles', () => {
+            // Re-render terminals when pane titles update (e.g., PyRadio song change)
+            updateTerminalsPreview(Dashboard.state.terminals);
+        });
         Dashboard.on('connection', (data) => {
             if (data.connected) {
                 fetchOrphanedCount();
@@ -231,22 +235,76 @@
             // Show first 5 terminals
             const preview = terminals.slice(0, 5);
             container.innerHTML = preview.map(t => {
-                // Get Claude status if available
-                const claudeStatus = Dashboard.getClaudeStatusText(t.id, t.name || t.id);
-                const displayName = claudeStatus ? claudeStatus.text : (t.name || t.id);
-                const statusIndicator = claudeStatus
-                    ? (claudeStatus.isIdle ? '<span style="color: #00ff88;">✓</span> ' : '')
-                    : '';
+                // Get Claude status for richer display
+                const claudeStatus = Dashboard.claudeStatuses.get(t.id);
+                const paneTitle = Dashboard.state.paneTitles?.get(t.id);
+                const isClaudeTerminal = !!claudeStatus;
+
+                // Determine what to show
+                let profileName = t.name || t.id;
+                let activityLine = '';
+                let statusBadge = t.state || 'unknown';
+                let badgeClass = t.state === 'active' ? 'badge-green' : 'badge-yellow';
+
+                if (isClaudeTerminal) {
+                    const isIdle = claudeStatus.status === 'idle' || claudeStatus.status === 'awaiting_input';
+
+                    if (isIdle) {
+                        // Show todo status when idle
+                        if (claudeStatus.pane_title) {
+                            activityLine = `<br><span style="color: #00ff88;">✓ ${Dashboard.escapeHtml(claudeStatus.pane_title)}</span>`;
+                        } else {
+                            activityLine = `<br><span style="color: #00ff88;">✓ Ready</span>`;
+                        }
+                        statusBadge = 'ready';
+                        badgeClass = 'badge-green';
+                    } else {
+                        // Show current tool/activity
+                        const toolEmojis = {
+                            'Read': '📖', 'Write': '📝', 'Edit': '✏️', 'Bash': '🔺',
+                            'Glob': '🔍', 'Grep': '🔎', 'Task': '🤖', 'WebFetch': '🌐',
+                            'WebSearch': '🔍', 'TodoWrite': '📋', 'NotebookEdit': '📓',
+                            'AskUserQuestion': '❓'
+                        };
+                        const emoji = claudeStatus.current_tool ? (toolEmojis[claudeStatus.current_tool] || '🔧') : '⏳';
+                        let toolDetail = claudeStatus.current_tool || 'Working';
+
+                        // Add detail from args if available
+                        if (claudeStatus.details?.args) {
+                            const args = claudeStatus.details.args;
+                            if (args.file_path) {
+                                const fileName = args.file_path.split('/').pop();
+                                toolDetail += `: ${fileName}`;
+                            } else if (args.description) {
+                                toolDetail += `: ${args.description.slice(0, 30)}${args.description.length > 30 ? '…' : ''}`;
+                            }
+                        }
+
+                        activityLine = `<br><span style="color: #fbbf24;">${emoji} ${Dashboard.escapeHtml(toolDetail)}</span>`;
+                        statusBadge = 'working';
+                        badgeClass = 'badge-yellow';
+                    }
+
+                    // Show context percentage if available
+                    if (claudeStatus.context_pct != null) {
+                        const ctxColor = claudeStatus.context_pct < 50 ? '#00ff88' : (claudeStatus.context_pct < 75 ? '#fbbf24' : '#ef4444');
+                        activityLine += ` <span style="color: ${ctxColor}; font-size: 0.75rem;">${claudeStatus.context_pct}%</span>`;
+                    }
+                } else if (paneTitle && !Dashboard.isGenericPaneTitle(paneTitle)) {
+                    // Non-Claude terminal with meaningful pane title (e.g., PyRadio)
+                    activityLine = `<br><span class="text-muted">${Dashboard.escapeHtml(Dashboard.cleanPaneTitle(paneTitle))}</span>`;
+                }
 
                 return `
                     <div class="activity-item ${t.state === 'active' ? 'success' : ''}">
                         <div class="activity-time">${Dashboard.formatRelativeTime(t.createdAt)}</div>
                         <div class="activity-content">
-                            <strong>${statusIndicator}${Dashboard.escapeHtml(displayName)}</strong>
+                            <strong>${Dashboard.escapeHtml(profileName)}</strong>
                             <span class="text-muted"> - ${t.terminalType || 'bash'}</span>
+                            ${activityLine}
                             ${t.workingDir ? `<br><span class="mono text-muted" style="font-size: 0.8rem;">${Dashboard.shortenPath(t.workingDir)}</span>` : ''}
                         </div>
-                        <span class="badge ${t.state === 'active' ? 'badge-green' : 'badge-yellow'}">${t.state || 'unknown'}</span>
+                        <span class="badge ${badgeClass}">${statusBadge}</span>
                     </div>
                 `;
             }).join('');

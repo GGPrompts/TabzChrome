@@ -69,7 +69,7 @@ export function GitCommitForm({ onCommit, onStageAll, onGenerateMessage, hasUnst
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Commit message..."
-          className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm resize-none focus:outline-none focus:border-primary/50 font-mono overflow-hidden"
+          className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm resize-none focus:outline-none focus:border-primary/50 font-mono overflow-y-auto"
           rows={2}
           disabled={isCommitting || isGenerating}
         />

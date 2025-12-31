@@ -265,6 +265,10 @@
                 // Re-render terminals when Claude statuses update
                 updateTerminalsTable(Dashboard.state.terminals);
             });
+            Dashboard.on('paneTitles', () => {
+                // Re-render terminals when pane titles update (e.g., PyRadio song change)
+                updateTerminalsTable(Dashboard.state.terminals);
+            });
             Dashboard.on('connection', (data) => {
                 if (data.connected) {
                     refreshOrphans();
@@ -294,11 +298,11 @@
             }
 
             tbody.innerHTML = terminals.map(t => {
-                // Get Claude status if available
-                const claudeStatus = Dashboard.getClaudeStatusText(t.id, t.name || 'Unnamed');
-                const displayName = claudeStatus ? claudeStatus.text : (t.name || 'Unnamed');
-                const statusIndicator = claudeStatus
-                    ? (claudeStatus.isIdle ? '<span style="color: #00ff88;">✓</span> ' : '')
+                // Get display name (handles both Claude and non-Claude terminals)
+                const displayStatus = Dashboard.getTerminalDisplayName(t);
+                const displayName = displayStatus ? displayStatus.text : (t.name || 'Unnamed');
+                const statusIndicator = displayStatus
+                    ? (displayStatus.isIdle ? '<span style="color: #00ff88;">✓</span> ' : '')
                     : '';
 
                 return `
