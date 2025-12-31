@@ -1,5 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { GitBranch, Copy, Trash2, Eye, Box, PanelLeft, ExternalLink, Settings, Paperclip, Unplug } from 'lucide-react'
+import { PanelLeft, Unplug } from 'lucide-react'
+import {
+  GitBranchIcon,
+  CopyIcon,
+  DeleteIcon,
+  EyeIcon,
+  ExpandIcon,
+  MaximizeIcon,
+  SettingsIcon,
+  AttachFileIcon,
+} from '../../components/icons'
+import { AnimatedMenuItem } from '../../components/AnimatedMenuItem'
 import { compactPath } from '../../shared/utils'
 import { type TerminalItem, type TerminalDisplayMode } from './ActiveTerminalsList'
 import { themes } from '../../styles/themes'
@@ -83,14 +94,14 @@ const DisplayModeIndicator = ({ mode }: { mode?: TerminalDisplayMode }) => {
   if (mode === 'popout') {
     return (
       <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400 border border-blue-500/50" title="Popped out">
-        <ExternalLink className="w-3 h-3" />
+        <MaximizeIcon size={12} />
       </span>
     )
   }
   if (mode === '3d') {
     return (
       <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" title="3D Focus">
-        <Box className="w-3 h-3" />
+        <ExpandIcon size={12} />
       </span>
     )
   }
@@ -246,9 +257,8 @@ export function TerminalsGrid({
 
   const handleEditProfile = (terminal: TerminalItem) => {
     const profileId = terminal.profile?.id || 'default'
-    chrome.tabs.create({
-      url: chrome.runtime.getURL(`dashboard/index.html#/settings-profiles?edit=${encodeURIComponent(profileId)}`)
-    })
+    // Navigate within dashboard using hash routing
+    window.location.hash = `/profiles?edit=${encodeURIComponent(profileId)}`
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
   }
 
@@ -385,7 +395,7 @@ export function TerminalsGrid({
                         }}
                         title="Copy session ID"
                       >
-                        <Copy className="w-3 h-3" />
+                        <CopyIcon size={12} />
                       </button>
                     </div>
                   )}
@@ -407,7 +417,7 @@ export function TerminalsGrid({
                   )}
                   {terminal.gitBranch && (
                     <div className="flex items-center gap-2">
-                      <GitBranch className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                      <GitBranchIcon size={16} className="text-purple-400 flex-shrink-0" />
                       <span className="text-[12px] text-purple-400 truncate">{terminal.gitBranch}</span>
                     </div>
                   )}
@@ -471,14 +481,48 @@ export function TerminalsGrid({
                   <span className="text-[10px] text-white/40">
                     {terminal.createdAt ? `Created ${formatRelativeTime(terminal.createdAt)}` : ''}
                   </span>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    {onViewAsText && (
+                  <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    {terminal.sessionName && (
+                      <>
+                        <button
+                          onClick={() => handleEditProfile(terminal)}
+                          className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                          title="Edit Profile"
+                        >
+                          <SettingsIcon size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleCopySessionId(terminal.sessionName!)}
+                          className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                          title="Copy Session ID"
+                        >
+                          <CopyIcon size={14} />
+                        </button>
+                        {onPopOut && (
+                          <button
+                            onClick={() => handlePopOut(terminal)}
+                            className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                            title="Pop Out"
+                          >
+                            <MaximizeIcon size={14} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenIn3D(terminal)}
+                          className="p-1 rounded hover:bg-cyan-500/20 text-white/50 hover:text-cyan-400 transition-colors"
+                          title="Open in 3D Focus"
+                        >
+                          <ExpandIcon size={14} />
+                        </button>
+                      </>
+                    )}
+                    {onViewAsText && terminal.sessionName && (
                       <button
                         onClick={() => onViewAsText(terminal.sessionName || terminal.id)}
                         className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
                         title="View as text"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <EyeIcon size={14} />
                       </button>
                     )}
                     {onKill && (
@@ -487,7 +531,7 @@ export function TerminalsGrid({
                         className="p-1 rounded hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors"
                         title="Kill terminal"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <DeleteIcon size={14} />
                       </button>
                     )}
                   </div>
@@ -516,53 +560,53 @@ export function TerminalsGrid({
             {terminal.sessionName && (
               <>
                 {/* Profile Actions */}
-                <button
+                <AnimatedMenuItem
+                  icon={SettingsIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                   onClick={() => handleEditProfile(terminal)}
                 >
-                  <Settings className="w-4 h-4" />
                   Edit Profile...
-                </button>
+                </AnimatedMenuItem>
                 {hasReference && (
-                  <button
+                  <AnimatedMenuItem
+                    icon={AttachFileIcon}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 flex items-center gap-2 transition-colors"
                     onClick={() => handleOpenReference(terminal)}
                   >
-                    <Paperclip className="w-4 h-4" />
                     Open Reference
-                  </button>
+                  </AnimatedMenuItem>
                 )}
 
                 <div className="h-px bg-[#333] my-1" />
 
                 {/* Window Actions */}
                 {onPopOut && (
-                  <button
+                  <AnimatedMenuItem
+                    icon={MaximizeIcon}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                     onClick={() => handlePopOut(terminal)}
                   >
-                    <ExternalLink className="w-4 h-4" />
                     Pop Out
-                  </button>
+                  </AnimatedMenuItem>
                 )}
-                <button
+                <AnimatedMenuItem
+                  icon={ExpandIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 flex items-center gap-2 transition-colors"
                   onClick={() => handleOpenIn3D(terminal)}
                 >
-                  <Box className="w-4 h-4" />
                   Open in 3D Focus
-                </button>
+                </AnimatedMenuItem>
 
                 <div className="h-px bg-[#333] my-1" />
 
                 {/* Session Actions */}
-                <button
+                <AnimatedMenuItem
+                  icon={CopyIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                   onClick={() => handleCopySessionId(terminal.sessionName!)}
                 >
-                  <Copy className="w-4 h-4" />
                   Copy Session ID
-                </button>
+                </AnimatedMenuItem>
                 {onDetach && (
                   <button
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-yellow-500/10 hover:text-yellow-400 flex items-center gap-2 transition-colors"

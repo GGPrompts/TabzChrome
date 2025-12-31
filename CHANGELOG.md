@@ -15,6 +15,34 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.3.9] - 2025-12-30
+
+### Added
+- **Animated Icons** - 17 new animated icons with hover effects from lucide-animated:
+  - Context menu icons: Sparkles (customize), Settings, AttachFile (reference), SquarePen (rename), Maximize (pop out), Expand (3D focus), Copy, Eye (view text), Delete (kill)
+  - Header icons: Moon/Sun (theme), RefreshCw (refresh), Plus (new tab), ChevronDown, Keyboard (shortcuts), X (close)
+  - Dashboard: PanelLeftClose/Open (sidebar collapse), GithubIcon (wagging tail!)
+
+- **AnimatedMenuItem Component** - Wrapper that triggers icon animation when hovering anywhere on the menu item, not just the icon
+
+- **More Inline Actions** - Active Terminals page (grid and list views) now shows 6 action buttons per terminal:
+  - Edit Profile, Copy Session ID, Pop Out, Open in 3D Focus, View as Text, Kill Terminal
+  - Context menu still available for less common actions (Detach, Open Reference)
+
+### Fixed
+- **Edit Profile Navigation** - Clicking "Edit Profile" from Terminals page now correctly navigates to Profiles section with the edit dialog open
+  - Changed hash route from `#/settings-profiles` to `#/profiles` to match valid section names
+  - Added hashchange listener in SettingsProfiles to detect edit parameter
+
+- **Profile Sync** - Active Terminals page now updates in real-time when profile settings are changed:
+  - Added Chrome storage listener for `profiles` changes
+  - Terminals now look up profile from live profiles list instead of using stale cached data
+
+- **DeleteIcon SVG Errors** - Fixed console errors from animating SVG path `d` and line `y1/y2` attributes:
+  - Simplified animation to only lift and tilt the lid group
+
+---
+
 ## [1.3.8] - 2025-12-30
 
 ### Fixed

@@ -127,11 +127,15 @@ export default function TerminalsSection() {
 
     loadChromeSessions()
 
-    // Listen for changes to terminal sessions
+    // Listen for changes to terminal sessions and profiles
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.terminalSessions) {
         const newValue = changes.terminalSessions.newValue
         setChromeSessions(Array.isArray(newValue) ? newValue as ChromeTerminalSession[] : [])
+      }
+      if (changes.profiles) {
+        const newProfiles = changes.profiles.newValue
+        setProfiles(Array.isArray(newProfiles) ? newProfiles as Profile[] : [])
       }
     }
 
@@ -254,7 +258,10 @@ export default function TerminalsSection() {
     const displayMode: TerminalDisplayMode = chromeSession?.focusedIn3D ? '3d'
       : chromeSession?.poppedOut ? 'popout'
       : 'sidebar'
-    return { displayMode, profile: chromeSession?.profile }
+    // Look up profile from live profiles list to get latest settings
+    const profileId = chromeSession?.profile?.id
+    const liveProfile = profileId ? profiles.find(p => p.id === profileId) : undefined
+    return { displayMode, profile: liveProfile || chromeSession?.profile }
   }
 
   // Filter to only registered terminals (excludes orphans)

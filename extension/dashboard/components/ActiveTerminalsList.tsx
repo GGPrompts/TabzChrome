@@ -1,5 +1,16 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
-import { Terminal, Trash2, Eye, GitBranch, Folder, GripVertical, Copy, Box, PanelLeft, ExternalLink, Settings, Paperclip, Unplug } from 'lucide-react'
+import { Terminal, Folder, GripVertical, PanelLeft, Unplug } from 'lucide-react'
+import {
+  DeleteIcon,
+  EyeIcon,
+  GitBranchIcon,
+  CopyIcon,
+  ExpandIcon,
+  MaximizeIcon,
+  SettingsIcon,
+  AttachFileIcon,
+} from '../../components/icons'
+import { AnimatedMenuItem } from '../../components/AnimatedMenuItem'
 import { compactPath } from '../../shared/utils'
 
 import type { Profile } from '../../components/settings/types'
@@ -192,14 +203,14 @@ const DisplayModeIndicator = ({ mode }: { mode?: TerminalDisplayMode }) => {
   if (mode === 'popout') {
     return (
       <span className="flex items-center gap-1 px-1 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400 border border-blue-500/50" title="Popped out">
-        <ExternalLink className="w-3 h-3" />
+        <MaximizeIcon size={12} />
       </span>
     )
   }
   if (mode === '3d') {
     return (
       <span className="flex items-center gap-1 px-1 py-0.5 text-xs rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" title="3D Focus">
-        <Box className="w-3 h-3" />
+        <ExpandIcon size={12} />
       </span>
     )
   }
@@ -215,7 +226,7 @@ const DEFAULT_COLUMNS = {
   path: 180,
   git: 100,
   created: 70,
-  actions: 60,
+  actions: 180,
 }
 
 const MAX_HISTORY_ENTRIES = 12
@@ -368,9 +379,8 @@ export function ActiveTerminalsList({
 
   const handleEditProfile = (terminal: TerminalItem) => {
     const profileId = terminal.profile?.id || 'default'
-    chrome.tabs.create({
-      url: chrome.runtime.getURL(`dashboard/index.html#/settings-profiles?edit=${encodeURIComponent(profileId)}`)
-    })
+    // Navigate within dashboard using hash routing
+    window.location.hash = `/profiles?edit=${encodeURIComponent(profileId)}`
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
   }
 
@@ -597,7 +607,7 @@ export function ActiveTerminalsList({
                 <td className="px-2 py-3" style={{ width: columnWidths.git }}>
                   {terminal.gitBranch ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <GitBranch className="w-3 h-3 flex-shrink-0" />
+                      <GitBranchIcon size={12} />
                       <span className="truncate">{terminal.gitBranch}</span>
                     </div>
                   ) : (
@@ -616,15 +626,40 @@ export function ActiveTerminalsList({
                 {/* Actions */}
                 {(onViewAsText || onKill) && (
                   <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-0.5">
                       {terminal.sessionName && (
-                        <button
-                          onClick={() => handleOpenIn3D(terminal)}
-                          className="p-1.5 rounded hover:bg-cyan-500/20 text-muted-foreground hover:text-cyan-400 transition-colors"
-                          title="Open in 3D Focus"
-                        >
-                          <Box className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleEditProfile(terminal)}
+                            className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                            title="Edit Profile"
+                          >
+                            <SettingsIcon size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleCopySessionId(terminal.sessionName!)}
+                            className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                            title="Copy Session ID"
+                          >
+                            <CopyIcon size={16} />
+                          </button>
+                          {onPopOut && (
+                            <button
+                              onClick={() => handlePopOut(terminal)}
+                              className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                              title="Pop Out"
+                            >
+                              <MaximizeIcon size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleOpenIn3D(terminal)}
+                            className="p-1.5 rounded hover:bg-cyan-500/20 text-muted-foreground hover:text-cyan-400 transition-colors"
+                            title="Open in 3D Focus"
+                          >
+                            <ExpandIcon size={16} />
+                          </button>
+                        </>
                       )}
                       {onViewAsText && terminal.sessionName && (
                         <button
@@ -632,7 +667,7 @@ export function ActiveTerminalsList({
                           className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
                           title="View as text"
                         >
-                          <Eye className="w-4 h-4" />
+                          <EyeIcon size={16} />
                         </button>
                       )}
                       {onKill && (
@@ -641,7 +676,7 @@ export function ActiveTerminalsList({
                           className="p-1.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                           title="Kill terminal"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <DeleteIcon size={16} />
                         </button>
                       )}
                     </div>
@@ -703,7 +738,7 @@ export function ActiveTerminalsList({
                   }}
                   title="Copy session ID"
                 >
-                  <Copy className="w-3 h-3" />
+                  <CopyIcon size={12} />
                 </button>
               </div>
             )}
@@ -724,7 +759,7 @@ export function ActiveTerminalsList({
             {/* Git Branch */}
             {hoveredTerminalData.gitBranch && (
               <div className="flex items-center gap-2 mb-2">
-                <GitBranch className="w-4 h-4 text-purple-400" />
+                <GitBranchIcon size={16} className="text-purple-400" />
                 <span className="text-[13px] text-purple-400">{hoveredTerminalData.gitBranch}</span>
               </div>
             )}
@@ -799,53 +834,53 @@ export function ActiveTerminalsList({
             {isTmuxSession && terminal.sessionName && (
               <>
                 {/* Profile Actions */}
-                <button
+                <AnimatedMenuItem
+                  icon={SettingsIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                   onClick={() => handleEditProfile(terminal)}
                 >
-                  <Settings className="w-4 h-4" />
                   Edit Profile...
-                </button>
+                </AnimatedMenuItem>
                 {hasReference && (
-                  <button
+                  <AnimatedMenuItem
+                    icon={AttachFileIcon}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 flex items-center gap-2 transition-colors"
                     onClick={() => handleOpenReference(terminal)}
                   >
-                    <Paperclip className="w-4 h-4" />
                     Open Reference
-                  </button>
+                  </AnimatedMenuItem>
                 )}
 
                 <div className="h-px bg-[#333] my-1" />
 
                 {/* Window Actions */}
                 {onPopOut && (
-                  <button
+                  <AnimatedMenuItem
+                    icon={MaximizeIcon}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                     onClick={() => handlePopOut(terminal)}
                   >
-                    <ExternalLink className="w-4 h-4" />
                     Pop Out
-                  </button>
+                  </AnimatedMenuItem>
                 )}
-                <button
+                <AnimatedMenuItem
+                  icon={ExpandIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 flex items-center gap-2 transition-colors"
                   onClick={() => handleOpenIn3D(terminal)}
                 >
-                  <Box className="w-4 h-4" />
                   Open in 3D Focus
-                </button>
+                </AnimatedMenuItem>
 
                 <div className="h-px bg-[#333] my-1" />
 
                 {/* Session Actions */}
-                <button
+                <AnimatedMenuItem
+                  icon={CopyIcon}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] flex items-center gap-2 transition-colors"
                   onClick={() => handleCopySessionId(terminal.sessionName!)}
                 >
-                  <Copy className="w-4 h-4" />
                   Copy Session ID
-                </button>
+                </AnimatedMenuItem>
                 {onDetach && (
                   <button
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-yellow-500/10 hover:text-yellow-400 flex items-center gap-2 transition-colors"

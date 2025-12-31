@@ -1,5 +1,16 @@
 import React from 'react'
-import { Palette, Settings, Paperclip, Pencil, ExternalLink, Box, Copy, Eye, Trash2 } from 'lucide-react'
+import {
+  SettingsIcon,
+  AttachFileIcon,
+  SquarePenIcon,
+  MaximizeIcon,
+  ExpandIcon,
+  CopyIcon,
+  EyeIcon,
+  DeleteIcon,
+  SparklesIcon,
+} from './icons'
+import { AnimatedMenuItem } from './AnimatedMenuItem'
 import { type Profile } from './settings/types'
 
 /**
@@ -102,91 +113,99 @@ export function SessionContextMenu({
     >
       {/* Customize - first option */}
       {onCustomize && (
-        <button
+        <AnimatedMenuItem
+          icon={SparklesIcon}
           className="context-menu-item"
           onClick={() => {
             onCustomize()
             onClose()
           }}
         >
-          <Palette className="w-4 h-4" /> Customize...
-        </button>
+          {' '}Customize...
+        </AnimatedMenuItem>
       )}
       {onEditProfile && (
-        <button
+        <AnimatedMenuItem
+          icon={SettingsIcon}
           className="context-menu-item"
           onClick={() => {
             onEditProfile()
             onClose()
           }}
         >
-          <Settings className="w-4 h-4" /> Edit Profile...
-        </button>
+          {' '}Edit Profile...
+        </AnimatedMenuItem>
       )}
       {onOpenReference && (
-        <button
+        <AnimatedMenuItem
+          icon={AttachFileIcon}
           className="context-menu-item"
           onClick={() => {
             onOpenReference()
             onClose()
           }}
         >
-          <Paperclip className="w-4 h-4" /> Open Reference
-        </button>
+          {' '}Open Reference
+        </AnimatedMenuItem>
       )}
-      <button
+      <AnimatedMenuItem
+        icon={SquarePenIcon}
         className="context-menu-item"
         onClick={() => {
           onRename()
           onClose()
         }}
       >
-        <Pencil className="w-4 h-4" /> Rename Tab...
-      </button>
+        {' '}Rename Tab...
+      </AnimatedMenuItem>
       {isTmuxSession && onPopOut && (
-        <button
+        <AnimatedMenuItem
+          icon={MaximizeIcon}
           className="context-menu-item"
           onClick={() => {
             onPopOut()
             onClose()
           }}
         >
-          <ExternalLink className="w-4 h-4" /> Pop Out
-        </button>
+          {' '}Pop Out
+        </AnimatedMenuItem>
       )}
       {isTmuxSession && (
-        <button
+        <AnimatedMenuItem
+          icon={ExpandIcon}
           className="context-menu-item"
           onClick={() => {
             onOpenIn3D()
             onClose()
           }}
         >
-          <Box className="w-4 h-4" /> Open in 3D Focus
-        </button>
+          {' '}Open in 3D Focus
+        </AnimatedMenuItem>
       )}
       {isTmuxSession && (
         <>
           <div className="context-menu-divider" />
-          <button
+          <AnimatedMenuItem
+            icon={CopyIcon}
             className="context-menu-item"
             onClick={() => {
               onCopyId()
               onClose()
             }}
           >
-            <Copy className="w-4 h-4" /> Copy Session ID
-          </button>
+            {' '}Copy Session ID
+          </AnimatedMenuItem>
           {onViewAsText && (
-            <button
+            <AnimatedMenuItem
+              icon={EyeIcon}
               className="context-menu-item"
               onClick={() => {
                 onViewAsText()
                 onClose()
               }}
             >
-              <Eye className="w-4 h-4" /> View as Text
-            </button>
+              {' '}View as Text
+            </AnimatedMenuItem>
           )}
           <div className="context-menu-divider" />
           <button
@@ -198,15 +217,16 @@ export function SessionContextMenu({
           >
             👻 Detach Session
           </button>
-          <button
+          <AnimatedMenuItem
+            icon={DeleteIcon}
             className="context-menu-item"
             onClick={() => {
               onKill()
               onClose()
             }}
           >
-            <Trash2 className="w-4 h-4" /> Kill Session
-          </button>
+            {' '}Kill Session
+          </AnimatedMenuItem>
         </>
       )}
     </div>

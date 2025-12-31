@@ -1,0 +1,105 @@
+'use client'
+
+import type { Transition, Variants } from 'motion/react'
+import type { HTMLAttributes } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
+import { motion, useAnimation } from 'motion/react'
+
+import { cn } from '../../lib/utils'
+
+export interface MoonIconHandle {
+  startAnimation: () => void
+  stopAnimation: () => void
+}
+
+interface MoonIconProps extends HTMLAttributes<HTMLDivElement> {
+  size?: number
+  isHovered?: boolean
+}
+
+const SVG_VARIANTS: Variants = {
+  normal: {
+    rotate: 0,
+  },
+  animate: {
+    rotate: [0, -10, 10, -5, 5, 0],
+  },
+}
+
+const SVG_TRANSITION: Transition = {
+  duration: 1.2,
+  ease: 'easeInOut',
+}
+
+const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 20, isHovered, ...props }, ref) => {
+    const controls = useAnimation()
+    const isControlledRef = useRef(false)
+
+    useEffect(() => {
+      if (isHovered !== undefined) {
+        isControlledRef.current = true
+        controls.start(isHovered ? 'animate' : 'normal')
+      }
+    }, [isHovered, controls])
+
+    useImperativeHandle(ref, () => {
+      isControlledRef.current = true
+
+      return {
+        startAnimation: () => controls.start('animate'),
+        stopAnimation: () => controls.start('normal'),
+      }
+    })
+
+    const handleMouseEnter = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isControlledRef.current && isHovered === undefined) {
+          controls.start('animate')
+        }
+        onMouseEnter?.(e)
+      },
+      [controls, onMouseEnter, isHovered]
+    )
+
+    const handleMouseLeave = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isControlledRef.current && isHovered === undefined) {
+          controls.start('normal')
+        }
+        onMouseLeave?.(e)
+      },
+      [controls, onMouseLeave, isHovered]
+    )
+
+    return (
+      <div
+        className={cn('select-none', className)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        {...props}
+      >
+        <motion.svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          variants={SVG_VARIANTS}
+          animate={controls}
+          transition={SVG_TRANSITION}
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </motion.svg>
+      </div>
+    )
+  }
+)
+
+MoonIcon.displayName = 'MoonIcon'
+
+export { MoonIcon }

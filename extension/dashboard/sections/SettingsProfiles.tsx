@@ -153,7 +153,7 @@ export default function SettingsProfiles() {
       }
       setLoading(false)
 
-      // Check for edit parameter in URL hash (e.g., #/settings-profiles?edit=profile-id)
+      // Check for edit parameter in URL hash (e.g., #/profiles?edit=profile-id)
       const hash = window.location.hash
       if (hash.includes('?')) {
         const queryString = hash.split('?')[1]
@@ -165,12 +165,38 @@ export default function SettingsProfiles() {
             setEditingProfile({ ...profileToEdit })
             setIsAddingNew(false)
             // Clear the edit param from URL to prevent re-opening on refresh
-            window.history.replaceState(null, '', window.location.pathname + '#/settings-profiles')
+            window.history.replaceState(null, '', window.location.pathname + '#/profiles')
           }
         }
       }
     })
   }, [])
+
+  // Listen for hash changes to handle edit parameter (e.g., from Terminals page)
+  useEffect(() => {
+    const checkEditParam = () => {
+      const hash = window.location.hash
+      if (hash.includes('#/profiles') && hash.includes('?')) {
+        const queryString = hash.split('?')[1]
+        const params = new URLSearchParams(queryString)
+        const editProfileId = params.get('edit')
+        if (editProfileId && profiles.length > 0) {
+          const profileToEdit = profiles.find(p => p.id === editProfileId)
+          if (profileToEdit) {
+            setEditingProfile({ ...profileToEdit })
+            setIsAddingNew(false)
+            // Clear the edit param from URL to prevent re-opening on refresh
+            window.history.replaceState(null, '', window.location.pathname + '#/profiles')
+          }
+        }
+      }
+    }
+
+    // Check on mount and on hash change
+    checkEditParam()
+    window.addEventListener('hashchange', checkEditParam)
+    return () => window.removeEventListener('hashchange', checkEditParam)
+  }, [profiles])
 
   // Listen for Chrome storage changes
   useEffect(() => {

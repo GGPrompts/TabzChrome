@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  ChevronLeft,
-  ChevronRight,
   Wifi,
   WifiOff,
   Folder,
@@ -19,6 +17,8 @@ import {
   VolumeIcon,
   GridIcon,
   GithubIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
 } from '../components/icons'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 
@@ -490,10 +490,10 @@ export default function App() {
             className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-1 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             {sidebarCollapsed ? (
-              <ChevronRight className="w-5 h-5" />
+              <PanelLeftOpenIcon size={20} />
             ) : (
               <>
-                <ChevronLeft className="w-5 h-5" />
+                <PanelLeftCloseIcon size={20} />
                 <span className="text-sm">Collapse</span>
               </>
             )}

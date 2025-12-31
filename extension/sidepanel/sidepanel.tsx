@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Plus, X, ChevronDown, Moon, Sun, Keyboard, Volume2, VolumeX, RefreshCw, Grid3X3 } from 'lucide-react'
+import { Terminal as TerminalIcon, Volume2, VolumeX, Grid3X3 } from 'lucide-react'
+import {
+  MoonIcon,
+  SunIcon,
+  RefreshCwIcon,
+  PlusIcon,
+  ChevronDownIcon,
+  KeyboardIcon,
+  XIcon,
+} from '../components/icons'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
 import { TerminalCustomizePopover } from '../components/TerminalCustomizePopover'
@@ -386,7 +395,7 @@ function SidePanelTerminal() {
         setTimeout(() => chatInput.chatInputRef.current?.focus(), 100)
       } else if (message.type === 'OPEN_SETTINGS_EDIT_PROFILE') {
         // Open dashboard settings profiles page
-        chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html#/settings-profiles') })
+        chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html#/profiles') })
       } else if (message.type === 'SWITCH_TO_TERMINAL') {
         // Switch to a specific terminal tab (from dashboard click)
         const terminalId = (message as any).terminalId
@@ -875,7 +884,7 @@ function SidePanelTerminal() {
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {isDark ? <MoonIcon size={16} /> : <SunIcon size={16} />}
           </button>
 
           {/* Working Directory Dropdown */}
@@ -908,7 +917,7 @@ function SidePanelTerminal() {
             title="Keyboard Shortcuts"
             aria-label="Configure keyboard shortcuts"
           >
-            <Keyboard className="h-4 w-4" />
+            <KeyboardIcon size={16} />
           </button>
 
           {/* Audio Mute Toggle */}
@@ -935,7 +944,7 @@ function SidePanelTerminal() {
             title="Refresh sidebar"
             aria-label="Refresh sidebar"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCwIcon size={16} />
           </button>
         </div>
       </div>
@@ -1050,7 +1059,7 @@ function SidePanelTerminal() {
                       title="Close tab"
                       aria-label={`Close ${session.name} terminal`}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <XIcon size={14} />
                     </button>
                   </div>
                   )
@@ -1078,7 +1087,7 @@ function SidePanelTerminal() {
                     title="New tab (default profile)"
                     aria-label="Create new terminal tab with default profile"
                   >
-                    <Plus className="h-4 w-4" />
+                    <PlusIcon size={16} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -1096,7 +1105,7 @@ function SidePanelTerminal() {
                     aria-expanded={showProfileDropdown}
                     aria-haspopup="menu"
                   >
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDownIcon size={12} />
                   </button>
                 </div>
               </div>
@@ -1148,7 +1157,7 @@ function SidePanelTerminal() {
                         className="px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00c8ff] text-black rounded-l-md hover:opacity-90 transition-opacity font-medium flex items-center"
                         aria-label="Create new terminal with default profile"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <PlusIcon size={16} className="mr-2" />
                         New Terminal
                       </button>
                       <button
@@ -1162,7 +1171,7 @@ function SidePanelTerminal() {
                         aria-expanded={showEmptyStateDropdown}
                         aria-haspopup="menu"
                       >
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDownIcon size={16} />
                       </button>
                       {/* Profile Dropdown - with collapsible categories */}
                       {showEmptyStateDropdown && profiles.length > 0 && (
@@ -1399,7 +1408,7 @@ function SidePanelTerminal() {
           // Open dashboard settings profiles page with specific profile to edit
           const terminal = sessions.find(t => t.id === contextMenu.terminalId)
           const profileId = terminal?.profile?.id || defaultProfileId || 'default'
-          chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard/index.html#/settings-profiles?edit=${encodeURIComponent(profileId)}`) })
+          chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard/index.html#/profiles?edit=${encodeURIComponent(profileId)}`) })
         }}
         onOpenReference={(() => {
           const terminal = sessions.find(t => t.id === contextMenu.terminalId)
