@@ -296,7 +296,7 @@ export function TerminalsGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {terminals.map((terminal) => {
           const history = statusHistory.get(terminal.id) || []
           const status = getClaudeStatusDisplay(terminal.claudeState, terminal.paneTitle)
@@ -361,14 +361,14 @@ export function TerminalsGrid({
               <div className="relative z-10 flex flex-col flex-1">
                 {/* Header: Name + Display Mode + AI Tool */}
                 <div className="px-4 py-3 border-b border-white/10">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-medium truncate" style={{ color: themeForeground }}>
+                  <div className="flex items-center justify-between gap-2 overflow-hidden">
+                    <span className="text-[14px] font-medium truncate min-w-0" style={{ color: themeForeground }}>
                       {terminal.name || 'Unnamed'}
                     </span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <DisplayModeIndicator mode={terminal.displayMode} />
                       {terminal.aiTool && (
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-black/40 text-orange-400 border border-orange-500/50">
+                        <span className="px-1.5 py-0.5 text-xs rounded bg-black/40 text-orange-400 border border-orange-500/50 whitespace-nowrap">
                           {terminal.aiTool === 'claude-code' ? 'claude' : terminal.aiTool}
                         </span>
                       )}
@@ -376,8 +376,8 @@ export function TerminalsGrid({
                   </div>
                   {/* Session ID */}
                   {terminal.sessionName && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-mono text-white/40 truncate">
+                    <div className="flex items-center gap-2 mt-1 overflow-hidden">
+                      <span className="text-[11px] font-mono text-white/40 truncate min-w-0 flex-1">
                         {terminal.sessionName}
                       </span>
                       <button
@@ -419,7 +419,7 @@ export function TerminalsGrid({
                 {/* Claude Status + Context */}
                 {terminal.claudeState && (
                   <div className="px-4 py-2 border-b border-white/10">
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center gap-2 overflow-hidden w-full">
                       {/* Animated bot icons - orange, show multiple for subagents */}
                       <span className="flex-shrink-0 text-orange-400 flex items-center">
                         {Array(1 + (terminal.claudeState?.subagent_count || 0)).fill(0).map((_, i) => (
@@ -483,9 +483,9 @@ export function TerminalsGrid({
                     <div className="text-xs font-medium mb-1.5" style={{ color: themeGreen }}>Recent activity</div>
                     <div className="space-y-0.5 max-h-[100px] overflow-y-auto">
                       {history.map((entry, i) => (
-                        <div key={i} className="flex items-start gap-2 text-xs">
-                          <span className="flex-1 truncate" style={{ color: themeForeground }}>{entry.text}</span>
-                          <span className="text-[10px] flex-shrink-0" style={{ color: `${themeGreen}cc` }}>
+                        <div key={i} className="flex items-start gap-2 text-xs overflow-hidden">
+                          <span className="flex-1 truncate min-w-0" style={{ color: themeForeground }}>{entry.text}</span>
+                          <span className="text-[10px] flex-shrink-0 whitespace-nowrap" style={{ color: `${themeGreen}cc` }}>
                             {formatRelativeTime(entry.timestamp)}
                           </span>
                         </div>
