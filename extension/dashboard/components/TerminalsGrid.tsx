@@ -111,7 +111,7 @@ const DisplayModeIndicator = ({ mode }: { mode?: TerminalDisplayMode }) => {
 }
 
 // Get rich Claude status display
-const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState']) => {
+const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState'], paneTitle?: string | null) => {
   if (!claudeState) return null
 
   const emoji = claudeState.currentTool ? (toolEmojis[claudeState.currentTool] || '🔧') : ''
@@ -119,7 +119,12 @@ const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState']) => {
   let detail = ''
 
   if (claudeState.status === 'awaiting_input' || claudeState.status === 'idle') {
-    label = 'Ready'
+    // Show paneTitle (current todo) instead of generic "Ready" when available
+    if (paneTitle) {
+      label = paneTitle
+    } else {
+      label = 'Ready'
+    }
   } else if (claudeState.currentTool) {
     label = claudeState.currentTool
 
@@ -294,7 +299,7 @@ export function TerminalsGrid({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {terminals.map((terminal) => {
           const history = statusHistory.get(terminal.id) || []
-          const status = getClaudeStatusDisplay(terminal.claudeState)
+          const status = getClaudeStatusDisplay(terminal.claudeState, terminal.paneTitle)
           const contextPct = terminal.claudeState?.context_pct
 
           // Compute themed background from profile
@@ -455,6 +460,18 @@ export function TerminalsGrid({
                         />
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Non-Claude terminal with paneTitle (e.g., PyRadio song, app status) */}
+                {!terminal.claudeState && terminal.paneTitle && (
+                  <div className="px-4 py-2 border-b border-white/10">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="flex-shrink-0 text-sm" style={{ color: themeGreen }}>▸</span>
+                      <span className="text-sm truncate min-w-0 flex-1" style={{ color: themeGreen }}>
+                        {terminal.paneTitle}
+                      </span>
+                    </div>
                   </div>
                 )}
 

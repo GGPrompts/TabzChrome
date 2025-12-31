@@ -124,9 +124,9 @@ export function useGitOperations(repoName: string) {
     }
   }, [repoName])
 
-  // Spawn terminal with gitlogue or git log
-  const openGitlogue = useCallback(async (repoPath: string) => {
-    setLoading('gitlogue')
+  // Spawn terminal with lazygit
+  const openLazygit = useCallback(async (repoPath: string) => {
+    setLoading('lazygit')
     setError(null)
     try {
       const token = await getAuthToken()
@@ -137,9 +137,39 @@ export function useGitOperations(repoName: string) {
           'X-Auth-Token': token
         },
         body: JSON.stringify({
-          name: `gitlogue: ${repoName}`,
+          name: `lazygit: ${repoName}`,
           workingDir: repoPath,
-          command: `gitlogue -p "${repoPath}" --order desc --speed 7 || git log --oneline --graph --all`
+          command: `lazygit -p "${repoPath}" || git log --oneline --graph --all`
+        })
+      })
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open lazygit')
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }, [repoName])
+
+  // Spawn terminal with gitlogue for a specific commit
+  const openGitlogueCommit = useCallback(async (repoPath: string, commitHash: string) => {
+    setLoading(`gitlogue-${commitHash}`)
+    setError(null)
+    try {
+      const token = await getAuthToken()
+      const shortHash = commitHash.substring(0, 7)
+      const res = await window.fetch('http://localhost:8129/api/spawn', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token
+        },
+        body: JSON.stringify({
+          name: `gitlogue: ${shortHash}`,
+          workingDir: repoPath,
+          command: `gitlogue -p "${repoPath}" -c "${commitHash}" --speed 7`
         })
       })
       const result = await res.json()
@@ -151,7 +181,7 @@ export function useGitOperations(repoName: string) {
     } finally {
       setLoading(null)
     }
-  }, [repoName])
+  }, [])
 
   // Generate commit message using AI (Claude CLI with Haiku)
   const generateMessage = useCallback(async (model: string = 'haiku'): Promise<string> => {
@@ -287,7 +317,8 @@ export function useGitOperations(repoName: string) {
     push,
     pull,
     fetch,
-    openGitlogue,
+    openLazygit,
+    openGitlogueCommit,
     generateMessage,
     discardFiles,
     discardAll,

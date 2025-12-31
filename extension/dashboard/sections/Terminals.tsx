@@ -48,6 +48,7 @@ interface TmuxSession {
     } | null
   } | null
   paneCommand?: string
+  paneTitle?: string  // Dynamic pane title (Claude todo or app status like PyRadio song)
 }
 
 type ViewMode = 'table' | 'grid'
@@ -295,6 +296,7 @@ export default function TerminalsSection() {
         aiTool: s.aiTool,
         displayMode,
         profile,
+        paneTitle: s.paneTitle,
       }
     })
     // Sort to match sidebar tab order (terminals not in sidebar go to end)

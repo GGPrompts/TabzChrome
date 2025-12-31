@@ -22,7 +22,7 @@ interface GitQuickActionsProps {
   onPush: () => Promise<void>
   onPull: () => Promise<void>
   onFetch: () => Promise<void>
-  onOpenGitlogue: () => Promise<void>
+  onOpenLazygit: () => Promise<void>
   onStash: () => Promise<void>
   onStashPop: () => Promise<void>
   loading?: string | null
@@ -37,7 +37,7 @@ export function GitQuickActions({
   onPush,
   onPull,
   onFetch,
-  onOpenGitlogue,
+  onOpenLazygit,
   onStash,
   onStashPop,
   loading
@@ -57,18 +57,18 @@ export function GitQuickActions({
         </a>
       )}
 
-      {/* Gitlogue */}
+      {/* LazyGit */}
       <button
-        onClick={onOpenGitlogue}
-        disabled={loading === 'gitlogue'}
+        onClick={onOpenLazygit}
+        disabled={loading === 'lazygit'}
         className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50"
       >
-        {loading === 'gitlogue' ? (
+        {loading === 'lazygit' ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <Terminal className="w-3.5 h-3.5" />
         )}
-        Gitlogue
+        LazyGit
       </button>
 
       {/* Stash */}

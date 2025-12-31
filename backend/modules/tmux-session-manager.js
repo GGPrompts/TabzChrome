@@ -136,17 +136,29 @@ class TmuxSessionManager {
    */
   async enrichSessionMetadata(session) {
     try {
-      // Get pane information (use session name without window index - works with any base-index)
+      // Get pane information including pane_title (use session name without window index - works with any base-index)
       const paneInfo = execSync(
-        `tmux list-panes -t "${session.name}" -F "#{pane_id}|#{pane_current_path}|#{pane_current_command}"`,
+        `tmux list-panes -t "${session.name}" -F "#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_title}"`,
         { encoding: 'utf8' }
       ).trim().split('\n')[0]; // Get first pane
 
       if (paneInfo) {
-        const [paneId, workingDir, command] = paneInfo.split('|');
+        const [paneId, workingDir, command, rawPaneTitle] = paneInfo.split('|');
         session.paneId = paneId;
         session.workingDir = workingDir;
         session.paneCommand = command;
+
+        // Store paneTitle if it's meaningful (not hostname, shell name, or generic)
+        // This is set by Claude Code for current todo, or by apps like PyRadio for current song
+        const hostnamePattern = /^(localhost|[\w]+-?(desktop|laptop)|ip-[\d-]+)$/i;
+        const genericShellPattern = /^(bash|zsh|sh|fish|python|node)$/i;
+        if (rawPaneTitle &&
+            !hostnamePattern.test(rawPaneTitle) &&
+            !genericShellPattern.test(rawPaneTitle) &&
+            !rawPaneTitle.startsWith('~') &&
+            !rawPaneTitle.startsWith('/')) {
+          session.paneTitle = rawPaneTitle;
+        }
 
         // Get git branch if in a repo
         if (workingDir && fs.existsSync(workingDir)) {

@@ -60,7 +60,8 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
     push,
     pull,
     fetch,
-    openGitlogue,
+    openLazygit,
+    openGitlogueCommit,
     generateMessage,
     discardFiles,
     discardAll,
@@ -105,8 +106,12 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
     onRefresh()
   }
 
-  const handleOpenGitlogue = async () => {
-    await openGitlogue(repo.path)
+  const handleOpenLazygit = async () => {
+    await openLazygit(repo.path)
+  }
+
+  const handleOpenGitlogueCommit = async (commitHash: string) => {
+    await openGitlogueCommit(repo.path, commitHash)
   }
 
   const handleDiscard = async (files: string[]) => {
@@ -234,7 +239,7 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
             onPush={handlePush}
             onPull={handlePull}
             onFetch={handleFetch}
-            onOpenGitlogue={handleOpenGitlogue}
+            onOpenLazygit={handleOpenLazygit}
             onStash={handleStash}
             onStashPop={handleStashPop}
             loading={loading}
@@ -308,6 +313,8 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
               repoName={repo.name}
               githubUrl={repo.githubUrl}
               limit={10}
+              onOpenGitlogue={handleOpenGitlogueCommit}
+              loading={loading}
             />
           </div>
 

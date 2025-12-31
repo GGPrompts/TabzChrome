@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { GitCommit as GitCommitIcon, ExternalLink, ChevronDown, ChevronRight, Loader2, MoreHorizontal } from 'lucide-react'
+import { GitCommit as GitCommitIcon, ExternalLink, ChevronDown, ChevronRight, Loader2, MoreHorizontal, Play } from 'lucide-react'
 import { GitCommit } from '../../../hooks/useGitRepos'
 
 interface GitCommitHistoryProps {
   repoName: string
   githubUrl: string | null
   limit?: number
+  onOpenGitlogue?: (commitHash: string) => Promise<void>
+  loading?: string | null
 }
 
-export function GitCommitHistory({ repoName, githubUrl, limit = 10 }: GitCommitHistoryProps) {
+export function GitCommitHistory({ repoName, githubUrl, limit = 10, onOpenGitlogue, loading: externalLoading }: GitCommitHistoryProps) {
   const [commits, setCommits] = useState<GitCommit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -160,6 +162,21 @@ export function GitCommitHistory({ repoName, githubUrl, limit = 10 }: GitCommitH
                     {commit.message}
                   </span>
                   <span className="text-muted-foreground shrink-0">{formatDate(commit.date)}</span>
+                  {/* Gitlogue replay button */}
+                  {onOpenGitlogue && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenGitlogue(commit.hash) }}
+                      disabled={externalLoading === `gitlogue-${commit.hash}`}
+                      className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted rounded transition-opacity disabled:opacity-50"
+                      title="Replay commit in gitlogue"
+                    >
+                      {externalLoading === `gitlogue-${commit.hash}` ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Play className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Expanded body */}

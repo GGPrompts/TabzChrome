@@ -45,6 +45,7 @@ export interface TerminalItem {
   aiTool?: string | null
   displayMode?: TerminalDisplayMode
   profile?: Profile  // Full profile for themed rendering
+  paneTitle?: string | null  // Dynamic pane title (Claude todo or app status like PyRadio song)
 }
 
 interface StatusHistoryEntry {
@@ -100,7 +101,7 @@ const toolEmojis: Record<string, string> = {
 }
 
 // Get rich Claude status display with file/command details
-const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState']) => {
+const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState'], paneTitle?: string | null) => {
   if (!claudeState) return null
 
   const statusColors: Record<string, string> = {
@@ -120,7 +121,8 @@ const getClaudeStatusDisplay = (claudeState: TerminalItem['claudeState']) => {
   let fullDetail = ''
 
   if (claudeState.status === 'awaiting_input' || claudeState.status === 'idle') {
-    label = 'Ready'
+    // Show paneTitle (current todo) instead of generic "Ready" when available
+    label = paneTitle || 'Ready'
   } else if (claudeState.currentTool) {
     label = claudeState.currentTool
 
@@ -477,7 +479,7 @@ export function ActiveTerminalsList({
           {displayTerminals.map((terminal) => {
             const isClickable =
               terminal.id.startsWith('ctt-') || terminal.sessionName?.startsWith('ctt-')
-            const claudeStatus = getClaudeStatusDisplay(terminal.claudeState)
+            const claudeStatus = getClaudeStatusDisplay(terminal.claudeState, terminal.paneTitle)
 
             return (
               <tr
@@ -561,6 +563,11 @@ export function ActiveTerminalsList({
                           : {claudeStatus.detail}
                         </span>
                       )}
+                    </div>
+                  ) : terminal.paneTitle ? (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="flex-shrink-0 text-sm text-emerald-400">▸</span>
+                      <span className="text-sm text-emerald-400 truncate">{terminal.paneTitle}</span>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
@@ -762,7 +769,7 @@ export function ActiveTerminalsList({
                 <span className="text-sm flex-shrink-0">🤖</span>
                 <span className="text-[13px] text-gray-300 truncate min-w-0">
                   {(() => {
-                    const status = getClaudeStatusDisplay(hoveredTerminalData.claudeState)
+                    const status = getClaudeStatusDisplay(hoveredTerminalData.claudeState, hoveredTerminalData.paneTitle)
                     if (!status) return 'Unknown'
                     return status.detail
                       ? `${status.emoji} ${status.label}: ${status.fullDetail || status.detail}`
@@ -777,6 +784,16 @@ export function ActiveTerminalsList({
                     {hoveredTerminalData.claudeState.context_pct}%
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Non-Claude paneTitle (e.g., PyRadio song) */}
+            {!hoveredTerminalData.claudeState && hoveredTerminalData.paneTitle && (
+              <div className="flex items-center gap-2 pt-2 border-t border-[#333] overflow-hidden">
+                <span className="text-sm flex-shrink-0 text-emerald-400">▸</span>
+                <span className="text-[13px] text-emerald-400 truncate min-w-0">
+                  {hoveredTerminalData.paneTitle}
+                </span>
               </div>
             )}
 
