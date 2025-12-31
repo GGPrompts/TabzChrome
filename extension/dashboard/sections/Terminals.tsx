@@ -274,6 +274,10 @@ export default function TerminalsSection() {
 
   // Filter to only registered terminals (excludes orphans)
   const registeredIds = new Set(terminals.map(t => t.id))
+
+  // Build order map from Chrome storage sessions (sidebar order)
+  const sidebarOrder = new Map(chromeSessions.map((s, index) => [s.id, index]))
+
   const activeTerminals: TerminalItem[] = tmuxSessions
     .filter(s => s.name.startsWith('ctt-') && registeredIds.has(s.name))
     .map((s): TerminalItem => {
@@ -292,6 +296,12 @@ export default function TerminalsSection() {
         displayMode,
         profile,
       }
+    })
+    // Sort to match sidebar tab order (terminals not in sidebar go to end)
+    .sort((a, b) => {
+      const orderA = sidebarOrder.get(a.id) ?? Infinity
+      const orderB = sidebarOrder.get(b.id) ?? Infinity
+      return orderA - orderB
     })
 
   return (

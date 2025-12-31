@@ -477,11 +477,11 @@ export function TerminalsGrid({
                 {history.length > 0 && (
                   <div className="px-4 py-2 border-b border-white/10">
                     <div className="text-xs font-medium mb-1.5" style={{ color: themeGreen }}>Recent activity</div>
-                    <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                    <div className="space-y-0.5 max-h-[100px] overflow-y-auto">
                       {history.map((entry, i) => (
-                        <div key={i} className="flex items-start gap-2 text-sm">
+                        <div key={i} className="flex items-start gap-2 text-xs">
                           <span className="flex-1 truncate" style={{ color: themeForeground }}>{entry.text}</span>
-                          <span className="text-xs flex-shrink-0" style={{ color: `${themeGreen}cc` }}>
+                          <span className="text-[10px] flex-shrink-0" style={{ color: `${themeGreen}cc` }}>
                             {formatRelativeTime(entry.timestamp)}
                           </span>
                         </div>
