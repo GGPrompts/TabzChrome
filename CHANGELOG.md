@@ -15,6 +15,35 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.3.10] - 2025-12-31
+
+### Added
+- **Pane Title Tracking** - Terminal cards now display dynamic status from tmux pane titles:
+  - Claude status (current todo item being worked on)
+  - TUI app status (e.g., PyRadio currently playing song)
+  - New `usePaneTitles` hook for extension-side pane title support
+  - Filters out generic/path values to show only meaningful status
+
+- **Tmux Status Bar Enhancements** - Profile name and Claude pane_title now visible in tmux status bar:
+  - Sets `@profile` option when spawning terminals with profiles
+  - Status bar shows current profile and activity
+
+- **Chrome Extension Customization Reference** - Comprehensive guide (`docs/reference/CHROME_EXTENSION_CUSTOMIZATION.md`) covering:
+  - Customizable UI (new tab, side panel, toolbar icons, etc.)
+  - Customizable behavior (tabs, windows, network, storage)
+  - Hard limitations (address bar, browser chrome, native UI)
+  - Manifest V3 restrictions and user action requirements
+
+### Changed
+- **Terminal Sorting** - Dashboard terminals now match sidebar tab order for consistent organization
+- **Activity History Styling** - Reduced spacing and adjusted text sizes for better visual hierarchy
+- **Claude Status Display** - Syncs status history to Chrome storage for dashboard access
+- **Popout Window Sizes** - Increased default sizes for better visibility
+- **File Path Tooltips** - Improved tooltips in Files section
+- **Git Operations** - Renamed gitlogue to lazygit, added commit replay support
+
+---
+
 ## [1.3.9] - 2025-12-30
 
 ### Added
