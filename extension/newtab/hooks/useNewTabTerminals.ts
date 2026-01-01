@@ -91,7 +91,7 @@ export function useTerminals(): UseTerminalsReturn {
 
       // Load profile details
       const result = await new Promise<{ profiles?: any[] }>((resolve) =>
-        chrome.storage.local.get(['profiles'], resolve)
+        chrome.storage.local.get(['profiles'], (r: { profiles?: any[] }) => resolve(r))
       )
       const profile = result.profiles?.find(p => p.id === profileId)
 

@@ -18,7 +18,7 @@ export function useWorkingDir(): UseWorkingDirReturn {
 
   // Load from Chrome storage
   useEffect(() => {
-    chrome.storage.local.get(['globalWorkingDir', 'recentDirs'], async (result) => {
+    chrome.storage.local.get(['globalWorkingDir', 'recentDirs'], async (result: { globalWorkingDir?: string, recentDirs?: string[] }) => {
       let dir = result.globalWorkingDir || '~'
       let dirs = result.recentDirs || ['~']
 
@@ -42,10 +42,10 @@ export function useWorkingDir(): UseWorkingDirReturn {
     // Listen for changes
     const handleChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.globalWorkingDir?.newValue) {
-        setGlobalWorkingDir(changes.globalWorkingDir.newValue)
+        setGlobalWorkingDir(changes.globalWorkingDir.newValue as string)
       }
       if (changes.recentDirs?.newValue) {
-        setRecentDirs(changes.recentDirs.newValue)
+        setRecentDirs(changes.recentDirs.newValue as string[])
       }
     }
 

@@ -28,7 +28,7 @@ export function useProfiles(): UseProfilesReturn {
 
   useEffect(() => {
     // Load from Chrome storage
-    chrome.storage.local.get(['profiles', 'defaultProfile'], async (result) => {
+    chrome.storage.local.get(['profiles', 'defaultProfile'], async (result: { profiles?: Profile[], defaultProfile?: string }) => {
       if (result.profiles && Array.isArray(result.profiles)) {
         setProfiles(result.profiles)
         setDefaultProfileId(result.defaultProfile || 'default')
@@ -51,10 +51,10 @@ export function useProfiles(): UseProfilesReturn {
     // Listen for changes
     const handleChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.profiles?.newValue) {
-        setProfiles(changes.profiles.newValue)
+        setProfiles(changes.profiles.newValue as Profile[])
       }
       if (changes.defaultProfile?.newValue) {
-        setDefaultProfileId(changes.defaultProfile.newValue)
+        setDefaultProfileId(changes.defaultProfile.newValue as string)
       }
     }
 

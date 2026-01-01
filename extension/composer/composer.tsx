@@ -66,7 +66,7 @@ function CommandComposer() {
   // Load terminal data from Chrome storage and connect to background
   useEffect(() => {
     // Load initial data
-    chrome.storage.local.get(['terminalSessions', 'currentTerminalId', 'profiles', 'globalWorkingDir'], (result) => {
+    chrome.storage.local.get(['terminalSessions', 'currentTerminalId', 'profiles', 'globalWorkingDir'], (result: { terminalSessions?: TerminalSession[], currentTerminalId?: string, profiles?: Profile[], globalWorkingDir?: string }) => {
       if (result.terminalSessions) {
         setSessions(result.terminalSessions as TerminalSession[])
       }
