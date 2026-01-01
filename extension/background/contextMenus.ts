@@ -8,7 +8,7 @@ import {
   pendingPasteCommand, pendingQueueCommand,
   setPendingPasteCommand, setPendingQueueCommand
 } from './state'
-import { getValidWindowId, windowsToWslPath, spawnQuickTerminal, openComposer } from './utils'
+import { getValidWindowId, windowsToWslPath, spawnQuickTerminal } from './utils'
 
 /**
  * Context menu registration helper
@@ -99,28 +99,6 @@ export function setupContextMenus(): void {
     }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error creating spawn-quick-terminal menu:', chrome.runtime.lastError.message)
-      }
-    })
-
-    // Context menu for opening Command Composer (with selected text)
-    chrome.contextMenus.create({
-      id: 'open-composer',
-      title: 'Open Command Composer',
-      contexts: ['all'],
-    }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error creating open-composer menu:', chrome.runtime.lastError.message)
-      }
-    })
-
-    // Context menu for opening Command Composer with selected text
-    chrome.contextMenus.create({
-      id: 'compose-selection',
-      title: 'Compose "%s" in Composer',
-      contexts: ['selection'],
-    }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error creating compose-selection menu:', chrome.runtime.lastError.message)
       }
     })
 
@@ -313,24 +291,6 @@ export function setupContextMenuListener(): void {
       const result = await spawnQuickTerminal()
       if (!result.success) {
         console.error('[Background] Failed to spawn quick terminal:', result.error)
-      }
-      return
-    }
-
-    if (menuId === 'open-composer') {
-      console.log('[Background] Open Command Composer from context menu')
-      const result = await openComposer()
-      if (!result.success) {
-        console.error('[Background] Failed to open composer:', result.error)
-      }
-      return
-    }
-
-    if (menuId === 'compose-selection' && info.selectionText) {
-      console.log('[Background] Open Command Composer with selection')
-      const result = await openComposer({ text: info.selectionText })
-      if (!result.success) {
-        console.error('[Background] Failed to open composer:', result.error)
       }
       return
     }

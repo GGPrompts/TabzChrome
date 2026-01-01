@@ -7,7 +7,7 @@ import {
   connectedClients, broadcastToClients,
   setPendingPasteCommand, setPendingQueueCommand
 } from './state'
-import { tryOpenSidebar, spawnQuickTerminal, openComposer } from './utils'
+import { tryOpenSidebar, spawnQuickTerminal } from './utils'
 
 /**
  * Setup extension icon click handler
@@ -42,36 +42,6 @@ export function setupKeyboardHandler(): void {
       const result = await spawnQuickTerminal()
       if (!result.success) {
         console.error('[Background] Failed to spawn quick terminal:', result.error)
-      }
-      return
-    }
-
-    // Handle open-composer - opens Command Composer popup
-    if (command === 'open-composer') {
-      console.log('[Background] Open composer shortcut triggered')
-      // Try to get selected text to pre-fill
-      try {
-        const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-        let text: string | undefined
-
-        if (activeTab?.id && !activeTab.url?.startsWith('chrome://')) {
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: activeTab.id },
-            func: () => window.getSelection()?.toString() || ''
-          })
-          text = results[0]?.result || undefined
-        }
-
-        const result = await openComposer({ text })
-        if (!result.success) {
-          console.error('[Background] Failed to open composer:', result.error)
-        }
-      } catch (err) {
-        // If we can't get selection, just open composer without pre-fill
-        const result = await openComposer()
-        if (!result.success) {
-          console.error('[Background] Failed to open composer:', result.error)
-        }
       }
       return
     }

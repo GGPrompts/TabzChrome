@@ -145,44 +145,6 @@ export async function spawnQuickTerminal(): Promise<{ success: boolean; terminal
 }
 
 /**
- * Open the Command Composer popup window
- * Optionally pre-fill with text and target a specific terminal
- */
-export async function openComposer(options?: {
-  text?: string
-  target?: string
-}): Promise<{ success: boolean; windowId?: number; error?: string }> {
-  try {
-    let url = chrome.runtime.getURL('composer/composer.html')
-    const params = new URLSearchParams()
-
-    if (options?.text) {
-      params.set('text', options.text)
-    }
-    if (options?.target) {
-      params.set('target', options.target)
-    }
-
-    if (params.toString()) {
-      url += '?' + params.toString()
-    }
-
-    const newWindow = await chrome.windows.create({
-      url,
-      type: 'popup',
-      width: 540,
-      height: 480,
-      focused: true,
-    })
-
-    return { success: true, windowId: newWindow?.id }
-  } catch (err) {
-    console.error('[Background] Failed to open composer:', err)
-    return { success: false, error: (err as Error).message }
-  }
-}
-
-/**
  * Wait for download to complete with timeout
  */
 export function waitForDownload(

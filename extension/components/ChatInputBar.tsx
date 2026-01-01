@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react'
-import { History, X, ChevronDown, ListPlus } from 'lucide-react'
+import React from 'react'
+import { History, X, ChevronDown } from 'lucide-react'
 import type { UseChatInputReturn } from '../hooks/useChatInput'
 import type { TerminalSession } from '../hooks/useTerminalSessions'
 import type { ClaudeStatus } from '../hooks/useClaudeStatus'
@@ -25,10 +25,6 @@ interface ChatInputBarProps {
   getStatusText: (status: ClaudeStatus | undefined, profileName?: string) => string
   /** Function to get full status text with details */
   getFullStatusText: (status: ClaudeStatus | undefined) => string
-  /** Optional callback to add command to queue instead of sending */
-  onAddToQueue?: (command: string, targetId: string | null, mode: 'execute' | 'send') => void
-  /** Number of pending items in queue (for badge display) */
-  queueCount?: number
 }
 
 /**
@@ -61,8 +57,6 @@ export function ChatInputBar({
   getStatusEmoji,
   getStatusText,
   getFullStatusText,
-  onAddToQueue,
-  queueCount = 0,
 }: ChatInputBarProps) {
   const {
     chatInputText,
@@ -84,32 +78,6 @@ export function ChatInputBar({
   } = chatInput
 
   const { history, removeFromHistory } = commandHistory
-
-  // Handle adding to queue (Ctrl+Q or button click)
-  const handleAddToQueue = useCallback(() => {
-    if (!chatInputText.trim() || !onAddToQueue) return
-
-    // Get target - if specific tabs selected use first, otherwise null (current)
-    const targetId = targetTabs.size > 0
-      ? Array.from(targetTabs)[0]
-      : null
-
-    onAddToQueue(chatInputText.trim(), targetId, chatInputMode)
-    setChatInputText('')
-    chatInputRef.current?.focus()
-  }, [chatInputText, chatInputMode, targetTabs, onAddToQueue, setChatInputText, chatInputRef])
-
-  // Extended keyboard handler with queue support
-  const handleKeyDownWithQueue = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Ctrl+Q to add to queue
-    if (e.ctrlKey && e.key === 'q') {
-      e.preventDefault()
-      handleAddToQueue()
-      return
-    }
-    // Default handler
-    handleChatInputKeyDown(e)
-  }, [handleAddToQueue, handleChatInputKeyDown])
 
   return (
     <div className="border-t border-gray-700 bg-[#1a1a1a] flex items-center gap-2 px-2 py-1.5">
@@ -178,8 +146,8 @@ export function ChatInputBar({
         className="flex-1 h-7 px-3 bg-black border border-gray-600 rounded text-sm text-white font-mono focus:border-[#00ff88]/50 focus:outline-none placeholder-gray-500"
         value={chatInputText}
         onChange={handleChatInputChange}
-        onKeyDown={handleKeyDownWithQueue}
-        placeholder={chatInputMode === 'execute' ? "↑↓ history • Enter to run • Ctrl+Q queue" : "↑↓ history • Enter to send • Ctrl+Q queue"}
+        onKeyDown={handleChatInputKeyDown}
+        placeholder={chatInputMode === 'execute' ? "↑↓ history • Enter to execute" : "↑↓ history • Enter to send"}
       />
 
       {/* Target tabs dropdown */}
@@ -285,24 +253,6 @@ export function ChatInputBar({
         <option value="execute">Execute</option>
         <option value="send">Send</option>
       </select>
-
-      {/* Queue button (only if callback provided) */}
-      {onAddToQueue && (
-        <button
-          onClick={handleAddToQueue}
-          disabled={!chatInputText.trim()}
-          className="relative h-7 px-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-400 font-medium hover:bg-blue-500/20 hover:border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors group"
-          title="Add to queue (Ctrl+Q)"
-        >
-          <ListPlus className="h-3.5 w-3.5" />
-          {/* Queue count badge */}
-          {queueCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center px-1 rounded-full text-[9px] font-bold bg-[#00ff88] text-black">
-              {queueCount > 99 ? '99+' : queueCount}
-            </span>
-          )}
-        </button>
-      )}
 
       <button
         onClick={handleChatInputSend}

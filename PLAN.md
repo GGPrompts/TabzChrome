@@ -91,28 +91,20 @@ Detailed analysis in `audit-results/`:
   - Open in Viewer (files)
 - Reference: `~/projects/opustrator/frontend/src/components/EnhancedFileViewer.tsx` (lines 750-1270)
 
-### Floating Command Composer ✅ DONE (v1.3.11)
-- [x] **Pop-out composer window** - More space for editing prompts before sending
-- [x] **Features**:
-  - Multi-line editor for complex prompts
-  - Target selection: existing terminals OR spawn new
-  - "New Terminal" option with profile/directory/name selection
-  - Mode: Execute (Enter) / Paste only / Paste + focus
-  - AI prompt enhancement option
-  - Close after send option
-- [x] **Implementation**: `chrome.windows.create({ type: 'popup' })` for true floating window
-- [x] **Access**: Right-click context menu or `Alt+Shift+C` keyboard shortcut
+### Floating Command Composer
+- [ ] **Consider TUI approach instead** - Chrome popups too bulky
+- [ ] **TUI alternative ideas**:
+  - Run in tmux pane or popout terminal
+  - Use `gum` or `charm` tools for nice inputs
+  - Send to terminals via spawn API / tmux send-keys
+  - No Chrome UI overhead
 
-### Command Queue (Replace History) ✅ DONE (v1.3.11)
-- [x] **Replace unused history with queue** - Stage multiple prompts before dispatch
-- [x] **Queue features**:
-  - Add prompts with different targets per item
-  - Run sequentially or all at once (sequential, parallel modes)
-  - Edit before dispatch (inline editing)
-  - Reorder (drag-and-drop or up/down buttons)
-  - "Run Next", "Run All Sequential", "Run All Parallel" buttons
-- [x] **Keyboard shortcuts** - Ctrl+Q to queue, Ctrl+Shift+Enter to run next
-- [ ] **Pairs with floating composer** - Compose → Add to Queue → Dispatch when ready (future)
+### Command Queue (Replace History)
+- [ ] **Consider TUI approach instead** - Chrome UI too heavy
+- [ ] **TUI alternative ideas**:
+  - Queue manager as terminal app
+  - Integrate with prompt composer TUI
+  - Stage commands in a simple text file or SQLite
 
 ### Other File Tree Ideas
 - [ ] Keyboard navigation (arrow keys, Enter to open)

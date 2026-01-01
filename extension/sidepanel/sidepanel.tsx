@@ -22,7 +22,6 @@ import { GhostBadgeDropdown } from '../components/GhostBadgeDropdown'
 import { PopoutTerminalView } from '../components/PopoutTerminalView'
 import { WorkingDirDropdown } from '../components/WorkingDirDropdown'
 import { ChatInputBar } from '../components/ChatInputBar'
-import { CommandQueuePanel } from '../components/CommandQueuePanel'
 import { connectToBackground, sendMessage } from '../shared/messaging'
 import { setupConsoleForwarding } from '../shared/consoleForwarder'
 import { getEffectiveWorkingDir } from '../shared/utils'
@@ -38,7 +37,6 @@ import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useOutsideClick } from '../hooks/useOutsideClick'
-import { useCommandQueue } from '../hooks/useCommandQueue'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
 import '../styles/globals.css'
 
@@ -221,38 +219,6 @@ function SidePanelTerminal() {
     claudeStatuses,
     commandHistory: commandHistoryHook,
   })
-
-  // Command queue hook - manages staged prompts for strategic dispatch
-  const commandQueue = useCommandQueue({
-    sessions,
-    currentSession,
-    claudeStatuses,
-  })
-
-  // Global keyboard shortcuts for queue operations
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+Enter - Run next queue item
-      if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
-        e.preventDefault()
-        if (commandQueue.pendingCount > 0 && !commandQueue.isRunning) {
-          commandQueue.runNext()
-        }
-        return
-      }
-      // Ctrl+Shift+A - Run all sequential
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        e.preventDefault()
-        if (commandQueue.pendingCount > 0 && !commandQueue.isRunning) {
-          commandQueue.runAllSequential()
-        }
-        return
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [commandQueue])
 
   const portRef = useRef<chrome.runtime.Port | null>(null)
   const globalWorkingDirRef = useRef<string>('~')
@@ -1438,14 +1404,6 @@ function SidePanelTerminal() {
             )}
           </div>
 
-          {/* Command Queue Panel - Collapsible queue for staged prompts */}
-          {sessions.length > 0 && (
-            <CommandQueuePanel
-              queue={commandQueue}
-              sessions={sessions}
-            />
-          )}
-
           {/* Chat Input Bar - Multi-send with target selection */}
           {sessions.length > 0 && (
             <ChatInputBar
@@ -1459,8 +1417,6 @@ function SidePanelTerminal() {
               getStatusEmoji={getStatusEmoji}
               getStatusText={getStatusText}
               getFullStatusText={getFullStatusText}
-              onAddToQueue={commandQueue.addToQueue}
-              queueCount={commandQueue.pendingCount}
             />
           )}
         </div>

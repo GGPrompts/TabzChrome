@@ -63,9 +63,7 @@ export type MessageType =
   | 'UNTRACK_POPOUT_WINDOW'
   | 'GET_POPOUT_WINDOWS'
   | 'POPOUT_WINDOWS_RESPONSE'
-  | 'REGISTER_POPOUT_WINDOW'
-  // Command Composer
-  | 'OPEN_COMPOSER';
+  | 'REGISTER_POPOUT_WINDOW';
 
 export interface BaseMessage {
   type: MessageType;
@@ -375,13 +373,6 @@ export interface RegisterPopoutWindowMessage extends BaseMessage {
   terminalId: string;
 }
 
-// Command Composer - open the composer popup
-export interface OpenComposerMessage extends BaseMessage {
-  type: 'OPEN_COMPOSER';
-  text?: string;
-  target?: string;
-}
-
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -434,9 +425,7 @@ export type ExtensionMessage =
   | UntrackPopoutWindowMessage
   | GetPopoutWindowsMessage
   | PopoutWindowsResponseMessage
-  | RegisterPopoutWindowMessage
-  // Command Composer
-  | OpenComposerMessage;
+  | RegisterPopoutWindowMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {

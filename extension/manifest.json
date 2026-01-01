@@ -67,9 +67,6 @@
     "spawn-quick-terminal": {
       "description": "Spawn quick popout terminal"
     },
-    "open-composer": {
-      "description": "Open Command Composer (set shortcut in chrome://extensions/shortcuts)"
-    },
     "new-tab": {
       "suggested_key": {
         "default": "Alt+T"

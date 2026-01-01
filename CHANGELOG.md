@@ -29,43 +29,14 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
   - **Dark Theme** - Terminal-inspired aesthetic, not generic AI look
   - Uses `chrome_url_overrides.newtab` manifest entry
 
-- **Floating Command Composer** - Pop-out window for enhanced prompt editing:
-  - **Multi-line Editor** - Large textarea for complex prompts
-  - **AI Enhancement** - Optional background prompt improvement
-  - **Target Selection** - Choose existing terminal or spawn new
-  - **New Terminal Options** - Profile, directory, and name selection
-  - **Mode Options**: Execute (Enter), Paste only, Paste + focus
-  - **Close After Send** - Optional auto-close behavior
-  - **Context Menu** - Right-click → "Open Command Composer"
-  - **Keyboard Shortcut** - `Alt+Shift+C`
-  - Uses `chrome.windows.create({ type: 'popup' })`
-
-- **Command Queue** - Prompt staging system replaces unused history:
-  - **Queue Panel** - Collapsible panel above chat input
-  - **Per-item Targets** - Each command can target different terminals
-  - **Queue Operations** - Drag-and-drop reorder, inline edit, move up/down
-  - **Dispatch Modes**:
-    - "Next" - Run top pending item only
-    - "Sequential" - Run all one-by-one with 500ms delay
-    - "Parallel" - Fire all commands at once with 50ms stagger
-  - **Visual Feedback** - Running items show pulse animation and spinner
-  - **Persistence** - Queue saved to Chrome storage
-  - **Keyboard Shortcuts**: `Ctrl+Q` (queue), `Ctrl+Shift+Enter` (run next)
-  - **Queue Button** - New button with pending count badge
-
 ### New Entry Points
 - `extension/newtab/` - New tab page with React components
-- `extension/composer/` - Floating composer popup window
 
 ### New Files
 - `extension/newtab/NewTab.tsx` - Main new tab component
 - `extension/newtab/components/` - ClockWidget, CommandBar, ProfilesGrid, RecentDirs, StatusWidget, ShortcutsHint
 - `extension/newtab/hooks/` - useNewTabProfiles, useNewTabTerminals, useNewTabWorkingDir
 - `extension/newtab/styles/newtab.css` - Custom styles with CSS variables
-- `extension/composer/composer.tsx` - Floating composer React app
-- `extension/hooks/useCommandQueue.ts` - Queue state management
-- `extension/components/CommandQueuePanel.tsx` - Collapsible queue UI
-- `extension/components/CommandQueueItem.tsx` - Individual queue entry
 
 ---
 
