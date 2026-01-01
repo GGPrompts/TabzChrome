@@ -125,7 +125,10 @@ export function WebShortcuts({ onNavigate }: WebShortcutsProps) {
   return (
     <div className="shortcuts-section animate-slide-up stagger-4">
       <div className="shortcuts-header">
-        <div className="shortcuts-title">Web Shortcuts</div>
+        <div className="shortcuts-title">
+          <Globe className="w-4 h-4" />
+          Web Shortcuts
+        </div>
       </div>
 
       <div className="shortcuts-grid">

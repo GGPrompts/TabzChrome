@@ -2,17 +2,7 @@
 name: conductor
 description: "Orchestrate multi-session Claude workflows. Use for: spawning Claude agents in TabzChrome sidebar, killing terminals, sending prompts to other sessions via tmux, coordinating parallel work, browser automation via tabz MCP tools."
 model: opus
-allowedTools:
-  - Task
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - WebFetch
-  - WebSearch
-  - mcp__tabz
+tools: Task, Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, mcp:tabz:*
 ---
 
 # Conductor - Multi-Session Orchestrator

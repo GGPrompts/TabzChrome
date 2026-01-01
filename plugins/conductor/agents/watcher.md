@@ -2,11 +2,7 @@
 name: watcher
 description: "Monitor Claude worker sessions - check progress, context usage, completion status. Sends notifications for important events. Use for polling worker health before assigning new tasks."
 model: haiku
-allowedTools:
-  - Bash
-  - Read
-  - Glob
-  - mcp__tabz
+tools: Bash, Read, Glob, mcp:tabz:*
 ---
 
 # Watcher - Worker Health Monitor

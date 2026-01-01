@@ -2,6 +2,7 @@
 name: tabz-manager
 description: "Browser automation specialist - screenshots, clicks, forms, page inspection, network capture. Use for all tabz_* MCP operations."
 model: opus
+tools: Bash, Read, mcp:tabz:*
 ---
 
 # Tabz Manager - Browser Automation Specialist

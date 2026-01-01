@@ -9,6 +9,8 @@ interface ClaudeState {
   subagent_count?: number
 }
 
+type DisplayMode = 'sidebar' | 'popout' | '3d'
+
 interface TerminalInfo {
   id: string
   sessionName?: string
@@ -19,13 +21,14 @@ interface TerminalInfo {
   claudeState?: ClaudeState | null
   paneTitle?: string | null
   aiTool?: string | null
+  displayMode?: DisplayMode
 }
 
 interface UseTerminalsReturn {
   terminals: TerminalInfo[]
   connected: boolean
   spawnTerminal: (profileId: string, workingDir?: string) => void
-  focusTerminal: (terminalId: string) => void
+  focusTerminal: (terminalId: string, displayMode?: DisplayMode) => void
 }
 
 /**
@@ -90,28 +93,34 @@ export function useTerminals(): UseTerminalsReturn {
 
         // Filter to only ctt- terminals (Chrome extension managed)
         const cttTerminals = apiTerminals.filter((t: any) =>
-          t.name?.startsWith('ctt-') || t.id?.startsWith('ctt-')
+          t.id?.startsWith('ctt-')
         )
 
         // Merge API data with Chrome storage profile info
         const mapped: TerminalInfo[] = cttTerminals.map((t: any) => {
-          const chromeSession = chromeSessionMap.get(t.name) || chromeSessionMap.get(t.id)
+          const chromeSession = chromeSessionMap.get(t.id)
+          // Determine display mode from Chrome storage flags
+          const displayMode: DisplayMode = chromeSession?.focusedIn3D ? '3d'
+            : chromeSession?.poppedOut ? 'popout'
+            : 'sidebar'
           return {
-            id: t.name || t.id,
-            sessionName: t.name,
-            name: chromeSession?.name || t.displayName || t.name || 'Terminal',
+            id: t.id,                    // tmux session name (ctt-xxx)
+            sessionName: t.id,           // same as id for sidebar matching
+            name: chromeSession?.name || t.name || 'Terminal',  // display name
             workingDir: t.workingDir || chromeSession?.workingDir,
             profileColor: chromeSession?.profile?.color,
             profileIcon: chromeSession?.profile?.icon,
             claudeState: null as ClaudeState | null,
             paneTitle: null as string | null,
             aiTool: chromeSession?.profile?.command?.includes('claude') ? 'claude-code' : null,
+            displayMode,
           }
         })
 
-        // Fetch Claude status for each terminal that might be running Claude
+        // Fetch Claude status only for terminals running Claude (has 'claude' in profile command)
         const statusPromises = mapped.map(async (terminal) => {
-          if (!terminal.workingDir) return terminal
+          // Only poll Claude status for terminals with Claude in their profile command
+          if (!terminal.workingDir || !terminal.aiTool) return terminal
 
           try {
             const encodedDir = encodeURIComponent(terminal.workingDir)
@@ -126,11 +135,10 @@ export function useTerminals(): UseTerminalsReturn {
               if (status.status && status.status !== 'unknown') {
                 return {
                   ...terminal,
-                  aiTool: 'claude-code',
                   claudeState: {
                     status: status.status,
                     currentTool: status.current_tool || null,
-                    context_pct: status.context_pct ?? null,
+                    context_pct: status.context_window?.context_pct ?? null,
                     subagent_count: status.subagent_count,
                   },
                   paneTitle: status.pane_title || null,
@@ -208,13 +216,20 @@ export function useTerminals(): UseTerminalsReturn {
     }
   }, [])
 
-  // Focus an existing terminal
-  const focusTerminal = useCallback((terminalId: string) => {
-    // Send message to open sidebar and switch to this terminal
-    chrome.runtime.sendMessage({
-      type: 'OPEN_SIDEBAR',
-      data: { focusTerminal: terminalId }
-    })
+  // Focus an existing terminal (handles sidebar, popout, and 3D modes)
+  const focusTerminal = useCallback((terminalId: string, displayMode?: DisplayMode) => {
+    console.log('[NewTab] focusTerminal called:', { terminalId, displayMode })
+    if (displayMode === 'popout') {
+      // Focus the popout window
+      chrome.runtime.sendMessage({ type: 'FOCUS_POPOUT_TERMINAL', terminalId })
+    } else if (displayMode === '3d') {
+      // Focus the 3D Focus tab
+      chrome.runtime.sendMessage({ type: 'FOCUS_3D_TERMINAL', terminalId })
+    } else {
+      // Default: switch to terminal in sidebar
+      console.log('[NewTab] Sending SWITCH_TO_TERMINAL message')
+      chrome.runtime.sendMessage({ type: 'SWITCH_TO_TERMINAL', terminalId })
+    }
   }, [])
 
   return { terminals, connected, spawnTerminal, focusTerminal }

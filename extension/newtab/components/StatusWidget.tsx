@@ -8,6 +8,8 @@ interface ClaudeState {
   subagent_count?: number
 }
 
+type DisplayMode = 'sidebar' | 'popout' | '3d'
+
 interface TerminalInfo {
   id: string
   name: string
@@ -17,6 +19,7 @@ interface TerminalInfo {
   claudeState?: ClaudeState | null
   paneTitle?: string | null
   aiTool?: string | null
+  displayMode?: DisplayMode
 }
 
 // Get context percentage color
@@ -47,7 +50,7 @@ const toolEmojis: Record<string, string> = {
 interface StatusWidgetProps {
   terminals: TerminalInfo[]
   connected: boolean
-  onTerminalClick: (id: string) => void
+  onTerminalClick: (id: string, displayMode?: DisplayMode) => void
 }
 
 export function StatusWidget({ terminals, connected, onTerminalClick }: StatusWidgetProps) {
@@ -88,7 +91,7 @@ export function StatusWidget({ terminals, connected, onTerminalClick }: StatusWi
               <button
                 key={terminal.id}
                 className="terminal-item"
-                onClick={() => onTerminalClick(terminal.id)}
+                onClick={() => onTerminalClick(terminal.id, terminal.displayMode)}
               >
                 <div
                   className="terminal-icon"

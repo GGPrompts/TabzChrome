@@ -98,9 +98,11 @@ export function setupMessageHandlers(): void {
         break
 
       case 'SWITCH_TO_TERMINAL':
-        // Open sidebar and switch to a specific terminal tab (from dashboard)
+        // Open sidebar and switch to a specific terminal tab (from dashboard/newtab)
+        console.log('[Background] SWITCH_TO_TERMINAL received:', (message as any).terminalId)
         await tryOpenSidebar()
         setTimeout(() => {
+          console.log('[Background] Broadcasting SWITCH_TO_TERMINAL to clients')
           broadcastToClients({
             type: 'SWITCH_TO_TERMINAL',
             terminalId: (message as any).terminalId,

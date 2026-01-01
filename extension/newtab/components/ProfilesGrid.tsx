@@ -94,7 +94,10 @@ export function ProfilesGrid({
   return (
     <div className="profiles-section animate-slide-up stagger-3">
       <div className="profiles-header">
-        <div className="profiles-title">Terminals</div>
+        <div className="profiles-title">
+          <Terminal className="w-4 h-4" />
+          Terminals
+        </div>
 
         {/* Working Directory Dropdown */}
         <div className="profiles-workdir" ref={dirDropdownRef}>
@@ -159,31 +162,17 @@ export function ProfilesGrid({
         {displayProfiles.map((profile, index) => (
           <button
             key={profile.id}
-            className={`profile-card ${profile.pinnedToNewTab ? 'pinned' : ''}`}
+            className="profile-card"
             style={{
               '--card-accent': profile.color || 'var(--accent)',
             } as React.CSSProperties}
             onClick={() => onProfileClick(profile.id)}
+            title={profile.name}
           >
-            <div
-              className="profile-icon-wrapper"
-              style={{
-                backgroundColor: profile.color
-                  ? `${profile.color}15`
-                  : 'var(--elevated)',
-                color: profile.color || 'var(--accent)',
-              }}
-            >
-              {profile.icon ? (
-                <span>{profile.icon}</span>
-              ) : (
-                <Terminal className="w-5 h-5" />
-              )}
+            <div className="profile-icon-wrapper">
+              {profile.icon || <Terminal className="w-4 h-4" />}
             </div>
             <div className="profile-name">{profile.name}</div>
-            {profile.category && (
-              <div className="profile-category">{profile.category}</div>
-            )}
             {index < 6 && (
               <div className="profile-shortcut">{index + 1}</div>
             )}

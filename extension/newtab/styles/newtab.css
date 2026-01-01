@@ -169,6 +169,33 @@ body {
   gap: 2rem;
 }
 
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.dashboard-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard-button:hover {
+  border-color: var(--border-highlight);
+  color: var(--accent);
+  background: var(--elevated);
+}
+
 /* Main content - search and profiles */
 .newtab-main {
   flex: 1;
@@ -476,10 +503,12 @@ body {
 }
 
 .workdir-path {
-  max-width: 120px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 }
 
 .workdir-dropdown {
@@ -634,6 +663,7 @@ body {
 .newtab-grids {
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   gap: 3rem;
   width: 100%;
   max-width: 1100px;
@@ -658,6 +688,9 @@ body {
 }
 
 .profiles-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -679,10 +712,15 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
   cursor: pointer;
   transition: all var(--transition-base);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
 }
 
 .profile-card::before {
@@ -714,56 +752,38 @@ body {
 }
 
 .profile-icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--elevated);
   border-radius: 8px;
-  margin-bottom: 0.75rem;
   font-size: 1.25rem;
+  color: var(--card-accent, var(--accent));
 }
 
 .profile-name {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.75rem;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.profile-category {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .profile-shortcut {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: 0.5rem;
+  right: 0.5rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  padding: 0.2rem 0.4rem;
+  font-size: 0.6rem;
+  padding: 0.15rem 0.35rem;
   background: var(--elevated);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-muted);
-}
-
-/* Pinned indicator */
-.profile-card.pinned::after {
-  content: '';
-  position: absolute;
-  bottom: 0.75rem;
-  right: 0.75rem;
-  width: 6px;
-  height: 6px;
-  background: var(--amber);
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--amber-glow);
 }
 
 /* ============================================
@@ -777,12 +797,16 @@ body {
 
 .shortcuts-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 1rem;
+  min-height: 32px;
 }
 
 .shortcuts-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -1082,6 +1106,6 @@ body {
   }
 
   .workdir-path {
-    max-width: 80px;
+    max-width: 120px;
   }
 }

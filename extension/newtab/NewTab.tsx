@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { Settings } from 'lucide-react'
 import { ClockWidget } from './components/ClockWidget'
 import { StatusWidget } from './components/StatusWidget'
 import { CommandBar } from './components/CommandBar'
@@ -63,6 +64,11 @@ export default function NewTab() {
     window.location.href = url
   }, [])
 
+  // Open dashboard
+  const openDashboard = useCallback(() => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html') })
+  }, [])
+
   return (
     <>
       {/* Background effects */}
@@ -74,11 +80,21 @@ export default function NewTab() {
         {/* Header: Clock + Status */}
         <header className="newtab-header">
           <ClockWidget />
-          <StatusWidget
-            terminals={terminals}
-            connected={connected}
-            onTerminalClick={focusTerminal}
-          />
+          <div className="header-right">
+            <StatusWidget
+              terminals={terminals}
+              connected={connected}
+              onTerminalClick={focusTerminal}
+            />
+            <button
+              className="dashboard-button"
+              onClick={openDashboard}
+              title="Open Dashboard"
+            >
+              <img src="/icons/tabz-logo-light.png" alt="Tabz" className="h-5" />
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </header>
 
         {/* Main: Command Bar + Side-by-side grids */}

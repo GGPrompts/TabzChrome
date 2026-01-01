@@ -1,5 +1,6 @@
 {
   "name": "conductor",
   "version": "1.0.0",
-  "description": "Orchestrate multi-session Claude workflows - spawn agents, kill terminals, send prompts via tmux"
+  "description": "Orchestrate multi-session Claude workflows - spawn agents, kill terminals, send prompts via tmux",
+  "agents": "./agents/"
 }
