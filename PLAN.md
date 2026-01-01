@@ -196,6 +196,13 @@ Power-saving and performance improvements for video backgrounds:
 - [ ] **Configurable profile grid** - Setting to choose which 8 profiles display on new tab
   - Could use favorites, most used, or manual selection
   - Store in Chrome storage
+- [ ] **Weather widget** - Use free weather API from another project
+  - Minimal display: temp, conditions, icon
+  - Cache results to avoid API spam
+- [ ] **Quick notes terminal** - Spawn popup terminal with micro/default editor
+  - Notes tagged by working directory
+  - Quick capture for project-specific thoughts
+  - Could store in `~/.tabz-notes/{project}/`
 
 ### Waiting on Chrome Updates
 
