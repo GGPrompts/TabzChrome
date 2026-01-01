@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Search, Terminal, Globe, Folder, Bookmark, Star } from 'lucide-react'
 
 interface Profile {
@@ -39,13 +39,17 @@ function isValidUrl(str: string): boolean {
   return false
 }
 
-export function CommandBar({ profiles, recentDirs, onSpawnTerminal, onNavigate }: CommandBarProps) {
+export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(
+  function CommandBar({ profiles, recentDirs, onSpawnTerminal, onNavigate }, ref) {
   const [query, setQuery] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [bookmarks, setBookmarks] = useState<BookmarkResult[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Expose the input ref to parent
+  useImperativeHandle(ref, () => inputRef.current!, [])
 
   // Focus input on mount
   useEffect(() => {
@@ -286,4 +290,4 @@ export function CommandBar({ profiles, recentDirs, onSpawnTerminal, onNavigate }
       )}
     </div>
   )
-}
+})

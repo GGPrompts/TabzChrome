@@ -14,12 +14,44 @@ export default function NewTab() {
   const { terminals, connected, spawnTerminal, focusTerminal } = useTerminals()
   const { recentDirs, globalWorkingDir, setWorkingDir } = useWorkingDir()
   const [isReady, setIsReady] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Trigger ready state after initial load for animations
   useEffect(() => {
     const timer = setTimeout(() => setIsReady(true), 100)
     return () => clearTimeout(timer)
   }, [])
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return
+      }
+
+      // / - Focus search
+      if (e.key === '/') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        return
+      }
+
+      // 1-9 - Quick spawn profiles
+      if (e.key >= '1' && e.key <= '9') {
+        const index = parseInt(e.key) - 1
+        if (profiles[index]) {
+          e.preventDefault()
+          spawnTerminal(profiles[index].id, globalWorkingDir)
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [profiles, spawnTerminal, globalWorkingDir])
 
   // Handle profile click - spawn terminal
   const handleProfileClick = useCallback((profileId: string) => {
@@ -52,6 +84,7 @@ export default function NewTab() {
         {/* Main: Command Bar + Profiles */}
         <main className="newtab-main">
           <CommandBar
+            ref={searchInputRef}
             profiles={profiles}
             recentDirs={recentDirs}
             onSpawnTerminal={handleProfileClick}
