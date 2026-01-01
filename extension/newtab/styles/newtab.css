@@ -319,6 +319,14 @@ body {
   min-width: 0;
 }
 
+.terminal-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .terminal-name {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
@@ -326,6 +334,17 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 3rem); /* Leave space for context % */
+}
+
+.terminal-context {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding-left: 0.25rem;
 }
 
 .terminal-dir {
@@ -334,6 +353,15 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.terminal-status {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.8;
 }
 
 .empty-terminals {
@@ -420,6 +448,123 @@ body {
   color: var(--text-secondary);
 }
 
+/* Working Directory Dropdown */
+.command-bar-workdir {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.workdir-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.workdir-button:hover {
+  border-color: var(--border-highlight);
+  color: var(--accent);
+  background: var(--raised);
+}
+
+.workdir-path {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workdir-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 240px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.workdir-input-wrapper {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.workdir-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.workdir-input:focus {
+  border-color: var(--accent-dim);
+}
+
+.workdir-input::placeholder {
+  color: var(--text-muted);
+}
+
+.workdir-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.workdir-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.workdir-item:last-child {
+  border-bottom: none;
+}
+
+.workdir-item:hover {
+  background: var(--elevated);
+  color: var(--text-primary);
+}
+
+.workdir-item.active {
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.workdir-current {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
 /* Suggestions dropdown */
 .command-suggestions {
   position: absolute;
@@ -484,12 +629,24 @@ body {
 }
 
 /* ============================================
+   SIDE-BY-SIDE GRIDS LAYOUT
+   ============================================ */
+.newtab-grids {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ============================================
    PROFILE CARDS - HARDWARE MODULE AESTHETIC
    ============================================ */
 .profiles-section {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 320px;
+  max-width: 480px;
 }
 
 .profiles-header {
@@ -497,6 +654,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .profiles-title {
@@ -506,10 +664,14 @@ body {
   color: var(--text-muted);
 }
 
+.profiles-workdir {
+  position: relative;
+}
+
 .profiles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 0.75rem;
 }
 
 .profile-card {
@@ -591,8 +753,8 @@ body {
   color: var(--text-muted);
 }
 
-/* Favorite indicator */
-.profile-card.favorite::after {
+/* Pinned indicator */
+.profile-card.pinned::after {
   content: '';
   position: absolute;
   bottom: 0.75rem;
@@ -605,7 +767,122 @@ body {
 }
 
 /* ============================================
-   RECENT DIRECTORIES
+   WEB SHORTCUTS - BOOKMARK LINKS
+   ============================================ */
+.shortcuts-section {
+  flex: 1;
+  min-width: 320px;
+  max-width: 480px;
+}
+
+.shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.shortcuts-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 0.75rem;
+}
+
+.shortcut-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.shortcut-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--amber);
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.shortcut-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-highlight);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--border-highlight);
+}
+
+.shortcut-card:hover::before {
+  opacity: 1;
+}
+
+.shortcut-card:active {
+  transform: translateY(0);
+}
+
+.shortcut-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--elevated);
+  border-radius: 8px;
+  color: var(--amber);
+}
+
+.shortcut-favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.shortcut-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.shortcuts-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.8rem;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+/* ============================================
+   RECENT DIRECTORIES (deprecated, kept for reference)
    ============================================ */
 .recent-dirs {
   display: flex;
@@ -750,6 +1027,20 @@ body {
   }
 }
 
+@media (max-width: 900px) {
+  .newtab-grids {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .profiles-section,
+  .shortcuts-section {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .newtab-container {
     padding: 1rem;
@@ -775,12 +1066,22 @@ body {
     min-width: unset;
   }
 
-  .profiles-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.75rem;
+  .profiles-grid,
+  .shortcuts-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
   }
 
-  .profile-card {
-    padding: 1rem;
+  .profile-card,
+  .shortcut-card {
+    padding: 0.75rem;
+  }
+
+  .workdir-button {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .workdir-path {
+    max-width: 80px;
   }
 }

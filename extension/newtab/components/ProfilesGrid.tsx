@@ -1,5 +1,5 @@
-import React from 'react'
-import { Terminal } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Terminal, FolderOpen, ChevronDown } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -7,25 +7,61 @@ interface Profile {
   icon?: string
   color?: string
   category?: string
-  favorite?: boolean
+  pinnedToNewTab?: boolean
 }
 
 interface ProfilesGridProps {
   profiles: Profile[]
   defaultProfileId: string
+  recentDirs: string[]
+  globalWorkingDir: string
+  onWorkingDirChange: (dir: string) => void
   loading: boolean
   onProfileClick: (profileId: string) => void
 }
 
-export function ProfilesGrid({ profiles, defaultProfileId, loading, onProfileClick }: ProfilesGridProps) {
+// Shorten path for display
+function shortenPath(path: string): string {
+  const homePath = path.replace(/^\/home\/[^/]+/, '~').replace(/^\/Users\/[^/]+/, '~')
+  const parts = homePath.split('/')
+  if (parts.length > 3) {
+    return '…/' + parts.slice(-2).join('/')
+  }
+  return homePath
+}
+
+export function ProfilesGrid({
+  profiles,
+  defaultProfileId,
+  recentDirs,
+  globalWorkingDir,
+  onWorkingDirChange,
+  loading,
+  onProfileClick
+}: ProfilesGridProps) {
+  const [showDirDropdown, setShowDirDropdown] = useState(false)
+  const [customDirInput, setCustomDirInput] = useState('')
+  const dirDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dirDropdownRef.current && !dirDropdownRef.current.contains(e.target as Node)) {
+        setShowDirDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   if (loading) {
     return (
       <div className="profiles-section">
         <div className="profiles-header">
-          <div className="profiles-title">Terminal Profiles</div>
+          <div className="profiles-title">Terminals</div>
         </div>
         <div className="profiles-grid">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
               className="profile-card animate-pulse"
@@ -43,34 +79,87 @@ export function ProfilesGrid({ profiles, defaultProfileId, loading, onProfileCli
     )
   }
 
-  // Sort: favorites first, then default, then alphabetically
+  // Sort: pinned first, then default, then alphabetically
   const sortedProfiles = [...profiles].sort((a, b) => {
-    if (a.favorite && !b.favorite) return -1
-    if (!a.favorite && b.favorite) return 1
+    if (a.pinnedToNewTab && !b.pinnedToNewTab) return -1
+    if (!a.pinnedToNewTab && b.pinnedToNewTab) return 1
     if (a.id === defaultProfileId) return -1
     if (b.id === defaultProfileId) return 1
     return a.name.localeCompare(b.name)
   })
 
-  // Take top 8 for display
-  const displayProfiles = sortedProfiles.slice(0, 8)
+  // Take top 6 for display (2x3 grid)
+  const displayProfiles = sortedProfiles.slice(0, 6)
 
   return (
     <div className="profiles-section animate-slide-up stagger-3">
       <div className="profiles-header">
-        <div className="profiles-title">Terminal Profiles</div>
-        {profiles.length > 8 && (
-          <div className="text-[0.7rem] text-[var(--text-muted)]">
-            Showing {displayProfiles.length} of {profiles.length}
-          </div>
-        )}
+        <div className="profiles-title">Terminals</div>
+
+        {/* Working Directory Dropdown */}
+        <div className="profiles-workdir" ref={dirDropdownRef}>
+          <button
+            onClick={() => {
+              setShowDirDropdown(!showDirDropdown)
+              setCustomDirInput('')
+            }}
+            className="workdir-button"
+            title={`Working Directory: ${globalWorkingDir}`}
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span className="workdir-path">{shortenPath(globalWorkingDir)}</span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {showDirDropdown && (
+            <div className="workdir-dropdown">
+              <div className="workdir-input-wrapper">
+                <input
+                  type="text"
+                  value={customDirInput}
+                  onChange={(e) => setCustomDirInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && customDirInput.trim()) {
+                      onWorkingDirChange(customDirInput.trim())
+                      setShowDirDropdown(false)
+                      setCustomDirInput('')
+                    } else if (e.key === 'Escape') {
+                      setShowDirDropdown(false)
+                    }
+                    e.stopPropagation()
+                  }}
+                  placeholder="Enter path..."
+                  className="workdir-input"
+                  autoFocus
+                />
+              </div>
+              <div className="workdir-list">
+                {recentDirs.map((dir) => (
+                  <button
+                    key={dir}
+                    onClick={() => {
+                      onWorkingDirChange(dir)
+                      setShowDirDropdown(false)
+                    }}
+                    className={`workdir-item ${dir === globalWorkingDir ? 'active' : ''}`}
+                  >
+                    <span>{shortenPath(dir)}</span>
+                    {dir === globalWorkingDir && (
+                      <span className="workdir-current">current</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="profiles-grid">
         {displayProfiles.map((profile, index) => (
           <button
             key={profile.id}
-            className={`profile-card ${profile.favorite ? 'favorite' : ''}`}
+            className={`profile-card ${profile.pinnedToNewTab ? 'pinned' : ''}`}
             style={{
               '--card-accent': profile.color || 'var(--accent)',
             } as React.CSSProperties}
@@ -95,7 +184,7 @@ export function ProfilesGrid({ profiles, defaultProfileId, loading, onProfileCli
             {profile.category && (
               <div className="profile-category">{profile.category}</div>
             )}
-            {index < 9 && (
+            {index < 6 && (
               <div className="profile-shortcut">{index + 1}</div>
             )}
           </button>

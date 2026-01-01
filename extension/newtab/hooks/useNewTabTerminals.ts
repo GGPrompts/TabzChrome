@@ -2,12 +2,23 @@ import { useState, useEffect, useCallback } from 'react'
 
 const BACKEND_URL = 'http://localhost:8129'
 
+interface ClaudeState {
+  status: string
+  currentTool?: string | null
+  context_pct?: number | null
+  subagent_count?: number
+}
+
 interface TerminalInfo {
   id: string
+  sessionName?: string
   name: string
   workingDir?: string
   profileColor?: string
   profileIcon?: string
+  claudeState?: ClaudeState | null
+  paneTitle?: string | null
+  aiTool?: string | null
 }
 
 interface UseTerminalsReturn {
@@ -45,12 +56,25 @@ export function useTerminals(): UseTerminalsReturn {
     return () => clearInterval(interval)
   }, [])
 
-  // Load terminals from Chrome storage
+  // Load terminals from API (for rich status) and Chrome storage (for profile info)
   useEffect(() => {
-    const loadTerminals = () => {
-      chrome.storage.local.get(['terminalSessions'], (result) => {
-        if (result.terminalSessions && Array.isArray(result.terminalSessions)) {
-          const mapped: TerminalInfo[] = result.terminalSessions.map((t: any) => ({
+    const loadTerminals = async () => {
+      try {
+        // Get Chrome storage for profile info
+        const storageResult = await new Promise<{ terminalSessions?: any[] }>((resolve) =>
+          chrome.storage.local.get(['terminalSessions'], (result) => resolve(result as { terminalSessions?: any[] }))
+        )
+        const chromeSessions = storageResult.terminalSessions || []
+        const chromeSessionMap = new Map(chromeSessions.map((s: any) => [s.id, s]))
+
+        // Fetch from API for rich status data
+        const apiRes = await fetch(`${BACKEND_URL}/api/agents`, {
+          signal: AbortSignal.timeout(3000)
+        })
+
+        if (!apiRes.ok) {
+          // Fall back to Chrome storage only
+          const mapped: TerminalInfo[] = chromeSessions.map((t: any) => ({
             id: t.id,
             name: t.name || 'Terminal',
             workingDir: t.workingDir,
@@ -58,14 +82,79 @@ export function useTerminals(): UseTerminalsReturn {
             profileIcon: t.profile?.icon,
           }))
           setTerminals(mapped)
+          return
         }
-      })
+
+        const apiData = await apiRes.json()
+        const apiTerminals = apiData.data || []
+
+        // Filter to only ctt- terminals (Chrome extension managed)
+        const cttTerminals = apiTerminals.filter((t: any) =>
+          t.name?.startsWith('ctt-') || t.id?.startsWith('ctt-')
+        )
+
+        // Merge API data with Chrome storage profile info
+        const mapped: TerminalInfo[] = cttTerminals.map((t: any) => {
+          const chromeSession = chromeSessionMap.get(t.name) || chromeSessionMap.get(t.id)
+          return {
+            id: t.name || t.id,
+            sessionName: t.name,
+            name: chromeSession?.name || t.displayName || t.name || 'Terminal',
+            workingDir: t.workingDir || chromeSession?.workingDir,
+            profileColor: chromeSession?.profile?.color,
+            profileIcon: chromeSession?.profile?.icon,
+            claudeState: null as ClaudeState | null,
+            paneTitle: null as string | null,
+            aiTool: chromeSession?.profile?.command?.includes('claude') ? 'claude-code' : null,
+          }
+        })
+
+        // Fetch Claude status for each terminal that might be running Claude
+        const statusPromises = mapped.map(async (terminal) => {
+          if (!terminal.workingDir) return terminal
+
+          try {
+            const encodedDir = encodeURIComponent(terminal.workingDir)
+            const sessionParam = terminal.sessionName ? `&session=${encodeURIComponent(terminal.sessionName)}` : ''
+            const statusRes = await fetch(
+              `${BACKEND_URL}/api/claude-status?dir=${encodedDir}${sessionParam}`,
+              { signal: AbortSignal.timeout(2000) }
+            )
+
+            if (statusRes.ok) {
+              const status = await statusRes.json()
+              if (status.status && status.status !== 'unknown') {
+                return {
+                  ...terminal,
+                  aiTool: 'claude-code',
+                  claudeState: {
+                    status: status.status,
+                    currentTool: status.current_tool || null,
+                    context_pct: status.context_pct ?? null,
+                    subagent_count: status.subagent_count,
+                  },
+                  paneTitle: status.pane_title || null,
+                }
+              }
+            }
+          } catch {
+            // Ignore errors for individual status fetches
+          }
+          return terminal
+        })
+
+        const terminalsWithStatus = await Promise.all(statusPromises)
+        setTerminals(terminalsWithStatus)
+      } catch (e) {
+        // Silently fail - just use existing state
+        console.debug('[useTerminals] Failed to load terminals:', e)
+      }
     }
 
     loadTerminals()
 
-    // Poll for updates
-    const interval = setInterval(loadTerminals, 2000)
+    // Poll for updates (faster than before for status updates)
+    const interval = setInterval(loadTerminals, 1500)
 
     // Also listen for storage changes
     const handleChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {

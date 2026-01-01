@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { Search, Terminal, Globe, Folder, Bookmark, Star } from 'lucide-react'
+import { Search, Terminal, Globe, Folder, Bookmark } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -244,9 +244,6 @@ export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(
           spellCheck={false}
           autoComplete="off"
         />
-        <div className="command-bar-hint">
-          <kbd>Enter</kbd>
-        </div>
       </div>
 
       {showSuggestions && suggestions.length > 0 && (

@@ -3,7 +3,7 @@ import { ClockWidget } from './components/ClockWidget'
 import { StatusWidget } from './components/StatusWidget'
 import { CommandBar } from './components/CommandBar'
 import { ProfilesGrid } from './components/ProfilesGrid'
-import { RecentDirs } from './components/RecentDirs'
+import { WebShortcuts } from './components/WebShortcuts'
 import { ShortcutsHint } from './components/ShortcutsHint'
 import { useProfiles } from './hooks/useNewTabProfiles'
 import { useTerminals } from './hooks/useNewTabTerminals'
@@ -58,10 +58,10 @@ export default function NewTab() {
     spawnTerminal(profileId, globalWorkingDir)
   }, [spawnTerminal, globalWorkingDir])
 
-  // Handle directory click - set as working dir
-  const handleDirClick = useCallback((dir: string) => {
-    setWorkingDir(dir)
-  }, [setWorkingDir])
+  // Handle navigation
+  const handleNavigate = useCallback((url: string) => {
+    window.location.href = url
+  }, [])
 
   return (
     <>
@@ -81,28 +81,29 @@ export default function NewTab() {
           />
         </header>
 
-        {/* Main: Command Bar + Profiles */}
+        {/* Main: Command Bar + Side-by-side grids */}
         <main className="newtab-main">
           <CommandBar
             ref={searchInputRef}
             profiles={profiles}
             recentDirs={recentDirs}
             onSpawnTerminal={handleProfileClick}
-            onNavigate={(url) => window.location.href = url}
+            onNavigate={handleNavigate}
           />
 
-          <ProfilesGrid
-            profiles={profiles}
-            defaultProfileId={defaultProfileId}
-            loading={profilesLoading}
-            onProfileClick={handleProfileClick}
-          />
+          <div className="newtab-grids">
+            <ProfilesGrid
+              profiles={profiles}
+              defaultProfileId={defaultProfileId}
+              recentDirs={recentDirs}
+              globalWorkingDir={globalWorkingDir}
+              onWorkingDirChange={setWorkingDir}
+              loading={profilesLoading}
+              onProfileClick={handleProfileClick}
+            />
 
-          <RecentDirs
-            dirs={recentDirs}
-            currentDir={globalWorkingDir}
-            onDirClick={handleDirClick}
-          />
+            <WebShortcuts onNavigate={handleNavigate} />
+          </div>
         </main>
 
         {/* Footer: Keyboard shortcuts hint */}

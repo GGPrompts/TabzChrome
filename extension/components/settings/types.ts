@@ -104,6 +104,7 @@ export interface Profile {
   audioOverrides?: ProfileAudioOverrides  // Optional per-profile audio settings
   category?: string  // Optional category for grouping (e.g., "Claude Code", "TUI Tools")
   reference?: string  // Optional reference URL or file path (shows paperclip on tab)
+  pinnedToNewTab?: boolean  // Show this profile on New Tab page (up to 6 pinned)
 }
 
 // Category settings stored separately from profiles

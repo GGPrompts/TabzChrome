@@ -15,6 +15,8 @@ import {
   Check,
   SquareTerminal,
   PanelLeft,
+  Pin,
+  PinOff,
 } from 'lucide-react'
 import { Terminal as LucideTerminal } from 'lucide-react'
 // Animated icons
@@ -365,6 +367,14 @@ export default function SettingsProfiles() {
   const handleSetDefault = (profileId: string) => {
     setDefaultProfileState(profileId)
     chrome.storage.local.set({ defaultProfile: profileId })
+  }
+
+  const handleTogglePin = (profileId: string) => {
+    const updatedProfiles = profiles.map(p =>
+      p.id === profileId ? { ...p, pinnedToNewTab: !p.pinnedToNewTab } : p
+    )
+    setProfiles(updatedProfiles)
+    chrome.storage.local.set({ profiles: updatedProfiles })
   }
 
   const handleLaunchProfile = async (profile: Profile) => {
@@ -1113,6 +1123,7 @@ export default function SettingsProfiles() {
                       onLaunchPopout={() => handleLaunchPopout(profile)}
                       onLaunchPasteOnly={() => handleLaunchPasteOnly(profile)}
                       onSetDefault={() => handleSetDefault(profile.id)}
+                      onTogglePin={() => handleTogglePin(profile.id)}
                       onOpenReference={profile.reference ? () => handleOpenReference(profile) : undefined}
                       isDragging={draggedIndex === originalIndex}
                       isDragOver={dragOverIndex === originalIndex}
@@ -1155,6 +1166,7 @@ interface ProfileCardProps {
   onLaunchPopout: () => void
   onLaunchPasteOnly: () => void
   onSetDefault: () => void
+  onTogglePin: () => void
   onOpenReference?: () => void
   isDragging: boolean
   isDragOver: boolean
@@ -1177,6 +1189,7 @@ function ProfileCard({
   onLaunchPopout,
   onLaunchPasteOnly,
   onSetDefault,
+  onTogglePin,
   onOpenReference,
   isDragging,
   isDragOver,
@@ -1297,6 +1310,12 @@ function ProfileCard({
                   Default
                 </span>
               )}
+              {profile.pinnedToNewTab && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-medium">
+                  <Pin className="w-2.5 h-2.5" />
+                  Pinned
+                </span>
+              )}
               {profile.reference && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-medium">
                   <AttachFileIcon size={10} />
@@ -1397,6 +1416,21 @@ function ProfileCard({
               <Star className="w-4 h-4 text-white/50" />
             </button>
           )}
+          <button
+            onClick={onTogglePin}
+            className={`p-1.5 rounded-md transition-colors ${
+              profile.pinnedToNewTab
+                ? 'bg-amber-500/20 hover:bg-amber-500/30'
+                : 'hover:bg-white/10'
+            }`}
+            title={profile.pinnedToNewTab ? "Unpin from New Tab" : "Pin to New Tab"}
+          >
+            {profile.pinnedToNewTab ? (
+              <PinOff className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Pin className="w-4 h-4 text-white/50" />
+            )}
+          </button>
           <button
             onClick={onDelete}
             className="p-1.5 rounded-md hover:bg-red-500/20 transition-colors"
