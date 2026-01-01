@@ -57,6 +57,9 @@
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
   },
+  "chrome_url_overrides": {
+    "newtab": "newtab/index.html"
+  },
   "commands": {
     "_execute_action": {
       "description": "Toggle terminal sidebar"

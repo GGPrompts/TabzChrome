@@ -1,0 +1,6 @@
+export { ClockWidget } from './ClockWidget'
+export { StatusWidget } from './StatusWidget'
+export { CommandBar } from './CommandBar'
+export { ProfilesGrid } from './ProfilesGrid'
+export { RecentDirs } from './RecentDirs'
+export { ShortcutsHint } from './ShortcutsHint'
