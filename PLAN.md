@@ -1,7 +1,7 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: December 26, 2025
-**Current Version**: 1.2.22
+**Last Updated**: January 1, 2026
+**Current Version**: 1.3.11
 
 ---
 
@@ -114,15 +114,16 @@ Detailed analysis in `audit-results/`:
   - Close after send option
 - [ ] **Implementation**: `chrome.windows.create({ type: 'popup' })` for true floating window
 
-### Command Queue (Replace History)
-- [ ] **Replace unused history with queue** - Stage multiple prompts before dispatch
-- [ ] **Queue features**:
+### Command Queue (Replace History) ✅ DONE (v1.3.11)
+- [x] **Replace unused history with queue** - Stage multiple prompts before dispatch
+- [x] **Queue features**:
   - Add prompts with different targets per item
-  - Run sequentially or all at once
-  - Edit before dispatch
-  - Reorder (drag or up/down)
-  - "Run All" button
-- [ ] **Pairs with floating composer** - Compose → Add to Queue → Dispatch when ready
+  - Run sequentially or all at once (sequential, parallel modes)
+  - Edit before dispatch (inline editing)
+  - Reorder (drag-and-drop or up/down buttons)
+  - "Run Next", "Run All Sequential", "Run All Parallel" buttons
+- [x] **Keyboard shortcuts** - Ctrl+Q to queue, Ctrl+Shift+Enter to run next
+- [ ] **Pairs with floating composer** - Compose → Add to Queue → Dispatch when ready (future)
 
 ### Other File Tree Ideas
 - [ ] Keyboard navigation (arrow keys, Enter to open)

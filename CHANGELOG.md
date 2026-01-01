@@ -15,6 +15,32 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.3.11] - 2026-01-01
+
+### Added
+- **Command Queue** - New prompt staging system replaces unused history feature:
+  - **Queue Panel** - Collapsible panel above chat input showing staged prompts
+  - **Per-item Targets** - Each queued command can target different terminals
+  - **Queue Operations** - Drag-and-drop reorder, inline edit, move up/down buttons
+  - **Dispatch Modes**:
+    - "Next" - Run top pending item only
+    - "Sequential" - Run all one-by-one with 500ms delay
+    - "Parallel" - Fire all commands at once with 50ms stagger
+  - **Visual Feedback** - Running items show pulse animation and spinner
+  - **Persistence** - Queue saved to Chrome storage, survives sidebar close
+  - **Keyboard Shortcuts**:
+    - `Ctrl+Q` - Add current input to queue
+    - `Ctrl+Shift+Enter` - Run next queue item
+    - `Ctrl+Shift+A` - Run all sequential
+  - **Queue Button** - New button in chat input bar with pending count badge
+
+### New Files
+- `extension/hooks/useCommandQueue.ts` - Queue state management hook
+- `extension/components/CommandQueuePanel.tsx` - Collapsible queue UI
+- `extension/components/CommandQueueItem.tsx` - Individual queue entry with controls
+
+---
+
 ## [1.3.10] - 2025-12-31
 
 ### Added
