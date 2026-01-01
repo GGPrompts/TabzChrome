@@ -28,6 +28,9 @@
   "omnibox": {
     "keyword": "term"
   },
+  "chrome_url_overrides": {
+    "newtab": "newtab/newtab.html"
+  },
   "host_permissions": [
     "<all_urls>",
     "http://localhost:8129/*",
