@@ -248,6 +248,25 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
     }
   }, [])
 
+  // Return terminal to sidebar
+  const handleReturnToSidebar = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/canvas/terminals/${terminal.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: 'sidebar' }),
+      })
+      if (response.ok) {
+        // Remove from canvas - the sidebar will pick it up
+        onRemove()
+      } else {
+        console.error('Failed to return terminal to sidebar:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Failed to return terminal to sidebar:', error)
+    }
+  }
+
   // Name editing handlers
   const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -340,15 +359,27 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
             </span>
           )}
         </div>
-        <button
-          onClick={onRemove}
-          className="p-1 hover:bg-[var(--background)] rounded transition-colors"
-          title="Close terminal"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleReturnToSidebar}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="p-1 hover:bg-[var(--background)] rounded transition-colors"
+            title="Return to Sidebar"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3v18M7 12h14M7 12l4-4M7 12l4 4" />
+            </svg>
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1 hover:bg-[var(--background)] rounded transition-colors"
+            title="Close terminal"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Terminal body */}
