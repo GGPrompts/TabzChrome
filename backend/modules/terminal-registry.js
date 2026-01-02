@@ -313,7 +313,12 @@ class TerminalRegistry extends EventEmitter {
       state: 'spawning',
       embedded: config.embedded || false, // Pass through embedded flag
       position: config.position || null, // Include position if provided
-      profile: config.profile || defaults.profile || null, // Chrome extension profile settings
+      // CRITICAL FIX: Don't use defaults.profile as fallback
+      // When profile is undefined (e.g., during session recovery), the frontend
+      // has recovery logic to find the correct profile from the session ID name.
+      // Using defaults.profile here causes audio announcements to read the wrong
+      // profile name (the default profile instead of the actual spawned profile).
+      profile: config.profile || null, // Chrome extension profile settings
       config: terminalConfig, // Keep full config for reference
       // TUI tool specific fields
       commands: config.commands || [],
