@@ -950,6 +950,14 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           }}
           onContextMenu={(e) => handleContextMenu(e, node)}
           title={node.path}
+          draggable
+          onDragStart={(e) => {
+            // Set path as plain text for terminal drop targets
+            e.dataTransfer.setData('text/plain', node.path)
+            // Also set custom type so terminals can identify file tree drags
+            e.dataTransfer.setData('application/x-tabz-file-path', node.path)
+            e.dataTransfer.effectAllowed = 'copy'
+          }}
         >
           <span className="w-4 h-4 flex items-center justify-center mr-1 text-muted-foreground">
             {isDirectory && (isExpanded ? <ChevronDownIcon size={12} /> : <ChevronRight className="w-3 h-3" />)}

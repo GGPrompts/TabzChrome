@@ -1141,6 +1141,35 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const mediaOpacity = backgroundMediaOpacity / 100
   const showMedia = backgroundMediaType !== 'none' && mediaUrl && !mediaError
 
+  // Handle file drop from File Tree - paste path into terminal
+  const handleDragOver = (e: React.DragEvent) => {
+    // Check if drag contains file path from File Tree
+    if (e.dataTransfer.types.includes('application/x-tabz-file-path') ||
+        e.dataTransfer.types.includes('text/plain')) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+
+    // Try custom type first, fall back to plain text
+    let filePath = e.dataTransfer.getData('application/x-tabz-file-path')
+    if (!filePath) {
+      filePath = e.dataTransfer.getData('text/plain')
+    }
+
+    if (filePath && xtermRef.current) {
+      // Quote path if it contains spaces
+      const quotedPath = filePath.includes(' ') ? `"${filePath}"` : filePath
+
+      // Paste the path into terminal (like typing it)
+      xtermRef.current.paste(quotedPath)
+      xtermRef.current.focus()
+    }
+  }
+
   return (
     <div
       ref={containerRef}
@@ -1148,6 +1177,8 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       style={{
         backgroundColor: effectivePanelColor,
       }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       {/* Background media layer (video or image) */}
       {showMedia && backgroundMediaType === 'video' && (
