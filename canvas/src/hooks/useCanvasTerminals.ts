@@ -1,5 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+// Profile interface matching the Chrome extension's Profile type
+export interface TerminalProfile {
+  id: string
+  name: string
+  workingDir?: string
+  command?: string
+  fontSize?: number
+  fontFamily?: string
+  themeName?: string
+  backgroundGradient?: string
+  panelColor?: string
+  transparency?: number
+  backgroundMedia?: string
+  backgroundMediaType?: 'none' | 'image' | 'video'
+  backgroundMediaOpacity?: number
+  color?: string
+  icon?: string
+}
+
 export interface CanvasTerminal {
   id: string
   name: string
@@ -9,7 +28,7 @@ export interface CanvasTerminal {
   icon?: string
   workingDir?: string
   state?: string
-  profile?: string
+  profile?: TerminalProfile  // Full profile object with appearance settings
   owner: 'sidebar' | 'canvas'
   canvas?: {
     x: number

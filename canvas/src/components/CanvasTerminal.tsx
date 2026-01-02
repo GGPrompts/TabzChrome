@@ -3,24 +3,8 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import type { CanvasTerminal as CanvasTerminalType } from '../hooks/useCanvasTerminals'
+import { getThemeColors, getBackgroundGradient } from '../styles/themes'
 import '@xterm/xterm/css/xterm.css'
-
-// Default theme (high-contrast dark)
-const defaultTheme = {
-  background: '#0a0a0f',
-  foreground: '#e0e0e0',
-  cursor: '#00d4ff',
-  cursorAccent: '#0a0a0f',
-  selectionBackground: 'rgba(0, 212, 255, 0.3)',
-  black: '#000000',
-  red: '#ff4757',
-  green: '#5af78e',
-  yellow: '#ffd93d',
-  blue: '#57c7ff',
-  magenta: '#ff6ac1',
-  cyan: '#6bcf7f',
-  white: '#e0e0e0',
-}
 
 interface Props {
   terminal: CanvasTerminalType
@@ -44,9 +28,25 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
   const [dragStart, setDragStart] = useState({ mouseX: 0, mouseY: 0, termX: 0, termY: 0 })
   const [resizeStart, setResizeStart] = useState({ width: 0, height: 0, x: 0, y: 0 })
   const [isConnected, setIsConnected] = useState(false)
+  const [isDark] = useState(true)  // Dark mode default (future: sync with sidebar)
 
   // Get current position/size from canvas state
   const position = terminal.canvas || { x: 100, y: 100, width: 600, height: 400 }
+
+  // Get profile settings from terminal (matches 3D focus/popout pattern)
+  const profile = terminal.profile
+  const themeName = profile?.themeName || 'high-contrast'
+  const fontSize = profile?.fontSize || 13
+  const fontFamily = profile?.fontFamily || 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace'
+  const panelColor = profile?.panelColor || '#0a0a0f'
+  const backgroundGradient = profile?.backgroundGradient || getBackgroundGradient(themeName, isDark)
+  const transparency = profile?.transparency ?? 100
+
+  // Compute theme colors based on profile settings
+  const themeColors = getThemeColors(themeName, isDark)
+
+  // Note: Dark mode defaults to true. Future enhancement could sync with sidebar via
+  // backend WebSocket broadcast or a dedicated API endpoint.
 
   // Initialize xterm and connect to backend
   useEffect(() => {
@@ -54,9 +54,10 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
 
     const xterm = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
-      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-      theme: defaultTheme,
+      fontSize,
+      fontFamily,
+      theme: themeColors,
+      allowTransparency: true,  // Enable for gradient backgrounds
       allowProposedApi: true,
     })
 
@@ -167,6 +168,21 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
       xterm.writeln(`\x1b[31mConnection error: ${err}\x1b[0m`)
     }
   }
+
+  // Update xterm theme when profile or dark mode changes
+  useEffect(() => {
+    if (xtermRef.current) {
+      xtermRef.current.options.theme = themeColors
+      xtermRef.current.options.fontSize = fontSize
+      xtermRef.current.options.fontFamily = fontFamily
+      // Force refresh to apply theme changes
+      xtermRef.current.refresh(0, xtermRef.current.rows - 1)
+      // Refit after font size change
+      if (fitAddonRef.current) {
+        setTimeout(() => fitAddonRef.current?.fit(), 50)
+      }
+    }
+  }, [themeColors, fontSize, fontFamily])
 
   // Handle resize
   useEffect(() => {
@@ -407,12 +423,28 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
         </div>
       </div>
 
-      {/* Terminal body */}
-      <div
-        ref={terminalRef}
-        className="h-[calc(100%-36px)] p-1"
-        style={{ background: defaultTheme.background }}
-      />
+      {/* Terminal body with gradient background */}
+      <div className="relative h-[calc(100%-36px)]">
+        {/* Panel color base layer */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: panelColor }}
+        />
+        {/* Gradient overlay with transparency control */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: backgroundGradient,
+            opacity: transparency / 100,
+          }}
+        />
+        {/* Terminal container */}
+        <div
+          ref={terminalRef}
+          className="relative h-full p-1"
+          style={{ zIndex: 1 }}
+        />
+      </div>
 
       {/* Resize handle */}
       <div
