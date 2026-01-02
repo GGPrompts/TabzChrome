@@ -95,34 +95,50 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
       const { token } = await tokenRes.json()
 
       // Connect to existing session via WebSocket
-      const sessionName = terminal.sessionName
-      if (!sessionName) {
-        xterm.writeln('\x1b[31mNo session to connect to\x1b[0m')
+      const terminalId = terminal.id
+      if (!terminalId) {
+        xterm.writeln('\x1b[31mNo terminal ID to connect to\x1b[0m')
         return
       }
 
+      // WebSocket connects to root path (not /tabz-ws)
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/tabz-ws?sessionId=${sessionName}&token=${token}`)
+      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/?token=${token}`)
       wsRef.current = ws
 
       ws.onopen = () => {
         setIsConnected(true)
-        // Request terminal dimensions
-        if (fitAddonRef.current) {
-          fitAddonRef.current.fit()
-          const dims = fitAddonRef.current.proposeDimensions()
-          if (dims) {
-            ws.send(JSON.stringify({
-              type: 'resize',
-              payload: { cols: dims.cols, rows: dims.rows },
-            }))
+
+        // Send reconnect message to subscribe to terminal output
+        ws.send(JSON.stringify({
+          type: 'reconnect',
+          terminalId: terminalId,
+        }))
+
+        // Request terminal dimensions after a short delay
+        setTimeout(() => {
+          if (fitAddonRef.current && ws.readyState === WebSocket.OPEN) {
+            fitAddonRef.current.fit()
+            const dims = fitAddonRef.current.proposeDimensions()
+            if (dims) {
+              ws.send(JSON.stringify({
+                type: 'resize',
+                terminalId: terminalId,
+                cols: dims.cols,
+                rows: dims.rows,
+              }))
+            }
           }
-        }
+        }, 100)
       }
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        if (data.type === 'output') {
+        // Handle terminal output (backend sends 'terminal-output' type)
+        if (data.type === 'terminal-output' && data.terminalId === terminalId) {
+          xterm.write(data.data)
+        } else if (data.type === 'output') {
+          // Fallback for legacy format
           xterm.write(data.payload)
         }
       }
@@ -139,7 +155,11 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
       // Send input to backend
       xterm.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'input', payload: data }))
+          ws.send(JSON.stringify({
+            type: 'input',
+            terminalId: terminalId,
+            data: data,
+          }))
         }
       })
     } catch (err) {
@@ -156,7 +176,9 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
         if (dims) {
           wsRef.current.send(JSON.stringify({
             type: 'resize',
-            payload: { cols: dims.cols, rows: dims.rows },
+            terminalId: terminal.id,
+            cols: dims.cols,
+            rows: dims.rows,
           }))
         }
       }
@@ -242,11 +264,13 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
       if (dims) {
         wsRef.current.send(JSON.stringify({
           type: 'resize',
-          payload: { cols: dims.cols, rows: dims.rows },
+          terminalId: terminal.id,
+          cols: dims.cols,
+          rows: dims.rows,
         }))
       }
     }
-  }, [])
+  }, [terminal.id])
 
   // Return terminal to sidebar
   const handleReturnToSidebar = async () => {
