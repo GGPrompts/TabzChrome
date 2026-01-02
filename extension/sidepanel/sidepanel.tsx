@@ -810,6 +810,7 @@ function SidePanelTerminal() {
 
   // Handle "Send to Canvas" from tab menu
   // Transfers terminal ownership to canvas view, shows ghost badge in sidebar
+  // Also opens canvas page if not already open
   const handleSendToCanvas = async () => {
     if (!contextMenu.terminalId) return
 
@@ -832,6 +833,26 @@ function SidePanelTerminal() {
           s.id === terminal.id ? { ...s, owner: 'canvas' } : s
         ))
         console.log('[handleSendToCanvas] Transferred to canvas:', terminal.id)
+
+        // Check if canvas page is already open, if not open it
+        const canvasUrl = 'http://localhost:8129/canvas'
+        const existingTabs = await chrome.tabs.query({ url: canvasUrl + '*' })
+
+        if (existingTabs.length > 0) {
+          // Canvas is open, switch to it
+          const canvasTab = existingTabs[0]
+          if (canvasTab.id) {
+            await chrome.tabs.update(canvasTab.id, { active: true })
+            if (canvasTab.windowId) {
+              await chrome.windows.update(canvasTab.windowId, { focused: true })
+            }
+          }
+          console.log('[handleSendToCanvas] Switched to existing canvas tab')
+        } else {
+          // Canvas not open, create new tab
+          await chrome.tabs.create({ url: canvasUrl })
+          console.log('[handleSendToCanvas] Opened new canvas tab')
+        }
       } else {
         console.error('[handleSendToCanvas] Failed to transfer:', data.error)
       }
