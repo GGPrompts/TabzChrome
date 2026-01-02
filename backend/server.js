@@ -538,6 +538,12 @@ wss.on('connection', (ws, req) => {
           }
           break;
 
+        case 'set-default-profile':
+          // Store default profile settings from Chrome extension
+          // Used for API spawns that don't specify a profile
+          terminalRegistry.setDefaultProfileSettings(data.settings);
+          break;
+
         case 'spawn':
           // Spawn deduplication - prevent same requestId from spawning twice
           // This catches race conditions, double-clicks, or duplicate WebSocket messages

@@ -47,8 +47,28 @@ class TerminalRegistry extends EventEmitter {
     super();
     this.terminals = new Map();
     this.nameCounters = new Map(); // Track name sequences
+    this.defaultProfileSettings = null; // Default profile settings from Chrome extension
 
     this.setupEventHandlers();
+  }
+
+  /**
+   * Set default profile settings (sent from Chrome extension)
+   * Used for API spawns that don't specify a profile
+   */
+  setDefaultProfileSettings(settings) {
+    this.defaultProfileSettings = settings;
+    log.info('Default profile settings updated:', {
+      color: settings?.color,
+      hasProfile: !!settings?.profile
+    });
+  }
+
+  /**
+   * Get default profile settings
+   */
+  getDefaultProfileSettings() {
+    return this.defaultProfileSettings;
   }
 
   /**
@@ -275,6 +295,9 @@ class TerminalRegistry extends EventEmitter {
       log.debug(`No special handling for type: ${terminalConfig.terminalType}`);
     }
 
+    // Use default profile settings for API spawns without explicit profile/color
+    const defaults = this.defaultProfileSettings || {};
+
     // Terminal state - everything in one place
     const terminal = {
       id,
@@ -282,15 +305,15 @@ class TerminalRegistry extends EventEmitter {
       terminalType: config.terminalType, // Direct from config, no guessing!
       platform: 'local', // Always use local PTY
       resumable: config.resumable || false,
-      color: config.color || '#888888',
-      icon: config.icon || '📟',
+      color: config.color || config.profile?.color || defaults.color || '#888888',
+      icon: config.icon || config.profile?.icon || defaults.icon || '📟',
       workingDir: terminalConfig.workingDir,
       createdAt: new Date(),
       lastActivity: new Date(),
       state: 'spawning',
       embedded: config.embedded || false, // Pass through embedded flag
       position: config.position || null, // Include position if provided
-      profile: config.profile || null, // Chrome extension profile settings (fontSize, fontFamily, theme, workingDir)
+      profile: config.profile || defaults.profile || null, // Chrome extension profile settings
       config: terminalConfig, // Keep full config for reference
       // TUI tool specific fields
       commands: config.commands || [],

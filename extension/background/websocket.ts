@@ -122,6 +122,42 @@ export function sendToWebSocket(data: unknown): void {
 }
 
 /**
+ * Send default profile settings to backend
+ * Called on WebSocket connect so backend can use these for API spawns
+ */
+export async function sendDefaultProfileSettings(): Promise<void> {
+  try {
+    const storage = await chrome.storage.local.get(['profiles', 'defaultProfile', 'categorySettings'])
+    const profiles = (storage.profiles || []) as Array<{ id: string; category?: string; [key: string]: unknown }>
+    const defaultProfileId = (storage.defaultProfile as string) || 'default'
+    const categorySettings = (storage.categorySettings || {}) as Record<string, { color?: string }>
+
+    // Find the default profile
+    const defaultProfile = profiles.find(p => p.id === defaultProfileId) || profiles[0]
+    if (!defaultProfile) {
+      console.log('[Background] No default profile found, skipping default settings sync')
+      return
+    }
+
+    // Resolve category color
+    const category = defaultProfile.category
+    const color = category ? categorySettings[category]?.color : undefined
+
+    // Send to backend
+    sendToWebSocket({
+      type: 'set-default-profile',
+      settings: {
+        color,
+        profile: defaultProfile
+      }
+    })
+    console.log('[Background] Sent default profile settings to backend:', { color, profileId: defaultProfile.id })
+  } catch (err) {
+    console.error('[Background] Failed to send default profile settings:', err)
+  }
+}
+
+/**
  * Update extension badge with active terminal count
  * This queries the backend for the actual terminal count
  */
@@ -190,6 +226,9 @@ export async function connectWebSocket(): Promise<void> {
 
     // Identify as sidebar to backend so it counts us for "multiple browser windows" warning
     sendToWebSocket({ type: 'identify', clientType: 'sidebar' })
+
+    // Send default profile settings to backend for API spawns
+    sendDefaultProfileSettings()
 
     updateBadge('ws.onopen')
     broadcastToClients({ type: 'WS_CONNECTED' })

@@ -6,7 +6,7 @@
  */
 
 import { ws, popoutWindows } from './state'
-import { connectWebSocket } from './websocket'
+import { connectWebSocket, sendDefaultProfileSettings } from './websocket'
 import { initializeAlarms, setupAlarmListener } from './alarms'
 import { setupOmnibox } from './omnibox'
 import { setupMessageHandlers } from './messageHandlers'
@@ -51,6 +51,16 @@ setTimeout(() => {
 chrome.windows.onRemoved.addListener((windowId) => {
   if (popoutWindows.has(windowId)) {
     handlePopoutWindowClosed(windowId)
+  }
+})
+
+// Listen for storage changes to sync default profile settings to backend
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return
+  // Resync when default profile or category settings change
+  if (changes.defaultProfile || changes.categorySettings || changes.profiles) {
+    console.log('[Background] Profile settings changed, resyncing to backend')
+    sendDefaultProfileSettings()
   }
 })
 

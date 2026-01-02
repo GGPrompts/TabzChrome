@@ -76,13 +76,13 @@ export function useTerminals(): UseTerminalsReturn {
         })
 
         if (!apiRes.ok) {
-          // Fall back to Chrome storage only
+          // Fall back to Chrome storage only (no backend = no resolved colors)
           const mapped: TerminalInfo[] = chromeSessions.map((t: any) => ({
             id: t.id,
             name: t.name || 'Terminal',
             workingDir: t.workingDir,
-            profileColor: t.profile?.color,
-            profileIcon: t.profile?.icon,
+            profileColor: undefined,  // Colors come from backend, use CSS fallback
+            profileIcon: undefined,
           }))
           setTerminals(mapped)
           return
@@ -108,8 +108,8 @@ export function useTerminals(): UseTerminalsReturn {
             sessionName: t.id,           // same as id for sidebar matching
             name: chromeSession?.name || t.name || 'Terminal',  // display name
             workingDir: t.workingDir || chromeSession?.workingDir,
-            profileColor: chromeSession?.profile?.color,
-            profileIcon: chromeSession?.profile?.icon,
+            profileColor: t.color,       // Backend stores resolved category color
+            profileIcon: t.icon,         // Backend stores icon
             claudeState: null as ClaudeState | null,
             paneTitle: null as string | null,
             aiTool: chromeSession?.profile?.command?.includes('claude') ? 'claude-code' : null,

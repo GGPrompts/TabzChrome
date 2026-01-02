@@ -37,6 +37,18 @@ export function setupMessageHandlers(): void {
         // Chrome extension terminals ALWAYS use tmux for persistence
         const useTmux = true
 
+        // Resolve category color from Chrome storage if profile has a category
+        let resolvedColor: string | undefined
+        if (message.profile?.category) {
+          try {
+            const storage = await chrome.storage.local.get('categorySettings')
+            const categorySettings = (storage.categorySettings || {}) as Record<string, { color?: string }>
+            resolvedColor = categorySettings[message.profile.category]?.color
+          } catch (err) {
+            console.warn('[Background] Failed to resolve category color:', err)
+          }
+        }
+
         sendToWebSocket({
           type: 'spawn',
           config: {
@@ -46,6 +58,7 @@ export function setupMessageHandlers(): void {
             useTmux: useTmux,
             name: message.name || message.spawnOption || 'Terminal',
             profile: message.profile,
+            color: resolvedColor,  // Resolved from categorySettings
             isChrome: true,
             isDark: message.isDark,
             pasteOnly: message.pasteOnly || false,

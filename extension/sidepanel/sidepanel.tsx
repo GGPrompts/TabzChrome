@@ -522,14 +522,6 @@ function SidePanelTerminal() {
   useOutsideClick(showProfileDropdown, useCallback(() => setShowProfileDropdown(false), []))
   useOutsideClick(showEmptyStateDropdown, useCallback(() => setShowEmptyStateDropdown(false), []))
 
-  const handleSpawnTerminal = () => {
-    sendMessage({
-      type: 'SPAWN_TERMINAL',
-      spawnOption: 'bash',
-      name: 'Bash',
-    })
-  }
-
   const handleSpawnDefaultProfile = () => {
     // Read profiles AND globalWorkingDir together from storage to avoid race conditions
     // This ensures we use the saved header value even if React state hasn't loaded yet
