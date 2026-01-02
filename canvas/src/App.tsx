@@ -79,8 +79,9 @@ function App() {
 
   // Use hooks instead of Zustand stores
   const { pan, setPan, zoom, setZoom, resetView } = useCanvasViewport()
-  const { terminals, updateTerminal, removeTerminal } = useCanvasTerminals()
+  const { terminals, updateTerminal, removeTerminal, refetch: refetchTerminals } = useCanvasTerminals()
   const { files, addFile, updateFile, removeFile } = useCanvasFiles()
+  const [dragType, setDragType] = useState<'file' | 'terminal' | null>(null)
 
   // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -145,19 +146,31 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [resetView])
 
-  // File drop handlers
+  // Drag-drop handlers (supports both file drops and terminal tab drops)
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+
+    // Detect drag type from dataTransfer
+    const types = e.dataTransfer.types
+    if (types.includes('Files')) {
+      setDragType('file')
+    } else if (types.includes('text/plain')) {
+      // Terminal tabs set text/plain with the tab ID
+      setDragType('terminal')
+    }
+
     setIsDragOver(true)
   }, [])
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // Only set to false if leaving the container entirely
+    // Only reset if leaving the container entirely
     if (e.currentTarget === e.target) {
       setIsDragOver(false)
+      setDragType(null)
     }
   }, [])
 
@@ -165,6 +178,7 @@ function App() {
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
+    setDragType(null)
 
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
@@ -173,6 +187,32 @@ function App() {
     const dropX = (e.clientX - rect.left - pan.x) / zoom
     const dropY = (e.clientY - rect.top - pan.y) / zoom
 
+    // Check if this is a terminal tab drop (ID starts with "ctt-")
+    const terminalId = e.dataTransfer.getData('text/plain')
+    if (terminalId && terminalId.startsWith('ctt-')) {
+      try {
+        const response = await fetch(`/api/canvas/terminals/${terminalId}/transfer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            owner: 'canvas',
+            canvas: { x: dropX, y: dropY, width: 600, height: 400 },
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Transfer failed: ${response.status}`)
+        }
+
+        // Refetch terminals to show the newly transferred one
+        await refetchTerminals()
+      } catch (err) {
+        console.error('Failed to transfer terminal:', err)
+      }
+      return
+    }
+
+    // Handle file drops
     const droppedFiles = Array.from(e.dataTransfer.files)
 
     for (let i = 0; i < droppedFiles.length; i++) {
@@ -213,7 +253,7 @@ function App() {
         console.error('Error reading file:', file.name, err)
       }
     }
-  }, [pan, zoom, addFile])
+  }, [pan, zoom, addFile, refetchTerminals])
 
   return (
     <div className="h-full w-full flex flex-col bg-[var(--background)]">
@@ -279,9 +319,17 @@ function App() {
 
         {/* Drop overlay */}
         {isDragOver && (
-          <div className="absolute inset-0 bg-[var(--primary)]/10 border-2 border-dashed border-[var(--primary)] pointer-events-none flex items-center justify-center">
+          <div className={`absolute inset-0 border-2 border-dashed pointer-events-none flex items-center justify-center ${
+            dragType === 'terminal'
+              ? 'bg-green-500/10 border-green-500'
+              : 'bg-[var(--primary)]/10 border-[var(--primary)]'
+          }`}>
             <div className="bg-[var(--card)] px-6 py-4 rounded-lg shadow-lg border border-[var(--border)]">
-              <p className="text-sm font-medium">Drop files to view on canvas</p>
+              <p className="text-sm font-medium">
+                {dragType === 'terminal'
+                  ? 'Drop terminal to add to canvas'
+                  : 'Drop files to view on canvas'}
+              </p>
             </div>
           </div>
         )}
