@@ -16,6 +16,20 @@ export interface TerminalAppearanceOverrides {
   backgroundMediaOpacity?: number
 }
 
+// Canvas state for terminal positioning on infinite canvas
+// All fields optional to support partial updates from backend
+export interface CanvasState {
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  zIndex?: number
+  visible?: boolean
+}
+
+// Terminal owner - which view owns the terminal
+export type TerminalOwner = 'sidebar' | 'canvas'
+
 export interface TerminalSession {
   id: string
   name: string
@@ -31,6 +45,9 @@ export interface TerminalSession {
   popoutWindowId?: number // Chrome window ID of the popout
   fontSizeOffset?: number // Per-instance font size offset (-4 to +8), not persisted
   appearanceOverrides?: TerminalAppearanceOverrides  // Temp appearance customization (footer 🎨 button)
+  // Canvas state fields - synced with backend
+  canvas?: CanvasState  // Position/size on infinite canvas
+  owner?: TerminalOwner // Which view owns the terminal ('sidebar' | 'canvas')
 }
 
 interface UseTerminalSessionsParams {
@@ -309,6 +326,8 @@ export function useTerminalSessions({
                 ...existingSession,
                 sessionName: t.sessionName ?? existingSession.sessionName,
                 workingDir: t.workingDir ?? existingSession.workingDir,
+                canvas: t.canvas ?? existingSession.canvas,  // Sync canvas state
+                owner: t.owner ?? existingSession.owner ?? 'sidebar',  // Sync owner
                 active: false,
               })
             } else {
@@ -320,6 +339,8 @@ export function useTerminalSessions({
                 active: false,
                 sessionName: t.sessionName,
                 profile: t.profile,
+                canvas: t.canvas,  // Include canvas state
+                owner: t.owner || 'sidebar',  // Include owner
               })
             }
           })
@@ -423,6 +444,8 @@ export function useTerminalSessions({
             profile: effectiveTerminalProfile,  // Store profile settings (may be updated async)
             assignedVoice,  // Auto-assigned voice for audio notifications
             command: terminal.config?.command,  // Store command for API-spawned terminals
+            canvas: terminal.canvas,  // Canvas position/size state
+            owner: terminal.owner || 'sidebar',  // Which view owns the terminal
           }]
         })
         // Auto-focus the new terminal
@@ -465,6 +488,42 @@ export function useTerminalSessions({
         // Handle standalone connection count updates
         if (data.count !== undefined) {
           setConnectionCount(data.count)
+        }
+        break
+
+      // Canvas sync message handlers
+      case 'terminal-canvas-updated':
+        // Single terminal canvas state updated (position/size change)
+        if (data.data?.id) {
+          setSessions(prev => prev.map(s =>
+            s.id === data.data.id
+              ? { ...s, canvas: data.data.canvas }
+              : s
+          ))
+        }
+        break
+
+      case 'terminal-ownership-transferred':
+        // Terminal moved between sidebar and canvas
+        if (data.data?.id) {
+          setSessions(prev => prev.map(s =>
+            s.id === data.data.id
+              ? { ...s, owner: data.data.owner, canvas: data.data.canvas }
+              : s
+          ))
+        }
+        break
+
+      case 'terminal-canvas-batch-updated':
+        // Multiple terminals updated at once (drag multiple, layout changes)
+        if (Array.isArray(data.data?.updates)) {
+          const updateMap = new Map<string, CanvasState>(
+            data.data.updates.map((u: { id: string; canvas: CanvasState }) => [u.id, u.canvas])
+          )
+          setSessions(prev => prev.map(s => {
+            const newCanvas = updateMap.get(s.id)
+            return newCanvas ? { ...s, canvas: newCanvas } : s
+          }))
         }
         break
     }

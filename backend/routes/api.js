@@ -2237,6 +2237,202 @@ router.get('/auth-token', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// CANVAS TERMINAL STATE SYNC API
+// =============================================================================
+
+/**
+ * Canvas state schema for validation
+ * Canvas terminals have position, size, z-index for layering
+ */
+const canvasStateSchema = Joi.object({
+  x: Joi.number().optional(),
+  y: Joi.number().optional(),
+  width: Joi.number().min(200).max(2000).optional(),
+  height: Joi.number().min(100).max(1500).optional(),
+  zIndex: Joi.number().integer().min(0).optional(),
+  visible: Joi.boolean().optional(),
+});
+
+const transferOwnershipSchema = Joi.object({
+  owner: Joi.string().valid('sidebar', 'canvas').required(),
+});
+
+/**
+ * GET /api/canvas/terminals - Get all terminals with canvas state
+ * Query params:
+ *   - owner: 'sidebar' | 'canvas' | 'all' (default: 'all')
+ * Returns terminal list with canvas position/state for sync
+ */
+router.get('/canvas/terminals', asyncHandler(async (req, res) => {
+  const ownerFilter = req.query.owner || 'all';
+
+  let terminals;
+  if (ownerFilter === 'all') {
+    terminals = terminalRegistry.getAllTerminals();
+  } else {
+    terminals = terminalRegistry.getTerminalsByOwner(ownerFilter);
+  }
+
+  res.json({
+    success: true,
+    count: terminals.length,
+    data: terminals.map(t => ({
+      id: t.id,
+      name: t.name,
+      terminalType: t.terminalType,
+      color: t.color,
+      icon: t.icon,
+      workingDir: t.workingDir,
+      state: t.state,
+      sessionName: t.sessionName,
+      profile: t.profile,
+      canvas: t.canvas,
+      owner: t.owner || 'sidebar',
+      createdAt: t.createdAt,
+      lastActivity: t.lastActivity,
+    })),
+  });
+}));
+
+/**
+ * PATCH /api/canvas/terminals/:id - Update canvas state for a terminal
+ * Body: { x?, y?, width?, height?, zIndex?, visible? }
+ * Updates position/size on canvas, broadcasts to all connected clients
+ */
+router.patch('/canvas/terminals/:id', validateBody(canvasStateSchema), asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const canvasState = req.body;
+
+  const terminal = terminalRegistry.updateCanvasState(id, canvasState);
+
+  if (!terminal) {
+    return res.status(404).json({
+      error: 'Terminal not found',
+      message: `No terminal found with ID: ${id}`,
+    });
+  }
+
+  // Broadcast to WebSocket clients for real-time sync
+  const broadcast = req.app.get('broadcast');
+  if (broadcast) {
+    broadcast({
+      type: 'terminal-canvas-updated',
+      data: {
+        id: terminal.id,
+        canvas: terminal.canvas,
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    message: `Canvas state updated for ${terminal.name}`,
+    data: {
+      id: terminal.id,
+      name: terminal.name,
+      canvas: terminal.canvas,
+    },
+  });
+}));
+
+/**
+ * POST /api/canvas/terminals/:id/transfer - Transfer terminal ownership
+ * Body: { owner: 'sidebar' | 'canvas' }
+ * Moves terminal between sidebar and canvas view
+ */
+router.post('/canvas/terminals/:id/transfer', validateBody(transferOwnershipSchema), asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { owner } = req.body;
+
+  const terminal = terminalRegistry.transferOwnership(id, owner);
+
+  if (!terminal) {
+    return res.status(404).json({
+      error: 'Terminal not found',
+      message: `No terminal found with ID: ${id}`,
+    });
+  }
+
+  // Broadcast to WebSocket clients for real-time sync
+  const broadcast = req.app.get('broadcast');
+  if (broadcast) {
+    broadcast({
+      type: 'terminal-ownership-transferred',
+      data: {
+        id: terminal.id,
+        name: terminal.name,
+        owner: terminal.owner,
+        canvas: terminal.canvas,
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    message: `Terminal '${terminal.name}' transferred to ${owner}`,
+    data: {
+      id: terminal.id,
+      name: terminal.name,
+      owner: terminal.owner,
+      canvas: terminal.canvas,
+    },
+  });
+}));
+
+/**
+ * POST /api/canvas/terminals/batch - Batch update canvas state for multiple terminals
+ * Body: { updates: [{ id, canvas: { x?, y?, width?, height?, zIndex?, visible? } }] }
+ * Efficiently updates multiple terminals in one request (drag multiple, layout changes)
+ */
+router.post('/canvas/terminals/batch', asyncHandler(async (req, res) => {
+  const { updates } = req.body;
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({
+      error: 'Invalid request',
+      message: 'updates array is required',
+    });
+  }
+
+  const results = {
+    success: [],
+    failed: [],
+  };
+
+  for (const update of updates) {
+    const { id, canvas } = update;
+    if (!id || !canvas) {
+      results.failed.push({ id, error: 'Missing id or canvas state' });
+      continue;
+    }
+
+    const terminal = terminalRegistry.updateCanvasState(id, canvas);
+    if (terminal) {
+      results.success.push({ id: terminal.id, canvas: terminal.canvas });
+    } else {
+      results.failed.push({ id, error: 'Terminal not found' });
+    }
+  }
+
+  // Broadcast batch update to all clients
+  const broadcast = req.app.get('broadcast');
+  if (broadcast && results.success.length > 0) {
+    broadcast({
+      type: 'terminal-canvas-batch-updated',
+      data: {
+        updates: results.success,
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    message: `Updated ${results.success.length} terminal(s), ${results.failed.length} failed`,
+    data: results,
+  });
+}));
+
+// =============================================================================
 // ERROR HANDLING
 // =============================================================================
 

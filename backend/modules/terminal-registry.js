@@ -318,7 +318,10 @@ class TerminalRegistry extends EventEmitter {
       // TUI tool specific fields
       commands: config.commands || [],
       toolName: config.toolName || null,
-      isTUITool: config.isTUITool || false
+      isTUITool: config.isTUITool || false,
+      // Canvas state fields
+      canvas: config.canvas || null, // Canvas-specific state: { x, y, width, height, zIndex, visible }
+      owner: config.owner || 'sidebar', // 'sidebar' | 'canvas' - which view owns the terminal
     };
 
     // Store terminal first
@@ -385,7 +388,10 @@ class TerminalRegistry extends EventEmitter {
       // TUI tool fields
       commands: t.commands,
       toolName: t.toolName,
-      isTUITool: t.isTUITool
+      isTUITool: t.isTUITool,
+      // Canvas state fields
+      canvas: t.canvas,
+      owner: t.owner || 'sidebar',
     }));
   }
 
@@ -682,6 +688,67 @@ class TerminalRegistry extends EventEmitter {
   getTerminalsByType(terminalType) {
     return Array.from(this.terminals.values())
       .filter(t => t.terminalType === terminalType);
+  }
+
+  /**
+   * Update canvas state for a terminal
+   * @param {string} id - Terminal ID
+   * @param {Object} canvasState - Canvas state: { x, y, width, height, zIndex, visible }
+   * @returns {Object|null} Updated terminal or null if not found
+   */
+  updateCanvasState(id, canvasState) {
+    const terminal = this.terminals.get(id);
+    if (!terminal) {
+      log.warn(`Cannot update canvas state: terminal ${id} not found`);
+      return null;
+    }
+
+    // Merge canvas state (allow partial updates)
+    terminal.canvas = {
+      ...terminal.canvas,
+      ...canvasState,
+    };
+    terminal.lastActivity = new Date();
+
+    log.debug(`Updated canvas state for ${terminal.name}:`, terminal.canvas);
+    this.emit('canvas-updated', { id, canvas: terminal.canvas });
+    return terminal;
+  }
+
+  /**
+   * Transfer terminal ownership between sidebar and canvas
+   * @param {string} id - Terminal ID
+   * @param {string} newOwner - 'sidebar' | 'canvas'
+   * @returns {Object|null} Updated terminal or null if not found
+   */
+  transferOwnership(id, newOwner) {
+    const terminal = this.terminals.get(id);
+    if (!terminal) {
+      log.warn(`Cannot transfer ownership: terminal ${id} not found`);
+      return null;
+    }
+
+    if (newOwner !== 'sidebar' && newOwner !== 'canvas') {
+      log.warn(`Invalid owner '${newOwner}', must be 'sidebar' or 'canvas'`);
+      return null;
+    }
+
+    const previousOwner = terminal.owner || 'sidebar';
+    terminal.owner = newOwner;
+    terminal.lastActivity = new Date();
+
+    log.info(`Transferred ${terminal.name} ownership: ${previousOwner} -> ${newOwner}`);
+    this.emit('ownership-transferred', { id, previousOwner, newOwner });
+    return terminal;
+  }
+
+  /**
+   * Get terminals by owner
+   * @param {string} owner - 'sidebar' | 'canvas'
+   */
+  getTerminalsByOwner(owner) {
+    return Array.from(this.terminals.values())
+      .filter(t => (t.owner || 'sidebar') === owner);
   }
 
   /**
