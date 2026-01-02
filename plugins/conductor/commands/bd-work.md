@@ -93,7 +93,10 @@ Build a structured prompt:
 
 ## Approach
 - <skill trigger based on task type>
-- Use subagents in parallel to explore the codebase first
+- **Use subagents liberally to preserve your context:**
+  - Explore agents (Haiku) for codebase search - they return summaries, not full files
+  - Parallel subagents for multi-file exploration
+  - Subagents for running tests and builds (returns only failures)
 - Follow existing patterns in the codebase
 
 ## Relevant Files

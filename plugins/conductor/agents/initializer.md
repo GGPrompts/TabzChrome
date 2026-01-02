@@ -133,7 +133,11 @@ Generate a structured prompt with:
 ## Approach
 - [Skill trigger 1 based on task analysis]
 - [Skill trigger 2 if applicable]
-- Use subagents in parallel to explore the codebase first
+- **Use subagents liberally to preserve your context:**
+  - Explore agents (Haiku) for codebase search - returns summaries, not full files
+  - Parallel subagents for multi-file exploration
+  - Subagents for running tests/builds - returns only failures
+  - Offload any read-heavy task that doesn't need your full reasoning
 
 ## Relevant Files
 @path/to/file1.ts

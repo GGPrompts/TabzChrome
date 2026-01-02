@@ -79,7 +79,10 @@ tmux send-keys -t "$SESSION" -l '## Task
 ## Approach
 - <skill trigger 1>
 - <skill trigger 2 if applicable>
-- Use subagents in parallel to explore the codebase
+- **Use subagents liberally to preserve your context:**
+  - Explore agents (Haiku) for codebase search
+  - Parallel subagents for multi-file exploration
+  - Subagents for tests/builds (returns only failures)
 
 ## Relevant Files
 @path/to/file1.ts
