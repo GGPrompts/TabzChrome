@@ -26,7 +26,7 @@ interface Props {
   terminal: CanvasTerminalType
   zoom: number
   onUpdate: (updates: Partial<CanvasTerminalType['canvas']>) => void
-  onRemove: () => void
+  onRemove?: () => void  // Optional - currently unused, close returns to sidebar
 }
 
 const API_BASE = '/api'
@@ -292,7 +292,7 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
       })
       if (response.ok) {
         // Remove from canvas - the sidebar will pick it up
-        onRemove()
+        onRemove?.()
       } else {
         console.error('Failed to return terminal to sidebar:', response.statusText)
       }
@@ -399,15 +399,6 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
             onMouseDown={(e) => e.stopPropagation()}
             className="p-1 hover:bg-[var(--background)] rounded transition-colors"
             title="Return to Sidebar"
-          >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3v18M7 12h14M7 12l4-4M7 12l4 4" />
-            </svg>
-          </button>
-          <button
-            onClick={onRemove}
-            className="p-1 hover:bg-[var(--background)] rounded transition-colors"
-            title="Close terminal"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />

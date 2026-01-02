@@ -692,13 +692,21 @@ wss.on('connection', (ws, req) => {
           break;
 
         case 'resize':
-          // Register this connection as owner of the terminal (for API-spawned terminals)
-          // This ensures data flows to the frontend even if terminal was spawned via HTTP
+          // Register this connection as owner ONLY if terminal has no owners yet
+          // This handles API-spawned terminals that need their first resize to register ownership
+          // CRITICAL: Don't add if already has owners - prevents "2 owners" bug during canvas transfer
+          // When sidebar releases ownership and canvas connects, sidebar may still send resize
+          // which would re-add it as owner alongside canvas
           if (!terminalOwners.has(data.terminalId)) {
             terminalOwners.set(data.terminalId, new Set());
+            terminalOwners.get(data.terminalId).add(ws);
+            connectionTerminals.add(data.terminalId);
+          } else if (terminalOwners.get(data.terminalId).size === 0) {
+            // Empty set exists but no owners - add this connection
+            terminalOwners.get(data.terminalId).add(ws);
+            connectionTerminals.add(data.terminalId);
           }
-          terminalOwners.get(data.terminalId).add(ws);
-          connectionTerminals.add(data.terminalId);
+          // If there are existing owners, don't add - let the proper owner handle output
 
           // Gracefully handle resize for terminals that don't exist yet
           // This happens during backend restart before recovery completes
