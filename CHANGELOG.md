@@ -15,9 +15,14 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
-## [Unreleased]
+## [1.4.0] - 2026-01-02
 
 ### Added
+
+- **Weather Widget** - New tab page now shows local weather:
+  - Temperature display with weather icon
+  - Uses browser geolocation for local forecast
+  - Clean, minimal design matching terminal aesthetic
 
 - **Keyboard Navigation in File Tree** - Navigate files with arrow keys:
   - Arrow Up/Down to move between files
@@ -44,12 +49,6 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
   - Works with all file types
   - Useful for quick file references in commands
 
-- **Profile Theme Inheritance** - Themes apply across terminal aspects:
-  - Panel background color
-  - Text foreground color
-  - Gradient overlay (optional)
-  - Media/image background (new)
-
 - **Watcher Idle Detection** - Conductor agent nudges idle workers:
   - Monitors tmux sessions for inactivity
   - Auto-sends reminder after timeout
@@ -64,12 +63,25 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
   - `POST /api/browser/profiles/import` - Bulk import with merge/replace modes
   - See docs/API.md for full documentation
 
+### Changed
+
+- **Dashboard File Navigation** - Improved usability and consistency:
+  - Better file tree navigation behavior
+  - Terminal list ordering now matches sidebar tab order
+
+- **Sidepanel Header** - Cleaned up redundant elements:
+  - Removed duplicate title display
+  - Updated dashboard button icon for clarity
+
 ### Fixed
 
-- **Working Directory Notifications** - Invalid path warning now displays UI:
-  - Shows notification when spawning terminal with invalid working directory
-  - Allows user to correct path before spawn
-  - Prevents silent failures with bad paths
+- **API Spawn Theme Inheritance** - Terminals spawned via API now inherit the default profile's theme correctly
+
+- **Pane Title Detection** - Shell with command pane titles (e.g., "bash: command") now treated as generic, preventing false-positive status displays
+
+- **Working Directory Notifications** - Invalid path warning now displays UI notification
+
+- **Profile Card Theme Preview** - Dashboard profile cards now correctly show inherited theme colors
 
 ---
 
