@@ -85,6 +85,10 @@ function SidePanelTerminal() {
   const [hoveredTab, setHoveredTab] = useState<{ id: string; rect: DOMRect } | null>(null)
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Spawn error notification state
+  const [spawnError, setSpawnError] = useState<{ message: string; terminalName?: string } | null>(null)
+  const spawnErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Unlock audio on first user interaction (Chrome autoplay policy workaround)
   useEffect(() => {
     const unlockAudio = () => {
@@ -381,6 +385,21 @@ function SidePanelTerminal() {
             const volume = audioData.volume ?? settings.volume ?? 0.7
             playWithPriority(audioData.url, priority, volume)
           })
+        }
+        // Handle spawn errors (e.g., invalid working directory)
+        if (message.data?.type === 'spawn-error' && message.data?.error) {
+          // Clear any existing timeout
+          if (spawnErrorTimeoutRef.current) {
+            clearTimeout(spawnErrorTimeoutRef.current)
+          }
+          setSpawnError({
+            message: message.data.error,
+            terminalName: message.data.terminalName
+          })
+          // Auto-dismiss after 8 seconds
+          spawnErrorTimeoutRef.current = setTimeout(() => {
+            setSpawnError(null)
+          }, 8000)
         }
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
@@ -966,6 +985,21 @@ function SidePanelTerminal() {
         <div className="px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-xs flex items-center gap-2">
           <span className="font-medium">⚠️ Tabz open in {connectionCount} browser windows</span>
           <span className="text-amber-500/60">— terminals may show duplicate output</span>
+        </div>
+      )}
+
+      {/* Spawn error notification */}
+      {spawnError && (
+        <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+          <span className="font-medium">❌ Failed to spawn terminal{spawnError.terminalName ? ` "${spawnError.terminalName}"` : ''}</span>
+          <span className="text-red-400/80 flex-1 truncate" title={spawnError.message}>— {spawnError.message}</span>
+          <button
+            onClick={() => setSpawnError(null)}
+            className="text-red-400/60 hover:text-red-400 transition-colors ml-auto flex-shrink-0"
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 
