@@ -110,8 +110,9 @@ export function isGenericPaneTitle(paneTitle: string | undefined): boolean {
   // Empty or whitespace only
   if (!cleanTitle.trim()) return true
 
-  // Generic shell names
+  // Generic shell names (exact match or with command in parentheses like "bash (./app)")
   if (/^(bash|zsh|sh|fish|python|node|ruby|perl)$/i.test(cleanTitle)) return true
+  if (/^(bash|zsh|sh|fish)\s*\(.*\)$/i.test(cleanTitle)) return true
 
   // Path-like names that aren't meaningful
   if (cleanTitle.startsWith('~') || cleanTitle.startsWith('/')) return true
