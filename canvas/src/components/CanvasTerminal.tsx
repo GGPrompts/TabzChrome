@@ -152,13 +152,14 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
         xterm.writeln('\x1b[31mWebSocket error\x1b[0m')
       }
 
-      // Send input to backend
+      // Send input to backend (must match Chrome extension format)
+      // See: extension/background/messageHandlers.ts line 251-256
       xterm.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
-            type: 'input',
+            type: 'command',
             terminalId: terminalId,
-            data: data,
+            command: data,
           }))
         }
       })
