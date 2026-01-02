@@ -185,6 +185,14 @@ app.get('/launcher', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'launcher.html'));
 });
 
+// Serve canvas app
+app.use('/canvas', express.static(path.join(__dirname, '../canvas/dist')));
+
+// SPA fallback for canvas routes
+app.get('/canvas/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../canvas/dist/index.html'));
+});
+
 // List available cached audio files (for testing)
 app.get('/api/audio/list', (req, res) => {
   const fs = require('fs');
