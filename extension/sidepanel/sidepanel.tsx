@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
-import { Terminal as TerminalIcon, Volume2, VolumeX, Grid3X3 } from 'lucide-react'
+import { Terminal as TerminalIcon, Volume2, VolumeX } from 'lucide-react'
 import {
   MoonIcon,
   SunIcon,
@@ -11,6 +11,7 @@ import {
   XIcon,
   BotIcon,
   BotMessageSquareIcon,
+  HomeIcon,
 } from '../components/icons'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
@@ -838,14 +839,13 @@ function SidePanelTerminal() {
     <div className="h-screen flex flex-col bg-[#0a0a0a] text-foreground">
       {/* Header - Windows Terminal style */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a]">
-        {/* Left: Title */}
+        {/* Left: Logo + session count */}
         <div className="flex items-center gap-2">
           <img
             src="/icons/tabz-logo-light.png"
             alt="Tabz"
             className="h-8"
           />
-          <h1 className="text-sm font-semibold text-white">Tabz</h1>
           {sessions.length > 0 && (
             <Badge variant="secondary" className="text-xs bg-[#00ff88]/20 text-[#00ff88] border-[#00ff88]/30">
               {sessions.length}
@@ -930,7 +930,7 @@ function SidePanelTerminal() {
             title="Open Dashboard"
             aria-label="Open Dashboard"
           >
-            <Grid3X3 className="h-4 w-4" />
+            <HomeIcon size={16} />
           </button>
 
           {/* Keyboard Shortcuts Button */}
