@@ -165,6 +165,56 @@ mcp-cli call tabz/tabz_list_tabs '{}'  # Get IDs first
 mcp-cli call tabz/tabz_screenshot '{"tabId": 1762561083}'  # Target explicit tab
 ```
 
+## Parallel Worker Isolation (Critical for Multi-Worker)
+
+When multiple Claude workers use tabz MCP tools simultaneously, they MUST isolate their tabs to prevent conflicts.
+
+### The Problem
+
+- User may switch tabs at any time → active tab is unreliable
+- Multiple workers targeting same tab → race conditions, corrupted state
+- Shared "Claude" group → workers step on each other
+
+### Required Pattern: Own Tab Group
+
+**Each worker MUST create its own tab group on startup:**
+
+```bash
+# 1. Create unique group for this worker (use session ID or UUID)
+SESSION_ID=$(tmux display-message -p '#{session_name}' 2>/dev/null || echo "worker-$$")
+mcp-cli call tabz/tabz_create_group "{\"title\": \"$SESSION_ID\", \"color\": \"blue\"}"
+
+# 2. Open tabs IN that group
+mcp-cli call tabz/tabz_open_url '{"url": "https://example.com", "groupId": <group_id>}'
+
+# 3. Always use explicit tabIds from YOUR group
+# Never use the user's active tab
+```
+
+### Do's and Don'ts
+
+| Do | Don't |
+|----|-------|
+| Create own tab group at start | Use shared "Claude" group |
+| Store your tabIds after opening | Rely on `active: true` tab |
+| Target tabs by explicit ID | Assume current tab is yours |
+| Clean up group when done | Leave orphaned tabs/groups |
+
+### Cleanup on Exit
+
+```bash
+# Close your tab group when done
+mcp-cli call tabz/tabz_ungroup_tabs '{"tabIds": [<your_tab_ids>]}'
+# Or close the tabs entirely
+```
+
+### Why Not Use Claude Group?
+
+`tabz_claude_group_add` is for **single-worker scenarios** where one Claude session marks tabs it's working on. For parallel workers:
+- Each worker needs its own group
+- Use `tabz_create_group` with unique name (session ID)
+- This prevents workers from interfering with each other
+
 ## Common Workflows
 
 ### Screenshot a Page

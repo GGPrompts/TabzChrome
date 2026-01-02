@@ -48,6 +48,38 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 ```
 
+### Tab Group Setup (For Browser Automation Workers)
+
+**CRITICAL for parallel workers using tabz MCP tools:**
+
+When the task involves browser automation (`tabz_*` tools), create an isolated tab group for the worker:
+
+```bash
+# Create unique tab group for this worker
+SESSION_ID=$(tmux display-message -p '#{session_name}' 2>/dev/null || echo "worker-$$")
+GROUP_RESULT=$(mcp-cli call tabz/tabz_create_group "{\"title\": \"$SESSION_ID\", \"color\": \"cyan\"}" 2>/dev/null)
+GROUP_ID=$(echo "$GROUP_RESULT" | jq -r '.groupId // empty')
+
+if [ -n "$GROUP_ID" ]; then
+  echo "Created tab group: $SESSION_ID (ID: $GROUP_ID)"
+  echo "TAB_GROUP_ID=$GROUP_ID"  # Pass to worker
+fi
+```
+
+**Why this matters:**
+- User may switch tabs at any time → active tab is unreliable
+- Multiple workers sharing tabs → race conditions, corrupted state
+- Each worker needs its own isolated tab group
+
+**Add to worker prompt when browser automation involved:**
+```markdown
+## Browser Isolation
+Your tab group ID: $GROUP_ID
+- Open all tabs in YOUR group: `tabz_open_url` with `groupId: $GROUP_ID`
+- Always use explicit tabIds - never rely on active tab
+- Clean up group when done
+```
+
 ## Phase 2: Task Analysis
 
 Given a beads issue ID, analyze what skills the worker needs:

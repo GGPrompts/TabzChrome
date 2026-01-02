@@ -75,6 +75,16 @@ curl -s -X POST http://localhost:8129/api/spawn \
   -d '{"name": "Claude: Browser Bot", "workingDir": "'$(pwd)'", "command": "claude --agent conductor:tabz-manager --dangerously-skip-permissions"}'
 ```
 
+**Parallel Workers: Tab Isolation Required**
+
+When spawning multiple tabz-manager workers simultaneously:
+- Use `conductor:initializer` to create a unique tab group per worker
+- Each worker gets its own `groupId` for isolation
+- Workers must use explicit `tabId` - never rely on active tab
+- User may switch tabs at any time → active tab is unreliable
+
+See `initializer.md` "Tab Group Setup" section for setup commands.
+
 ### TabzChrome Slash Commands
 
 | Command | Purpose |
