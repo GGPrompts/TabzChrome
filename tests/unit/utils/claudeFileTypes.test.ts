@@ -195,11 +195,19 @@ describe('claudeFileTypes', () => {
       })
     })
 
-    describe('non-claude files', () => {
-      it('should return null for regular files', () => {
+    describe('special files', () => {
+      it('should detect package.json as package-json', () => {
+        expect(getClaudeFileType('package.json', '/project/package.json')).toBe('package-json')
+      })
+
+      it('should detect README.md as readme', () => {
+        expect(getClaudeFileType('README.md', '/project/README.md')).toBe('readme')
+      })
+
+      it('should return null for regular source files', () => {
         expect(getClaudeFileType('index.ts', '/project/src/index.ts')).toBeNull()
-        expect(getClaudeFileType('package.json', '/project/package.json')).toBeNull()
-        expect(getClaudeFileType('README.md', '/project/README.md')).toBeNull()
+        expect(getClaudeFileType('utils.js', '/project/src/utils.js')).toBeNull()
+        expect(getClaudeFileType('styles.css', '/project/src/styles.css')).toBeNull()
       })
     })
   })
@@ -347,9 +355,14 @@ describe('claudeFileTypes', () => {
       expect(isClaudeFile('private.pem', '/project/private.pem')).toBe(true)
     })
 
-    it('should not match regular files', () => {
+    it('should match special project files', () => {
+      expect(isClaudeFile('package.json', '/project/package.json')).toBe(true)
+      expect(isClaudeFile('README.md', '/project/README.md')).toBe(true)
+    })
+
+    it('should not match regular source files', () => {
       expect(isClaudeFile('index.ts', '/project/index.ts')).toBe(false)
-      expect(isClaudeFile('package.json', '/project/package.json')).toBe(false)
+      expect(isClaudeFile('utils.js', '/project/utils.js')).toBe(false)
     })
   })
 
