@@ -1,7 +1,161 @@
 # PLAN.md - TabzChrome Roadmap
 
-**Last Updated**: January 1, 2026
-**Current Version**: 1.3.11
+**Last Updated**: January 2, 2026
+**Current Version**: 1.4.0
+
+---
+
+## Canvas Migration (Active)
+
+**Goal**: Migrate tabz-canvas (separate React app) INTO TabzChrome to be served from backend at `http://localhost:8129/canvas`.
+
+**Branch**: `canvas`
+
+### Why Migrate?
+1. Eliminates CORS/proxy complexity
+2. Direct access to WebSocket, profiles, themes - no auth token dance
+3. Still accessible by Claude via Tabz MCP (regular webpage, NOT extension page)
+4. Simplifies deployment - one codebase
+
+### Migration Tasks
+
+| Task | Status | Beads ID |
+|------|--------|----------|
+| Terminal state sync API (canvas state, ownership, transfer endpoints) | ✅ DONE | c6610b0 |
+| Send to Canvas button (sidebar → canvas) | ✅ DONE | 6df7c0e |
+| Setup canvas directory & Vite build | TODO | TabzChrome-7xy |
+| Migrate React components (App, Terminal, FileCard, Toolbar) | TODO | TabzChrome-ogu |
+| Add Express static route `/canvas` | TODO | TabzChrome-jyn |
+| ~~Integrate with profile/theme systems~~ | N/A | - |
+| Send to Sidebar button (canvas → sidebar) | TODO | TabzChrome-qie |
+| Drag-drop from sidebar to canvas | TODO | TabzChrome-zg3 |
+
+### Source Files (from tabz-canvas)
+```
+src/App.tsx                       → canvas/src/App.tsx (refactor to use hooks)
+src/stores/canvasStore.ts         → canvas/src/hooks/useCanvasViewport.ts (rewrite)
+src/stores/profileStore.ts        → DELETE (use direct API calls)
+src/components/CanvasTerminal.tsx → canvas/src/components/CanvasTerminal.tsx
+src/components/CanvasFileCard.tsx → canvas/src/components/CanvasFileCard.tsx
+src/components/Toolbar.tsx        → canvas/src/components/Toolbar.tsx
+
+NEW: canvas/src/hooks/useCanvasTerminals.ts (fetch from backend API)
+```
+
+### New Dependencies
+- **None!** All deps already in TabzChrome (React, xterm.js, Tailwind)
+- ~~`zustand`~~ - NOT NEEDED (see State Management below)
+- ~~`motion`~~ - NOT USED in tabz-canvas (was in package.json but no imports)
+
+### State Management (No Zustand)
+
+Canvas is a regular webpage at `/canvas`, not an extension page. State is split:
+
+| Data | Storage | Why |
+|------|---------|-----|
+| Terminal positions/sizes | Backend API (`/api/canvas/terminals`) | Already implemented in c6610b0 |
+| Terminal ownership | Backend API | Sidebar ↔ Canvas transfer |
+| Viewport pan/zoom | localStorage | Personal preference, no sync needed |
+| Profiles/themes | Backend API (`/api/profiles`) | Direct access, no CORS |
+
+**Hooks to create:**
+- `useCanvasViewport()` - Pan/zoom with localStorage persistence
+- `useCanvasTerminals()` - Fetch/update via existing REST API
+
+### Architecture
+```
+canvas/                     (NEW - separate Vite app)
+├── src/
+│   ├── App.tsx             Pan/zoom canvas viewport
+│   ├── hooks/
+│   │   ├── useCanvasViewport.ts   localStorage for pan/zoom
+│   │   └── useCanvasTerminals.ts  REST API for terminal state
+│   └── components/
+│       ├── CanvasTerminal.tsx  xterm.js draggable cards
+│       ├── CanvasFileCard.tsx  File viewer cards
+│       └── Toolbar.tsx         Canvas controls
+├── dist/                   Built output
+└── vite.config.ts
+
+backend/server.js
+└── app.use('/canvas', express.static('canvas/dist'))
+
+Existing backend (already done):
+├── /api/canvas/terminals           GET - list terminals with canvas state
+├── /api/canvas/terminals/:id       PATCH - update position/size
+├── /api/canvas/terminals/:id/transfer  POST - move between views
+└── /api/canvas/terminals/batch     POST - batch updates
+```
+
+### Design Decisions
+
+**Canvas = Display Surface, Not Terminal Manager**
+- Canvas does NOT spawn terminals - sidebar handles that
+- Terminals arrive via: "Send to Canvas" button OR drag-drop from sidebar
+- Canvas only needs: pan/zoom, position/resize terminals, "Return to Sidebar" button
+- No profile picker, no spawn UI needed on canvas
+- Simplifies Toolbar to just viewport controls (reset zoom, fit all, etc.)
+
+### Issues Fixed in tabz-canvas
+- [x] Passive wheel event listener errors
+- [x] Terminal drag bouncing at different zoom levels
+- [x] ~~Profile selection falls back to hardcoded theme~~ N/A - canvas doesn't need profile selection
+
+### Future: Architecture Unification
+
+**Goal**: Consolidate extension pages → backend-served pages + minimal sidebar
+
+**Phase 1 (Current)**: Canvas as backend page
+```
+Extension pages:        Backend pages:
+├── Sidebar             ├── /canvas ← NEW
+├── Dashboard
+└── New Tab
+```
+
+**Phase 2**: Dashboard → Backend
+```
+Extension pages:        Backend pages:
+├── Sidebar             ├── /canvas
+├── New Tab             └── /dashboard ← MIGRATE
+```
+- Migrate `chrome.storage` settings → backend `/api/settings`
+- Dashboard becomes `localhost:8129/dashboard`
+- Can open Canvas + Dashboard as tabs in same window
+
+**Phase 3**: Settings → Sidebar
+```
+Extension pages:        Backend pages:
+├── Sidebar             ├── /canvas
+│   ├── Terminals       └── /files (optional)
+│   ├── Settings ← MOVE
+│   └── Profiles ← MOVE
+└── New Tab
+```
+- All config accessible from sidebar (collapsible sections or tabs)
+- Dashboard becomes optional/deprecated
+- Sidebar = full control center
+
+**Phase 4**: Canvas with Left Panel
+```
+┌──────────────┬────────────┬──────────────────────┐
+│   Sidebar    │ Left Panel │   Canvas Workspace   │
+│  (extension) │            │                      │
+│              │ 📁 Files   │  [Terminal] [File]   │
+│  • Terminals │ 🔀 Git     │                      │
+│  • Settings  │            │  [Terminal]          │
+│  • Profiles  │ (drag →)   │                      │
+└──────────────┴────────────┴──────────────────────┘
+```
+- Files/Git panel in Canvas for drag-drop workflow
+- Sidebar for quick access + settings
+- Canvas for spatial arrangement
+
+**Benefits of Unification**:
+- Single source of truth (backend storage)
+- Drag-drop between Files ↔ Canvas
+- Simpler extension (less chrome.* dependency)
+- All views share same data without sync issues
 
 ---
 
