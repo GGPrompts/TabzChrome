@@ -55,6 +55,17 @@ interface FileNode {
   isObsidianVault?: boolean  // True if this folder contains .obsidian
 }
 
+// Git status types for files
+type GitStatus = 'staged' | 'modified' | 'untracked'
+interface GitStatusInfo {
+  status: GitStatus
+  indexStatus: string
+  workTreeStatus: string
+}
+interface GitStatusMap {
+  [path: string]: GitStatusInfo
+}
+
 interface FileTreeProps {
   onFileSelect?: (path: string) => void
   basePath?: string
@@ -87,6 +98,9 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   const [showHidden, setShowHidden] = useState(showHiddenProp)
   // Track which basePath we initialized with (not just boolean)
   const [initializedWithPath, setInitializedWithPath] = useState<string | null>(null)
+  // Git status for files in the tree
+  const [gitStatus, setGitStatus] = useState<GitStatusMap>({})
+  const [isGitRepo, setIsGitRepo] = useState(false)
 
   // Sync currentPath when basePath changes (after working directory loads)
   // Re-run when basePath changes to a real project path
@@ -182,6 +196,24 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
   }, [currentPath, showHidden, maxDepth, fileTree, fileTreePath, expandedFolders.size, setFileTree, setFileTreePath])
 
+  // Fetch git status for the current directory
+  const fetchGitStatus = useCallback(async (path?: string) => {
+    const targetPath = path || currentPath
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/files/git-status?${new URLSearchParams({ path: targetPath })}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        setIsGitRepo(data.isGitRepo)
+        setGitStatus(data.files || {})
+      }
+    } catch (err) {
+      // Silently fail - git status is optional enhancement
+      console.debug('[FileTree] Git status fetch failed:', err)
+    }
+  }, [currentPath])
+
   // Fetch when basePath changes (from working directory) or settings change
   // Wait for working directory to load before fetching
   useEffect(() => {
@@ -195,7 +227,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       return
     }
     fetchFileTree()
-  }, [currentPath, showHidden, maxDepth, waitForLoad, basePath])
+    fetchGitStatus()
+  }, [currentPath, showHidden, maxDepth, waitForLoad, basePath, fetchGitStatus])
 
   // Get icon for Claude file types
   const getClaudeIcon = (claudeType: ClaudeFileType) => {
@@ -292,6 +325,54 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       ? <FolderOpen className="w-4 h-4 text-yellow-400" />
       : <Folder className="w-4 h-4 text-yellow-400" />
   }
+
+  // Get git status indicator for a file
+  const getGitStatusIndicator = (filePath: string) => {
+    const status = gitStatus[filePath]
+    if (!status) return null
+
+    // Color-coded dot indicator
+    const colors = {
+      staged: 'bg-blue-400',     // Blue for staged
+      modified: 'bg-yellow-400', // Yellow/orange for modified
+      untracked: 'bg-green-400', // Green for untracked
+    }
+
+    const titles = {
+      staged: 'Staged for commit',
+      modified: 'Modified',
+      untracked: 'Untracked',
+    }
+
+    return (
+      <span
+        className={`w-2 h-2 rounded-full ${colors[status.status]} ml-1 flex-shrink-0`}
+        title={titles[status.status]}
+      />
+    )
+  }
+
+  // Check if a directory has any modified files (for subtle folder indicator)
+  const getFolderGitStatus = useCallback((folderPath: string): GitStatus | null => {
+    // Check if any files under this folder have git status
+    for (const [filePath, info] of Object.entries(gitStatus)) {
+      if (filePath.startsWith(folderPath + '/')) {
+        // Return the "most important" status (staged > modified > untracked)
+        if (info.status === 'staged') return 'staged'
+      }
+    }
+    for (const [filePath, info] of Object.entries(gitStatus)) {
+      if (filePath.startsWith(folderPath + '/')) {
+        if (info.status === 'modified') return 'modified'
+      }
+    }
+    for (const [filePath, info] of Object.entries(gitStatus)) {
+      if (filePath.startsWith(folderPath + '/')) {
+        if (info.status === 'untracked') return 'untracked'
+      }
+    }
+    return null
+  }, [gitStatus])
 
   // Check if a folder or any of its descendant folders match the folder filter
   const hasFolderMatch = useCallback((node: FileNode, filter: string): boolean => {
@@ -762,6 +843,10 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     const claudeType = getClaudeFileType(node.name, node.path)
     const textColorClass = (claudeType && claudeType !== 'prompt') ? claudeFileColors[claudeType]?.tailwind : ''
 
+    // Get git status for this node
+    const fileGitStatus = !isDirectory ? getGitStatusIndicator(node.path) : null
+    const folderStatus = isDirectory ? getFolderGitStatus(node.path) : null
+
     return (
       <div key={node.path}>
         <div
@@ -786,6 +871,19 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           <span className={`text-sm truncate flex-1 ${isDirectory ? "font-medium" : ""} ${textColorClass}`}>
             {node.name}
           </span>
+          {/* Git status indicator for files */}
+          {fileGitStatus}
+          {/* Subtle folder indicator when containing modified files */}
+          {isDirectory && folderStatus && (
+            <span
+              className={`w-1.5 h-1.5 rounded-full opacity-60 ml-1 flex-shrink-0 ${
+                folderStatus === 'staged' ? 'bg-blue-400' :
+                folderStatus === 'modified' ? 'bg-yellow-400' :
+                'bg-green-400'
+              }`}
+              title={`Contains ${folderStatus} files`}
+            />
+          )}
           {/* Favorite star - visible on hover or if favorited */}
           <button
             className={`p-0.5 rounded hover:bg-muted/50 ${isNodeFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
@@ -805,7 +903,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         )}
       </div>
     )
-  }, [expandedFolders, selectedPath, handleNodeClick, handleContextMenu, isFavorite, toggleFavorite])
+  }, [expandedFolders, selectedPath, handleNodeClick, handleContextMenu, isFavorite, toggleFavorite, gitStatus, getFolderGitStatus])
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border border-border">
@@ -819,7 +917,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
           <button onClick={navigateUp} className="p-1.5 hover:bg-muted rounded text-lg font-bold" title="Up">
             ↑
           </button>
-          <button onClick={() => fetchFileTree(undefined, true)} className="p-1.5 hover:bg-muted rounded" title="Refresh">
+          <button onClick={() => { fetchFileTree(undefined, true); fetchGitStatus(); }} className="p-1.5 hover:bg-muted rounded" title="Refresh">
             <RefreshCwIcon size={16} />
           </button>
           <button

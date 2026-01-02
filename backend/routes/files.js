@@ -987,4 +987,82 @@ router.get('/list', async (req, res) => {
   }
 })
 
+// Get git status for files in a directory
+// Returns file paths with their git status (staged/modified/untracked)
+router.get('/git-status', async (req, res) => {
+  try {
+    let targetPath = req.query.path || process.cwd()
+    targetPath = expandTilde(targetPath)
+    const resolvedPath = path.resolve(targetPath)
+
+    // Import git-utils for status parsing
+    const { exec } = require('child_process')
+    const util = require('util')
+    const execAsync = util.promisify(exec)
+
+    // Find git root for this path
+    let gitRoot
+    try {
+      const { stdout } = await execAsync('git rev-parse --show-toplevel', {
+        cwd: resolvedPath,
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+      })
+      gitRoot = stdout.trim()
+    } catch {
+      // Not a git repo
+      return res.json({ isGitRepo: false, files: {} })
+    }
+
+    // Get git status
+    const { stdout: statusOutput } = await execAsync('git status -b --porcelain', {
+      cwd: gitRoot,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+    })
+
+    // Parse the status output into a map of relative path -> status
+    const files = {}
+    const lines = statusOutput.trim().split('\n')
+
+    for (const line of lines) {
+      if (!line || line.length < 2 || line.startsWith('##')) continue
+
+      const indexStatus = line[0]  // Status in index (staged area)
+      const workTreeStatus = line[1]  // Status in work tree
+      let filePath = line.substring(3)  // File path starts at position 3
+
+      // Handle renamed files (format: "R  old -> new")
+      if (filePath.includes(' -> ')) {
+        filePath = filePath.split(' -> ')[1]
+      }
+
+      // Convert relative path to absolute for matching
+      const absolutePath = path.join(gitRoot, filePath)
+
+      // Determine status type (priority: staged > modified > untracked)
+      let status = null
+      if (indexStatus === '?' && workTreeStatus === '?') {
+        status = 'untracked'
+      } else if (indexStatus !== ' ' && indexStatus !== '?') {
+        status = 'staged'
+      } else if (workTreeStatus !== ' ' && workTreeStatus !== '?') {
+        status = 'modified'
+      }
+
+      if (status) {
+        files[absolutePath] = { status, indexStatus, workTreeStatus }
+      }
+    }
+
+    res.json({
+      isGitRepo: true,
+      gitRoot,
+      files
+    })
+
+  } catch (error) {
+    console.error('Error getting git status:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 module.exports = router
