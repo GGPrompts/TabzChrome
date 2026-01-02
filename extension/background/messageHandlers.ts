@@ -286,6 +286,15 @@ export function setupMessageHandlers(): void {
         })
         break
 
+      case 'RELEASE_OWNERSHIP':
+        // Release ownership of a terminal without closing it
+        // Used when transferring terminals between sidebar and canvas
+        sendToWebSocket({
+          type: 'release-ownership',
+          terminalId: message.terminalId,
+        })
+        break
+
       case 'TERMINAL_RESIZE':
         // Forward terminal resize to backend (high-frequency, no logging)
         sendToWebSocket({

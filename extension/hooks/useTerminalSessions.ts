@@ -506,6 +506,14 @@ export function useTerminalSessions({
       case 'terminal-ownership-transferred':
         // Terminal moved between sidebar and canvas
         if (data.data?.id) {
+          // If transferred TO canvas, release sidebar's ownership on the backend
+          // This prevents "2 owners" warning when canvas connects directly
+          if (data.data.owner === 'canvas') {
+            sendMessage({
+              type: 'RELEASE_OWNERSHIP',
+              terminalId: data.data.id,
+            })
+          }
           setSessions(prev => prev.map(s =>
             s.id === data.data.id
               ? { ...s, owner: data.data.owner, canvas: data.data.canvas }

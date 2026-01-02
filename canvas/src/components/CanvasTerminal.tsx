@@ -276,6 +276,15 @@ export function CanvasTerminal({ terminal, zoom, onUpdate, onRemove }: Props) {
   // Return terminal to sidebar
   const handleReturnToSidebar = async () => {
     try {
+      // Release canvas ownership on the backend before transfer
+      // This prevents "2 owners" warning when sidebar reconnects
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'release-ownership',
+          terminalId: terminal.id,
+        }))
+      }
+
       const response = await fetch(`${API_BASE}/canvas/terminals/${terminal.id}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

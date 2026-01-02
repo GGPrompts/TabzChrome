@@ -837,6 +837,23 @@ wss.on('connection', (ws, req) => {
           }
           break;
 
+        case 'release-ownership':
+          // Release this connection's ownership of a terminal without closing it
+          // Used when transferring terminals between sidebar and canvas
+          // The terminal continues running, just stops receiving output on this connection
+          if (data.terminalId) {
+            connectionTerminals.delete(data.terminalId);
+            if (terminalOwners.has(data.terminalId)) {
+              terminalOwners.get(data.terminalId).delete(ws);
+              // Clean up empty sets
+              if (terminalOwners.get(data.terminalId).size === 0) {
+                terminalOwners.delete(data.terminalId);
+              }
+              log.info(`Released ownership of terminal ${data.terminalId.slice(-8)} (${terminalOwners.get(data.terminalId)?.size || 0} owners remaining)`);
+            }
+          }
+          break;
+
         // ============================================
         // BROWSER MCP - WebSocket message handlers
         // ============================================

@@ -34,6 +34,8 @@ export type MessageType =
   | 'TMUX_SESSION_SEND'
   // Reconnect to terminal (register ownership for API-spawned terminals)
   | 'RECONNECT'
+  // Release ownership of terminal (for canvas transfer)
+  | 'RELEASE_OWNERSHIP'
   // Open URL in new tab (content script FAB)
   | 'OPEN_TAB'
   // Dashboard -> Sidebar: Open settings modal to edit a specific profile
@@ -294,6 +296,13 @@ export interface ReconnectMessage extends BaseMessage {
   terminalId: string;
 }
 
+// Release ownership of a terminal without closing it
+// Used when transferring terminals between sidebar and canvas
+export interface ReleaseOwnershipMessage extends BaseMessage {
+  type: 'RELEASE_OWNERSHIP';
+  terminalId: string;
+}
+
 // Open a URL in a new tab (used by content script FAB)
 export interface OpenTabMessage extends BaseMessage {
   type: 'OPEN_TAB';
@@ -403,6 +412,7 @@ export type ExtensionMessage =
   | TargetedPaneSendMessage
   | TmuxSessionSendMessage
   | ReconnectMessage
+  | ReleaseOwnershipMessage
   | OpenTabMessage
   | OpenSettingsEditProfileMessage
   | SwitchToTerminalMessage
