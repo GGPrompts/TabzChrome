@@ -2255,6 +2255,14 @@ const canvasStateSchema = Joi.object({
 
 const transferOwnershipSchema = Joi.object({
   owner: Joi.string().valid('sidebar', 'canvas').required(),
+  canvas: Joi.object({
+    x: Joi.number().optional(),
+    y: Joi.number().optional(),
+    width: Joi.number().min(200).max(2000).optional(),
+    height: Joi.number().min(100).max(1500).optional(),
+    zIndex: Joi.number().integer().min(0).optional(),
+    visible: Joi.boolean().optional(),
+  }).optional(),
 });
 
 /**
@@ -2337,12 +2345,12 @@ router.patch('/canvas/terminals/:id', validateBody(canvasStateSchema), asyncHand
 
 /**
  * POST /api/canvas/terminals/:id/transfer - Transfer terminal ownership
- * Body: { owner: 'sidebar' | 'canvas' }
- * Moves terminal between sidebar and canvas view
+ * Body: { owner: 'sidebar' | 'canvas', canvas?: { x?, y?, width?, height?, zIndex?, visible? } }
+ * Moves terminal between sidebar and canvas view, optionally setting initial canvas position
  */
 router.post('/canvas/terminals/:id/transfer', validateBody(transferOwnershipSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { owner } = req.body;
+  const { owner, canvas: canvasState } = req.body;
 
   const terminal = terminalRegistry.transferOwnership(id, owner);
 
@@ -2351,6 +2359,11 @@ router.post('/canvas/terminals/:id/transfer', validateBody(transferOwnershipSche
       error: 'Terminal not found',
       message: `No terminal found with ID: ${id}`,
     });
+  }
+
+  // If canvas state provided (e.g., drop position), update it
+  if (canvasState && owner === 'canvas') {
+    terminalRegistry.updateCanvasState(id, canvasState);
   }
 
   // Broadcast to WebSocket clients for real-time sync
