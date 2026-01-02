@@ -204,13 +204,131 @@ mcp-cli call tabz/tabz_notification_show '{"title": "❌ Backend Error", "messag
 - 🔴 Any worker stale for 5+ minutes
 - ❌ Backend errors detected in logs
 
+## Background Mode (Recommended)
+
+When invoked with `run_in_background: true`, watcher runs continuously without blocking the conductor. This is the recommended pattern for multi-worker orchestration.
+
+### How It Works
+
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: "Monitor all Claude workers continuously. Check every 30 seconds. Send notifications for completions, high context, or stuck workers. Exit when all workers complete."
+```
+
+### Continuous Monitoring Loop
+
+```bash
+#!/bin/bash
+# Watcher background loop
+
+INTERVAL=30  # seconds between checks
+MAX_STALE_MINUTES=5
+
+while true; do
+  echo "=== Checking workers at $(date) ==="
+
+  # Get all worker sessions
+  WORKERS=$(tmux ls 2>/dev/null | grep "^ctt-" | grep -i claude | cut -d: -f1)
+
+  if [ -z "$WORKERS" ]; then
+    echo "No active workers found. Exiting."
+    # Notify conductor
+    mcp-cli call tabz/tabz_notification_show '{"title": "🏁 All Workers Done", "message": "No active Claude workers remaining", "type": "basic"}'
+    exit 0
+  fi
+
+  ACTIVE_COUNT=0
+  for SESSION in $WORKERS; do
+    # Read state file
+    STATE_FILE="/tmp/claude-code-state/${SESSION}.json"
+    CONTEXT_FILE="/tmp/claude-code-state/${SESSION}-context.json"
+
+    if [ -f "$STATE_FILE" ]; then
+      STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
+
+      # Check for completion
+      if [ "$STATUS" = "awaiting_input" ]; then
+        mcp-cli call tabz/tabz_notification_show "{\"title\": \"✅ Worker Done\", \"message\": \"$SESSION completed\", \"type\": \"basic\"}"
+      else
+        ACTIVE_COUNT=$((ACTIVE_COUNT + 1))
+      fi
+
+      # Check for stale
+      if [ "$STATUS" = "stale" ]; then
+        mcp-cli call tabz/tabz_notification_show "{\"title\": \"🔴 Worker Stuck\", \"message\": \"$SESSION stale for 5+ minutes\", \"type\": \"basic\"}"
+      fi
+    fi
+
+    # Check context
+    if [ -f "$CONTEXT_FILE" ]; then
+      CONTEXT=$(jq -r '.context_pct // 0' "$CONTEXT_FILE" 2>/dev/null)
+      if [ "$CONTEXT" -ge 75 ]; then
+        mcp-cli call tabz/tabz_notification_show "{\"title\": \"⚠️ High Context\", \"message\": \"$SESSION at ${CONTEXT}%\", \"type\": \"basic\"}"
+      fi
+    fi
+  done
+
+  # Exit if all workers done
+  if [ "$ACTIVE_COUNT" -eq 0 ]; then
+    echo "All workers completed. Exiting."
+    mcp-cli call tabz/tabz_notification_show '{"title": "🏁 All Workers Done", "message": "All Claude workers have completed", "type": "basic"}'
+    exit 0
+  fi
+
+  echo "Active workers: $ACTIVE_COUNT"
+  sleep $INTERVAL
+done
+```
+
+### Notification Events
+
+| Event | Icon | When |
+|-------|------|------|
+| Worker completed | ✅ | Status transitions to `awaiting_input` |
+| High context | ⚠️ | Context reaches 75%+ (critical zone) |
+| Worker stuck | 🔴 | Stale for 5+ minutes |
+| All done | 🏁 | No active workers remaining |
+| Backend error | ❌ | Error patterns found in logs |
+
+### Configurable Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `INTERVAL` | 30s | Time between status checks |
+| `MAX_STALE_MINUTES` | 5 | Minutes before "stuck" alert |
+| `CONTEXT_THRESHOLD` | 75% | Context % to trigger warning |
+
+### Stopping the Watcher
+
+The conductor can stop background watcher by:
+1. Letting it exit naturally when all workers complete
+2. Using `TaskOutput` with `block: false` to check status
+3. Killing the background task if needed
+
 ## Usage
+
+**One-time check (foreground):**
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  prompt: "Check status of all workers and report"
+```
+
+**Continuous monitoring (background - recommended):**
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: "Monitor workers every 30 seconds until all complete"
+```
 
 The conductor will invoke you with prompts like:
 - "Check status of all workers"
+- "Monitor workers continuously until done"
 - "Check status and notify if any need attention"
 - "Is ctt-worker-abc done?"
 - "Which workers are ready for new tasks?"
-- "Any workers running low on context?"
 
 Keep responses concise - you're a monitoring tool, not a conversationalist.

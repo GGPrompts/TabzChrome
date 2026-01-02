@@ -265,8 +265,17 @@ Invoke subagents via the Task tool. They run in your context (invisible to user)
 
 ### Watcher (Background, Haiku) - Worker Monitoring
 
-Run periodically to monitor worker health. Uses cheap Haiku model.
+Start watcher in background mode - it monitors continuously and notifies. Uses cheap Haiku model.
 
+**Recommended: Background Mode**
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: "Monitor all Claude workers continuously. Check every 30 seconds. Send notifications for completions, high context, or stuck workers. Exit when all workers complete."
+```
+
+**One-time check (foreground):**
 ```
 Task tool:
   subagent_type: "conductor:watcher"
@@ -278,14 +287,19 @@ Watcher capabilities:
 - Check backend logs for errors
 - **Send notifications via tabz_notification_show** for alerts:
   - ✅ Worker completed
-  - ⚠️ Context > 80%
+  - ⚠️ Context > 75%
   - 🔴 Worker stuck > 5 minutes
+  - 🏁 All workers done
   - ❌ Backend errors
 
-**Scheduling pattern:** Invoke watcher every few minutes during active orchestration.
+**Background mode benefits:**
+- Runs continuously without blocking conductor
+- Checks every 30 seconds (configurable)
+- Auto-exits when all workers complete
+- Sends desktop notifications for all events
 
 **When to spawn fresh workers:**
-- Context > 80% on existing worker
+- Context > 75% on existing worker (critical zone)
 - Worker stale for > 5 minutes
 - New unrelated task
 
