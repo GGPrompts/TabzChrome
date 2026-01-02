@@ -34,16 +34,29 @@ mcp-cli info tabz/<tool>  # Always check schema before calling
 
 ### Conductor Subagents
 
-| Agent | Invocation | Visibility | Purpose |
-|-------|------------|------------|---------|
-| `conductor:watcher` | Task tool (background, haiku) | Invisible - runs in conductor's context | Poll worker health, send notifications for alerts |
-| `conductor:skill-picker` | Task tool (background, haiku) | Invisible - runs in conductor's context | Search/install skills from skillsmp.com |
-| `conductor:tui-expert` | Task tool (on-demand, opus) | Invisible - spawns visible TUI terminals | Spawn btop, lazygit, lnav, tfe when needed |
-| `conductor:docs-updater` | Task tool (post-wave, opus) | Invisible - updates docs after merges | Update CHANGELOG, API docs, plugin docs |
-| `tabz-manager` | Spawn as terminal | **Visible** - separate terminal for safety | Browser automation (user sees all actions) |
+| Agent | Invocation | Model | Purpose |
+|-------|------------|-------|---------|
+| `conductor:initializer` | Task tool (before spawn) | haiku | Prepare env, check file sizes, craft skill-aware prompts |
+| `conductor:watcher` | Task tool (background) | haiku | Poll worker health, send notifications for alerts |
+| `conductor:skill-picker` | Task tool (on-demand) | haiku | Search/install skills from skillsmp.com |
+| `conductor:tui-expert` | Task tool (on-demand) | opus | Spawn btop, lazygit, lnav, tfe for system info |
+| `conductor:docs-updater` | Task tool (post-wave) | opus | Update CHANGELOG, API docs after merges |
+| `tabz-manager` | Spawn as **visible** terminal | opus | Browser automation (user sees all actions) |
+
+### When to Use Each Subagent
+
+| Situation | Subagent | Why |
+|-----------|----------|-----|
+| Before spawning worker | **initializer** | Checks file sizes, maps skills, crafts optimized prompt |
+| Spawning parallel browser workers | **initializer** | Creates isolated tab groups per worker |
+| Monitor running workers | **watcher** | Background polling, notifications on completion/stuck |
+| Need a skill not installed | **skill-picker** | Searches skillsmp.com, installs to ~/.claude/skills |
+| Need system info (CPU, git, logs) | **tui-expert** | Spawns btop, lazygit, lnav in visible terminals |
+| After merging PR to main | **docs-updater** | Updates CHANGELOG, API docs, plugin docs |
+| Any browser automation | **tabz-manager** | Visible terminal so user sees what's happening |
 
 **Why separate visibility?**
-- **Background subagents** (watcher, skill-picker): Cheap, fast, no user interaction needed
+- **Background subagents** (initializer, watcher, skill-picker): Cheap, fast, no user interaction needed
 - **TUI-expert**: Spawns visible terminals but agent itself is invisible
 - **tabz-manager**: User MUST see browser automation for safety/trust
 
@@ -378,12 +391,48 @@ Example tasks to send:
 
 ## Workflows
 
-### Spawn Worker with Task
+### Spawn Worker with Task (Recommended)
+
+**Use initializer for optimized prompts:**
+
+```
+# Step 1: Call initializer to prepare the prompt
+Task tool:
+  subagent_type: "conductor:initializer"
+  prompt: "Prepare worker for TabzChrome-7xy in /home/matt/projects/TabzChrome"
+
+# Initializer returns:
+# - Environment setup commands (npm install, etc.)
+# - Skill triggers based on issue analysis
+# - Safe file references (checks sizes!)
+# - Crafted prompt ready to send
+```
+
+```bash
+# Step 2: Spawn the worker
+TOKEN=$(cat /tmp/tabz-auth-token)
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
+  -d '{"name": "Claude: TabzChrome-7xy", "workingDir": "/home/matt/projects/TabzChrome", "command": "claude --dangerously-skip-permissions"}'
+
+# Step 3: Wait for Claude to initialize
+sleep 4
+
+# Step 4: Send the prompt from initializer
+tmux send-keys -t "$SESSION" -l '<prompt from initializer>'
+sleep 0.3
+tmux send-keys -t "$SESSION" C-m
+```
+
+### Spawn Worker (Quick - No Initializer)
+
+For simple tasks where you know the context:
 
 1. Get token: `cat /tmp/tabz-auth-token`
 2. Spawn terminal (save session name from response)
 3. Wait for init: `sleep 4`
-4. Craft capability-aware prompt
+4. Craft capability-aware prompt manually
 5. Send via tmux send-keys
 
 ### Parallel Workers
@@ -436,6 +485,44 @@ curl -s -X POST http://localhost:8129/api/spawn \
 
 After the worker updates a file, TFE can be refreshed by pressing `r` or the user can navigate to the updated file.
 
+### Full Wave Workflow (All Subagents)
+
+Complete workflow using all conductor subagents:
+
+```
+# 1. PREPARE - Use initializer for each worker
+Task tool (parallel for each issue):
+  subagent_type: "conductor:initializer"
+  prompt: "Prepare worker for TabzChrome-7xy"
+
+Task tool:
+  subagent_type: "conductor:initializer"
+  prompt: "Prepare worker for TabzChrome-ogu"
+
+# 2. SPAWN - Create workers with crafted prompts
+(spawn terminals, send prompts from initializer)
+
+# 3. MONITOR - Start watcher in background
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: "Monitor all Claude workers. Notify on completion, stuck, or high context."
+
+# 4. WAIT - Watcher sends notifications as workers complete
+# You'll receive notifications like:
+# ✅ TabzChrome-7xy completed
+# ⚠️ TabzChrome-ogu context at 78%
+# 🏁 All workers done
+
+# 5. POST-WAVE - Update docs after merge
+Task tool:
+  subagent_type: "conductor:docs-updater"
+  prompt: "Update CHANGELOG and docs for canvas migration work"
+
+# 6. CLEANUP - Kill terminals
+curl -X DELETE http://localhost:8129/api/agents/ctt-xxx
+```
+
 ### Cleanup
 
 ```bash
@@ -457,17 +544,18 @@ tmux ls | grep "^ctt-" | cut -d: -f1 | xargs -I {} tmux kill-session -t {}
 
 ## Best Practices
 
-1. **Read CAPABILITIES.md first** - Know what's available
-2. **Name workers with "Claude:" prefix** - Enables status tracking
-3. **Always use --dangerously-skip-permissions** - Avoid permission prompts
-4. **Include @ file references** - Give workers context
-5. **Use capability triggers** - Activate relevant skills
-6. **"Use subagents in parallel"** - For complex exploration tasks
-7. **Delegate monitoring to watcher** - Cheap Haiku subagent polling
-8. **Spawn tabz-manager as terminal** - Visible browser automation for safety
-9. **One goal per worker** - Workers can spawn their own subagents
-10. **Clean up when done** - Kill terminals after tasks complete
-11. **Spawn TFE for docs** - Keep reference docs visible with `tfe --preview`
+1. **Use initializer before spawning** - Gets optimized prompts, checks file sizes
+2. **Read CAPABILITIES.md first** - Know what's available
+3. **Name workers with "Claude:" prefix** - Enables status tracking
+4. **Always use --dangerously-skip-permissions** - Avoid permission prompts
+5. **Include @ file references** - But check sizes first (initializer does this)
+6. **Use capability triggers** - Activate relevant skills
+7. **"Use subagents in parallel"** - For complex exploration tasks
+8. **Start watcher in background** - Monitor workers without blocking
+9. **Spawn tabz-manager as terminal** - Visible browser automation for safety
+10. **One goal per worker** - Workers can spawn their own subagents
+11. **Clean up when done** - Kill terminals after tasks complete
+12. **Spawn TFE for docs** - Keep reference docs visible with `tfe --preview`
 
 ## Error Handling
 
