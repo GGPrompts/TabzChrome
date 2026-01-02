@@ -70,6 +70,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   const { fileTree, setFileTree, fileTreePath, setFileTreePath, toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [focusedPath, setFocusedPath] = useState<string | null>(null)
+  const treeContainerRef = useRef<HTMLDivElement>(null)
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -423,6 +425,93 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
   }, [filteredTree, fileTree])
 
+  // Flatten visible items for keyboard navigation (respects expanded folders)
+  const visibleItems = useMemo(() => {
+    const items: FileNode[] = []
+    const collectVisible = (node: FileNode) => {
+      items.push(node)
+      if (node.type === 'directory' && expandedFolders.has(node.path) && node.children) {
+        node.children.forEach(collectVisible)
+      }
+    }
+    const treeToUse = filteredTree || fileTree
+    if (treeToUse) {
+      collectVisible(treeToUse)
+    }
+    return items
+  }, [filteredTree, fileTree, expandedFolders])
+
+  // Keyboard navigation handler
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (visibleItems.length === 0) return
+
+    const currentIndex = focusedPath
+      ? visibleItems.findIndex(item => item.path === focusedPath)
+      : -1
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault()
+        const nextIndex = currentIndex < visibleItems.length - 1 ? currentIndex + 1 : 0
+        setFocusedPath(visibleItems[nextIndex].path)
+        setSelectedPath(visibleItems[nextIndex].path)
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : visibleItems.length - 1
+        setFocusedPath(visibleItems[prevIndex].path)
+        setSelectedPath(visibleItems[prevIndex].path)
+        break
+      }
+      case 'ArrowRight': {
+        e.preventDefault()
+        if (currentIndex >= 0) {
+          const currentItem = visibleItems[currentIndex]
+          if (currentItem.type === 'directory' && !expandedFolders.has(currentItem.path)) {
+            toggleFolder(currentItem.path)
+          }
+        }
+        break
+      }
+      case 'ArrowLeft': {
+        e.preventDefault()
+        if (currentIndex >= 0) {
+          const currentItem = visibleItems[currentIndex]
+          if (currentItem.type === 'directory' && expandedFolders.has(currentItem.path)) {
+            toggleFolder(currentItem.path)
+          }
+        }
+        break
+      }
+      case 'Enter': {
+        e.preventDefault()
+        if (currentIndex >= 0) {
+          const currentItem = visibleItems[currentIndex]
+          handleNodeClick(currentItem)
+        }
+        break
+      }
+      case 'Home': {
+        e.preventDefault()
+        if (visibleItems.length > 0) {
+          setFocusedPath(visibleItems[0].path)
+          setSelectedPath(visibleItems[0].path)
+        }
+        break
+      }
+      case 'End': {
+        e.preventDefault()
+        if (visibleItems.length > 0) {
+          const lastItem = visibleItems[visibleItems.length - 1]
+          setFocusedPath(lastItem.path)
+          setSelectedPath(lastItem.path)
+        }
+        break
+      }
+    }
+  }, [visibleItems, focusedPath, expandedFolders, toggleFolder, handleNodeClick])
+
   // Context menu handlers
   const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
     e.preventDefault()
@@ -754,6 +843,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   const renderFileTree = useCallback((node: FileNode, depth = 0): React.ReactNode => {
     const isExpanded = expandedFolders.has(node.path)
     const isSelected = selectedPath === node.path
+    const isFocused = focusedPath === node.path
     const isDirectory = node.type === "directory"
     const isNodeFavorite = isFavorite(node.path)
 
@@ -767,9 +857,12 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         <div
           className={`group flex items-center py-1 px-2 cursor-pointer hover:bg-muted/50 rounded ${
             isSelected ? "bg-primary/20 text-primary" : ""
-          }`}
+          } ${isFocused ? "ring-2 ring-primary/50 ring-inset" : ""}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => handleNodeClick(node)}
+          onClick={() => {
+            setFocusedPath(node.path)
+            handleNodeClick(node)
+          }}
           onContextMenu={(e) => handleContextMenu(e, node)}
           title={node.path}
         >
@@ -805,7 +898,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         )}
       </div>
     )
-  }, [expandedFolders, selectedPath, handleNodeClick, handleContextMenu, isFavorite, toggleFavorite])
+  }, [expandedFolders, selectedPath, focusedPath, handleNodeClick, handleContextMenu, isFavorite, toggleFavorite])
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border border-border">
@@ -873,7 +966,14 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-auto p-2">
+      <div
+        ref={treeContainerRef}
+        className="flex-1 overflow-auto p-2 outline-none"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        role="tree"
+        aria-label="File tree"
+      >
         {loading && <div className="text-center text-muted-foreground py-4">Loading...</div>}
         {error && <div className="text-center text-red-400 py-4">{error}</div>}
         {!loading && !error && filteredTree && renderFileTree(filteredTree)}
