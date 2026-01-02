@@ -1,6 +1,6 @@
 ---
 name: watcher
-description: "Monitor Claude worker sessions - check progress, context usage, completion status. Sends notifications for important events. Use for polling worker health before assigning new tasks."
+description: "Monitor Claude worker sessions - check progress, context usage, completion status. Detects idle workers needing nudge (uncommitted work, stale prompts). Sends notifications for important events. Use for polling worker health before assigning new tasks."
 model: haiku
 tools: Bash, Read, Glob, mcp:tabz:*
 ---
@@ -52,6 +52,186 @@ Each session displays on 2 rows:
 **Active states** (processing, tool_use, working) - Marked stale after 60 seconds of no updates → `⚪ Stale (tool_use)`
 
 This means "stale" indicates "might be hung" - an actionable alert worth investigating.
+
+## Idle Worker Detection (Nudge)
+
+Workers can be "idle" in ways that need attention beyond just stale states. Detect these situations and optionally nudge the worker to continue.
+
+### States Requiring Nudge
+
+| State | Detection | Threshold |
+|-------|-----------|-----------|
+| 💤 Idle at prompt | Pane shows `> ` with no tool activity | 2+ minutes |
+| 📝 Uncommitted work | `git status --short` shows changes + idle | 2+ minutes |
+| ⏳ Prompt not submitted | Text after `> ` but no Enter sent | 1+ minute |
+
+### Detection Methods
+
+**1. Check if idle at prompt:**
+```bash
+# Capture last few lines of worker pane
+PANE_OUTPUT=$(tmux capture-pane -t "$SESSION" -p -S -5 2>/dev/null)
+
+# Check for idle prompt pattern (Claude Code shows "> " when ready)
+if echo "$PANE_OUTPUT" | tail -1 | grep -qE '^\s*>\s*$'; then
+  echo "IDLE_AT_PROMPT"
+fi
+```
+
+**2. Check for uncommitted work:**
+```bash
+# Get working directory from state file or tmuxplexer
+WORKDIR=$(jq -r '.working_dir // empty' "/tmp/claude-code-state/${SESSION}.json" 2>/dev/null)
+
+# Check git status in that directory
+if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+  GIT_STATUS=$(git -C "$WORKDIR" status --short 2>/dev/null)
+  if [ -n "$GIT_STATUS" ]; then
+    echo "UNCOMMITTED_CHANGES"
+    echo "$GIT_STATUS" | head -5
+  fi
+fi
+```
+
+**3. Check for unsubmitted prompt:**
+```bash
+# Capture the current line (where cursor is)
+CURRENT_LINE=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | tail -1)
+
+# Check if there's text after the prompt but it wasn't submitted
+if echo "$CURRENT_LINE" | grep -qE '^>\s+.+'; then
+  # Has text after prompt - might be typing or forgot to submit
+  echo "PROMPT_NOT_SUBMITTED"
+  echo "Pending: $CURRENT_LINE"
+fi
+```
+
+**4. Track idle duration with timestamps:**
+```bash
+# Store last activity timestamp per session
+IDLE_FILE="/tmp/claude-code-state/${SESSION}-idle.txt"
+
+# On each check, compare current pane to previous
+CURRENT_HASH=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | md5sum | cut -d' ' -f1)
+PREV_HASH=$(cat "$IDLE_FILE" 2>/dev/null | head -1)
+PREV_TIME=$(cat "$IDLE_FILE" 2>/dev/null | tail -1)
+
+if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
+  # No change - calculate idle time
+  NOW=$(date +%s)
+  IDLE_SECONDS=$((NOW - PREV_TIME))
+  echo "Idle for ${IDLE_SECONDS}s"
+else
+  # Activity detected - reset timestamp
+  echo "$CURRENT_HASH" > "$IDLE_FILE"
+  date +%s >> "$IDLE_FILE"
+fi
+```
+
+### Comprehensive Idle Check Function
+
+```bash
+check_worker_needs_nudge() {
+  local SESSION="$1"
+  local IDLE_THRESHOLD="${2:-120}"  # 2 minutes default
+
+  # Get pane content
+  PANE=$(tmux capture-pane -t "$SESSION" -p -S -10 2>/dev/null)
+  LAST_LINE=$(echo "$PANE" | tail -1)
+
+  # Check state file
+  STATE_FILE="/tmp/claude-code-state/${SESSION}.json"
+  STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
+  WORKDIR=$(jq -r '.working_dir // empty' "$STATE_FILE" 2>/dev/null)
+
+  # Skip if actively processing
+  if [ "$STATUS" = "processing" ] || [ "$STATUS" = "tool_use" ]; then
+    return 1
+  fi
+
+  # Check 1: Idle at empty prompt
+  if echo "$LAST_LINE" | grep -qE '^\s*>\s*$'; then
+    # Check for uncommitted changes
+    if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+      GIT_CHANGES=$(git -C "$WORKDIR" status --short 2>/dev/null | wc -l)
+      if [ "$GIT_CHANGES" -gt 0 ]; then
+        echo "NEEDS_NUDGE:uncommitted_work:$GIT_CHANGES files changed"
+        return 0
+      fi
+    fi
+
+    # Check idle duration
+    IDLE_FILE="/tmp/claude-code-state/${SESSION}-idle.txt"
+    check_idle_duration "$SESSION" "$IDLE_FILE" "$IDLE_THRESHOLD"
+    if [ $? -eq 0 ]; then
+      echo "NEEDS_NUDGE:idle_at_prompt:idle for 2+ minutes"
+      return 0
+    fi
+  fi
+
+  # Check 2: Text typed but not submitted
+  if echo "$LAST_LINE" | grep -qE '^>\s+.+'; then
+    echo "NEEDS_NUDGE:unsubmitted_prompt:$(echo "$LAST_LINE" | sed 's/^>\s*//')"
+    return 0
+  fi
+
+  return 1
+}
+```
+
+### Nudge Actions
+
+When a worker needs attention, you can either notify or auto-nudge:
+
+**Notify only (default):**
+```bash
+# Send notification to user
+mcp-cli call tabz/tabz_notification_show "{\"title\": \"💤 Worker Idle\", \"message\": \"$SESSION idle with uncommitted work\", \"type\": \"basic\"}"
+```
+
+**Auto-nudge with reminder:**
+```bash
+# Send a gentle nudge to the worker
+nudge_worker() {
+  local SESSION="$1"
+  local REASON="$2"
+
+  case "$REASON" in
+    uncommitted_work)
+      MSG="You have uncommitted changes. Consider: git add . && git commit"
+      ;;
+    idle_at_prompt)
+      MSG="Are you waiting for something? Type your next action or /help if stuck."
+      ;;
+    unsubmitted_prompt)
+      MSG=""  # Just press Enter for them? Risky - notify instead
+      mcp-cli call tabz/tabz_notification_show "{\"title\": \"⏳ Prompt Pending\", \"message\": \"$SESSION has unsubmitted text\", \"type\": \"basic\"}"
+      return
+      ;;
+  esac
+
+  if [ -n "$MSG" ]; then
+    # Send message to worker (they'll see it as user input)
+    tmux send-keys -t "$SESSION" -l "$MSG"
+    sleep 0.3
+    tmux send-keys -t "$SESSION" C-m
+  fi
+}
+```
+
+**Safe nudge patterns:**
+- Uncommitted work → Remind about git commit
+- Idle at prompt → Ask if waiting or stuck
+- Unsubmitted prompt → Notify user only (don't auto-submit)
+
+### Nudge Thresholds
+
+| Situation | Threshold | Action |
+|-----------|-----------|--------|
+| Idle at empty prompt | 2 min | Notify, optionally nudge |
+| Uncommitted changes + idle | 2 min | Notify with file count |
+| Unsubmitted prompt text | 1 min | Notify only (never auto-submit) |
+| Already nudged recently | 5 min cooldown | Skip nudge |
 
 ### Parsing 2-Row Format
 
@@ -180,6 +360,40 @@ cat /tmp/claude-code-state/*.json | jq -r 'select(.status == "stale" or .details
 tmux capture-pane -t ctt-tabzchrome-logs-* -p -S -100 2>/dev/null | grep -i "error\|fail\|exception" | tail -10
 ```
 
+**Find workers idle at prompt:**
+```bash
+for SESSION in $(tmux ls 2>/dev/null | grep "^ctt-" | cut -d: -f1); do
+  LAST=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | tail -1)
+  if echo "$LAST" | grep -qE '^\s*>\s*$'; then
+    echo "$SESSION: idle at prompt"
+  fi
+done
+```
+
+**Check for uncommitted work in worker directories:**
+```bash
+for STATE in /tmp/claude-code-state/*.json; do
+  SESSION=$(basename "$STATE" .json)
+  WORKDIR=$(jq -r '.working_dir // empty' "$STATE" 2>/dev/null)
+  if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+    CHANGES=$(git -C "$WORKDIR" status --short 2>/dev/null | wc -l)
+    if [ "$CHANGES" -gt 0 ]; then
+      echo "$SESSION: $CHANGES uncommitted files in $WORKDIR"
+    fi
+  fi
+done
+```
+
+**Find workers with unsubmitted prompt text:**
+```bash
+for SESSION in $(tmux ls 2>/dev/null | grep "^ctt-" | cut -d: -f1); do
+  LAST=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | tail -1)
+  if echo "$LAST" | grep -qE '^>\s+.+'; then
+    echo "$SESSION: has pending text: $(echo "$LAST" | sed 's/^>\s*//')"
+  fi
+done
+```
+
 ## Sending Notifications
 
 Use tabz_notification_show to alert the user about important events:
@@ -225,6 +439,8 @@ Task tool:
 
 INTERVAL=30  # seconds between checks
 MAX_STALE_MINUTES=5
+IDLE_THRESHOLD=120  # 2 minutes for idle detection
+NUDGE_COOLDOWN=300  # 5 minutes between nudges
 
 while true; do
   echo "=== Checking workers at $(date) ==="
@@ -244,9 +460,12 @@ while true; do
     # Read state file
     STATE_FILE="/tmp/claude-code-state/${SESSION}.json"
     CONTEXT_FILE="/tmp/claude-code-state/${SESSION}-context.json"
+    IDLE_FILE="/tmp/claude-code-state/${SESSION}-idle.txt"
+    NUDGE_FILE="/tmp/claude-code-state/${SESSION}-nudge.txt"
 
     if [ -f "$STATE_FILE" ]; then
       STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
+      WORKDIR=$(jq -r '.working_dir // empty' "$STATE_FILE" 2>/dev/null)
 
       # Check for completion
       if [ "$STATUS" = "awaiting_input" ]; then
@@ -266,6 +485,58 @@ while true; do
       CONTEXT=$(jq -r '.context_pct // 0' "$CONTEXT_FILE" 2>/dev/null)
       if [ "$CONTEXT" -ge 75 ]; then
         mcp-cli call tabz/tabz_notification_show "{\"title\": \"⚠️ High Context\", \"message\": \"$SESSION at ${CONTEXT}%\", \"type\": \"basic\"}"
+      fi
+    fi
+
+    # === IDLE/NUDGE DETECTION ===
+    LAST_LINE=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | tail -1)
+    NOW=$(date +%s)
+
+    # Check nudge cooldown
+    LAST_NUDGE=$(cat "$NUDGE_FILE" 2>/dev/null || echo "0")
+    SINCE_NUDGE=$((NOW - LAST_NUDGE))
+
+    if [ "$SINCE_NUDGE" -lt "$NUDGE_COOLDOWN" ]; then
+      continue  # Skip nudge checks - recently nudged
+    fi
+
+    # Check 1: Unsubmitted prompt text (1 min threshold)
+    if echo "$LAST_LINE" | grep -qE '^>\s+.+'; then
+      PENDING_TEXT=$(echo "$LAST_LINE" | sed 's/^>\s*//')
+      mcp-cli call tabz/tabz_notification_show "{\"title\": \"⏳ Prompt Pending\", \"message\": \"$SESSION: $PENDING_TEXT\", \"type\": \"basic\"}"
+      echo "$NOW" > "$NUDGE_FILE"
+      continue
+    fi
+
+    # Check 2: Idle at empty prompt
+    if echo "$LAST_LINE" | grep -qE '^\s*>\s*$'; then
+      # Track idle duration
+      CURRENT_HASH=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | md5sum | cut -d' ' -f1)
+      PREV_HASH=$(head -1 "$IDLE_FILE" 2>/dev/null)
+      PREV_TIME=$(tail -1 "$IDLE_FILE" 2>/dev/null || echo "$NOW")
+
+      if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
+        IDLE_SECONDS=$((NOW - PREV_TIME))
+
+        if [ "$IDLE_SECONDS" -ge "$IDLE_THRESHOLD" ]; then
+          # Check for uncommitted work
+          if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+            GIT_CHANGES=$(git -C "$WORKDIR" status --short 2>/dev/null | wc -l)
+            if [ "$GIT_CHANGES" -gt 0 ]; then
+              mcp-cli call tabz/tabz_notification_show "{\"title\": \"📝 Uncommitted Work\", \"message\": \"$SESSION: $GIT_CHANGES files changed\", \"type\": \"basic\"}"
+              echo "$NOW" > "$NUDGE_FILE"
+              continue
+            fi
+          fi
+
+          # Plain idle notification
+          mcp-cli call tabz/tabz_notification_show "{\"title\": \"💤 Worker Idle\", \"message\": \"$SESSION idle for $((IDLE_SECONDS / 60))+ min\", \"type\": \"basic\"}"
+          echo "$NOW" > "$NUDGE_FILE"
+        fi
+      else
+        # Activity detected - reset idle tracking
+        echo "$CURRENT_HASH" > "$IDLE_FILE"
+        echo "$NOW" >> "$IDLE_FILE"
       fi
     fi
   done
@@ -289,6 +560,9 @@ done
 | Worker completed | ✅ | Status transitions to `awaiting_input` |
 | High context | ⚠️ | Context reaches 75%+ (critical zone) |
 | Worker stuck | 🔴 | Stale for 5+ minutes |
+| Worker idle | 💤 | Idle at prompt for 2+ minutes |
+| Uncommitted work | 📝 | Has git changes while idle |
+| Prompt pending | ⏳ | Text typed but not submitted |
 | All done | 🏁 | No active workers remaining |
 | Backend error | ❌ | Error patterns found in logs |
 
@@ -299,6 +573,8 @@ done
 | `INTERVAL` | 30s | Time between status checks |
 | `MAX_STALE_MINUTES` | 5 | Minutes before "stuck" alert |
 | `CONTEXT_THRESHOLD` | 75% | Context % to trigger warning |
+| `IDLE_THRESHOLD` | 120s | Seconds idle before nudge notification |
+| `NUDGE_COOLDOWN` | 300s | Minimum seconds between nudges per worker |
 
 ### Stopping the Watcher
 
