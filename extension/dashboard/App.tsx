@@ -35,6 +35,7 @@ import GitSection from './sections/Git'
 
 // Components
 import CaptureViewer from './components/CaptureViewer'
+import { QuickOpenModal } from './components/QuickOpenModal'
 
 // Contexts
 import { FilesProvider } from './contexts/FilesContext'
@@ -164,6 +165,7 @@ export default function App() {
   const [connected, setConnected] = useState<boolean | null>(null) // null = checking
   const [captureData, setCaptureData] = useState<CaptureData | null>(null)
   const [showDirDropdown, setShowDirDropdown] = useState(false)
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Shared working directory
@@ -255,6 +257,20 @@ export default function App() {
       console.error('Failed to refresh capture:', err)
     }
   }
+
+  // Global keyboard shortcut: Cmd+P / Ctrl+P for quick open
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+P (Mac) or Ctrl+P (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        setQuickOpenOpen(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Check backend connection on mount and periodically
   useEffect(() => {
@@ -510,6 +526,13 @@ export default function App() {
       {captureData && (
         <CaptureViewer capture={captureData} onClose={handleCloseCapture} onRefresh={handleRefreshCapture} />
       )}
+
+      {/* Quick Open Modal (Cmd+P) */}
+      <QuickOpenModal
+        isOpen={quickOpenOpen}
+        onClose={() => setQuickOpenOpen(false)}
+        onFileOpen={() => setActiveSection('files')}
+      />
     </div>
     </FilesProvider>
   )
