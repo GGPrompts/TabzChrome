@@ -808,6 +808,64 @@ function SidePanelTerminal() {
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
   }
 
+  // Handle "Send to Canvas" from tab menu
+  // Transfers terminal ownership to canvas view, shows ghost badge in sidebar
+  const handleSendToCanvas = async () => {
+    if (!contextMenu.terminalId) return
+
+    const terminal = sessions.find(s => s.id === contextMenu.terminalId)
+    if (!terminal) return
+
+    try {
+      // Call backend API to transfer ownership
+      const response = await fetch(`http://localhost:8129/api/canvas/terminals/${terminal.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: 'canvas' })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Update local state immediately for responsiveness
+        // Note: Backend also broadcasts terminal-ownership-transferred which useTerminalSessions handles
+        setSessions(prev => prev.map(s =>
+          s.id === terminal.id ? { ...s, owner: 'canvas' } : s
+        ))
+        console.log('[handleSendToCanvas] Transferred to canvas:', terminal.id)
+      } else {
+        console.error('[handleSendToCanvas] Failed to transfer:', data.error)
+      }
+
+      setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
+    } catch (error) {
+      console.error('[handleSendToCanvas] Error:', error)
+    }
+  }
+
+  // Handle "Return from Canvas" - bring terminal back to sidebar
+  const handleReturnFromCanvas = async (terminalId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8129/api/canvas/terminals/${terminalId}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: 'sidebar' })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Update local state immediately for responsiveness
+        setSessions(prev => prev.map(s =>
+          s.id === terminalId ? { ...s, owner: 'sidebar' } : s
+        ))
+        console.log('[handleReturnFromCanvas] Returned to sidebar:', terminalId)
+      } else {
+        console.error('[handleReturnFromCanvas] Failed to return:', data.error)
+      }
+    } catch (error) {
+      console.error('[handleReturnFromCanvas] Error:', error)
+    }
+  }
+
   // Handle "Return from 3D Focus" - bring terminal back to sidebar
   const handleReturnFrom3D = async (terminalId: string) => {
     // Find and close the 3D tab to prevent dual connections
@@ -1392,6 +1450,24 @@ function SidePanelTerminal() {
                           Status and audio notifications still active
                         </p>
                       </div>
+                    ) : session.owner === 'canvas' ? (
+                      // Show placeholder when terminal is on the canvas
+                      <div className="h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0a] to-[#1a1a2e] text-center px-8">
+                        <div className="text-6xl mb-4">🖼️</div>
+                        <h2 className="text-xl font-semibold text-[#a855f7] mb-2">On Canvas</h2>
+                        <p className="text-sm text-gray-400 mb-6">
+                          This terminal is displayed on the canvas view
+                        </p>
+                        <button
+                          onClick={() => handleReturnFromCanvas(session.id)}
+                          className="px-4 py-2 bg-[#a855f7]/20 hover:bg-[#a855f7]/30 text-[#a855f7] border border-[#a855f7]/50 rounded-md transition-colors"
+                        >
+                          Return to Sidebar
+                        </button>
+                        <p className="text-xs text-gray-500 mt-4">
+                          Status and audio notifications still active
+                        </p>
+                      </div>
                     ) : (
                         <Terminal
                           terminalId={session.id}
@@ -1510,6 +1586,7 @@ function SidePanelTerminal() {
           }
         }}
         onOpenIn3D={handleOpenIn3D}
+        onSendToCanvas={handleSendToCanvas}
         onClose={() => setContextMenu({ show: false, x: 0, y: 0, terminalId: null })}
       />
 

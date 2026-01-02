@@ -9,6 +9,7 @@ import {
   EyeIcon,
   DeleteIcon,
   SparklesIcon,
+  GridIcon,
 } from './icons'
 import { AnimatedMenuItem } from './AnimatedMenuItem'
 import { type Profile } from './settings/types'
@@ -59,6 +60,8 @@ interface SessionContextMenuProps {
   onPopOut?: () => void
   /** Callback to open the session in 3D Focus mode */
   onOpenIn3D: () => void
+  /** Callback to send the session to the canvas view */
+  onSendToCanvas?: () => void
   /** Callback to close the context menu */
   onClose: () => void
 }
@@ -93,6 +96,7 @@ export function SessionContextMenu({
   onKill,
   onPopOut,
   onOpenIn3D,
+  onSendToCanvas,
   onClose,
 }: SessionContextMenuProps) {
   if (!show || !terminal) return null
@@ -180,6 +184,18 @@ export function SessionContextMenu({
           }}
         >
           {' '}Open in 3D Focus
+        </AnimatedMenuItem>
+      )}
+      {isTmuxSession && onSendToCanvas && (
+        <AnimatedMenuItem
+          icon={GridIcon}
+          className="context-menu-item"
+          onClick={() => {
+            onSendToCanvas()
+            onClose()
+          }}
+        >
+          {' '}Send to Canvas
         </AnimatedMenuItem>
       )}
       {isTmuxSession && (
