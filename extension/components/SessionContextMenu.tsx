@@ -9,6 +9,7 @@ import {
   EyeIcon,
   DeleteIcon,
   SparklesIcon,
+  XIcon,
 } from './icons'
 import { AnimatedMenuItem } from './AnimatedMenuItem'
 import { type Profile } from './settings/types'
@@ -47,6 +48,8 @@ interface SessionContextMenuProps {
   onOpenReference?: () => void
   /** Callback to rename the terminal tab */
   onRename: () => void
+  /** Callback to close all other terminals except this one */
+  onCloseOthers?: () => void
   /** Callback to copy the session ID to clipboard */
   onCopyId: () => void
   /** Callback to view terminal output as selectable text */
@@ -87,6 +90,7 @@ export function SessionContextMenu({
   onEditProfile,
   onOpenReference,
   onRename,
+  onCloseOthers,
   onCopyId,
   onViewAsText,
   onDetach,
@@ -158,6 +162,18 @@ export function SessionContextMenu({
       >
         {' '}Rename Tab...
       </AnimatedMenuItem>
+      {onCloseOthers && (
+        <AnimatedMenuItem
+          icon={XIcon}
+          className="context-menu-item"
+          onClick={() => {
+            onCloseOthers()
+            onClose()
+          }}
+        >
+          {' '}Close Others
+        </AnimatedMenuItem>
+      )}
       {isTmuxSession && onPopOut && (
         <AnimatedMenuItem
           icon={MaximizeIcon}

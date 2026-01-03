@@ -756,6 +756,35 @@ function SidePanelTerminal() {
     }
   }
 
+  // Handle "Close Others" from tab menu - closes all tabs except the right-clicked one
+  const handleCloseOthers = async () => {
+    if (!contextMenu.terminalId) return
+
+    const keepTerminal = sessions.find(s => s.id === contextMenu.terminalId)
+    if (!keepTerminal) return
+
+    const othersToClose = sessions.filter(s => s.id !== contextMenu.terminalId)
+
+    try {
+      // Close each other terminal
+      for (const terminal of othersToClose) {
+        if (terminal.sessionName) {
+          await fetch(`http://localhost:8129/api/tmux/sessions/${terminal.sessionName}`, {
+            method: 'DELETE'
+          })
+        }
+      }
+
+      // Update UI to show only the kept terminal
+      setSessions([keepTerminal])
+      setCurrentSession(keepTerminal.id)
+
+      setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
+    } catch (error) {
+      console.error('[handleCloseOthers] Error:', error)
+    }
+  }
+
   // Handle "View as Text" from tab menu
   // Captures terminal content and opens it in the dashboard
   const handleViewAsText = async () => {
@@ -1485,6 +1514,7 @@ function SidePanelTerminal() {
           }
         })()}
         onRename={handleContextRename}
+        onCloseOthers={sessions.length > 1 ? handleCloseOthers : undefined}
         onCopyId={() => {
           const terminal = sessions.find(t => t.id === contextMenu.terminalId)
           const sessionId = terminal?.sessionName || terminal?.id
