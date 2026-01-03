@@ -366,7 +366,7 @@ app.post('/api/tui-tools/spawn', async (req, res) => {
 });
 
 // Simple terminal spawn endpoint for Claude/automation
-// POST /api/spawn { name, workingDir, command }
+// POST /api/spawn { name, workingDir, command, profile }
 // Requires auth token (header X-Auth-Token or query param ?token=)
 app.post('/api/spawn', async (req, res) => {
   // Require auth token to prevent malicious websites from spawning terminals
@@ -375,26 +375,31 @@ app.post('/api/spawn', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized - valid token required' });
   }
 
-  const { name, workingDir, command } = req.body;
-  try {
-    // registerTerminal creates the PTY internally with useTmux: true
-    const terminal = await terminalRegistry.registerTerminal({
-      name: name || 'Claude Terminal',
-      workingDir: workingDir || process.env.HOME,
-      command: command || null,
-      terminalType: 'bash',
-      isChrome: true,  // Use ctt- prefix
-      useTmux: true,   // Enable tmux for persistence
+  const { name, workingDir, command, profile } = req.body;
+
+  // Use unifiedSpawn for proper validation (validates working directory, rate limiting, etc.)
+  const result = await unifiedSpawn.spawn({
+    name: name || 'Claude Terminal',
+    workingDir: workingDir || process.env.HOME,
+    command: command || null,
+    terminalType: 'bash',
+    isChrome: true,  // Use ctt- prefix
+    useTmux: true,   // Enable tmux for persistence
+    profile: profile || null,
+  });
+
+  if (!result.success) {
+    // Return validation error (e.g., invalid working directory)
+    return res.status(400).json({
+      success: false,
+      error: result.error
     });
-
-    // Broadcast to all WebSocket clients
-    broadcast({ type: 'terminal-spawned', data: terminal });
-
-    res.json({ success: true, terminal });
-  } catch (error) {
-    console.error('[API] Spawn error:', error);
-    res.status(500).json({ error: error.message });
   }
+
+  // Broadcast to all WebSocket clients
+  broadcast({ type: 'terminal-spawned', data: result.terminal });
+
+  res.json({ success: true, terminal: result.terminal });
 });
 
 // Handle different startup modes based on environment variables
