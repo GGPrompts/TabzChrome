@@ -1,7 +1,8 @@
 {
   "name": "conductor",
-  "version": "1.1.0",
-  "description": "Orchestrate multi-session Claude workflows - spawn agents, kill terminals, send prompts via tmux, manage beads issues",
+  "version": "2.0.0",
+  "description": "Orchestrate multi-session Claude workflows - spawn workers, use subagents for monitoring, manage beads issues. Use orchestration skill for full capabilities.",
   "agents": "./agents/",
-  "commands": "./commands/"
+  "commands": "./commands/",
+  "skills": "./skills/"
 }

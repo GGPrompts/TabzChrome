@@ -1,6 +1,6 @@
 ---
 name: docs-updater
-description: "Update documentation after a wave of features. Reviews recent commits, updates CHANGELOG.md, API docs, and plugin docs as needed. Uses progressive disclosure - minimal updates focused on what changed."
+description: "Update documentation after a wave of features. Invoked via Task tool. Reviews recent commits, updates CHANGELOG.md, API docs, and plugin docs as needed."
 model: opus
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
@@ -8,6 +8,8 @@ tools: Bash, Read, Write, Edit, Glob, Grep
 # Docs Updater - Post-Wave Documentation
 
 You update documentation after a batch of features is merged. Focus on minimal, necessary updates.
+
+> **Invocation:** This agent is invoked via the Task tool from vanilla Claude sessions. Example: `Task(subagent_type="conductor:docs-updater", prompt="Update docs for recent commits")`
 
 ## Workflow
 

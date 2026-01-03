@@ -13,42 +13,42 @@ Spawn multiple Claude Code workers to tackle beads issues in parallel, with skil
 bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] [\(.type)] \(.title)"' | head -5
 ```
 
-### 2. Select Worker Count
-Ask user how many workers (default: 3, max: 5):
-- Use AskUserQuestion with options: 2, 3, 4, 5
+### 2. Select Worker Count & Worktree Mode
+Ask user:
+- How many workers? (2, 3, 4, 5)
+- Use worktrees for isolation? (Yes if workers might edit shared files, No for independent files)
 
-### 3. Check Environment (Once)
-```bash
-# Run init if exists
-if [ -f ".claude/init.sh" ]; then
-  bash .claude/init.sh
-fi
+### 3. For Each Issue, Invoke Initializer
 
-# Install deps if needed
-if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
-  npm install
-fi
+**IMPORTANT:** Use the initializer subagent to prepare environment and craft prompts:
+
+```
+Task tool:
+  subagent_type: "conductor:initializer"
+  prompt: "Prepare worker for <issue-id> in <project-dir>.
+           Create worktree: <yes/no>.
+           Return: environment setup, skill invocations, relevant files, crafted prompt."
 ```
 
-### 4. For Each Issue, Prepare Skill-Aware Prompt
+The initializer will:
+- Check/run init scripts
+- Create worktree if requested (feature branch per issue)
+- Map issue keywords to **explicit skill invocations** (e.g., `/shadcn-ui`, `/ui-styling:ui-styling`)
+- Find relevant files (size-aware - excludes large files)
+- Craft the worker prompt
 
-**Skill Mapping:**
+### 4. Skill Invocation Format
 
-| Issue Type/Keywords | Skill Triggers |
-|--------------------|----------------|
-| bug, fix, error | "use the debugging skill" |
-| feature + UI | "use the shadcn-ui skill", "use the ui-styling skill" |
-| feature + terminal | "use the xterm-js skill" |
-| feature + API | "use the api-design skill" |
-| feature + keyboard/a11y | "use the accessibility skill" |
-| task + docs | "use the documentation skill" |
-| epic | Prepend "ultrathink" |
+**CRITICAL:** Skills must be invoked explicitly with slash commands!
 
-**Find Relevant Files:**
-```bash
-# Based on issue title keywords
-grep -ril "keyword" --include="*.ts" --include="*.tsx" src/ | head -5
-```
+**User skills** (no prefix):
+- `/shadcn-ui`, `/xterm-js`, `/tailwindcss`, `/nextjs`, `/docs-seeker`
+
+**Plugin skills** (plugin:skill format):
+- `/ui-styling:ui-styling`, `/frontend-design:frontend-design`, `/sequential-thinking:sequential-thinking`
+
+**Wrong:** "use the shadcn-ui skill" (does nothing)
+**Right:** "Run `/shadcn-ui` for component patterns"
 
 ### 5. Spawn Workers
 
@@ -67,6 +67,8 @@ curl -s -X POST http://localhost:8129/api/spawn \
 
 ### 6. Send Skill-Aware Prompts
 
+Use the prompt from initializer, or craft manually with explicit skill invocations:
+
 ```bash
 SESSION="ctt-claude-<issue-id>-xxxxx"
 sleep 4
@@ -76,17 +78,23 @@ tmux send-keys -t "$SESSION" -l '## Task
 
 <description from bd show>
 
+## Skills to Invoke
+Run these commands first to load relevant patterns:
+- `/shadcn-ui` - for UI component patterns
+- `/ui-styling:ui-styling` - for glass effects and styling
+
 ## Approach
-- <skill trigger 1>
-- <skill trigger 2 if applicable>
 - **Use subagents liberally to preserve your context:**
   - Explore agents (Haiku) for codebase search
   - Parallel subagents for multi-file exploration
   - Subagents for tests/builds (returns only failures)
 
 ## Relevant Files
-@path/to/file1.ts
+@path/to/file1.ts (only files < 500 lines)
 @path/to/file2.tsx
+
+## Large Files (use subagents to explore)
+- src/large-file.ts (1200 lines) - search for "functionName"
 
 ## Constraints
 - Follow existing code patterns

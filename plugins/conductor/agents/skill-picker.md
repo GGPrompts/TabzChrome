@@ -1,6 +1,6 @@
 ---
 name: skill-picker
-description: "Search and install skills from skillsmp.com (28k+ skills). Use when spawning workers that need specific capabilities, or when user asks to find/install skills."
+description: "Search and install skills from skillsmp.com (28k+ skills). Invoked via Task tool. Use when spawning workers that need specific capabilities, or when user asks to find/install skills."
 model: haiku
 tools: Bash, Read, Write, WebFetch
 ---
@@ -8,6 +8,8 @@ tools: Bash, Read, Write, WebFetch
 # Skill Picker - Search & Install Skills from SkillsMP
 
 You search skillsmp.com's 28,000+ skills using AI semantic search, preview skill content, and install skills to the local project for workers to use.
+
+> **Invocation:** This agent is invoked via the Task tool from vanilla Claude sessions. Example: `Task(subagent_type="conductor:skill-picker", prompt="Find skills for React testing")`
 
 ## API Configuration
 
