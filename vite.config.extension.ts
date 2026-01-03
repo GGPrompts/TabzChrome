@@ -25,6 +25,7 @@ export default defineConfig({
         dashboard: fileURLToPath(new URL('./extension/dashboard/index.html', import.meta.url)),
         '3d-focus': fileURLToPath(new URL('./extension/3d/3d-focus.html', import.meta.url)),
         newtab: fileURLToPath(new URL('./extension/newtab/index.html', import.meta.url)),
+        bookmarks: fileURLToPath(new URL('./extension/bookmarks/index.html', import.meta.url)),
       },
     },
   },

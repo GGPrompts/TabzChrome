@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Globe, Star } from 'lucide-react'
+import { Globe, Star, BookMarked } from 'lucide-react'
 
 interface Bookmark {
   id: string
@@ -31,6 +31,11 @@ function shortenTitle(title: string, maxLen = 16): string {
 export function WebShortcuts({ onNavigate }: WebShortcutsProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Open bookmarks manager page
+  const openBookmarksManager = () => {
+    chrome.tabs.create({ url: 'chrome://bookmarks' })
+  }
 
   useEffect(() => {
     // Try to find a "New Tab" or "Favorites" folder first
@@ -155,6 +160,18 @@ export function WebShortcuts({ onNavigate }: WebShortcutsProps) {
             <div className="shortcut-name">{shortenTitle(bookmark.title)}</div>
           </button>
         ))}
+
+        {/* Manage Bookmarks link */}
+        <button
+          className="shortcut-card"
+          onClick={openBookmarksManager}
+          title="Manage Bookmarks"
+        >
+          <div className="shortcut-icon-wrapper">
+            <BookMarked className="w-5 h-5" />
+          </div>
+          <div className="shortcut-name">Bookmarks</div>
+        </button>
       </div>
     </div>
   )
