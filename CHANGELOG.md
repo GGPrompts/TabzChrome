@@ -89,6 +89,8 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 - **Profile Card Theme Preview** - Dashboard profile cards now correctly show inherited theme colors
 
+- **Double Paste on Ctrl+Shift+V** - Fixed terminal paste firing twice due to handler responding to both keydown and keyup events
+
 ---
 
 ## [1.3.11] - 2026-01-01
