@@ -116,7 +116,7 @@ cp -r .claude/skills/xterm-js/* plugins/xterm-js/skills/xterm-js/
 ```bash
 # Development
 ./scripts/dev.sh              # Start backend (creates tabzchrome tmux session)
-npm run build                 # Build extension
+/rebuild                      # Build extension (cross-platform, handles WSL copy)
 npm test                      # Run tests
 
 # Debugging
@@ -133,8 +133,10 @@ ps aux | grep "node server"                   # Check backend running
 ```
 
 ### Build & Deploy
+**IMPORTANT:** Always use `/rebuild` to build the extension. Never use `npm run build` with manual rsync - the skill handles cross-platform paths correctly.
+
 ```bash
-/rebuild                      # Build extension (WSL: also copies to Windows)
+/rebuild                      # Build + copy (WSL users: set TABZ_WIN_PATH in ~/.bashrc)
 # Then reload at chrome://extensions
 ```
 

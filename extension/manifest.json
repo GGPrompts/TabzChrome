@@ -58,8 +58,7 @@
     "default_path": "sidepanel/sidepanel.html"
   },
   "chrome_url_overrides": {
-    "newtab": "newtab/index.html",
-    "bookmarks": "bookmarks/index.html"
+    "newtab": "newtab/index.html"
   },
   "commands": {
     "_execute_action": {
