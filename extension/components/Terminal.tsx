@@ -640,15 +640,17 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
 
     // Enable Shift+Ctrl+C/V for copy/paste and Ctrl/Cmd+=/- for font size
     // Important: Return true to allow all other keys (including tmux Ctrl+B) to pass through
+    // CRITICAL: Must check event.type === 'keydown' because this handler is called for both
+    // keydown AND keyup events - without this check, paste fires twice!
     xterm.attachCustomKeyEventHandler((event) => {
-      // Handle Ctrl+Shift+C (copy) - case insensitive
-      if (event.ctrlKey && event.shiftKey && (event.key === 'C' || event.key === 'c') && xterm.hasSelection()) {
+      // Handle Ctrl+Shift+C (copy) - case insensitive, keydown only
+      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && (event.key === 'C' || event.key === 'c') && xterm.hasSelection()) {
         event.preventDefault()
         document.execCommand('copy')
         return false
       }
-      // Handle Ctrl+Shift+V (paste) - case insensitive
-      if (event.ctrlKey && event.shiftKey && (event.key === 'V' || event.key === 'v')) {
+      // Handle Ctrl+Shift+V (paste) - case insensitive, keydown only
+      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && (event.key === 'V' || event.key === 'v')) {
         event.preventDefault()
         navigator.clipboard.readText().then((text) => {
           xterm.paste(text)
