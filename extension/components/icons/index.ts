@@ -38,3 +38,6 @@ export { AttachFileIcon } from './AttachFileIcon'
 // Claude status icons
 export { BotIcon } from './BotIcon'
 export { BotMessageSquareIcon } from './BotMessageSquareIcon'
+
+// Notification icon
+export { BellIcon } from './BellIcon'

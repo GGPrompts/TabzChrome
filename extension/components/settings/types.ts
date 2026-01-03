@@ -373,3 +373,103 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
     useGlobal: true,  // Default to using global settings
   },
 }
+
+// ============================================
+// Desktop Notification Settings
+// ============================================
+
+// Per-event notification toggles
+export interface NotificationEventSettings {
+  backendDisconnect: boolean      // WebSocket lost connection
+  backendReconnect: boolean       // WebSocket reconnected after disconnect
+  spawnError: boolean             // Terminal failed to spawn
+  terminalError: boolean          // Terminal exited with non-zero code
+  contextCritical: boolean        // Context usage crossed 75% threshold (persistent)
+  longRunningComplete: boolean    // Long-running command (5+ min) finished
+  errorBoundary: boolean          // React ErrorBoundary caught a crash
+  questionWaiting: boolean        // Claude question unanswered after timeout
+  downloadFailure: boolean        // MCP download failed
+  orphanedSessions: boolean       // Orphaned tmux sessions detected
+}
+
+// Quiet hours configuration
+export interface QuietHoursSettings {
+  enabled: boolean
+  startHour: number  // 0-23 (e.g., 22 for 10 PM)
+  endHour: number    // 0-23 (e.g., 8 for 8 AM)
+}
+
+// Main notification settings
+export interface NotificationSettings {
+  enabled: boolean                    // Master toggle
+  quietHours: QuietHoursSettings      // Optional quiet hours
+  events: NotificationEventSettings   // Per-event toggles
+}
+
+// Notification event type for type-safe access
+export type NotificationEventType = keyof NotificationEventSettings
+
+// Event descriptions for UI
+export const NOTIFICATION_EVENT_INFO: Record<NotificationEventType, { label: string; description: string }> = {
+  backendDisconnect: {
+    label: 'Backend disconnected',
+    description: 'WebSocket connection to backend lost',
+  },
+  backendReconnect: {
+    label: 'Backend reconnected',
+    description: 'WebSocket connection restored after disconnect',
+  },
+  spawnError: {
+    label: 'Terminal spawn failed',
+    description: 'Failed to create a new terminal session',
+  },
+  terminalError: {
+    label: 'Terminal error exit',
+    description: 'Terminal exited with non-zero exit code',
+  },
+  contextCritical: {
+    label: 'Context critical',
+    description: 'Claude context usage crossed 75% threshold',
+  },
+  longRunningComplete: {
+    label: 'Long task complete',
+    description: 'Command running 5+ minutes has finished',
+  },
+  errorBoundary: {
+    label: 'UI crash',
+    description: 'React component crashed (ErrorBoundary triggered)',
+  },
+  questionWaiting: {
+    label: 'Question waiting',
+    description: 'Claude question unanswered for 60+ seconds',
+  },
+  downloadFailure: {
+    label: 'Download failed',
+    description: 'MCP file download failed',
+  },
+  orphanedSessions: {
+    label: 'Orphaned sessions',
+    description: 'Detached terminal sessions detected',
+  },
+}
+
+export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  enabled: false,
+  quietHours: {
+    enabled: false,
+    startHour: 22,  // 10 PM
+    endHour: 8,     // 8 AM
+  },
+  events: {
+    backendDisconnect: true,
+    backendReconnect: true,
+    spawnError: true,
+    terminalError: true,
+    contextCritical: true,
+    longRunningComplete: true,
+    errorBoundary: true,
+    questionWaiting: true,
+    downloadFailure: true,
+    orphanedSessions: false,  // Less critical, off by default
+  },
+}

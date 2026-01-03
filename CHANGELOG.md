@@ -19,6 +19,12 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ### Added
 
+- **Desktop Notification Settings** - Configure desktop notifications for system events:
+  - Master enable/disable toggle for all notifications
+  - Quiet hours with configurable start/end times
+  - Per-event toggles for connection, terminal, Claude, and system events
+  - Events: backend disconnect/reconnect, spawn errors, terminal errors, context critical, long-running completion, UI crashes, question waiting, download failures, orphaned sessions
+
 - **Weather Widget** - New tab page now shows local weather:
   - Temperature display with weather icon
   - Uses browser geolocation for local forecast
