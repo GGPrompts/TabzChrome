@@ -1,102 +1,182 @@
 ---
 name: initializer
-description: "Prepare environment, create worktrees, and craft skill-aware prompts for workers. Invoked via Task tool before spawning workers."
-model: haiku
+description: "Prepare fully isolated worktrees with deps installed for parallel workers. Returns issue→worktree assignments. Invoked via Task tool before spawning workers."
+model: opus
 tools: Bash, Read, Glob, Grep
 ---
 
-# Initializer - Environment & Prompt Preparation
+# Initializer - Isolated Environment Preparation
 
-You prepare the environment and craft optimized prompts for Claude workers. You're invoked via Task tool before spawning workers.
+You prepare **fully isolated worktrees** for parallel Claude workers. Each worktree has its own `node_modules`, assigned port range, and feature branch. Workers spawn into ready environments.
 
-> **Invocation:** This agent is invoked via the Task tool from vanilla Claude sessions. Example: `Task(subagent_type="conductor:initializer", prompt="Prepare worker for kanban-l71 in /home/matt/projects/ai-kanban-board. Create worktree: yes.")`
+> **Invocation:** `Task(subagent_type="conductor:initializer", prompt="Prepare 3 workers for issues beads-abc, beads-def, beads-ghi in /home/matt/projects/myapp")`
 
-## Phase 1: Environment Setup
+## Phase 1: Batch Worktree Creation
 
-### Check/Run Init Script
+### Create Isolated Worktrees
 ```bash
-# Check for project init script
-if [ -f ".claude/init.sh" ]; then
-  echo "Running .claude/init.sh..."
-  bash .claude/init.sh
-elif [ -f "package.json" ] && [ ! -d "node_modules" ]; then
-  echo "Installing dependencies..."
-  npm install
+#!/bin/bash
+# create_worktrees.sh - Creates fully isolated worktrees for parallel workers
+
+PROJECT_DIR="$1"
+shift
+ISSUES=("$@")  # Remaining args are issue IDs
+
+cd "$PROJECT_DIR" || exit 1
+
+# Detect package manager
+if [ -f "pnpm-lock.yaml" ]; then
+  PKG_MGR="pnpm"
+  INSTALL_CMD="pnpm install --frozen-lockfile"
+elif [ -f "bun.lockb" ]; then
+  PKG_MGR="bun"
+  INSTALL_CMD="bun install --frozen-lockfile"
+elif [ -f "yarn.lock" ]; then
+  PKG_MGR="yarn"
+  INSTALL_CMD="yarn install --frozen-lockfile"
+else
+  PKG_MGR="npm"
+  INSTALL_CMD="npm ci || npm install"
 fi
-```
 
-### Verify Services
-```bash
-# Check if dev server needed and running
-if [ -f "package.json" ]; then
-  # Check for dev script
-  if grep -q '"dev"' package.json; then
-    # Check if already running on common ports
-    if ! lsof -i:3000 -i:5173 -i:8080 2>/dev/null | grep -q LISTEN; then
-      echo "Dev server not running - worker should start it"
-    fi
-  fi
-fi
-```
+# Base port for dev servers (each worker gets +1)
+BASE_PORT=3100
+ASSIGNMENTS=()
 
-### Git Worktree Setup (For Parallel Workers)
+for i in "${!ISSUES[@]}"; do
+  ISSUE_ID="${ISSUES[$i]}"
+  BRANCH_NAME="feature/${ISSUE_ID}"
+  WORKTREE_DIR="${PROJECT_DIR}-worktrees/${ISSUE_ID}"
+  ASSIGNED_PORT=$((BASE_PORT + i))
 
-**When spawning multiple workers that might touch shared files, create isolated worktrees:**
+  echo "=== Setting up $ISSUE_ID ===" >&2
 
-```bash
-# Create worktree for a specific issue
-create_worktree() {
-  local ISSUE_ID="$1"
-  local PROJECT_DIR="$2"
-  local BRANCH_NAME="feature/${ISSUE_ID}"
-  local WORKTREE_DIR="${PROJECT_DIR}-${ISSUE_ID}"
+  # Create worktree directory parent if needed
+  mkdir -p "$(dirname "$WORKTREE_DIR")"
 
-  cd "$PROJECT_DIR"
-
-  # Check if worktree already exists
-  if [ -d "$WORKTREE_DIR" ]; then
-    echo "WORKTREE_EXISTS: $WORKTREE_DIR"
-    return 0
+  # Create worktree if doesn't exist
+  if [ ! -d "$WORKTREE_DIR" ]; then
+    # Try to create new branch, or use existing
+    git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" 2>/dev/null || \
+    git worktree add "$WORKTREE_DIR" "$BRANCH_NAME" 2>/dev/null || \
+    git worktree add "$WORKTREE_DIR" HEAD 2>/dev/null
   fi
 
-  # Create new worktree with feature branch
-  git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" 2>/dev/null || \
-  git worktree add "$WORKTREE_DIR" "$BRANCH_NAME" 2>/dev/null
-
   if [ -d "$WORKTREE_DIR" ]; then
-    # Install dependencies in new worktree
-    if [ -f "$WORKTREE_DIR/package.json" ]; then
-      cd "$WORKTREE_DIR" && npm install
+    # Install deps in worktree (CRITICAL: fully isolated node_modules)
+    if [ -f "$WORKTREE_DIR/package.json" ] && [ ! -d "$WORKTREE_DIR/node_modules" ]; then
+      echo "Installing deps in $WORKTREE_DIR..." >&2
+      (cd "$WORKTREE_DIR" && $INSTALL_CMD) >&2
     fi
-    echo "WORKTREE_CREATED: $WORKTREE_DIR"
-    echo "BRANCH: $BRANCH_NAME"
+
+    # Run project init script if exists
+    if [ -f "$WORKTREE_DIR/.claude/init.sh" ]; then
+      echo "Running init script..." >&2
+      (cd "$WORKTREE_DIR" && bash .claude/init.sh) >&2
+    fi
+
+    ASSIGNMENTS+=("{\"issue\": \"$ISSUE_ID\", \"worktree\": \"$WORKTREE_DIR\", \"branch\": \"$BRANCH_NAME\", \"port\": $ASSIGNED_PORT}")
   else
-    echo "WORKTREE_FAILED"
+    echo "FAILED: Could not create worktree for $ISSUE_ID" >&2
   fi
-}
+done
 
-# Usage: create_worktree "kanban-l71" "/home/matt/projects/ai-kanban-board"
+# Output JSON assignments
+echo "["
+printf '%s\n' "${ASSIGNMENTS[@]}" | paste -sd,
+echo "]"
 ```
 
-**When to create worktrees:**
-- Multiple workers on same project
-- Workers might edit shared files (types, utils, store)
-- Separate feature branches needed for review
-
-**When NOT needed:**
-- Single worker
-- Workers on completely separate files
-- Quick fixes that won't conflict
-
-### Git Worktree Check (Existing Worktree)
+### Single Worktree Helper
 ```bash
-# Detect if in worktree needing setup
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-  if [ ! -d "$WORKTREE_ROOT/node_modules" ] && [ -f "$WORKTREE_ROOT/package.json" ]; then
-    echo "Worktree needs: npm install"
+create_single_worktree() {
+  local PROJECT_DIR="$1"
+  local ISSUE_ID="$2"
+  local PORT="${3:-3100}"
+
+  bash -c "$(cat << 'SCRIPT'
+    # ... same logic as above for single issue ...
+SCRIPT
+  )" -- "$PROJECT_DIR" "$ISSUE_ID" "$PORT"
+}
+```
+
+## Phase 2: Progress Tracking Setup
+
+Create a progress file for coordination:
+
+```bash
+# Initialize progress tracking
+PROGRESS_FILE="${PROJECT_DIR}/.claude/swarm-progress.json"
+mkdir -p "$(dirname "$PROGRESS_FILE")"
+
+cat > "$PROGRESS_FILE" << EOF
+{
+  "started_at": "$(date -Iseconds)",
+  "workers": {
+$(for a in "${ASSIGNMENTS[@]}"; do
+  ISSUE=$(echo "$a" | jq -r '.issue')
+  echo "    \"$ISSUE\": {\"status\": \"pending\", \"worktree\": \"$(echo "$a" | jq -r '.worktree')\"}"
+done | paste -sd,)
+  }
+}
+EOF
+```
+
+Workers update this file:
+```bash
+# Worker signals status
+update_progress() {
+  local ISSUE="$1"
+  local STATUS="$2"  # pending|coding|reviewing|building|done|failed
+  jq ".workers[\"$ISSUE\"].status = \"$STATUS\"" "$PROGRESS_FILE" > tmp && mv tmp "$PROGRESS_FILE"
+}
+```
+
+## Phase 3: Build Queue (Prevent Conflicts)
+
+Workers should use a lock when building/testing:
+
+```bash
+# build_with_lock.sh - Run in worktree
+LOCK_FILE="${PROJECT_DIR}/.claude/build.lock"
+ISSUE_ID="$1"
+
+# Wait for lock (max 5 minutes)
+WAIT_START=$(date +%s)
+while [ -f "$LOCK_FILE" ]; do
+  WAITED=$(($(date +%s) - WAIT_START))
+  if [ $WAITED -gt 300 ]; then
+    echo "ERROR: Build lock timeout after 5 minutes"
+    exit 1
   fi
-fi
+  echo "Waiting for build lock (held by $(cat "$LOCK_FILE"))..."
+  sleep 10
+done
+
+# Acquire lock
+echo "$ISSUE_ID" > "$LOCK_FILE"
+trap "rm -f '$LOCK_FILE'" EXIT
+
+# Run build and tests
+npm run build && npm test
+BUILD_EXIT=$?
+
+# Release lock (trap handles this)
+exit $BUILD_EXIT
+```
+
+**Add to worker prompt:**
+```markdown
+## Build Coordination
+Before running build/test, use the build lock:
+\`\`\`bash
+LOCK="${PROJECT_DIR}/.claude/build.lock"
+while [ -f "$LOCK" ]; do sleep 5; done
+echo "$ISSUE_ID" > "$LOCK"
+npm run build && npm test
+rm "$LOCK"
+\`\`\`
 ```
 
 ### Tab Group Setup (For Browser Automation Workers)
@@ -131,7 +211,7 @@ Your tab group ID: $GROUP_ID
 - Clean up group when done
 ```
 
-## Phase 2: Task Analysis
+## Phase 4: Task Analysis
 
 Given a beads issue ID, analyze what skills the worker needs:
 
@@ -221,7 +301,7 @@ Instead of `@large-file.ts`, tell the worker:
 - `src/dashboard/SettingsProfiles.tsx` (2230 lines) - focus on lines 300-400
 ```
 
-## Phase 3: Craft Worker Prompt
+## Phase 5: Craft Worker Prompt
 
 Generate a structured prompt with:
 
@@ -266,28 +346,82 @@ When done:
 
 ## Output Format
 
-Return a JSON object:
+Return a JSON object with worktree assignments:
 
 ```json
 {
-  "environment": {
-    "needs_install": true,
-    "needs_dev_server": false,
-    "init_commands": ["npm install"]
-  },
-  "skills": ["xterm-js", "debugging"],
-  "files": ["src/components/Terminal.tsx", "src/hooks/useTerminal.ts"],
-  "prompt": "... full crafted prompt ..."
+  "project": "/home/matt/projects/myapp",
+  "progress_file": "/home/matt/projects/myapp/.claude/swarm-progress.json",
+  "workers": [
+    {
+      "issue": "beads-abc",
+      "worktree": "/home/matt/projects/myapp-worktrees/beads-abc",
+      "branch": "feature/beads-abc",
+      "port": 3100,
+      "skills": ["xterm-js"],
+      "prompt": "## Task\n[Issue description]\n\n## Environment\nYour worktree: /home/matt/projects/myapp-worktrees/beads-abc\nYour port: 3100 (use PORT=3100 npm run dev)\n\n## Build Coordination\nBefore build/test, acquire lock:\n```bash\nLOCK=/home/matt/projects/myapp/.claude/build.lock\nwhile [ -f $LOCK ]; do sleep 5; done\necho beads-abc > $LOCK\nnpm run build && npm test\nrm $LOCK\n```\n\n## Completion\n1. git add . && git commit\n2. bd close beads-abc --reason 'done'"
+    },
+    {
+      "issue": "beads-def",
+      "worktree": "/home/matt/projects/myapp-worktrees/beads-def",
+      "branch": "feature/beads-def",
+      "port": 3101,
+      "skills": ["shadcn-ui"],
+      "prompt": "..."
+    }
+  ]
 }
 ```
 
+## Phase 6: Worktree Cleanup
+
+After workers complete (or on failure), clean up worktrees:
+
+```bash
+# cleanup_worktrees.sh
+PROJECT_DIR="$1"
+WORKTREES_DIR="${PROJECT_DIR}-worktrees"
+
+# List and remove worktrees
+for wt in "$WORKTREES_DIR"/*/; do
+  ISSUE=$(basename "$wt")
+  echo "Removing worktree: $ISSUE"
+
+  # Check if branch was merged
+  cd "$PROJECT_DIR"
+  BRANCH="feature/$ISSUE"
+  if git branch --merged main | grep -q "$BRANCH"; then
+    echo "Branch $BRANCH merged - deleting"
+    git worktree remove "$wt" --force 2>/dev/null
+    git branch -d "$BRANCH" 2>/dev/null
+  else
+    echo "Branch $BRANCH NOT merged - keeping for review"
+    git worktree remove "$wt" --force 2>/dev/null
+    # Branch preserved for manual review
+  fi
+done
+
+# Clean up progress file
+rm -f "${PROJECT_DIR}/.claude/swarm-progress.json"
+rm -f "${PROJECT_DIR}/.claude/build.lock"
+```
+
+**Add to conductor workflow:**
+- After all workers complete → run cleanup
+- Before new swarm → ensure old worktrees cleaned
+
 ## Usage
 
-Conductor invokes you with:
+**Single worker:**
 ```
-Task tool:
-  subagent_type: "conductor:initializer"
-  prompt: "Prepare worker for TabzChrome-79t in /home/matt/projects/TabzChrome"
+Task(subagent_type="conductor:initializer",
+     prompt="Prepare worker for beads-abc in /home/matt/projects/myapp")
 ```
 
-You return the structured output, then conductor uses the prompt to spawn/instruct the worker.
+**Batch workers:**
+```
+Task(subagent_type="conductor:initializer",
+     prompt="Prepare 3 workers for issues beads-abc, beads-def, beads-ghi in /home/matt/projects/myapp")
+```
+
+Conductor receives the structured output with worktree paths, then spawns workers with `workingDir` set to each worktree.
