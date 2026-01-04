@@ -13,10 +13,16 @@ Spawn multiple Claude Code workers to tackle beads issues in parallel, with skil
 bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] [\(.type)] \(.title)"' | head -5
 ```
 
-### 2. Select Worker Count & Worktree Mode
+### 2. Select Worker Count
 Ask user:
 - How many workers? (2, 3, 4, 5)
-- Use worktrees for isolation? (Yes if workers might edit shared files, No for independent files)
+
+**Worktrees are always used by default.** Each worker gets an isolated worktree to prevent:
+- Build artifacts conflicting between workers
+- Workers seeing errors from other sessions and trying to "fix" them
+- Merge conflicts from concurrent edits
+
+Only skip worktrees if explicitly requested (rare - e.g., read-only analysis tasks).
 
 ### 3. For Each Issue, Invoke Initializer
 
@@ -26,13 +32,13 @@ Ask user:
 Task tool:
   subagent_type: "conductor:initializer"
   prompt: "Prepare worker for <issue-id> in <project-dir>.
-           Create worktree: <yes/no>.
+           Create worktree: yes (default).
            Return: environment setup, skill invocations, relevant files, crafted prompt."
 ```
 
 The initializer will:
 - Check/run init scripts
-- Create worktree if requested (feature branch per issue)
+- Create worktree with feature branch (e.g., `feat/<issue-id>`)
 - Map issue keywords to **explicit skill invocations** (e.g., `/shadcn-ui`, `/ui-styling:ui-styling`)
 - Find relevant files (size-aware - excludes large files)
 - Craft the worker prompt
@@ -156,12 +162,32 @@ Each worker will:
 5. Commit with issue ID in message
 6. Close issue with `bd close <id> --reason "..."`
 
+## Worktree Cleanup
+
+After all workers complete, merge and clean up worktrees:
+
+```bash
+# List worktrees
+git worktree list
+
+# For each completed worktree:
+cd /path/to/main/repo
+git merge feat/<issue-id>        # Merge the feature branch
+git worktree remove ../TabzChrome-<issue-id>  # Remove worktree
+git branch -d feat/<issue-id>    # Delete local branch
+
+# Or bulk cleanup (after verifying all merged):
+git worktree list --porcelain | grep "^worktree" | grep -v "/TabzChrome$" | cut -d' ' -f2 | xargs -I{} git worktree remove {}
+```
+
+**Tip:** The watcher can automate this when `ALL_DONE` is detected.
+
 ## Notes
 
 - Workers operate independently (no cross-dependencies)
 - Each gets skill-optimized prompts based on task type
-- Environment prepared once before spawning
+- Each worker runs in isolated worktree (prevents build conflicts)
 - Watcher monitors for completion/issues
-- Clean up when done: `curl -X DELETE http://localhost:8129/api/agents/<id>`
+- Clean up agents when done: `curl -X DELETE http://localhost:8129/api/agents/<id>`
 
 Execute this workflow now.
