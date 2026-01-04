@@ -98,6 +98,10 @@ const PRESET_CATEGORIES: PresetCategory[] = [
       { method: 'POST', url: '/api/claude-status/cleanup', name: 'Cleanup Stale State' },
       { method: 'GET', url: '/api/plugins', name: 'List Plugins' },
       { method: 'POST', url: '/api/plugins/toggle', name: 'Toggle Plugin', body: { pluginName: 'example', enabled: true } },
+      { method: 'GET', url: '/api/plugins/health', name: 'Plugin Health Check' },
+      { method: 'POST', url: '/api/plugins/update', name: 'Update Plugin', body: { pluginId: 'example-plugin', scope: 'user' } },
+      { method: 'POST', url: '/api/plugins/update-all', name: 'Update All Plugins', body: { scope: 'user' } },
+      { method: 'POST', url: '/api/plugins/cache/prune', name: 'Prune Plugin Cache', body: { keepLatest: 1 } },
     ],
   },
   {
