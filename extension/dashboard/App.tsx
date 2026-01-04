@@ -301,7 +301,7 @@ export default function App() {
       case 'terminals':
         return <TerminalsSection />
       case 'files':
-        return <FilesSection />
+        return <FilesSection onQuickOpen={() => setQuickOpenOpen(true)} />
       case 'git':
         return <GitSection />
       case 'api':

@@ -54,7 +54,11 @@ const filterOptions: { value: FileFilter; label: string; icon?: string }[] = [
   { value: 'favorites', label: '', icon: '⭐' },
 ]
 
-export default function FilesSection() {
+interface FilesSectionProps {
+  onQuickOpen?: () => void
+}
+
+export default function FilesSection({ onQuickOpen }: FilesSectionProps = {}) {
   // Use context for persistent state across tab switches
   const {
     openFiles,
@@ -448,7 +452,7 @@ export default function FilesSection() {
         {/* File Tree / Filtered List / Plugin List - Left Side */}
         <div className="w-72 border-r border-border flex-shrink-0 overflow-hidden">
           {activeFilter === 'all' ? (
-            <FileTree onFileSelect={openFile} basePath={globalWorkingDir} maxDepth={viewerSettings.maxDepth} waitForLoad={!workingDirLoaded} />
+            <FileTree onFileSelect={openFile} basePath={globalWorkingDir} maxDepth={viewerSettings.maxDepth} waitForLoad={!workingDirLoaded} onQuickOpen={onQuickOpen} />
           ) : activeFilter === 'plugins' ? (
             <PluginList />
           ) : (

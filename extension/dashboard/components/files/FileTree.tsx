@@ -72,11 +72,12 @@ interface FileTreeProps {
   showHidden?: boolean
   maxDepth?: number
   waitForLoad?: boolean  // Don't fetch until this becomes false
+  onQuickOpen?: () => void  // Callback to open quick file search (Cmd+P)
 }
 
 const API_BASE = "http://localhost:8129"
 
-export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenProp = false, maxDepth = 5, waitForLoad = false }: FileTreeProps) {
+export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenProp = false, maxDepth = 5, waitForLoad = false, onQuickOpen }: FileTreeProps) {
   // Use context for caching file tree across tab switches
   const { fileTree, setFileTree, fileTreePath, setFileTreePath, pendingTreeNavigation, clearPendingNavigation, toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
 
@@ -1023,6 +1024,11 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="font-semibold text-sm">Files</h3>
         <div className="flex gap-1">
+          {onQuickOpen && (
+            <button onClick={onQuickOpen} className="p-1.5 hover:bg-muted rounded" title="Quick Open (Ctrl+P)">
+              <Search className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={navigateHome} className="p-1.5 hover:bg-muted rounded" title="Home">
             <HomeIcon size={16} />
           </button>
