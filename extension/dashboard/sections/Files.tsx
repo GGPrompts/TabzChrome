@@ -461,6 +461,8 @@ export default function FilesSection({ onQuickOpen }: FilesSectionProps = {}) {
               filteredFiles={filteredFiles}
               loading={filteredFilesLoading}
               onFileSelect={openFile}
+              onQuickOpen={onQuickOpen}
+              onRefresh={() => loadFilteredFiles(activeFilter, globalWorkingDir)}
             />
           )}
         </div>

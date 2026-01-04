@@ -14,7 +14,10 @@ import {
   FileJson,
   Star,
   Search,
+  Minimize2,
 } from 'lucide-react'
+// Animated icons
+import { RefreshCwIcon, ExpandIcon } from '../../../components/icons'
 import { FileFilter, ClaudeFileType, claudeFileColors, getClaudeFileType } from '../../utils/claudeFileTypes'
 import { FileTreeContextMenu } from './FileTreeContextMenu'
 import { useFilesContext } from '../../contexts/FilesContext'
@@ -44,6 +47,8 @@ interface FilteredFileListProps {
   filteredFiles: FilteredFilesResponse | null
   loading: boolean
   onFileSelect: (path: string) => void
+  onQuickOpen?: () => void
+  onRefresh?: () => void
 }
 
 // Get icon for Claude file types
@@ -226,6 +231,8 @@ function TreeSection({
   onContextMenu,
   isFavorite,
   toggleFavorite,
+  expandAllTrigger,
+  collapseAllTrigger,
 }: {
   source: FilteredTree
   onFileSelect: (path: string) => void
@@ -234,12 +241,44 @@ function TreeSection({
   onContextMenu: (e: React.MouseEvent, node: TreeNode) => void
   isFavorite: (path: string) => boolean
   toggleFavorite: (path: string) => void
+  expandAllTrigger?: number
+  collapseAllTrigger?: number
 }) {
   const [isCollapsed, setIsCollapsed] = useState(startCollapsed)
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     // Start collapsed for favorites, expanded for other filters
     return startCollapsed ? new Set() : new Set([source.tree.path])
   })
+
+  // Collect all folder paths recursively
+  const collectAllFolderPaths = useCallback((node: TreeNode): string[] => {
+    const paths: string[] = []
+    if (node.type === 'directory') {
+      paths.push(node.path)
+      if (node.children) {
+        node.children.forEach(child => {
+          paths.push(...collectAllFolderPaths(child))
+        })
+      }
+    }
+    return paths
+  }, [])
+
+  // Handle expand all trigger from parent
+  React.useEffect(() => {
+    if (expandAllTrigger && expandAllTrigger > 0) {
+      setIsCollapsed(false)
+      const allPaths = collectAllFolderPaths(source.tree)
+      setExpandedPaths(new Set(allPaths))
+    }
+  }, [expandAllTrigger, source.tree, collectAllFolderPaths])
+
+  // Handle collapse all trigger from parent
+  React.useEffect(() => {
+    if (collapseAllTrigger && collapseAllTrigger > 0) {
+      setExpandedPaths(new Set([source.tree.path]))
+    }
+  }, [collapseAllTrigger, source.tree.path])
 
   const toggleExpand = (path: string) => {
     setExpandedPaths((prev) => {
@@ -304,10 +343,22 @@ function TreeSection({
   )
 }
 
-export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect }: FilteredFileListProps) {
+export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect, onQuickOpen, onRefresh }: FilteredFileListProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const { toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
+
+  // Expand/collapse all triggers (increment to trigger effect in children)
+  const [expandAllTrigger, setExpandAllTrigger] = useState(0)
+  const [collapseAllTrigger, setCollapseAllTrigger] = useState(0)
+
+  const handleExpandAll = useCallback(() => {
+    setExpandAllTrigger(prev => prev + 1)
+  }, [])
+
+  const handleCollapseAll = useCallback(() => {
+    setCollapseAllTrigger(prev => prev + 1)
+  }, [])
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -502,8 +553,15 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
   if (loading) {
     return (
       <div className="flex flex-col h-full bg-card rounded-lg border border-border">
-        <div className="p-3 border-b border-border">
+        <div className="flex items-center justify-between p-3 border-b border-border">
           <h3 className="font-semibold text-sm capitalize">{filter} Files</h3>
+          <div className="flex gap-1">
+            {onQuickOpen && (
+              <button onClick={onQuickOpen} className="p-1.5 hover:bg-muted rounded" title="Quick Open (Ctrl+P)">
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           Loading...
@@ -521,8 +579,20 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
   if (trees.length === 0 && groups.length === 0) {
     return (
       <div className="flex flex-col h-full bg-card rounded-lg border border-border">
-        <div className="p-3 border-b border-border">
+        <div className="flex items-center justify-between p-3 border-b border-border">
           <h3 className="font-semibold text-sm capitalize">{filter} Files</h3>
+          <div className="flex gap-1">
+            {onQuickOpen && (
+              <button onClick={onQuickOpen} className="p-1.5 hover:bg-muted rounded" title="Quick Open (Ctrl+P)">
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+            {onRefresh && (
+              <button onClick={onRefresh} className="p-1.5 hover:bg-muted rounded" title="Refresh">
+                <RefreshCwIcon size={16} />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
           <div>
@@ -540,9 +610,27 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border border-border">
-      {/* Header */}
-      <div className="p-3 border-b border-border">
+      {/* Header with Toolbar */}
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="font-semibold text-sm capitalize">{filter} Files</h3>
+        <div className="flex gap-1">
+          {onQuickOpen && (
+            <button onClick={onQuickOpen} className="p-1.5 hover:bg-muted rounded" title="Quick Open (Ctrl+P)">
+              <Search className="w-4 h-4" />
+            </button>
+          )}
+          {onRefresh && (
+            <button onClick={onRefresh} className="p-1.5 hover:bg-muted rounded" title="Refresh">
+              <RefreshCwIcon size={16} />
+            </button>
+          )}
+          <button onClick={handleExpandAll} className="p-1.5 hover:bg-muted rounded" title="Expand all">
+            <ExpandIcon size={16} />
+          </button>
+          <button onClick={handleCollapseAll} className="p-1.5 hover:bg-muted rounded" title="Collapse all">
+            <Minimize2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -574,6 +662,8 @@ export function FilteredFileList({ filter, filteredFiles, loading, onFileSelect 
             onContextMenu={handleContextMenu}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
+            expandAllTrigger={expandAllTrigger}
+            collapseAllTrigger={collapseAllTrigger}
           />
         ))}
 
