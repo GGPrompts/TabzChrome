@@ -130,6 +130,16 @@ class TerminalRegistry extends EventEmitter {
         terminal.exitCode = exitCode;
         terminal.signal = signal;
 
+        // Emit error-exit event for non-zero exit codes (for desktop notifications)
+        if (exitCode !== 0 && exitCode !== null) {
+          this.emit('error-exit', {
+            terminalId,
+            name: terminal.name,
+            exitCode,
+            signal
+          });
+        }
+
         // Check if this is a tmux terminal
         if (terminal.sessionId || terminal.sessionName) {
           log.debug(`PTY closed for tmux terminal ${terminal.name}`);

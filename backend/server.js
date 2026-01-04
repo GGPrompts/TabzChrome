@@ -1566,6 +1566,16 @@ terminalRegistry.on('closed', (terminalId) => {
   broadcast({ type: 'terminal-closed', data: { id: terminalId } });
 });
 
+// Listen for terminal error exits (non-zero exit code) for desktop notifications
+terminalRegistry.removeAllListeners('error-exit');
+terminalRegistry.on('error-exit', ({ terminalId, name, exitCode, signal }) => {
+  log.info(`Terminal ${name} exited with error code ${exitCode}`);
+  broadcast({
+    type: 'terminal-error-exit',
+    data: { terminalId, name, exitCode, signal }
+  });
+});
+
 // Periodic memory monitoring and leak prevention - clean up dead connections
 setInterval(() => {
   // Remove dead WebSocket connections

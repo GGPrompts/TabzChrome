@@ -46,6 +46,7 @@ import { useChatInput } from '../hooks/useChatInput'
 import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useOutsideClick } from '../hooks/useOutsideClick'
+import { useDesktopNotifications } from '../hooks/useDesktopNotifications'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
 import '../styles/globals.css'
 
@@ -224,6 +225,9 @@ function SidePanelTerminal() {
   useEffect(() => {
     audioGlobalMuteRef.current = audioGlobalMute
   }, [audioGlobalMute])
+
+  // Desktop notifications hook - handles system notifications with quiet hours support
+  const { showNotification } = useDesktopNotifications()
 
   // Chat input hook - manages chat bar state and handlers
   const chatInput = useChatInput({
@@ -405,10 +409,25 @@ function SidePanelTerminal() {
             message: message.data.error,
             terminalName: message.data.terminalName
           })
+          // Show desktop notification (useful for API-spawned terminals)
+          showNotification('spawnError', {
+            title: 'Terminal Spawn Failed',
+            message: message.data.error || 'Failed to create terminal',
+          })
           // Auto-dismiss after 8 seconds
           spawnErrorTimeoutRef.current = setTimeout(() => {
             setSpawnError(null)
           }, 8000)
+        }
+        // Handle terminal error exits (non-zero exit code)
+        if (message.data?.type === 'terminal-error-exit') {
+          const { name, exitCode, signal } = message.data
+          showNotification('terminalError', {
+            title: `${name || 'Terminal'} exited with error`,
+            message: signal
+              ? `Exit code: ${exitCode} (signal: ${signal})`
+              : `Exit code: ${exitCode}`,
+          })
         }
       } else if (message.type === 'TERMINAL_OUTPUT') {
         // Terminal component will handle this
