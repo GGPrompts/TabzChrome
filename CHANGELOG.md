@@ -23,8 +23,16 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
   - Master enable/disable toggle for all notifications
   - Quiet hours with configurable start/end times (supports overnight ranges like 10 PM to 8 AM)
   - Per-event toggles for connection, terminal, Claude, and system events
-  - Events: backend disconnect/reconnect, spawn errors, terminal errors, context critical, long-running completion, UI crashes, question waiting, download failures, orphaned sessions
   - New `useDesktopNotifications` hook for consistent notification handling across components
+  - **Implemented notifications:**
+    - WebSocket disconnect/reconnect - alerts when backend connection lost or restored
+    - Terminal exit with error code - notifies when a terminal exits with non-zero status
+    - ErrorBoundary crashes - desktop alert when sidebar UI crashes
+    - Orphaned sessions detected - notification when detached tmux sessions are found
+    - Question waiting timeout - reminder after 60s when Claude is waiting for input
+    - Context critical (persistent) - stays visible until dismissed at 75% context usage
+    - MCP download failures - alerts when tabz_download_file/image fails
+    - Long-running command completion - notifies after tasks running 5+ minutes finish
 
 - **Bookmarks Manager** - Full-featured bookmark management in dedicated page:
   - Tree view of all Chrome bookmarks with folder hierarchy

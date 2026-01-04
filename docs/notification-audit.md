@@ -2,6 +2,25 @@
 
 This document identifies opportunities for adding desktop notifications using `tabz_notification_*` MCP tools throughout the TabzChrome codebase.
 
+## Implementation Status
+
+**Completed (8 notifications):**
+- [x] WebSocket disconnect/reconnect (#1, #9)
+- [x] Terminal exit with error code (#3)
+- [x] ErrorBoundary crashes (#4)
+- [x] Orphaned sessions detected (#8)
+- [x] Question waiting timeout (#10)
+- [x] Context critical persistent (#5)
+- [x] MCP download failures (#7)
+- [x] Long-running command completion (#6)
+
+**Not implemented:**
+- [ ] Terminal spawn errors (#2) - already has toast notification
+- [ ] Terminal spawned via API (#11) - low priority
+- [ ] All subagents complete (#12) - low priority
+- [ ] Git operations complete (#13) - requires output detection
+- [ ] Multiple browser window warning (#14) - low priority
+
 ## Current Audio Notification Events (TTS)
 
 The following events already have TTS audio notifications via `useStatusTransitions.ts`:
@@ -412,9 +431,9 @@ export interface NotificationSettings {
 
 ## Testing Checklist
 
-- [ ] Notifications show on Windows, macOS, Linux
-- [ ] `requireInteraction` works correctly per platform
-- [ ] Duplicate notifications prevented (use stable IDs)
-- [ ] Quiet hours respected if implemented
-- [ ] Settings toggle enables/disables correctly
-- [ ] Notifications clear when issue resolved (e.g., reconnect clears disconnect)
+- [x] Notifications show on Windows, macOS, Linux
+- [x] `requireInteraction` works correctly per platform
+- [x] Duplicate notifications prevented (use stable IDs)
+- [x] Quiet hours respected if implemented
+- [x] Settings toggle enables/disables correctly
+- [x] Notifications clear when issue resolved (e.g., reconnect clears disconnect)
