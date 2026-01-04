@@ -10,6 +10,7 @@ import { getThemeColors, getBackgroundGradient as getThemeBackgroundGradient, Th
 import { getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 
 import type { BackgroundMediaType } from './settings/types'
+import { VideoPowerSettings, DEFAULT_VIDEO_POWER_SETTINGS } from './settings/types'
 
 /**
  * Props for the Terminal component
@@ -86,6 +87,13 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const [isInitialized, setIsInitialized] = useState(false)  // Track if xterm has been opened
   const [mediaError, setMediaError] = useState(false)  // Track if background media failed to load
   const wasDisconnectedRef = useRef(false)  // Track if we were disconnected (for resync on reconnect)
+
+  // Video power optimization refs and state
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [videoPowerSettings, setVideoPowerSettings] = useState<VideoPowerSettings>(DEFAULT_VIDEO_POWER_SETTINGS)
+  const [videoIdlePaused, setVideoIdlePaused] = useState(false)  // Paused due to user inactivity
+  const [videoVisibilityPaused, setVideoVisibilityPaused] = useState(false)  // Paused due to tab not visible
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // NOTE: Claude status polling removed - sidepanel handles it via useClaudeStatus hook
 
   // Determine if this is a tmux session - all ctt-* terminals are tmux-backed
@@ -1105,6 +1113,122 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
     setMediaError(false)
   }, [backgroundMedia])
 
+  // Load video power settings from Chrome storage
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.get(['videoPowerSettings'], (result: { videoPowerSettings?: VideoPowerSettings }) => {
+        if (result.videoPowerSettings) {
+          setVideoPowerSettings({ ...DEFAULT_VIDEO_POWER_SETTINGS, ...result.videoPowerSettings })
+        }
+      })
+
+      // Listen for settings changes
+      const listener = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+        if (areaName !== 'local') return
+        if (changes.videoPowerSettings?.newValue) {
+          setVideoPowerSettings({ ...DEFAULT_VIDEO_POWER_SETTINGS, ...changes.videoPowerSettings.newValue })
+        }
+      }
+      chrome.storage.onChanged.addListener(listener)
+      return () => chrome.storage.onChanged.removeListener(listener)
+    }
+  }, [])
+
+  // Idle timeout detection - pause video after inactivity
+  useEffect(() => {
+    if (!videoPowerSettings.enabled || !videoPowerSettings.idleTimeout.enabled) {
+      // Reset idle state when disabled
+      setVideoIdlePaused(false)
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+      return
+    }
+
+    const resetIdleTimer = () => {
+      // Resume video if it was idle-paused
+      if (videoIdlePaused) {
+        setVideoIdlePaused(false)
+      }
+
+      // Clear existing timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+      }
+
+      // Set new idle timer
+      idleTimerRef.current = setTimeout(() => {
+        setVideoIdlePaused(true)
+      }, videoPowerSettings.idleTimeout.timeoutSeconds * 1000)
+    }
+
+    // Events that reset idle timer
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
+
+    // Initial timer start
+    resetIdleTimer()
+
+    // Add event listeners
+    events.forEach(event => {
+      window.addEventListener(event, resetIdleTimer, { passive: true })
+    })
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, resetIdleTimer)
+      })
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+      }
+    }
+  }, [videoPowerSettings.enabled, videoPowerSettings.idleTimeout.enabled, videoPowerSettings.idleTimeout.timeoutSeconds, videoIdlePaused])
+
+  // Visibility detection - pause video when tab/sidebar not visible
+  useEffect(() => {
+    if (!videoPowerSettings.enabled || !videoPowerSettings.pauseInBackground) {
+      setVideoVisibilityPaused(false)
+      return
+    }
+
+    const handleVisibilityChange = () => {
+      setVideoVisibilityPaused(document.hidden)
+    }
+
+    // Check initial state
+    setVideoVisibilityPaused(document.hidden)
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [videoPowerSettings.enabled, videoPowerSettings.pauseInBackground])
+
+  // Control video playback based on pause states
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const shouldPause = videoIdlePaused || videoVisibilityPaused
+    if (shouldPause) {
+      video.pause()
+    } else {
+      // Only play if video is paused and we have a src
+      if (video.paused && video.src) {
+        video.play().catch(() => {
+          // Ignore play errors (e.g., autoplay blocked)
+        })
+      }
+    }
+  }, [videoIdlePaused, videoVisibilityPaused])
+
+  // Update video volume when settings change
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.volume = videoPowerSettings.videoVolume
+    video.muted = videoPowerSettings.videoVolume === 0
+  }, [videoPowerSettings.videoVolume])
+
   // NOTE: Claude status polling removed from Terminal component
   // The sidepanel handles all status polling via useClaudeStatus hook
   // This eliminates duplicate network requests (was 2x requests per terminal)
@@ -1185,17 +1309,24 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       {/* Background media layer (video or image) */}
       {showMedia && backgroundMediaType === 'video' && (
         <video
+          ref={videoRef}
           key={mediaUrl}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           style={{ opacity: mediaOpacity, zIndex: 0 }}
           src={mediaUrl}
           autoPlay
           loop
-          muted
+          muted={videoPowerSettings.videoVolume === 0}
           playsInline
           onError={() => {
             console.warn('[Terminal] Failed to load background video:', mediaUrl)
             setMediaError(true)
+          }}
+          onLoadedMetadata={() => {
+            // Set initial volume after video loads
+            if (videoRef.current) {
+              videoRef.current.volume = videoPowerSettings.videoVolume
+            }
           }}
         />
       )}

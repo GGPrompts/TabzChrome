@@ -479,3 +479,27 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
     orphanedSessions: false,  // Less critical, off by default
   },
 }
+
+// ============================================
+// Video Power Settings (battery/performance)
+// ============================================
+
+export interface VideoPowerSettings {
+  enabled: boolean                    // Master toggle for power optimizations
+  idleTimeout: {
+    enabled: boolean
+    timeoutSeconds: number            // Seconds of inactivity before pausing (default: 60)
+  }
+  pauseInBackground: boolean          // Pause when tab/sidebar not visible
+  videoVolume: number                 // 0-1 volume for ambient audio (default: 0 = muted)
+}
+
+export const DEFAULT_VIDEO_POWER_SETTINGS: VideoPowerSettings = {
+  enabled: true,  // Power optimizations on by default
+  idleTimeout: {
+    enabled: true,
+    timeoutSeconds: 60,  // 1 minute of inactivity
+  },
+  pauseInBackground: true,  // Pause when not visible
+  videoVolume: 0,  // Muted by default (existing behavior)
+}
