@@ -774,6 +774,147 @@ The conductor can stop background watcher by:
 2. Using `TaskOutput` with `block: false` to check status
 3. Killing the background task if needed
 
+## Auto Mode (`AUTO_MODE=true`)
+
+When running as part of `/bd-swarm --auto`, the watcher operates in a special mode optimized for multi-wave autonomous execution.
+
+### Auto Mode Configuration
+
+Pass `AUTO_MODE=true` in the watcher prompt:
+
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: |
+    CONDUCTOR_SESSION=$CONDUCTOR_SESSION
+    PROJECT_DIR=$PROJECT_DIR
+    AUTO_MODE=true
+    WAVE_NUMBER=1
+
+    Monitor Wave 1 workers...
+```
+
+### Auto Mode Differences
+
+| Behavior | Normal Mode | Auto Mode |
+|----------|-------------|-----------|
+| Docs update | Per worker or wave | Skipped (done at end) |
+| Git push | After ALL_DONE | Skipped (done at end) |
+| Wave complete signal | N/A | `WAVE_COMPLETE` event |
+| Worker reuse | Find any ready issue | Find ready in same wave scope |
+
+### Wave Complete Detection
+
+In auto mode, watcher sends `WAVE_COMPLETE` instead of `ALL_DONE`:
+
+```bash
+# In auto mode, when all workers complete:
+notify_wave_complete() {
+  local MESSAGE="$1"
+
+  # Browser notification
+  mcp-cli call tabz/tabz_notification_show "{\"title\": \"🌊 Wave $WAVE_NUMBER Complete\", \"message\": \"$MESSAGE\", \"type\": \"basic\"}" 2>/dev/null || true
+
+  # Send to conductor for next wave
+  if [ -n "$CONDUCTOR_SESSION" ] && tmux has-session -t "$CONDUCTOR_SESSION" 2>/dev/null; then
+    tmux send-keys -t "$CONDUCTOR_SESSION" -l "[WATCHER] WAVE_COMPLETE: $MESSAGE"
+    sleep 0.3
+    tmux send-keys -t "$CONDUCTOR_SESSION" C-m
+  fi
+}
+
+# Modified exit logic for auto mode
+if [ -z "$WORKERS" ]; then
+  if [ "$AUTO_MODE" = "true" ]; then
+    echo "Wave $WAVE_NUMBER complete. Signaling conductor."
+    notify_wave_complete "Wave $WAVE_NUMBER: All workers finished"
+    exit 0  # Conductor will spawn new watcher for next wave
+  else
+    echo "No active workers found. Exiting."
+    notify_all_done "No active Claude workers remaining"
+    exit 0
+  fi
+fi
+```
+
+### Auto Mode All-Done Pipeline (Per Wave)
+
+In auto mode, the watcher does a lighter-weight completion per wave:
+
+```bash
+auto_mode_wave_complete() {
+  # 1. Merge all feature branches for this wave
+  cd "$PROJECT_DIR"
+  for ISSUE in $WAVE_ISSUES; do
+    if [ -d "${PROJECT_DIR}-worktrees/${ISSUE}" ]; then
+      git merge "feature/${ISSUE}" --no-edit 2>/dev/null || {
+        echo "Merge conflict for $ISSUE - manual resolution needed"
+        notify "MERGE_CONFLICT" "⚠️ Merge Conflict" "$ISSUE needs manual resolution"
+      }
+    fi
+  done
+
+  # 2. Clean up worktrees
+  for ISSUE in $WAVE_ISSUES; do
+    WORKTREE="${PROJECT_DIR}-worktrees/${ISSUE}"
+    if [ -d "$WORKTREE" ]; then
+      git worktree remove "$WORKTREE" 2>/dev/null || true
+      git branch -d "feature/${ISSUE}" 2>/dev/null || true
+    fi
+  done
+
+  # 3. Sync beads (no push yet - save for final completion)
+  bd sync 2>/dev/null || true
+
+  # 4. Signal wave complete (no docs update, no push)
+  notify_wave_complete "Wave $WAVE_NUMBER: Merged ${#WAVE_ISSUES[@]} issues"
+}
+```
+
+### Events (Auto Mode Extended)
+
+| Event | When | Conductor Action |
+|-------|------|------------------|
+| `WORKER_DONE` | Worker closes issue | Track for wave completion |
+| `WAVE_COMPLETE` | All wave workers done | Check `bd ready`, spawn next wave |
+| `MERGE_CONFLICT` | Branch can't auto-merge | Log for manual resolution |
+| `WORKER_STUCK` | Stale 5+ min | Nudge or mark for attention |
+| `HIGH_CONTEXT` | Worker at 75%+ | Let retire, wave continues |
+
+### Auto Mode Example Prompt
+
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: |
+    CONDUCTOR_SESSION=ctt-matrixclaude-abc123
+    PROJECT_DIR=/home/matt/projects/TabzChrome
+    AUTO_MODE=true
+    WAVE_NUMBER=2
+    WAVE_ISSUES=TabzChrome-abc,TabzChrome-def,TabzChrome-ghi
+
+    Monitor Wave 2 workers for autonomous backlog completion.
+
+    On WORKER_DONE:
+    1. Verify issue closed in beads
+    2. Track as complete
+
+    On ALL_WORKERS_DONE (wave complete):
+    1. Merge all feature branches for this wave
+    2. Clean up worktrees
+    3. Run: bd sync (no push)
+    4. Signal WAVE_COMPLETE to conductor
+
+    Do NOT:
+    - Spawn docs-updater (conductor handles at end)
+    - Push to origin (conductor handles at end)
+    - Use worker reuse across waves (fresh workers per wave)
+
+    Exit after signaling WAVE_COMPLETE.
+```
+
 ## Completion Pipeline
 
 When a worker completes, orchestrate the full quality pipeline:
