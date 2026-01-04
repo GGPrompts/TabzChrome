@@ -337,7 +337,39 @@ Include in status report if errors found:
 
 ## Quick Commands
 
-**Check if any worker is done:**
+**Check if worker completed (reliable method):**
+```bash
+# Check if beads issue was closed (most reliable)
+check_worker_completed() {
+  local SESSION="$1"
+  local ISSUE_ID="$2"  # e.g., TabzChrome-hjs
+
+  # Method 1: Check beads issue status
+  if bd show "$ISSUE_ID" 2>/dev/null | grep -q "status:.*closed"; then
+    echo "COMPLETED: $ISSUE_ID closed in beads"
+    return 0
+  fi
+
+  # Method 2: Check for commit with issue ID in worktree
+  local WORKTREE="/home/matt/projects/TabzChrome-worktrees/$ISSUE_ID"
+  if [ -d "$WORKTREE" ]; then
+    if git -C "$WORKTREE" log -1 --oneline 2>/dev/null | grep -qi "$ISSUE_ID"; then
+      echo "COMPLETED: commit found for $ISSUE_ID"
+      return 0
+    fi
+  fi
+
+  # Method 3: Check terminal output for "bd close" command
+  if tmux capture-pane -t "$SESSION" -p -S -50 2>/dev/null | grep -q "bd close.*$ISSUE_ID"; then
+    echo "COMPLETED: bd close command found"
+    return 0
+  fi
+
+  return 1
+}
+```
+
+**Check if any worker is done (old method - unreliable):**
 ```bash
 cat /tmp/claude-code-state/*.json | jq -r 'select(.status == "awaiting_input") | .session_id'
 ```
@@ -532,39 +564,67 @@ while true; do
   COMPLETED_THIS_CHECK=""
 
   for SESSION in $WORKERS; do
-    # Read state file
-    STATE_FILE="/tmp/claude-code-state/${SESSION}.json"
-    CONTEXT_FILE="/tmp/claude-code-state/${SESSION}-context.json"
+    NOW=$(date +%s)
+
+    # Extract issue ID from session name (e.g., ctt-claude-tabzchrome-hj-xxx -> TabzChrome-hjs)
+    # This requires ISSUE_MAP to be passed or derived from session naming
     IDLE_FILE="/tmp/claude-code-state/${SESSION}-idle.txt"
     NUDGE_FILE="/tmp/claude-code-state/${SESSION}-nudge.txt"
     DONE_FILE="/tmp/claude-code-state/${SESSION}-done.txt"
 
-    if [ -f "$STATE_FILE" ]; then
-      STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
-      WORKDIR=$(jq -r '.working_dir // empty' "$STATE_FILE" 2>/dev/null)
+    # Get working directory from tmux pane (more reliable than state files)
+    WORKDIR=$(tmux display-message -t "$SESSION" -p '#{pane_current_path}' 2>/dev/null)
 
-      # Check for completion (only notify once)
-      if [ "$STATUS" = "awaiting_input" ] && [ ! -f "$DONE_FILE" ]; then
-        notify "WORKER_DONE" "✅ Worker Done" "$SESSION completed"
+    # Try to get issue ID from worktree path
+    ISSUE_ID=""
+    if echo "$WORKDIR" | grep -q "TabzChrome-worktrees"; then
+      ISSUE_ID=$(basename "$WORKDIR")  # e.g., TabzChrome-hjs
+    fi
+
+    # Check for completion using beads (most reliable)
+    if [ -n "$ISSUE_ID" ] && [ ! -f "$DONE_FILE" ]; then
+      if bd show "$ISSUE_ID" 2>/dev/null | grep -q "status:.*closed"; then
+        notify "WORKER_DONE" "✅ Worker Done" "$SESSION completed $ISSUE_ID"
         touch "$DONE_FILE"
         COMPLETED_THIS_CHECK="$COMPLETED_THIS_CHECK $SESSION"
-      elif [ "$STATUS" != "awaiting_input" ]; then
-        ACTIVE_COUNT=$((ACTIVE_COUNT + 1))
-        rm -f "$DONE_FILE" 2>/dev/null  # Reset if worker resumes
-      fi
-
-      # Check for stale
-      if [ "$STATUS" = "stale" ]; then
-        notify "WORKER_STUCK" "🔴 Worker Stuck" "$SESSION stale for 5+ minutes"
+        continue
       fi
     fi
 
-    # Check context
-    if [ -f "$CONTEXT_FILE" ]; then
-      CONTEXT=$(jq -r '.context_pct // 0' "$CONTEXT_FILE" 2>/dev/null)
-      if [ "$CONTEXT" -ge 75 ]; then
-        notify "HIGH_CONTEXT" "⚠️ High Context" "$SESSION at ${CONTEXT}%"
+    # Check if session is still active (tmux session exists and has output)
+    if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+      # Session ended - check if it completed
+      if [ -n "$ISSUE_ID" ] && bd show "$ISSUE_ID" 2>/dev/null | grep -q "status:.*closed"; then
+        [ ! -f "$DONE_FILE" ] && notify "WORKER_DONE" "✅ Worker Done" "$SESSION completed $ISSUE_ID"
+        touch "$DONE_FILE"
       fi
+      continue
+    fi
+
+    # Session still active
+    ACTIVE_COUNT=$((ACTIVE_COUNT + 1))
+
+    # Check for stale using pane content (no activity for extended period)
+    CURRENT_HASH=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | md5sum | cut -d' ' -f1)
+    STALE_FILE="/tmp/claude-code-state/${SESSION}-stale.txt"
+    PREV_HASH=$(head -1 "$STALE_FILE" 2>/dev/null)
+    PREV_TIME=$(tail -1 "$STALE_FILE" 2>/dev/null || echo "$NOW")
+
+    if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
+      STALE_SECONDS=$((NOW - PREV_TIME))
+      if [ "$STALE_SECONDS" -ge 300 ]; then  # 5 minutes
+        notify "WORKER_STUCK" "🔴 Worker Stuck" "$SESSION no activity for 5+ minutes"
+      fi
+    else
+      echo "$CURRENT_HASH" > "$STALE_FILE"
+      echo "$NOW" >> "$STALE_FILE"
+    fi
+
+    # Check context from Claude status line (bottom of terminal)
+    # Claude shows context % like "29% ctx" in status bar
+    CONTEXT=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -oP '\d+(?=% ctx)' | tail -1)
+    if [ -n "$CONTEXT" ] && [ "$CONTEXT" -ge 75 ]; then
+      notify "HIGH_CONTEXT" "⚠️ High Context" "$SESSION at ${CONTEXT}%"
     fi
 
     # === IDLE/NUDGE DETECTION ===
