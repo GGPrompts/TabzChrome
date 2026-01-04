@@ -616,8 +616,32 @@ function SidePanelTerminal() {
     setShowEmptyStateDropdown(false)
   }
 
-  const handleCloseTab = (e: React.MouseEvent, terminalId: string) => {
+  const handleCloseTab = async (e: React.MouseEvent, terminalId: string) => {
     e.stopPropagation() // Prevent tab selection when clicking X
+
+    // Close popout window if terminal is popped out
+    const session = sessions.find(s => s.id === terminalId)
+    if (session?.popoutWindowId) {
+      try {
+        await chrome.windows.remove(session.popoutWindowId)
+      } catch (err) {
+        // Window may already be closed
+      }
+    }
+
+    // Close 3D focus tab if terminal is in 3D mode
+    if (session?.focusedIn3D) {
+      try {
+        const tabs = await chrome.tabs.query({ url: chrome.runtime.getURL('3d/3d-focus.html') + '*' })
+        const matchingTab = tabs.find(t => t.url?.includes(`session=${session.sessionName}`))
+        if (matchingTab?.id) {
+          await chrome.tabs.remove(matchingTab.id)
+        }
+      } catch (err) {
+        // Tab may already be closed
+      }
+    }
+
     sendMessage({
       type: 'CLOSE_TERMINAL',
       terminalId,

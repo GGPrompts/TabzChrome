@@ -105,7 +105,7 @@ export default function HomeSection() {
           // Get display mode from Chrome session
           const chromeSession = chromeSessions.find((cs: any) => cs.id === s.name)
           const displayMode = chromeSession?.focusedIn3D ? '3d'
-            : chromeSession?.isPopout ? 'popout'
+            : chromeSession?.poppedOut ? 'popout'
             : 'sidebar'
           return {
             id: s.name,
