@@ -24,24 +24,33 @@ Ask user:
 
 Only skip worktrees if explicitly requested (rare - e.g., read-only analysis tasks).
 
-### 3. For Each Issue, Invoke Initializer
+### 3. Create Worktrees (Fast)
 
-**IMPORTANT:** Use the initializer subagent to prepare environment and craft prompts:
+Create worktrees directly with bash - no subagent needed:
 
+```bash
+PROJECT_DIR="/home/matt/projects/TabzChrome"
+for ISSUE in TabzChrome-abc TabzChrome-def; do
+  WORKTREE="${PROJECT_DIR}-worktrees/${ISSUE}"
+  mkdir -p "$(dirname "$WORKTREE")"
+  git worktree add "$WORKTREE" -b "feature/${ISSUE}" 2>/dev/null || \
+  git worktree add "$WORKTREE" "feature/${ISSUE}" 2>/dev/null || \
+  git worktree add "$WORKTREE" HEAD
+
+  # Install deps if needed
+  [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ] && \
+    (cd "$WORKTREE" && npm ci 2>/dev/null || npm install)
+done
+```
+
+**OR** use initializer subagent (Haiku, fast):
 ```
 Task tool:
   subagent_type: "conductor:initializer"
-  prompt: "Prepare worker for <issue-id> in <project-dir>.
-           Create worktree: yes (default).
-           Return: environment setup, skill invocations, relevant files, crafted prompt."
+  prompt: "Create worktree for <issue-id> in <project-dir>"
 ```
 
-The initializer will:
-- Check/run init scripts
-- Create worktree with feature branch (e.g., `feat/<issue-id>`)
-- Map issue keywords to **explicit skill invocations** (e.g., `/shadcn-ui`, `/ui-styling:ui-styling`)
-- Find relevant files (size-aware - excludes large files)
-- Craft the worker prompt
+The initializer ONLY creates worktrees. Prompt crafting is YOUR job (conductor).
 
 ### 4. Skill Invocation Format
 
