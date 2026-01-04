@@ -2245,6 +2245,49 @@ async function getGitHead(dir) {
 }
 
 /**
+ * Discover local plugin directories in ~/projects
+ * Returns map of directory name -> path for dirs with .claude-plugin/ or plugins/
+ */
+async function discoverLocalMarketplaces() {
+  const { promises: fsAsync } = require('fs');
+  const path = require('path');
+  const projectsDir = path.join(homeDir, 'projects');
+  const discovered = {};
+
+  try {
+    const entries = await fsAsync.readdir(projectsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const dirPath = path.join(projectsDir, entry.name);
+
+      // Check if it looks like a plugin marketplace (has .claude-plugin/ or plugins/)
+      try {
+        const hasPluginJson = await fsAsync.access(path.join(dirPath, '.claude-plugin', 'plugin.json'))
+          .then(() => true).catch(() => false);
+        const hasPluginsDir = await fsAsync.access(path.join(dirPath, 'plugins'))
+          .then(() => true).catch(() => false);
+
+        if (hasPluginJson || hasPluginsDir) {
+          // Use directory name as marketplace key (lowercase, hyphenated)
+          const key = entry.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+          discovered[key] = {
+            source: { source: 'directory', path: dirPath },
+            installLocation: dirPath,
+            isDiscovered: true  // Flag to indicate not in known_marketplaces.json
+          };
+        }
+      } catch {
+        // Ignore errors checking individual dirs
+      }
+    }
+  } catch (err) {
+    console.error('[API] Error discovering local marketplaces:', err.message);
+  }
+
+  return discovered;
+}
+
+/**
  * GET /api/plugins/health - Check plugin health: outdated versions, cache size
  * Returns list of outdated plugins and cache statistics
  */
@@ -2261,6 +2304,15 @@ router.get('/plugins/health', asyncHandler(async (req, res) => {
     } catch (err) {
       if (err.code !== 'ENOENT') {
         console.error('[API] Error reading marketplaces:', err.message);
+      }
+    }
+
+    // Also discover local plugin directories in ~/projects
+    const discoveredMarketplaces = await discoverLocalMarketplaces();
+    // Merge discovered marketplaces (don't override registered ones)
+    for (const [key, info] of Object.entries(discoveredMarketplaces)) {
+      if (!marketplaces[key]) {
+        marketplaces[key] = info;
       }
     }
 
@@ -2367,12 +2419,14 @@ router.get('/plugins/health', asyncHandler(async (req, res) => {
           if (!pluginStat.isDirectory()) continue;
 
           const versionDirs = await fsAsync.readdir(pluginPath);
-          const versionCount = versionDirs.filter(async (v) => {
+          // Check which entries are directories (can't use async in filter)
+          const versionChecks = await Promise.all(versionDirs.map(async (v) => {
             try {
               const s = await fsAsync.stat(path.join(pluginPath, v));
-              return s.isDirectory();
-            } catch { return false; }
-          }).length;
+              return s.isDirectory() ? v : null;
+            } catch { return null; }
+          }));
+          const versionCount = versionChecks.filter(Boolean).length;
 
           pluginVersions[pluginDir] = versionCount;
           mpVersions += versionCount;

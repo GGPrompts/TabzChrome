@@ -474,12 +474,7 @@ export function PluginList() {
             </span>
             {/* Health check button */}
             <button
-              onClick={() => {
-                setShowHealth(!showHealth)
-                if (!showHealth && !pluginHealth) {
-                  loadPluginHealth()
-                }
-              }}
+              onClick={() => setShowHealth(!showHealth)}  // useEffect handles loading
               className={`p-1 rounded transition-colors ${
                 showHealth ? 'bg-primary/20 text-primary' :
                 (pluginHealth?.outdated?.length ?? 0) > 0 ? 'text-amber-400 hover:bg-amber-500/20' : 'hover:bg-muted'
@@ -670,20 +665,36 @@ export function PluginList() {
                       {updateAllResult.skipped > 0 ? ` (${updateAllResult.skipped} project-scoped skipped)` : ''}
                     </div>
                   )}
-                  {pluginHealth.outdated.slice(0, 5).map(p => (
+                  {pluginHealth.outdated.slice(0, 8).map(p => (
                     <div key={p.pluginId} className="flex items-center justify-between py-1 px-2 bg-amber-500/10 rounded">
-                      <div>
-                        <span className="font-medium">{p.name}</span>
-                        <span className="text-muted-foreground ml-1">@{p.marketplace}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium truncate">{p.name}</span>
+                          <span className="text-muted-foreground text-[10px]">@{p.marketplace}</span>
+                          {/* Scope badge */}
+                          {p.scope !== 'user' && (
+                            <span className={`px-1 py-0.5 rounded text-[9px] uppercase flex-shrink-0 ${
+                              p.scope === 'project' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                            }`}>
+                              {p.scope}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-muted-foreground">
                           {p.installedSha} → {p.currentSha}
                         </div>
                       </div>
                       <button
                         onClick={() => handleUpdate(p.pluginId)}
-                        disabled={updatingPlugins.has(p.pluginId) || updatingAll}
-                        className="p-1 hover:bg-amber-500/30 rounded disabled:opacity-50"
-                        title="Update plugin"
+                        disabled={updatingPlugins.has(p.pluginId) || updatingAll || p.scope !== 'user'}
+                        className={`p-1 rounded ${
+                          p.scope !== 'user'
+                            ? 'opacity-30 cursor-not-allowed'
+                            : 'hover:bg-amber-500/30 disabled:opacity-50'
+                        }`}
+                        title={p.scope !== 'user'
+                          ? `Cannot update ${p.scope}-scoped plugin from here`
+                          : 'Update plugin'}
                       >
                         {updatingPlugins.has(p.pluginId) ? (
                           <RefreshCwIcon size={12} className="animate-spin" />
@@ -693,9 +704,15 @@ export function PluginList() {
                       </button>
                     </div>
                   ))}
-                  {pluginHealth.outdated.length > 5 && (
+                  {pluginHealth.outdated.length > 8 && (
                     <div className="text-muted-foreground text-center">
-                      +{pluginHealth.outdated.length - 5} more
+                      +{pluginHealth.outdated.length - 8} more
+                    </div>
+                  )}
+                  {/* Explanation for non-user scoped */}
+                  {pluginHealth.outdated.some(p => p.scope !== 'user') && (
+                    <div className="text-[10px] text-muted-foreground mt-1 italic">
+                      Project/local plugins require updating from their source directory
                     </div>
                   )}
                 </div>
