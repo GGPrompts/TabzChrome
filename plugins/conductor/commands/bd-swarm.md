@@ -95,8 +95,8 @@ tmux send-keys -t "$SESSION" -l '## Task
 
 ## Skills to Invoke
 Run these commands first to load relevant patterns:
-- `/shadcn-ui` - for UI component patterns
-- `/ui-styling:ui-styling` - for glass effects and styling
+<run: ./plugins/conductor/scripts/discover-skills.sh "keywords from issue">
+(Insert matched skills here)
 
 ## Approach
 - **Use subagents liberally to preserve your context:**

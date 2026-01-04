@@ -45,20 +45,31 @@ if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
 fi
 ```
 
-### 6. Analyze Task for Skills
+### 6. Discover and Match Skills
 
-Map the issue to relevant skill triggers. **Use slash commands, not prose!**
+Use the discovery script to find installed skills matching the task:
 
-| If issue mentions... | Add to prompt |
-|---------------------|---------------|
-| UI, component, button, modal | `Run /shadcn-ui for component patterns` |
-| terminal, xterm, pty | `Run /xterm-js for terminal patterns` |
-| style, CSS, theme, tailwind | `Run /ui-styling:ui-styling for styling` |
-| API, endpoint, backend | `Run /docs-seeker for API docs` |
-| Complex architecture | Prepend `ultrathink` to task |
+```bash
+# Extract keywords from issue title/description
+KEYWORDS="terminal xterm pty"  # words from issue
 
-**Wrong:** "use the shadcn-ui skill" (does nothing)
-**Right:** "Run `/shadcn-ui` for component patterns"
+# Run discovery script
+./plugins/conductor/scripts/discover-skills.sh "$KEYWORDS"
+```
+
+**Output example:**
+```
+## Matched Skills
+
+- `/xterm-js` - Terminal patterns and xterm.js best practices
+- `/tabz-guide` - TabzChrome capabilities including terminal management
+```
+
+Include the matched skills in the worker prompt's "Skills to Invoke" section.
+
+**Invocation formats:**
+- Project/user skills: `/skill-name`
+- Plugin skills: `/plugin-name:skill-name`
 
 ### 7. Find Relevant Files (Size-Aware)
 
