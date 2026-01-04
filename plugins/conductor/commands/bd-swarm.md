@@ -120,12 +120,14 @@ Run these commands first to load relevant patterns:
 2. `npm run build` - builds without errors
 
 ## Quality Gate (Required)
-After build passes, spawn code-reviewer:
-```
-Task(subagent_type="conductor:code-reviewer",
-     prompt="Review changes in <worktree-path> for issue <issue-id>")
-```
-- If `passed: false` → fix blockers and re-run review
+After build passes, spawn code-reviewer subagent to review your changes:
+
+Use the Task tool:
+- subagent_type: "conductor:code-reviewer"
+- prompt: "Review uncommitted changes in [your working directory] for issue [issue-id]"
+
+The subagent will return JSON with `passed: true/false`:
+- If `passed: false` → fix the blockers listed, then re-run review
 - If `passed: true` → proceed to commit
 
 ## Completion
