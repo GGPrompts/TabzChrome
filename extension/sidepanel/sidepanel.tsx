@@ -1131,29 +1131,34 @@ function SidePanelTerminal() {
             <div className="relative border-b bg-gradient-to-r from-[#0f0f0f]/50 to-[#1a1a1a]/50">
               <div className="flex items-center gap-1 p-2">
                 {/* Scrollable tabs area */}
-                {/* Filter out popped out and 3D focus terminals - they're accessible via unified indicators dropdown */}
+                {/* Show all sessions - popup/3D terminals shown as compact tabs */}
                 <div className="flex gap-1 overflow-x-auto flex-1 min-w-0">
-                {sessions.filter(s => !s.poppedOut && !s.focusedIn3D).map(session => {
+                {sessions.map(session => {
                   const categoryColor = getSessionCategoryColor(session, categorySettings)
                   const isSelected = currentSession === session.id
+                  const isExternal = session.poppedOut || session.focusedIn3D
 
                   return (
                   <div
                     key={session.id}
-                    draggable
-                    onDragStart={(e) => handleTabDragStart(e, session.id)}
-                    onDragOver={(e) => handleTabDragOver(e, session.id)}
-                    onDragLeave={handleTabDragLeave}
-                    onDrop={(e) => handleTabDrop(e, session.id)}
-                    onDragEnd={handleTabDragEnd}
+                    draggable={!isExternal}
+                    onDragStart={(e) => !isExternal && handleTabDragStart(e, session.id)}
+                    onDragOver={(e) => !isExternal && handleTabDragOver(e, session.id)}
+                    onDragLeave={!isExternal ? handleTabDragLeave : undefined}
+                    onDrop={(e) => !isExternal && handleTabDrop(e, session.id)}
+                    onDragEnd={!isExternal ? handleTabDragEnd : undefined}
                     className={`
-                      flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer group
-                      min-w-[120px] max-w-[320px] flex-1
+                      flex items-center gap-1.5 rounded-md text-sm font-medium transition-all cursor-pointer group
+                      ${isExternal ? 'px-2 py-1 min-w-[80px] max-w-[180px] opacity-75' : 'px-2.5 py-1.5 min-w-[120px] max-w-[320px] flex-1'}
                       ${isSelected
                         ? categoryColor
                           ? 'border'  // Use inline styles for category color
-                          : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
-                        : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
+                          : isExternal
+                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
+                        : isExternal
+                          ? 'bg-white/3 hover:bg-white/8 text-gray-500 hover:text-gray-400 border border-transparent'
+                          : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
                       }
                       ${draggedTabId === session.id ? 'opacity-50' : ''}
                       ${dragOverTabId === session.id ? 'border-l-2 border-l-[#00ff88]' : ''}
@@ -1183,9 +1188,12 @@ function SidePanelTerminal() {
                     {/* Tab content: show Claude status if detected, otherwise session name */}
                     {/* Using consistent structure to prevent DOM thrashing */}
                     {/* Robot emojis multiply based on active subagent count: 🤖🤖🤖 */}
-                    <span className="flex-1 flex items-center gap-1 text-xs min-w-0 overflow-hidden">
+                    <span className={`flex-1 flex items-center gap-1 min-w-0 overflow-hidden ${isExternal ? 'text-[10px]' : 'text-xs'}`}>
                       {session.poppedOut && (
                         <span className="flex-shrink-0 opacity-70" title="Click to focus popout window">🪟</span>
+                      )}
+                      {session.focusedIn3D && (
+                        <span className="flex-shrink-0 opacity-70" title="Click to focus 3D window">🧊</span>
                       )}
                       {claudeStatuses.has(session.id) && (
                         <span className="flex-shrink-0 text-orange-400 flex items-center">
