@@ -264,6 +264,12 @@ export function useStatusTransitions({
           tool: toolAction,
         }
 
+        // For Bash, always use description as the tool action (matches text status behavior)
+        // This is not gated by toolDetails because description IS the action, not a detail
+        if (currentToolName === 'Bash' && status.details?.args?.description) {
+          context.tool = status.details.args.description
+        }
+
         // Extract filename/detail if toolDetails is enabled
         let hasDetails = false
         if (audioSettings.events.toolDetails && status.details?.args) {
@@ -275,9 +281,6 @@ export function useStatusTransitions({
           } else if (args.pattern && (currentToolName === 'Glob' || currentToolName === 'Grep')) {
             context.filename = args.pattern
             hasDetails = true
-          } else if (currentToolName === 'Bash' && args.description) {
-            // For Bash, override the tool action with the description
-            context.tool = args.description
           }
         }
 
