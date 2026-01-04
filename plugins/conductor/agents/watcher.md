@@ -1,6 +1,6 @@
 ---
 name: watcher
-description: "Monitor Claude worker sessions - check progress, context usage, completion status. Detects idle workers needing nudge (uncommitted work, stale prompts). Sends notifications for important events. Invoked via Task tool from vanilla Claude sessions."
+description: "Monitor Claude worker sessions - check progress, context usage, completion status. Detects idle workers needing nudge (uncommitted work, stale prompts). Reuses low-context workers for follow-up tasks. Sends notifications for important events. Invoked via Task tool from vanilla Claude sessions."
 model: haiku
 tools: Bash, Read, Glob, mcp:tabz:*
 ---
@@ -923,3 +923,265 @@ The conductor will invoke you with prompts like:
 - "Run full pipeline for these issues: ..."
 
 Keep responses concise - you're a monitoring tool, not a conversationalist.
+
+## Worker Reuse (Low-Context Optimization)
+
+When a worker completes a task with low context usage (<50%), **don't kill them**. Instead, assign them the next related task. This preserves:
+- Loaded skills and plugins
+- CLAUDE.md and codebase understanding
+- Faster task completion (no cold start)
+- More efficient token usage
+
+### Context Thresholds
+
+| Context % | Action |
+|-----------|--------|
+| < 50% (Green) | Reuse worker for next related task |
+| 50-74% (Yellow) | Reuse if high-priority task available, otherwise retire |
+| >= 75% (Red) | Always retire worker (context exhaustion risk) |
+
+### Reuse Decision Flow
+
+```
+Worker completes task
+    ↓
+Check context %
+    ↓
+├── >= 50%: Retire worker, notify "Worker retiring at XX%"
+└── < 50%: Find related unblocked issue
+              ↓
+        ├── Found: Claim issue, send task prompt, notify "Worker reused"
+        └── Not found: Retire worker, notify "No more related tasks"
+```
+
+### Implementation
+
+**Handle completed worker:**
+```bash
+# Called when worker closes a beads issue
+handle_completed_worker() {
+  local SESSION="$1"
+  local COMPLETED_ISSUE="$2"
+  local WORKDIR="$3"
+
+  # Get context % from Claude status line
+  CONTEXT=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -oP '\d+(?=% ctx)' | tail -1)
+  CONTEXT=${CONTEXT:-0}
+
+  # Retire if context too high
+  if [ "$CONTEXT" -ge 50 ]; then
+    notify "WORKER_RETIRING" "⏹️ Worker Retiring" "$SESSION at ${CONTEXT}% context - closing after task"
+    return 1  # Signal to clean up worker
+  fi
+
+  # Find related unblocked issue
+  NEXT_ISSUE=$(find_related_issue "$COMPLETED_ISSUE" "$WORKDIR")
+
+  if [ -n "$NEXT_ISSUE" ]; then
+    # Claim and send next task
+    bd update "$NEXT_ISSUE" --status in_progress
+    send_next_task "$SESSION" "$NEXT_ISSUE" "$WORKDIR"
+    notify "WORKER_REUSED" "♻️ Worker Reused" "$SESSION picking up $NEXT_ISSUE (${CONTEXT}% ctx)"
+
+    # Update tracking: worker now assigned to new issue
+    echo "$NEXT_ISSUE" > "/tmp/claude-code-state/${SESSION}-current-issue.txt"
+    rm -f "/tmp/claude-code-state/${SESSION}-done.txt"
+
+    return 0  # Worker continuing
+  else
+    notify "WORKER_DONE" "✅ Worker Done" "$SESSION completed, no related tasks available"
+    return 1  # Signal to clean up worker
+  fi
+}
+```
+
+### Related Task Detection
+
+Match issues by (in priority order):
+1. **Same labels** - Most likely related by component/area
+2. **Same type** - feature, bug, task grouping
+3. **Same parent epic** - Part of same larger initiative
+4. **Any ready issue** - Fallback if worker can handle general work
+
+```bash
+find_related_issue() {
+  local COMPLETED_ISSUE="$1"
+  local WORKDIR="$2"
+
+  # Get completed issue's metadata
+  ISSUE_JSON=$(bd show "$COMPLETED_ISSUE" --json 2>/dev/null)
+  if [ -z "$ISSUE_JSON" ]; then
+    return 1
+  fi
+
+  # Extract matching criteria
+  LABELS=$(echo "$ISSUE_JSON" | jq -r '.labels[]?' 2>/dev/null | head -3)
+  TYPE=$(echo "$ISSUE_JSON" | jq -r '.type // empty' 2>/dev/null)
+  PARENT=$(echo "$ISSUE_JSON" | jq -r '.parent // empty' 2>/dev/null)
+
+  # Strategy 1: Match by label (most specific)
+  for LABEL in $LABELS; do
+    NEXT=$(bd ready --label "$LABEL" --limit 1 --json 2>/dev/null | jq -r '.[0].id // empty')
+    if [ -n "$NEXT" ] && [ "$NEXT" != "$COMPLETED_ISSUE" ]; then
+      echo "$NEXT"
+      return 0
+    fi
+  done
+
+  # Strategy 2: Match by type
+  if [ -n "$TYPE" ]; then
+    NEXT=$(bd ready --type "$TYPE" --limit 1 --json 2>/dev/null | jq -r '.[0].id // empty')
+    if [ -n "$NEXT" ] && [ "$NEXT" != "$COMPLETED_ISSUE" ]; then
+      echo "$NEXT"
+      return 0
+    fi
+  fi
+
+  # Strategy 3: Match by parent epic
+  if [ -n "$PARENT" ]; then
+    NEXT=$(bd ready --parent "$PARENT" --limit 1 --json 2>/dev/null | jq -r '.[0].id // empty')
+    if [ -n "$NEXT" ] && [ "$NEXT" != "$COMPLETED_ISSUE" ]; then
+      echo "$NEXT"
+      return 0
+    fi
+  fi
+
+  # Strategy 4: Any ready issue (fallback)
+  NEXT=$(bd ready --limit 1 --json 2>/dev/null | jq -r '.[0].id // empty')
+  if [ -n "$NEXT" ] && [ "$NEXT" != "$COMPLETED_ISSUE" ]; then
+    echo "$NEXT"
+    return 0
+  fi
+
+  return 1  # No related issues found
+}
+```
+
+### Send Next Task Prompt
+
+Build and send a skill-aware prompt for the next task:
+
+```bash
+send_next_task() {
+  local SESSION="$1"
+  local ISSUE_ID="$2"
+  local WORKDIR="$3"
+
+  # Get issue details
+  ISSUE_JSON=$(bd show "$ISSUE_ID" --json 2>/dev/null)
+  TITLE=$(echo "$ISSUE_JSON" | jq -r '.title // "Untitled"')
+  DESCRIPTION=$(echo "$ISSUE_JSON" | jq -r '.description // ""')
+  TYPE=$(echo "$ISSUE_JSON" | jq -r '.type // "task"')
+
+  # Determine skills based on issue content (simple heuristics)
+  SKILLS=""
+  if echo "$TITLE $DESCRIPTION" | grep -qiE "terminal|xterm|pty"; then
+    SKILLS="Run \`/xterm-js\` for terminal patterns."
+  elif echo "$TITLE $DESCRIPTION" | grep -qiE "ui|component|modal|button"; then
+    SKILLS="Run \`/ui-styling:ui-styling\` for component patterns."
+  elif echo "$TITLE $DESCRIPTION" | grep -qiE "debug|fix|error|bug"; then
+    SKILLS="Use the debugging skill for investigation."
+  fi
+
+  # Build prompt
+  PROMPT="## Next Task (Worker Reuse)
+
+You completed your previous task efficiently with low context usage. Here's your next assignment:
+
+**$ISSUE_ID**: $TITLE
+
+$DESCRIPTION
+
+## Skills to Invoke
+$SKILLS
+
+## Approach
+- Continue using your loaded skills and codebase understanding
+- Use subagents liberally to preserve context for more tasks
+- Build and test before completing
+
+## Completion
+When finished:
+\`\`\`
+/worker-done $ISSUE_ID
+\`\`\`"
+
+  # Send to worker
+  tmux send-keys -t "$SESSION" -l "$PROMPT"
+  sleep 0.3
+  tmux send-keys -t "$SESSION" C-m
+}
+```
+
+### Updated Monitoring Loop
+
+Integrate worker reuse into the completion detection:
+
+```bash
+# In the main monitoring loop, after detecting WORKER_DONE:
+if [ -n "$ISSUE_ID" ] && [ ! -f "$DONE_FILE" ]; then
+  if bd show "$ISSUE_ID" 2>/dev/null | grep -q "status:.*closed"; then
+    # Worker completed - check for reuse
+    if handle_completed_worker "$SESSION" "$ISSUE_ID" "$WORKDIR"; then
+      # Worker reused - continue monitoring
+      continue
+    else
+      # Worker retiring - mark as done
+      touch "$DONE_FILE"
+      COMPLETED_THIS_CHECK="$COMPLETED_THIS_CHECK $SESSION"
+    fi
+  fi
+fi
+```
+
+### Event Types (Updated)
+
+| Event | When to Send | Conductor Action |
+|-------|--------------|------------------|
+| `WORKER_DONE` | Worker completes, no reuse | Clean up worker |
+| `WORKER_REUSED` | Worker assigned next task | Update tracking |
+| `WORKER_RETIRING` | Worker context too high | Clean up worker |
+| `ALL_DONE` | No active workers remaining | Run all-done pipeline |
+
+### Configuration
+
+New parameters for worker reuse:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `REUSE_THRESHOLD` | 50% | Max context % for reuse eligibility |
+| `FALLBACK_TO_ANY` | true | Allow assigning any ready issue if no related found |
+| `MAX_TASKS_PER_WORKER` | 5 | Max consecutive tasks before forced retirement |
+
+```bash
+# Track tasks per worker to prevent infinite loops
+TASK_COUNT_FILE="/tmp/claude-code-state/${SESSION}-task-count.txt"
+TASK_COUNT=$(cat "$TASK_COUNT_FILE" 2>/dev/null || echo "0")
+TASK_COUNT=$((TASK_COUNT + 1))
+echo "$TASK_COUNT" > "$TASK_COUNT_FILE"
+
+if [ "$TASK_COUNT" -ge "$MAX_TASKS_PER_WORKER" ]; then
+  notify "WORKER_MAX_TASKS" "⏹️ Worker Retiring" "$SESSION reached max tasks ($MAX_TASKS_PER_WORKER)"
+  return 1  # Force retirement
+fi
+```
+
+### Usage Example
+
+**Enable worker reuse in watcher prompt:**
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: |
+    CONDUCTOR_SESSION=$MY_SESSION
+    PROJECT_DIR=/home/matt/projects/TabzChrome
+    ENABLE_WORKER_REUSE=true
+    REUSE_THRESHOLD=50
+    MAX_TASKS_PER_WORKER=5
+
+    Monitor workers with reuse enabled:
+    - On WORKER_DONE with context < 50%: find related issue, send next task
+    - On WORKER_DONE with context >= 50%: retire worker
+    - Exit when all workers complete AND no ready issues remain
+```

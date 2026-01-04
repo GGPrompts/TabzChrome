@@ -192,10 +192,54 @@ Task tool:
 The watcher handles:
 - ✅ Code review for each completed worker
 - ✅ Nudging workers who fail review
+- ✅ **Worker reuse** for low-context workers (see below)
 - ✅ Merging branches when all pass
 - ✅ Spawning docs-updater
 - ✅ Syncing beads and pushing to origin
 - ✅ Notifying you when sprint is complete
+
+### Worker Reuse (Low-Context Optimization)
+
+When a worker completes with **low context usage (<50%)**, the watcher automatically assigns them the next related task instead of killing them. This provides:
+
+| Benefit | Impact |
+|---------|--------|
+| Skills already loaded | No cold start overhead |
+| CLAUDE.md parsed | Codebase understanding preserved |
+| Faster completion | ~30-60s saved per reused worker |
+| Token efficiency | Context reused instead of discarded |
+
+**How it works:**
+1. Worker closes beads issue
+2. Watcher checks context % (from Claude status line)
+3. If context < 50%: find related unblocked issue
+4. If found: claim issue, send task prompt to same worker
+5. If not found OR context >= 50%: retire worker
+
+**Related task matching** (in priority order):
+1. Same labels (component/area markers)
+2. Same issue type (feature, bug, task)
+3. Same parent epic
+4. Any ready issue (fallback)
+
+**Enable worker reuse:**
+```
+Task tool:
+  subagent_type: "conductor:watcher"
+  run_in_background: true
+  prompt: |
+    ENABLE_WORKER_REUSE=true
+    REUSE_THRESHOLD=50
+    MAX_TASKS_PER_WORKER=5
+    ...
+```
+
+**Events:**
+| Event | Meaning |
+|-------|---------|
+| `WORKER_REUSED` | Worker assigned next task |
+| `WORKER_RETIRING` | Worker context too high, closing |
+| `WORKER_DONE` | Worker completed, no more tasks |
 
 ## Worker Expectations
 
