@@ -749,8 +749,11 @@ When a worker completes, orchestrate the full quality pipeline:
 
 ### Per-Worker Pipeline
 
+Workers are expected to self-review before closing their issue:
+
 ```
-WORKER_DONE → code-reviewer → (fix if needed) → mark reviewed
+Worker: build → test → code-reviewer → fix if needed → commit → close issue
+Watcher: verify closed → mark reviewed → notify
 ```
 
 **1. Detect completion:**
@@ -758,29 +761,30 @@ WORKER_DONE → code-reviewer → (fix if needed) → mark reviewed
 # Check if beads issue was closed
 if bd show "$ISSUE_ID" 2>/dev/null | grep -q "status:.*closed"; then
   echo "WORKER_DONE: $ISSUE_ID"
+  # Mark as reviewed (worker self-reviewed before closing)
+  echo "reviewed" > "/tmp/claude-code-state/${SESSION}-reviewed.txt"
 fi
 ```
 
-**2. Spawn code-reviewer:**
+**2. (Optional) Verify review if needed:**
+
+If you don't trust workers self-reviewed, spawn code-reviewer as verification:
 ```bash
-# Use Task tool to review the worker's changes
+# Optional safety check - spawn code-reviewer
 Task(
   subagent_type="conductor:code-reviewer",
-  prompt="Review changes in $WORKTREE for issue $ISSUE_ID. Return JSON with passed=true/false."
+  prompt="Quick review $WORKTREE for issue $ISSUE_ID - verify no blockers"
 )
 ```
 
-**3. Handle review results:**
+**3. Handle verification failure (if running verification):**
 ```bash
-# If review failed, nudge worker to fix
+# If review failed, reopen issue and nudge worker
 if [ "$REVIEW_PASSED" = "false" ]; then
+  bd update "$ISSUE_ID" --status in_progress
   tmux send-keys -t "$SESSION" -l "Code review found issues. Please fix: $BLOCKERS"
   sleep 0.3
   tmux send-keys -t "$SESSION" C-m
-  # Don't mark as reviewed - wait for worker to fix and re-close issue
-else
-  # Mark as reviewed in tracking file
-  echo "reviewed" > "/tmp/claude-code-state/${SESSION}-reviewed.txt"
 fi
 ```
 

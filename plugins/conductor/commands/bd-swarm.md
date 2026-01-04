@@ -119,8 +119,17 @@ Run these commands first to load relevant patterns:
 1. `npm test` - all tests pass
 2. `npm run build` - builds without errors
 
+## Quality Gate (Required)
+After build passes, spawn code-reviewer:
+```
+Task(subagent_type="conductor:code-reviewer",
+     prompt="Review changes in <worktree-path> for issue <issue-id>")
+```
+- If `passed: false` → fix blockers and re-run review
+- If `passed: true` → proceed to commit
+
 ## Completion
-When verified:
+When build passes AND code review passes:
 1. `git add . && git commit -m "feat(<scope>): <description>"`
 2. `bd close <issue-id> --reason "Implemented: <summary>"`'
 sleep 0.3
