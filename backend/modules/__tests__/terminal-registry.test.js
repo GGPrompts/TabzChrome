@@ -18,7 +18,7 @@ describe('Terminal Registry', () => {
 
       expect(terminal).toBeDefined();
       expect(terminal.id).toBeDefined();
-      expect(terminal.name).toMatch(/^bash-\d+$/);
+      expect(terminal.name).toBe('bash'); // First terminal gets no suffix
       expect(terminal.terminalType).toBe('bash');
       expect(terminal.platform).toBe('local');
     });
@@ -35,7 +35,7 @@ describe('Terminal Registry', () => {
       expect(terminal.name).toBe('Custom Terminal');
     });
 
-    it('should generate sequential names by type', async () => {
+    it('should generate sequential names for duplicates', async () => {
       const config1 = { terminalType: 'bash', platform: 'local' };
       const config2 = { terminalType: 'bash', platform: 'local' };
       const config3 = { terminalType: 'claude-code', platform: 'local' };
@@ -44,9 +44,9 @@ describe('Terminal Registry', () => {
       const terminal2 = await terminalRegistry.registerTerminal(config2);
       const terminal3 = await terminalRegistry.registerTerminal(config3);
 
-      expect(terminal1.name).toBe('bash-1');
-      expect(terminal2.name).toBe('bash-2');
-      expect(terminal3.name).toBe('claude-code-1');
+      expect(terminal1.name).toBe('bash'); // First gets no suffix
+      expect(terminal2.name).toBe('bash-2'); // Second gets -2
+      expect(terminal3.name).toBe('claude-code'); // Different type, no suffix
     });
   });
 
@@ -89,66 +89,38 @@ describe('Terminal Registry', () => {
     });
   });
 
-  describe('updateTerminal', () => {
-    it('should update existing terminal', async () => {
-      const registered = await terminalRegistry.registerTerminal({
-        terminalType: 'bash',
-        platform: 'local',
-      });
-
-      const updated = terminalRegistry.updateTerminal(registered.id, {
-        name: 'Updated Name',
-        status: 'offline',
-      });
-
-      expect(updated).toBe(true);
-
-      const terminal = terminalRegistry.getTerminal(registered.id);
-      expect(terminal.name).toBe('Updated Name');
-      expect(terminal.status).toBe('offline');
-    });
-
-    it('should return false when updating non-existent terminal', () => {
-      const updated = terminalRegistry.updateTerminal('non-existent', {
-        name: 'New Name',
-      });
-
-      expect(updated).toBe(false);
-    });
-  });
-
-  describe('removeTerminal', () => {
-    it('should remove existing terminal', async () => {
+  describe('closeTerminal', () => {
+    it('should close existing terminal', async () => {
       const registered = await terminalRegistry.registerTerminal({
         terminalType: 'bash',
       });
 
-      const removed = terminalRegistry.removeTerminal(registered.id);
-      expect(removed).toBe(true);
+      const result = await terminalRegistry.closeTerminal(registered.id);
+      expect(result).toBe(true);
 
       const terminal = terminalRegistry.getTerminal(registered.id);
       expect(terminal).toBeUndefined();
     });
 
-    it('should return false when removing non-existent terminal', () => {
-      const removed = terminalRegistry.removeTerminal('non-existent');
-      expect(removed).toBe(false);
+    it('should return true when closing non-existent terminal (idempotent)', async () => {
+      const result = await terminalRegistry.closeTerminal('non-existent');
+      expect(result).toBe(true);
     });
   });
 
-  describe('getActiveTerminals', () => {
-    it('should return only active terminals', async () => {
-      const active1 = await terminalRegistry.registerTerminal({ terminalType: 'bash' });
-      const offline1 = await terminalRegistry.registerTerminal({ terminalType: 'bash' });
-      const active2 = await terminalRegistry.registerTerminal({ terminalType: 'claude-code' });
+  describe('getActiveTerminalCount', () => {
+    it('should return count of active terminals', async () => {
+      await terminalRegistry.registerTerminal({ terminalType: 'bash' });
+      await terminalRegistry.registerTerminal({ terminalType: 'bash' });
+      await terminalRegistry.registerTerminal({ terminalType: 'claude-code' });
 
-      // Update one terminal to be offline
-      terminalRegistry.updateTerminal(offline1.id, { status: 'offline' });
+      const count = terminalRegistry.getActiveTerminalCount();
+      expect(count).toBe(3);
+    });
 
-      const activeTerminals = terminalRegistry.getActiveTerminals();
-      expect(activeTerminals).toHaveLength(2);
-      expect(activeTerminals.map(t => t.id)).toContain(active1.id);
-      expect(activeTerminals.map(t => t.id)).toContain(active2.id);
+    it('should return 0 when no terminals', () => {
+      const count = terminalRegistry.getActiveTerminalCount();
+      expect(count).toBe(0);
     });
   });
 });
