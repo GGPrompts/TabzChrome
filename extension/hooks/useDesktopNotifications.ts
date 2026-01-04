@@ -15,6 +15,8 @@ export interface ShowNotificationOptions {
   notificationId?: string
   /** Priority 0-2, higher = more prominent (default: 1) */
   priority?: 0 | 1 | 2
+  /** Use progress bar style (0-100) - great for context percentage */
+  progress?: number
 }
 
 export interface UseDesktopNotificationsReturn {
@@ -103,13 +105,15 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
 
       // Use Chrome notifications API if available
       if (typeof chrome !== 'undefined' && chrome.notifications) {
+        const useProgress = options.progress !== undefined
         chrome.notifications.create(notificationId, {
-          type: 'basic',
+          type: useProgress ? 'progress' : 'basic',
           iconUrl: chrome.runtime.getURL('icons/icon48.png'),
           title: options.title,
           message: options.message,
           priority: options.priority ?? 1,
           requireInteraction: options.requireInteraction ?? false,
+          ...(useProgress && { progress: Math.min(100, Math.max(0, options.progress!)) }),
         })
       } else if (typeof window !== 'undefined' && 'Notification' in window) {
         // Fallback for dev environment or non-extension contexts

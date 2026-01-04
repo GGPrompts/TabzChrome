@@ -313,10 +313,11 @@ export function useStatusTransitions({
       if (currentContextPct != null && prevContextPct != null) {
         const displayName = getDisplayName()
 
-        if (audioSettings.events.contextWarning) {
-          const crossedWarningUp = prevContextPct < CONTEXT_THRESHOLDS.WARNING &&
-                                   currentContextPct >= CONTEXT_THRESHOLDS.WARNING
-          if (crossedWarningUp) {
+        const crossedWarningUp = prevContextPct < CONTEXT_THRESHOLDS.WARNING &&
+                                 currentContextPct >= CONTEXT_THRESHOLDS.WARNING
+        if (crossedWarningUp) {
+          // TTS audio alert (if enabled in audio settings)
+          if (audioSettings.events.contextWarning) {
             const template = getPhraseTemplate('contextWarning')
             const phrase = renderTemplate(template, {
               profile: displayName,
@@ -329,6 +330,15 @@ export function useStatusTransitions({
               { pitch: '+15Hz', rate: '+5%', eventType: 'contextWarning' }
             )
           }
+
+          // Progress bar notification (auto-dismiss)
+          showNotification('contextWarning', {
+            title: `${displayName} Context Warning`,
+            message: `${currentContextPct}% context used`,
+            progress: currentContextPct,
+            notificationId: `context-${terminalId}`,  // Same ID so 75% replaces this
+            priority: 1,
+          })
         }
 
         const crossedCriticalUp = prevContextPct < CONTEXT_THRESHOLDS.CRITICAL &&
@@ -349,12 +359,13 @@ export function useStatusTransitions({
             )
           }
 
-          // Persistent desktop notification (checks its own settings internally)
+          // Persistent progress bar notification (click to dismiss)
           showNotification('contextCritical', {
             title: `${displayName} Context Critical`,
             message: `${currentContextPct}% context used - consider /compact`,
-            requireInteraction: true,
-            notificationId: `context-critical-${terminalId}`,
+            progress: currentContextPct,
+            requireInteraction: true,  // Click to close
+            notificationId: `context-${terminalId}`,  // Same ID as warning, replaces it
             priority: 2,
           })
         }
