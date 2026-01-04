@@ -2220,6 +2220,115 @@ router.post('/plugins/toggle', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * Parse YAML frontmatter from a skill file
+ * Returns { name, description } or null if parsing fails
+ */
+function parseSkillFrontmatter(content) {
+  // Match YAML frontmatter between --- markers
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return null;
+
+  const frontmatter = match[1];
+  const result = {};
+
+  // Parse simple YAML key-value pairs
+  const lines = frontmatter.split('\n');
+  for (const line of lines) {
+    // Match: name: value or name: "value"
+    const kvMatch = line.match(/^(\w+):\s*"?([^"]+)"?$/);
+    if (kvMatch) {
+      result[kvMatch[1]] = kvMatch[2].trim();
+    }
+  }
+
+  return result.name ? result : null;
+}
+
+/**
+ * GET /api/plugins/skills - Get skills from enabled plugins with trigger phrases
+ * Returns list of skills with name, description, and plugin info for autocomplete
+ */
+router.get('/plugins/skills', asyncHandler(async (req, res) => {
+  const { promises: fsAsync } = require('fs');
+  const path = require('path');
+
+  try {
+    // Read installed plugins
+    let installedPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeInstalledPluginsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      installedPlugins = parsed.plugins || {};
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('[API] Error reading installed plugins:', err.message);
+      }
+    }
+
+    // Read enabled plugins from settings
+    let enabledPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeSettingsPath, 'utf-8');
+      const settings = JSON.parse(data);
+      enabledPlugins = settings.enabledPlugins || {};
+    } catch {}
+
+    const skills = [];
+
+    // Process each plugin
+    for (const [pluginId, installations] of Object.entries(installedPlugins)) {
+      const [name, marketplace] = pluginId.split('@');
+      const install = installations[0]; // Take first installation
+      if (!install?.installPath) continue;
+
+      // Check if plugin is enabled (default true if not specified)
+      const enabled = enabledPlugins[pluginId] !== false;
+      if (!enabled) continue;
+
+      // Look for skills directory
+      const skillsDir = path.join(install.installPath, 'skills');
+      try {
+        const stat = await fsAsync.stat(skillsDir);
+        if (!stat.isDirectory()) continue;
+
+        // Read each skill subdirectory
+        const skillDirs = await fsAsync.readdir(skillsDir);
+        for (const skillName of skillDirs) {
+          const skillPath = path.join(skillsDir, skillName, 'SKILL.md');
+          try {
+            const content = await fsAsync.readFile(skillPath, 'utf-8');
+            const frontmatter = parseSkillFrontmatter(content);
+            if (frontmatter) {
+              skills.push({
+                id: `/${skillName}`,
+                name: frontmatter.name || skillName,
+                desc: frontmatter.description || '',
+                pluginId,
+                pluginName: name,
+                marketplace,
+                category: 'Plugin'
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    res.json({
+      success: true,
+      skills,
+      count: skills.length
+    });
+  } catch (err) {
+    console.error('[API] Failed to get plugin skills:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
 // =============================================================================
 // PLUGIN HEALTH CHECK API
 // =============================================================================

@@ -3,6 +3,7 @@ import { History, X, ChevronDown } from 'lucide-react'
 import type { UseChatInputReturn } from '../hooks/useChatInput'
 import type { TerminalSession } from '../hooks/useTerminalSessions'
 import type { ClaudeStatus } from '../hooks/useClaudeStatus'
+import { isPluginSkill } from '../shared/mcpTools'
 
 /**
  * Props for the ChatInputBar component
@@ -157,37 +158,52 @@ export function ChatInputBar({
           placeholder={chatInputMode === 'execute' ? "↑↓ history • Tab MCP • Enter" : "↑↓ history • Tab MCP • Enter"}
         />
 
-        {/* MCP tool autocomplete dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl z-50 overflow-hidden">
-            <div className="px-3 py-1.5 border-b border-gray-800 text-xs text-gray-500 flex items-center justify-between">
-              <span>MCP Tools</span>
-              <span className="text-gray-600">↑↓ Tab to select</span>
+        {/* Autocomplete dropdown (MCP tools + plugin skills) */}
+        {showSuggestions && suggestions.length > 0 && (() => {
+          const hasPlugins = suggestions.some(isPluginSkill)
+          const hasMcp = suggestions.some(s => !isPluginSkill(s))
+          const headerText = hasPlugins && hasMcp ? 'Suggestions' : hasPlugins ? 'Plugin Commands' : 'MCP Tools'
+
+          return (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl z-50 overflow-hidden">
+              <div className="px-3 py-1.5 border-b border-gray-800 text-xs text-gray-500 flex items-center justify-between">
+                <span>{headerText}</span>
+                <span className="text-gray-600">↑↓ Tab to select</span>
+              </div>
+              <div className="max-h-[200px] overflow-y-auto">
+                {suggestions.map((suggestion, index) => {
+                  const isPlugin = isPluginSkill(suggestion)
+                  const categoryLabel = isPlugin
+                    ? suggestion.pluginName
+                    : suggestion.category
+
+                  return (
+                    <button
+                      key={suggestion.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        selectSuggestion(suggestion)
+                      }}
+                      className={`w-full px-3 py-2 text-left transition-colors border-b border-gray-800 last:border-b-0 ${
+                        index === selectedSuggestionIndex
+                          ? 'bg-[#00ff88]/10 text-[#00ff88]'
+                          : 'text-gray-300 hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono truncate">{suggestion.id}</span>
+                        <span className={`text-[10px] ml-2 flex-shrink-0 ${isPlugin ? 'text-purple-400' : 'text-gray-500'}`}>
+                          {isPlugin && '⚡ '}{categoryLabel}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-500 truncate mt-0.5">{suggestion.desc}</div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <div className="max-h-[200px] overflow-y-auto">
-              {suggestions.map((tool, index) => (
-                <button
-                  key={tool.id}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    selectSuggestion(tool)
-                  }}
-                  className={`w-full px-3 py-2 text-left transition-colors border-b border-gray-800 last:border-b-0 ${
-                    index === selectedSuggestionIndex
-                      ? 'bg-[#00ff88]/10 text-[#00ff88]'
-                      : 'text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono truncate">{tool.id}</span>
-                    <span className="text-[10px] text-gray-500 ml-2 flex-shrink-0">{tool.category}</span>
-                  </div>
-                  <div className="text-[10px] text-gray-500 truncate mt-0.5">{tool.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
 
       {/* Target tabs dropdown */}

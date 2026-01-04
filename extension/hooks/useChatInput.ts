@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { sendMessage } from '../shared/messaging'
 import { useOutsideClick } from './useOutsideClick'
-import { filterMcpTools, type McpTool } from '../shared/mcpTools'
+import { filterSuggestions, fetchPluginSkills, type AutocompleteSuggestion, type PluginSkill } from '../shared/mcpTools'
 import type { TerminalSession } from './useTerminalSessions'
 
 interface ClaudeStatus {
@@ -42,11 +42,11 @@ export interface UseChatInputReturn {
   selectAllTargetTabs: () => void
   getTargetLabel: () => string
   // Autocomplete
-  suggestions: McpTool[]
+  suggestions: AutocompleteSuggestion[]
   selectedSuggestionIndex: number
   showSuggestions: boolean
   setShowSuggestions: (show: boolean) => void
-  selectSuggestion: (tool: McpTool) => void
+  selectSuggestion: (suggestion: AutocompleteSuggestion) => void
 }
 
 export function useChatInput({
@@ -62,13 +62,19 @@ export function useChatInput({
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [pluginSkills, setPluginSkills] = useState<PluginSkill[]>([])
   const chatInputRef = useRef<HTMLInputElement>(null)
 
-  // Compute filtered MCP tool suggestions based on input
+  // Fetch plugin skills on mount
+  useEffect(() => {
+    fetchPluginSkills().then(setPluginSkills)
+  }, [])
+
+  // Compute filtered suggestions (MCP tools + plugin skills) based on input
   const suggestions = useMemo(() => {
     if (!chatInputText.trim()) return []
-    return filterMcpTools(chatInputText).slice(0, 8) // Limit to 8 suggestions
-  }, [chatInputText])
+    return filterSuggestions(chatInputText, pluginSkills).slice(0, 8) // Limit to 8 suggestions
+  }, [chatInputText, pluginSkills])
 
   const { addToHistory, navigateHistory, resetNavigation } = commandHistory
 
@@ -77,9 +83,9 @@ export function useChatInput({
   useOutsideClick(showHistoryDropdown, useCallback(() => setShowHistoryDropdown(false), []))
   useOutsideClick(showSuggestions, useCallback(() => setShowSuggestions(false), []))
 
-  // Select an MCP tool suggestion
-  const selectSuggestion = useCallback((tool: McpTool) => {
-    setChatInputText(tool.id)
+  // Select an autocomplete suggestion (MCP tool or plugin skill)
+  const selectSuggestion = useCallback((suggestion: AutocompleteSuggestion) => {
+    setChatInputText(suggestion.id)
     setShowSuggestions(false)
     setSelectedSuggestionIndex(0)
     chatInputRef.current?.focus()

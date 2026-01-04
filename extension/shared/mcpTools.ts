@@ -12,6 +12,25 @@ export interface McpTool {
   category?: string
 }
 
+export interface PluginSkill {
+  id: string
+  name: string
+  desc: string
+  pluginId: string
+  pluginName: string
+  marketplace: string
+  category: 'Plugin'
+}
+
+export type AutocompleteSuggestion = McpTool | PluginSkill
+
+/**
+ * Check if suggestion is a plugin skill
+ */
+export function isPluginSkill(suggestion: AutocompleteSuggestion): suggestion is PluginSkill {
+  return 'pluginId' in suggestion
+}
+
 /**
  * All available MCP tools with metadata
  */
@@ -130,4 +149,52 @@ export function filterMcpTools(query: string): McpTool[] {
     tool.name.toLowerCase().includes(lowerQuery) ||
     tool.desc.toLowerCase().includes(lowerQuery)
   )
+}
+
+/**
+ * Fetch plugin skills from the backend
+ */
+export async function fetchPluginSkills(): Promise<PluginSkill[]> {
+  try {
+    const response = await fetch('http://localhost:8129/api/plugins/skills')
+    if (!response.ok) return []
+    const data = await response.json()
+    return data.skills || []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Filter combined suggestions (MCP tools + plugin skills) by search query
+ */
+export function filterSuggestions(
+  query: string,
+  pluginSkills: PluginSkill[]
+): AutocompleteSuggestion[] {
+  if (!query.trim()) return []
+
+  const lowerQuery = query.toLowerCase()
+
+  // Filter MCP tools
+  const mcpResults = MCP_TOOLS.filter(tool =>
+    tool.id.toLowerCase().includes(lowerQuery) ||
+    tool.name.toLowerCase().includes(lowerQuery) ||
+    tool.desc.toLowerCase().includes(lowerQuery)
+  )
+
+  // Filter plugin skills - also match if query starts with /
+  const skillResults = pluginSkills.filter(skill =>
+    skill.id.toLowerCase().includes(lowerQuery) ||
+    skill.name.toLowerCase().includes(lowerQuery) ||
+    skill.desc.toLowerCase().includes(lowerQuery)
+  )
+
+  // If query starts with /, prioritize skills
+  if (query.startsWith('/')) {
+    return [...skillResults, ...mcpResults]
+  }
+
+  // Otherwise, mix them together (MCP first since they're the base feature)
+  return [...mcpResults, ...skillResults]
 }
