@@ -17,7 +17,7 @@ export default defineConfig({
     },
 
     // Test file patterns
-    include: ['tests/**/*.test.js'],
+    include: ['tests/**/*.test.js', 'routes/__tests__/*.test.js', 'modules/__tests__/*.test.js'],
 
     // Global test timeout (10 seconds)
     testTimeout: 10000,
