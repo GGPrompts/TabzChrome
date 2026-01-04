@@ -2245,6 +2245,51 @@ async function getGitHead(dir) {
 }
 
 /**
+ * Check if a plugin's files changed between two commits
+ * Returns true if files changed, false if unchanged
+ * Uses git diff to compare only the plugin's directory
+ */
+function hasPluginChanged(repoPath, pluginName, fromCommit, toCommit) {
+  const { execSync } = require('child_process');
+  try {
+    // Try plugins/<name> first (subdirectory plugin), then .claude-plugin (root plugin)
+    const pluginPaths = [`plugins/${pluginName}`, '.claude-plugin'];
+
+    for (const pluginPath of pluginPaths) {
+      try {
+        // Check if the path exists at the current commit
+        execSync(`git ls-tree HEAD -- "${pluginPath}"`, {
+          cwd: repoPath,
+          encoding: 'utf8',
+          timeout: 5000
+        });
+
+        // Path exists, check for diff
+        // git diff --quiet returns exit 0 if no changes, 1 if changes
+        execSync(`git diff --quiet ${fromCommit} ${toCommit} -- "${pluginPath}"`, {
+          cwd: repoPath,
+          encoding: 'utf8',
+          timeout: 5000
+        });
+        // If we get here, no changes (exit 0)
+        return false;
+      } catch (err) {
+        // If exit code 1, there are changes
+        if (err.status === 1) {
+          return true;
+        }
+        // Otherwise path doesn't exist or other error, try next path
+      }
+    }
+    // If no paths found, assume changed (safer default)
+    return true;
+  } catch {
+    // On any error, assume changed (safer default)
+    return true;
+  }
+}
+
+/**
  * Discover local plugin directories in ~/projects
  * Returns map of directory name -> path for dirs with .claude-plugin/ or plugins/
  */
@@ -2376,19 +2421,31 @@ router.get('/plugins/health', asyncHandler(async (req, res) => {
         const versionMatches = installedVersion === currentShaShort || installedVersion === currentSha;
         const shaMatches = installedSha === currentSha;
 
-        if (!versionMatches && !shaMatches) {
-          outdated.push({
-            pluginId,
-            name,
-            marketplace,
-            scope: install.scope || 'user',
-            projectPath: install.projectPath,  // Include for project-scoped plugins
-            installedSha: installedVersion || (installedSha ? installedSha.substring(0, 12) : 'unknown'),
-            currentSha: currentShaShort,
-            lastUpdated: install.lastUpdated
-          });
-        } else {
+        if (versionMatches || shaMatches) {
+          // Commits match, plugin is current
           current.push({ pluginId, name, marketplace });
+        } else {
+          // Commits differ - but did the plugin's actual files change?
+          // Use git diff to check only the plugin's directory
+          const repoPath = marketplaceHeads[marketplace].path;
+          const fromCommit = installedSha || installedVersion;
+          const filesChanged = hasPluginChanged(repoPath, name, fromCommit, currentSha);
+
+          if (filesChanged) {
+            outdated.push({
+              pluginId,
+              name,
+              marketplace,
+              scope: install.scope || 'user',
+              projectPath: install.projectPath,
+              installedSha: installedVersion || (installedSha ? installedSha.substring(0, 12) : 'unknown'),
+              currentSha: currentShaShort,
+              lastUpdated: install.lastUpdated
+            });
+          } else {
+            // Repo has new commits but plugin files unchanged
+            current.push({ pluginId, name, marketplace });
+          }
         }
       } else {
         unknown.push({ pluginId, name, marketplace });
