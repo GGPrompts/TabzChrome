@@ -479,14 +479,21 @@ export function PluginList() {
               onClick={() => setShowHealth(!showHealth)}  // useEffect handles loading
               className={`p-1 rounded transition-colors ${
                 showHealth ? 'bg-primary/20 text-primary' :
-                (pluginHealth?.outdated?.length ?? 0) > 0 ? 'text-amber-400 hover:bg-amber-500/20' : 'hover:bg-muted'
+                (pluginHealth?.outdated?.length ?? 0) > 0 ? 'text-amber-400 hover:bg-amber-500/20' :
+                pluginHealth ? 'text-green-400 hover:bg-green-500/20' : 'hover:bg-muted'
               }`}
-              title={pluginHealth?.outdated?.length ? `${pluginHealth.outdated.length} outdated` : 'Health check'}
+              title={pluginHealthLoading ? 'Checking...' :
+                pluginHealth?.outdated?.length ? `${pluginHealth.outdated.length} outdated` :
+                pluginHealth ? 'All plugins current' : 'Health check'}
             >
-              {(pluginHealth?.outdated?.length ?? 0) > 0 ? (
+              {pluginHealthLoading ? (
+                <RefreshCwIcon size={12} className="animate-spin" />
+              ) : (pluginHealth?.outdated?.length ?? 0) > 0 ? (
                 <AlertTriangle className="w-3 h-3" />
-              ) : (
+              ) : pluginHealth ? (
                 <CheckCircle className="w-3 h-3" />
+              ) : (
+                <CheckCircle className="w-3 h-3 opacity-50" />
               )}
             </button>
             <button
