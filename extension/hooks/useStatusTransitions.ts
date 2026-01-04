@@ -331,11 +331,11 @@ export function useStatusTransitions({
             )
           }
 
-          // Progress bar notification (auto-dismiss)
+          // Basic notification (no progress bar - Chrome doesn't support custom colors)
+          // Reserve progress bar for critical (75%) only
           showNotification('contextWarning', {
             title: `${displayName} Context Warning`,
             message: `${currentContextPct}% context used`,
-            progress: currentContextPct,
             notificationId: `context-${terminalId}`,  // Same ID so 75% replaces this
             priority: 1,
           })

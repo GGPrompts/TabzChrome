@@ -384,7 +384,7 @@ export interface NotificationEventSettings {
   backendReconnect: boolean       // WebSocket reconnected after disconnect
   spawnError: boolean             // Terminal failed to spawn
   terminalError: boolean          // Terminal exited with non-zero code
-  contextWarning: boolean         // Context usage crossed 50% threshold (progress bar, auto-dismiss)
+  contextWarning: boolean         // Context usage crossed 50% threshold (auto-dismiss)
   contextCritical: boolean        // Context usage crossed 75% threshold (progress bar, persistent)
   longRunningComplete: boolean    // Long-running command (5+ min) finished
   errorBoundary: boolean          // React ErrorBoundary caught a crash
@@ -430,7 +430,7 @@ export const NOTIFICATION_EVENT_INFO: Record<NotificationEventType, { label: str
   },
   contextWarning: {
     label: 'Context warning',
-    description: 'Claude context usage crossed 50% threshold (progress bar)',
+    description: 'Claude context usage crossed 50% threshold',
   },
   contextCritical: {
     label: 'Context critical',
