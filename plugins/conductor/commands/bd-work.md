@@ -45,30 +45,29 @@ if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
 fi
 ```
 
-### 6. Discover and Match Skills
+### 6. Match Skills from Context
 
-Use the discovery script to find installed skills matching the task:
+You already have visibility into all installed skills (check `<available_skills>` in your context).
 
-```bash
-# Extract keywords from issue title/description
-KEYWORDS="terminal xterm pty"  # words from issue
+**Match issue keywords to relevant skills:**
 
-# Run discovery script
-./plugins/conductor/scripts/discover-skills.sh "$KEYWORDS"
+| Issue mentions... | Relevant skill |
+|-------------------|----------------|
+| UI, component, modal, form | `/shadcn-ui` |
+| terminal, xterm, pty | `/xterm-js` |
+| style, CSS, tailwind | `/tailwindcss` or `/ui-styling:ui-styling` |
+| MCP, tools, server | `/mcp-builder:mcp-builder` |
+| docs, documentation | `/docs-seeker:docs-seeker` |
+
+**Include in worker prompt:**
+```markdown
+## Skills to Invoke
+- `/xterm-js` - for terminal patterns
+- `/shadcn-ui` - for UI components
 ```
-
-**Output example:**
-```
-## Matched Skills
-
-- `/xterm-js` - Terminal patterns and xterm.js best practices
-- `/tabz-guide` - TabzChrome capabilities including terminal management
-```
-
-Include the matched skills in the worker prompt's "Skills to Invoke" section.
 
 **Invocation formats:**
-- Project/user skills: `/skill-name`
+- User/project skills: `/skill-name`
 - Plugin skills: `/plugin-name:skill-name`
 
 ### 7. Find Relevant Files (Size-Aware)

@@ -2,6 +2,11 @@
 # discover-skills.sh - Find installed skills matching keywords
 # Usage: discover-skills.sh "keyword1 keyword2 keyword3"
 # Output: Matched skills with invocation syntax
+#
+# NOTE: If running as conductor from the project dir, you already have
+# skill visibility in your context (<available_skills>). This script is
+# for edge cases like workers in different directories or mid-session
+# skill discovery.
 
 KEYWORDS="$1"
 

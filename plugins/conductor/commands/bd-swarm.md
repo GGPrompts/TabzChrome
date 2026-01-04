@@ -95,8 +95,7 @@ tmux send-keys -t "$SESSION" -l '## Task
 
 ## Skills to Invoke
 Run these commands first to load relevant patterns:
-<run: ./plugins/conductor/scripts/discover-skills.sh "keywords from issue">
-(Insert matched skills here)
+<match from your available_skills based on issue keywords>
 
 ## Approach
 - **Use subagents liberally to preserve your context:**
