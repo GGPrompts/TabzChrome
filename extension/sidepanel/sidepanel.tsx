@@ -1385,7 +1385,9 @@ function SidePanelTerminal() {
                       )}
                     </div>
 
-                    {/* Pinned Profile Cards */}
+                    {/* Pinned Profile Cards - TEMPORARILY DISABLED
+                     * TODO: Fix display issues - text cutoff and style mismatch with new tab page
+                     * See beads issue for details
                     <div className="w-full px-4">
                       <SidebarProfileCards
                         profiles={profiles}
@@ -1394,6 +1396,7 @@ function SidePanelTerminal() {
                         getCategoryColor={getCategoryColor}
                       />
                     </div>
+                    */}
 
                     {/* GitHub Link */}
                     <a
