@@ -17,6 +17,14 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ## [1.4.0] - 2026-01-02
 
+### Docs
+
+- **Plugin Health Check API** - Documented new endpoints in `docs/API.md`:
+  - `GET /api/plugins/health` - Check for outdated plugins and cache statistics
+  - `POST /api/plugins/update` - Update a single plugin to latest version
+  - `POST /api/plugins/update-all` - Batch update all outdated plugins
+  - `POST /api/plugins/cache/prune` - Remove old cached plugin versions
+
 ### Added
 
 - **Desktop Notification Settings** - Configure desktop notifications for system events:

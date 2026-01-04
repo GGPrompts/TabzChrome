@@ -308,6 +308,230 @@ Enable or disable a Claude Code plugin.
 
 ---
 
+### GET /api/plugins/health
+
+Check plugin health: identify outdated plugins and view cache statistics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "outdated": [
+      {
+        "pluginId": "my-plugin@my-plugins",
+        "name": "my-plugin",
+        "marketplace": "my-plugins",
+        "scope": "user",
+        "projectPath": null,
+        "installedSha": "abc123def456",
+        "currentSha": "789xyz012345",
+        "lastUpdated": "2025-12-15T10:30:00.000Z"
+      }
+    ],
+    "current": 15,
+    "unknown": 0,
+    "marketplaceHeads": {
+      "my-plugins": {
+        "head": "789xyz012345abcdef789xyz012345abcdef7890",
+        "path": "/home/user/projects/my-plugins",
+        "source": "git@github.com:user/my-plugins.git"
+      }
+    },
+    "cache": {
+      "totalSize": 51200,
+      "totalVersions": 42,
+      "byMarketplace": {
+        "my-plugins": {
+          "size": 25600,
+          "versions": 21,
+          "plugins": {
+            "skill-creator": 3,
+            "plugin-dev": 2
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `outdated` | array | Plugins with newer versions available |
+| `current` | number | Count of up-to-date plugins |
+| `unknown` | number | Plugins from unregistered marketplaces |
+| `marketplaceHeads` | object | Current git HEAD for each marketplace |
+| `cache.totalSize` | number | Total cache size in KB |
+| `cache.totalVersions` | number | Total cached version count |
+
+**Example:**
+```bash
+curl http://localhost:8129/api/plugins/health
+```
+
+**Notes:**
+- Version comparison uses both `version` and `gitCommitSha` fields
+- Plugins with semantic versions (e.g., "1.0.0") are skipped from outdated checks
+- Plugin files are checked via `git diff` to avoid false positives when repo changes don't affect a specific plugin
+- Cache size is calculated using `du` command (KB units)
+
+---
+
+### POST /api/plugins/update
+
+Update a single plugin to the latest version.
+
+**Body:**
+```json
+{
+  "pluginId": "my-plugin@my-plugins",
+  "scope": "user"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pluginId` | string | Yes | Plugin identifier (name@marketplace) |
+| `scope` | string | No | Override scope (user, project, local) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "pluginId": "my-plugin@my-plugins",
+  "scope": "user",
+  "output": "Updated my-plugin@my-plugins to abc123def456",
+  "message": "Plugin my-plugin@my-plugins updated. Run /restart to apply changes."
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8129/api/plugins/update \
+  -H "Content-Type: application/json" \
+  -d '{"pluginId": "skill-creator@my-plugins"}'
+```
+
+**Notes:**
+- Runs `claude plugin update` command internally
+- For project-scoped plugins, executes from the project directory
+- 30 second timeout for the update operation
+- Changes take effect after running `/restart` in Claude Code
+
+---
+
+### POST /api/plugins/update-all
+
+Update all outdated plugins at once.
+
+**Body:**
+```json
+{
+  "scope": "user"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `scope` | string | No | `user` (default) only updates user-scoped plugins, `all` attempts all scopes |
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Updated 3 plugins (1 skipped). Run /restart to apply changes.",
+  "results": [
+    {
+      "pluginId": "skill-creator@my-plugins",
+      "success": true,
+      "output": "Updated skill-creator@my-plugins to abc123"
+    },
+    {
+      "pluginId": "broken-plugin@other",
+      "success": false,
+      "error": "Plugin not found in marketplace"
+    }
+  ],
+  "skipped": [
+    {
+      "pluginId": "local-plugin@local",
+      "scope": "local",
+      "reason": "project/local scoped (no projectPath)"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+# Update only user-scoped plugins (default)
+curl -X POST http://localhost:8129/api/plugins/update-all \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Update all plugins including project-scoped
+curl -X POST http://localhost:8129/api/plugins/update-all \
+  -H "Content-Type: application/json" \
+  -d '{"scope": "all"}'
+```
+
+**Notes:**
+- Plugins with semantic versions (e.g., "1.0.0") are automatically skipped
+- Project/local scoped plugins without a stored `projectPath` are skipped by default
+- Each plugin update has a 30 second timeout
+- Returns individual success/failure status for each plugin
+
+---
+
+### POST /api/plugins/cache/prune
+
+Remove old cached plugin versions to free disk space.
+
+**Body:**
+```json
+{
+  "marketplace": "my-plugins",
+  "keepLatest": 2
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `marketplace` | string | No | Specific marketplace to prune (all if omitted) |
+| `keepLatest` | number | No | Number of versions to keep per plugin (default: 1) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "removed": 15,
+  "freedBytes": 52428800,
+  "freedMB": "50.00"
+}
+```
+
+**Example:**
+```bash
+# Prune all marketplaces, keep only latest version
+curl -X POST http://localhost:8129/api/plugins/cache/prune \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Keep 2 latest versions for specific marketplace
+curl -X POST http://localhost:8129/api/plugins/cache/prune \
+  -H "Content-Type: application/json" \
+  -d '{"marketplace": "my-plugins", "keepLatest": 2}'
+```
+
+**Notes:**
+- Versions are sorted by modification time (newest first)
+- Cache location: `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`
+- Does not affect currently installed plugin functionality
+- Useful for cleaning up after many plugin updates
+
+---
+
 ## Browser Profiles
 
 Manage terminal profiles programmatically. Profiles define appearance, startup command, and category for terminals.
