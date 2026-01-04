@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react'
-import { ChevronRight, Plug, Search, Zap, Bot, Terminal, FileCode } from 'lucide-react'
+import { ChevronRight, Plug, Search, Zap, Bot, Terminal, FileCode, AlertTriangle, CheckCircle, Trash2, Download } from 'lucide-react'
 // Animated icons
 import { ChevronDownIcon, RefreshCwIcon } from '../../../components/icons'
 import { useFilesContext } from '../../contexts/FilesContext'
+
+interface OutdatedPlugin {
+  pluginId: string
+  name: string
+  marketplace: string
+  scope: string
+  installedSha: string
+  currentSha: string
+  lastUpdated: string
+}
 
 // Component type icons and colors
 const componentConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
@@ -299,18 +309,42 @@ type ComponentFilter = 'all' | 'skill' | 'agent' | 'command' | 'hook' | 'mcp'
 type ScopeFilter = 'all' | 'user' | 'local'
 
 export function PluginList() {
-  const { pluginsData, pluginsLoading, loadPlugins, togglePlugin, openFile } = useFilesContext()
+  const {
+    pluginsData, pluginsLoading, loadPlugins, togglePlugin, openFile,
+    pluginHealth, pluginHealthLoading, loadPluginHealth, updatePlugin, updateAllPlugins, pruneCache
+  } = useFilesContext()
   const [togglingPlugins, setTogglingPlugins] = useState<Set<string>>(new Set())
+  const [updatingPlugins, setUpdatingPlugins] = useState<Set<string>>(new Set())
+  const [updatingAll, setUpdatingAll] = useState(false)
+  const [updateAllResult, setUpdateAllResult] = useState<{ success: number; failed: number; skipped: number } | null>(null)
   const [filter, setFilter] = useState<PluginFilter>('all')
   const [componentFilter, setComponentFilter] = useState<ComponentFilter>('all')
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showRestartHint, setShowRestartHint] = useState(false)
+  const [showHealth, setShowHealth] = useState(false)
+  const [pruning, setPruning] = useState(false)
+  const [pruneResult, setPruneResult] = useState<{ removed: number; freedMB: string } | null>(null)
 
   // Load plugins on mount
   useEffect(() => {
     loadPlugins()
   }, [loadPlugins])
+
+  // Load health when health panel is shown
+  useEffect(() => {
+    if (showHealth && !pluginHealth && !pluginHealthLoading) {
+      loadPluginHealth()
+    }
+  }, [showHealth, pluginHealth, pluginHealthLoading, loadPluginHealth])
+
+  // Check if a plugin is outdated
+  const isPluginOutdated = (pluginId: string): OutdatedPlugin | undefined => {
+    return pluginHealth?.outdated?.find(p => p.pluginId === pluginId)
+  }
+
+  // Count user-scoped outdated plugins (these can be updated via Update All)
+  const userScopedOutdatedCount = pluginHealth?.outdated?.filter(p => p.scope === 'user').length ?? 0
 
   const handleToggle = async (pluginId: string, enabled: boolean) => {
     setTogglingPlugins(prev => new Set(prev).add(pluginId))
@@ -322,6 +356,42 @@ export function PluginList() {
     })
     if (success) {
       setShowRestartHint(true)
+    }
+  }
+
+  const handleUpdate = async (pluginId: string) => {
+    setUpdatingPlugins(prev => new Set(prev).add(pluginId))
+    const success = await updatePlugin(pluginId)
+    setUpdatingPlugins(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(pluginId)
+      return newSet
+    })
+    if (success) {
+      setShowRestartHint(true)
+    }
+  }
+
+  const handlePruneCache = async () => {
+    setPruning(true)
+    setPruneResult(null)
+    const result = await pruneCache(1) // Keep only latest version
+    setPruning(false)
+    if (result) {
+      setPruneResult(result)
+    }
+  }
+
+  const handleUpdateAll = async () => {
+    setUpdatingAll(true)
+    setUpdateAllResult(null)
+    const result = await updateAllPlugins()
+    setUpdatingAll(false)
+    if (result) {
+      setUpdateAllResult(result)
+      if (result.success > 0) {
+        setShowRestartHint(true)
+      }
     }
   }
 
@@ -402,6 +472,26 @@ export function PluginList() {
             <span className="text-xs text-muted-foreground">
               {pluginsData.enabledCount}/{pluginsData.totalPlugins} enabled
             </span>
+            {/* Health check button */}
+            <button
+              onClick={() => {
+                setShowHealth(!showHealth)
+                if (!showHealth && !pluginHealth) {
+                  loadPluginHealth()
+                }
+              }}
+              className={`p-1 rounded transition-colors ${
+                showHealth ? 'bg-primary/20 text-primary' :
+                (pluginHealth?.outdated?.length ?? 0) > 0 ? 'text-amber-400 hover:bg-amber-500/20' : 'hover:bg-muted'
+              }`}
+              title={pluginHealth?.outdated?.length ? `${pluginHealth.outdated.length} outdated` : 'Health check'}
+            >
+              {(pluginHealth?.outdated?.length ?? 0) > 0 ? (
+                <AlertTriangle className="w-3 h-3" />
+              ) : (
+                <CheckCircle className="w-3 h-3" />
+              )}
+            </button>
             <button
               onClick={() => loadPlugins()}
               className="p-1 hover:bg-muted rounded"
@@ -516,6 +606,133 @@ export function PluginList() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Health panel */}
+      {showHealth && (
+        <div className="mx-3 mt-2 p-3 bg-muted/30 border border-border rounded text-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">Plugin Health</span>
+            <button
+              onClick={() => loadPluginHealth()}
+              disabled={pluginHealthLoading}
+              className="p-1 hover:bg-muted rounded disabled:opacity-50"
+              title="Refresh health check"
+            >
+              <RefreshCwIcon size={10} className={pluginHealthLoading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+
+          {pluginHealthLoading && !pluginHealth ? (
+            <div className="text-muted-foreground">Checking...</div>
+          ) : pluginHealth ? (
+            <div className="space-y-3">
+              {/* Status summary */}
+              <div className="flex items-center gap-3">
+                <span className={`flex items-center gap-1 ${pluginHealth.outdated.length > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                  {pluginHealth.outdated.length > 0 ? (
+                    <><AlertTriangle className="w-3 h-3" /> {pluginHealth.outdated.length} outdated</>
+                  ) : (
+                    <><CheckCircle className="w-3 h-3" /> All current</>
+                  )}
+                </span>
+                <span className="text-muted-foreground">
+                  {pluginHealth.current} current
+                </span>
+              </div>
+
+              {/* Outdated plugins list */}
+              {pluginHealth.outdated.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Outdated:</span>
+                    <button
+                      onClick={handleUpdateAll}
+                      disabled={updatingAll || userScopedOutdatedCount === 0}
+                      className="flex items-center gap-1 px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded disabled:opacity-50 text-xs"
+                      title={userScopedOutdatedCount < pluginHealth.outdated.length
+                        ? `Update ${userScopedOutdatedCount} user-scoped plugins (${pluginHealth.outdated.length - userScopedOutdatedCount} project-scoped skipped)`
+                        : "Update all outdated plugins"}
+                    >
+                      {updatingAll ? (
+                        <RefreshCwIcon size={10} className="animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3" />
+                      )}
+                      Update All ({userScopedOutdatedCount})
+                    </button>
+                  </div>
+                  {updateAllResult && (
+                    <div className={`text-xs ${updateAllResult.failed > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                      Updated {updateAllResult.success}
+                      {updateAllResult.failed > 0 ? `, ${updateAllResult.failed} failed` : ''}
+                      {updateAllResult.skipped > 0 ? ` (${updateAllResult.skipped} project-scoped skipped)` : ''}
+                    </div>
+                  )}
+                  {pluginHealth.outdated.slice(0, 5).map(p => (
+                    <div key={p.pluginId} className="flex items-center justify-between py-1 px-2 bg-amber-500/10 rounded">
+                      <div>
+                        <span className="font-medium">{p.name}</span>
+                        <span className="text-muted-foreground ml-1">@{p.marketplace}</span>
+                        <div className="text-[10px] text-muted-foreground">
+                          {p.installedSha} → {p.currentSha}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleUpdate(p.pluginId)}
+                        disabled={updatingPlugins.has(p.pluginId) || updatingAll}
+                        className="p-1 hover:bg-amber-500/30 rounded disabled:opacity-50"
+                        title="Update plugin"
+                      >
+                        {updatingPlugins.has(p.pluginId) ? (
+                          <RefreshCwIcon size={12} className="animate-spin" />
+                        ) : (
+                          <Download className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                  {pluginHealth.outdated.length > 5 && (
+                    <div className="text-muted-foreground text-center">
+                      +{pluginHealth.outdated.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Cache stats */}
+              {pluginHealth.cache && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      Cache: {pluginHealth.cache.totalVersions} versions ({(pluginHealth.cache.totalSize / 1024).toFixed(1)} MB)
+                    </span>
+                    <button
+                      onClick={handlePruneCache}
+                      disabled={pruning}
+                      className="flex items-center gap-1 px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded disabled:opacity-50"
+                      title="Remove old cached versions"
+                    >
+                      {pruning ? (
+                        <RefreshCwIcon size={10} className="animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                      Prune
+                    </button>
+                  </div>
+                  {pruneResult && (
+                    <div className="mt-1 text-green-400">
+                      Removed {pruneResult.removed} versions, freed {pruneResult.freedMB} MB
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-muted-foreground">Failed to load health data</div>
+          )}
         </div>
       )}
 

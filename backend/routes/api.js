@@ -2109,6 +2109,8 @@ router.get('/plugins', asyncHandler(async (req, res) => {
         version: install.version || 'unknown',
         installPath: install.installPath,
         installedAt: install.installedAt,
+        lastUpdated: install.lastUpdated,
+        gitCommitSha: install.gitCommitSha || null,
         isLocal: install.isLocal || false,
         components,  // array of component types
         componentFiles  // detailed file lists for each type
@@ -2211,6 +2213,479 @@ router.post('/plugins/toggle', asyncHandler(async (req, res) => {
     });
   } catch (err) {
     console.error('[API] Failed to toggle plugin:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
+// =============================================================================
+// PLUGIN HEALTH CHECK API
+// =============================================================================
+
+const claudeMarketplacesPath = require('path').join(homeDir, '.claude', 'plugins', 'known_marketplaces.json');
+const claudePluginCachePath = require('path').join(homeDir, '.claude', 'plugins', 'cache');
+
+/**
+ * Get git HEAD commit for a directory
+ */
+async function getGitHead(dir) {
+  const { execSync } = require('child_process');
+  try {
+    const head = execSync('git rev-parse HEAD', {
+      cwd: dir,
+      encoding: 'utf8',
+      timeout: 5000
+    }).trim();
+    return head;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * GET /api/plugins/health - Check plugin health: outdated versions, cache size
+ * Returns list of outdated plugins and cache statistics
+ */
+router.get('/plugins/health', asyncHandler(async (req, res) => {
+  const { promises: fsAsync } = require('fs');
+  const path = require('path');
+
+  try {
+    // Read marketplaces config to get source locations
+    let marketplaces = {};
+    try {
+      const data = await fsAsync.readFile(claudeMarketplacesPath, 'utf-8');
+      marketplaces = JSON.parse(data);
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('[API] Error reading marketplaces:', err.message);
+      }
+    }
+
+    // Read installed plugins
+    let installedPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeInstalledPluginsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      installedPlugins = parsed.plugins || {};
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('[API] Error reading installed plugins:', err.message);
+      }
+    }
+
+    // Get current HEAD for each marketplace
+    const marketplaceHeads = {};
+    for (const [name, info] of Object.entries(marketplaces)) {
+      const installLoc = info.installLocation;
+      if (installLoc) {
+        const head = await getGitHead(installLoc);
+        if (head) {
+          marketplaceHeads[name] = {
+            head,
+            path: installLoc,
+            source: info.source
+          };
+        }
+      }
+    }
+
+    // Compare installed plugins to marketplace HEAD
+    // Note: Claude Code updates 'version' field on update but leaves 'gitCommitSha' stale
+    // So we compare both version AND gitCommitSha against HEAD
+    const outdated = [];
+    const current = [];
+    const unknown = [];
+
+    // Helper to check if a version looks like a semantic version (e.g., "1.0.0", "2.1.3")
+    const isSemVer = (v) => v && /^\d+\.\d+(\.\d+)?$/.test(v);
+
+    for (const [pluginId, installations] of Object.entries(installedPlugins)) {
+      const [name, marketplace] = pluginId.split('@');
+      const install = Array.isArray(installations) ? installations[0] : installations;
+      const installedSha = install.gitCommitSha;
+      const installedVersion = install.version;
+
+      if (marketplaceHeads[marketplace]) {
+        const currentSha = marketplaceHeads[marketplace].head;
+        const currentShaShort = currentSha.substring(0, 12);
+
+        // Skip version checking for plugins with semantic versions (e.g., "1.0.0")
+        // These can't be compared to git HEAD and were installed with explicit versions
+        if (isSemVer(installedVersion)) {
+          current.push({ pluginId, name, marketplace });
+          continue;
+        }
+
+        // Plugin is current if EITHER version or gitCommitSha matches HEAD
+        // (version gets updated by 'claude plugin update', gitCommitSha sometimes doesn't)
+        const versionMatches = installedVersion === currentShaShort || installedVersion === currentSha;
+        const shaMatches = installedSha === currentSha;
+
+        if (!versionMatches && !shaMatches) {
+          outdated.push({
+            pluginId,
+            name,
+            marketplace,
+            scope: install.scope || 'user',
+            installedSha: installedVersion || (installedSha ? installedSha.substring(0, 12) : 'unknown'),
+            currentSha: currentShaShort,
+            lastUpdated: install.lastUpdated
+          });
+        } else {
+          current.push({ pluginId, name, marketplace });
+        }
+      } else {
+        unknown.push({ pluginId, name, marketplace });
+      }
+    }
+
+    // Calculate cache statistics
+    const cacheStats = {
+      totalSize: 0,
+      totalVersions: 0,
+      byMarketplace: {}
+    };
+
+    try {
+      const marketplaceDirs = await fsAsync.readdir(claudePluginCachePath);
+      for (const mpDir of marketplaceDirs) {
+        const mpPath = path.join(claudePluginCachePath, mpDir);
+        const stat = await fsAsync.stat(mpPath);
+        if (!stat.isDirectory()) continue;
+
+        let mpSize = 0;
+        let mpVersions = 0;
+        const pluginVersions = {};
+
+        const pluginDirs = await fsAsync.readdir(mpPath);
+        for (const pluginDir of pluginDirs) {
+          const pluginPath = path.join(mpPath, pluginDir);
+          const pluginStat = await fsAsync.stat(pluginPath);
+          if (!pluginStat.isDirectory()) continue;
+
+          const versionDirs = await fsAsync.readdir(pluginPath);
+          const versionCount = versionDirs.filter(async (v) => {
+            try {
+              const s = await fsAsync.stat(path.join(pluginPath, v));
+              return s.isDirectory();
+            } catch { return false; }
+          }).length;
+
+          pluginVersions[pluginDir] = versionCount;
+          mpVersions += versionCount;
+
+          // Calculate size (rough estimate via du)
+          try {
+            const { execSync } = require('child_process');
+            const size = parseInt(execSync(`du -s "${pluginPath}" | cut -f1`, { encoding: 'utf8' }).trim());
+            mpSize += size;
+          } catch {}
+        }
+
+        cacheStats.byMarketplace[mpDir] = {
+          size: mpSize,
+          versions: mpVersions,
+          plugins: pluginVersions
+        };
+        cacheStats.totalSize += mpSize;
+        cacheStats.totalVersions += mpVersions;
+      }
+    } catch (err) {
+      console.error('[API] Error calculating cache stats:', err.message);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        outdated,
+        current: current.length,
+        unknown: unknown.length,
+        marketplaceHeads,
+        cache: cacheStats
+      }
+    });
+  } catch (err) {
+    console.error('[API] Failed to check plugin health:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
+/**
+ * POST /api/plugins/update - Update a plugin to latest version
+ * Body: { pluginId: string, scope?: string }
+ */
+router.post('/plugins/update', asyncHandler(async (req, res) => {
+  const { execSync } = require('child_process');
+  const { promises: fsAsync } = require('fs');
+  const { pluginId, scope: requestedScope } = req.body;
+
+  if (!pluginId || typeof pluginId !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'pluginId is required'
+    });
+  }
+
+  try {
+    // Look up the actual scope from installed_plugins.json if not provided
+    let scope = requestedScope;
+    if (!scope) {
+      try {
+        const data = await fsAsync.readFile(claudeInstalledPluginsPath, 'utf-8');
+        const parsed = JSON.parse(data);
+        const installations = parsed.plugins?.[pluginId];
+        if (installations && installations.length > 0) {
+          scope = installations[0].scope;
+        }
+      } catch (err) {
+        // If we can't read the file, default to user scope
+        scope = 'user';
+      }
+    }
+
+    // Build command with scope flag
+    const scopeFlag = scope && scope !== 'user' ? ` --scope ${scope}` : '';
+    const cmd = `claude plugin update "${pluginId}"${scopeFlag}`;
+
+    const result = execSync(cmd, {
+      encoding: 'utf8',
+      timeout: 30000
+    });
+
+    res.json({
+      success: true,
+      pluginId,
+      scope,
+      output: result.trim(),
+      message: `Plugin ${pluginId} updated. Run /restart to apply changes.`
+    });
+  } catch (err) {
+    console.error('[API] Failed to update plugin:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.stderr || err.message
+    });
+  }
+}));
+
+/**
+ * POST /api/plugins/update-all - Update all outdated plugins
+ * Body: { scope?: 'all' | 'user' } - 'user' only updates user-scoped plugins (default), 'all' tries all
+ * Returns results for each plugin update attempt
+ */
+router.post('/plugins/update-all', asyncHandler(async (req, res) => {
+  const { execSync } = require('child_process');
+  const { promises: fsAsync } = require('fs');
+  const { scope: scopeFilter = 'user' } = req.body;
+
+  try {
+    // First get the list of outdated plugins using the health check logic
+    let marketplaces = {};
+    try {
+      const data = await fsAsync.readFile(claudeMarketplacesPath, 'utf-8');
+      marketplaces = JSON.parse(data);
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+
+    let installedPlugins = {};
+    try {
+      const data = await fsAsync.readFile(claudeInstalledPluginsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      installedPlugins = parsed.plugins || {};
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+
+    // Get current HEAD for each marketplace
+    const marketplaceHeads = {};
+    for (const [name, info] of Object.entries(marketplaces)) {
+      const installLoc = info.installLocation;
+      if (installLoc) {
+        const head = await getGitHead(installLoc);
+        if (head) {
+          marketplaceHeads[name] = head;
+        }
+      }
+    }
+
+    // Find outdated plugins (only user-scoped by default, since project-scoped require specific cwd)
+    // Note: Compare both version AND gitCommitSha (Claude Code updates version but not gitCommitSha)
+    const outdated = [];
+    const skipped = [];
+
+    // Helper to check if a version looks like a semantic version (e.g., "1.0.0", "2.1.3")
+    const isSemVer = (v) => v && /^\d+\.\d+(\.\d+)?$/.test(v);
+
+    for (const [pluginId, installations] of Object.entries(installedPlugins)) {
+      const [name, marketplace] = pluginId.split('@');
+      const install = Array.isArray(installations) ? installations[0] : installations;
+      const installedSha = install.gitCommitSha;
+      const installedVersion = install.version;
+      const pluginScope = install.scope || 'user';
+
+      if (marketplaceHeads[marketplace]) {
+        // Skip plugins with semantic versions - they can't be compared to git HEAD
+        if (isSemVer(installedVersion)) {
+          continue;
+        }
+
+        const currentSha = marketplaceHeads[marketplace];
+        const currentShaShort = currentSha.substring(0, 12);
+        const versionMatches = installedVersion === currentShaShort || installedVersion === currentSha;
+        const shaMatches = installedSha === currentSha;
+
+        if (!versionMatches && !shaMatches) {
+          // Skip non-user scoped plugins unless explicitly requested
+          if (scopeFilter === 'user' && pluginScope !== 'user') {
+            skipped.push({ pluginId, scope: pluginScope, reason: 'project/local scoped' });
+            continue;
+          }
+          outdated.push({
+            pluginId,
+            scope: pluginScope
+          });
+        }
+      }
+    }
+
+    if (outdated.length === 0) {
+      return res.json({
+        success: true,
+        message: skipped.length > 0
+          ? `All user-scoped plugins are up to date (${skipped.length} project/local plugins skipped)`
+          : 'All plugins are up to date',
+        results: [],
+        skipped
+      });
+    }
+
+    // Update each outdated plugin
+    const results = [];
+    for (const { pluginId, scope } of outdated) {
+      const scopeFlag = scope && scope !== 'user' ? ` --scope ${scope}` : '';
+      const cmd = `claude plugin update "${pluginId}"${scopeFlag}`;
+
+      try {
+        const output = execSync(cmd, {
+          encoding: 'utf8',
+          timeout: 30000
+        });
+        results.push({
+          pluginId,
+          success: true,
+          output: output.trim()
+        });
+      } catch (err) {
+        results.push({
+          pluginId,
+          success: false,
+          error: err.stderr || err.message
+        });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+
+    res.json({
+      success: true,
+      message: `Updated ${successCount} plugins${failCount > 0 ? `, ${failCount} failed` : ''}${skipped.length > 0 ? ` (${skipped.length} skipped)` : ''}. Run /restart to apply changes.`,
+      results,
+      skipped
+    });
+  } catch (err) {
+    console.error('[API] Failed to update all plugins:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+}));
+
+/**
+ * POST /api/plugins/cache/prune - Remove old cached plugin versions
+ * Body: { marketplace?: string, keepLatest: number (default 1) }
+ */
+router.post('/plugins/cache/prune', asyncHandler(async (req, res) => {
+  const { promises: fsAsync } = require('fs');
+  const path = require('path');
+  const { marketplace, keepLatest = 1 } = req.body;
+
+  try {
+    let removed = 0;
+    let freedBytes = 0;
+
+    const marketplacesToPrune = marketplace
+      ? [marketplace]
+      : await fsAsync.readdir(claudePluginCachePath);
+
+    for (const mpDir of marketplacesToPrune) {
+      const mpPath = path.join(claudePluginCachePath, mpDir);
+      try {
+        const stat = await fsAsync.stat(mpPath);
+        if (!stat.isDirectory()) continue;
+      } catch { continue; }
+
+      const pluginDirs = await fsAsync.readdir(mpPath);
+      for (const pluginDir of pluginDirs) {
+        const pluginPath = path.join(mpPath, pluginDir);
+        try {
+          const stat = await fsAsync.stat(pluginPath);
+          if (!stat.isDirectory()) continue;
+        } catch { continue; }
+
+        // Get version directories sorted by modification time (newest first)
+        const versionDirs = await fsAsync.readdir(pluginPath);
+        const versions = [];
+        for (const v of versionDirs) {
+          const vPath = path.join(pluginPath, v);
+          try {
+            const stat = await fsAsync.stat(vPath);
+            if (stat.isDirectory()) {
+              versions.push({ name: v, path: vPath, mtime: stat.mtime });
+            }
+          } catch {}
+        }
+
+        // Sort by modification time descending
+        versions.sort((a, b) => b.mtime - a.mtime);
+
+        // Remove all but keepLatest versions
+        for (let i = keepLatest; i < versions.length; i++) {
+          try {
+            const { execSync } = require('child_process');
+            // Get size before removing
+            const size = parseInt(execSync(`du -s "${versions[i].path}" | cut -f1`, { encoding: 'utf8' }).trim());
+            freedBytes += size * 1024; // du returns KB
+
+            await fsAsync.rm(versions[i].path, { recursive: true, force: true });
+            removed++;
+          } catch (err) {
+            console.error(`[API] Failed to remove ${versions[i].path}:`, err.message);
+          }
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      removed,
+      freedBytes,
+      freedMB: (freedBytes / (1024 * 1024)).toFixed(2)
+    });
+  } catch (err) {
+    console.error('[API] Failed to prune cache:', err.message);
     res.status(500).json({
       success: false,
       error: err.message

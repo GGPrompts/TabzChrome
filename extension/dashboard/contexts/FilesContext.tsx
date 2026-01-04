@@ -68,6 +68,27 @@ interface PluginsData {
   scopeCounts: Record<string, number>
 }
 
+interface OutdatedPlugin {
+  pluginId: string
+  name: string
+  marketplace: string
+  scope: string
+  installedSha: string
+  currentSha: string
+  lastUpdated: string
+}
+
+interface PluginHealthData {
+  outdated: OutdatedPlugin[]
+  current: number
+  unknown: number
+  cache: {
+    totalSize: number
+    totalVersions: number
+    byMarketplace: Record<string, { size: number; versions: number; plugins: Record<string, number> }>
+  }
+}
+
 interface OpenFile {
   id: string
   path: string
@@ -117,6 +138,14 @@ interface FilesContextType {
   pluginsLoading: boolean
   loadPlugins: () => Promise<void>
   togglePlugin: (pluginId: string, enabled: boolean) => Promise<boolean>
+
+  // Plugin health
+  pluginHealth: PluginHealthData | null
+  pluginHealthLoading: boolean
+  loadPluginHealth: () => Promise<void>
+  updatePlugin: (pluginId: string) => Promise<boolean>
+  updateAllPlugins: () => Promise<{ success: number; failed: number; skipped: number } | null>
+  pruneCache: (keepLatest?: number) => Promise<{ removed: number; freedMB: string } | null>
 
   // Actions
   openFile: (path: string, pin?: boolean) => Promise<void>
@@ -176,6 +205,10 @@ export function FilesProvider({ children }: { children: ReactNode }) {
   // Plugins state
   const [pluginsData, setPluginsData] = useState<PluginsData | null>(null)
   const [pluginsLoading, setPluginsLoading] = useState(false)
+
+  // Plugin health state
+  const [pluginHealth, setPluginHealth] = useState<PluginHealthData | null>(null)
+  const [pluginHealthLoading, setPluginHealthLoading] = useState(false)
 
   // Favorites state - persist to localStorage (declared before loadFilteredFiles which uses it)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -388,6 +421,101 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Load plugin health data
+  const loadPluginHealth = useCallback(async () => {
+    setPluginHealthLoading(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins/health`)
+      if (!response.ok) {
+        throw new Error('Failed to load plugin health')
+      }
+      const data = await response.json()
+      if (data.success) {
+        setPluginHealth(data.data)
+      }
+    } catch (err) {
+      console.error('Failed to load plugin health:', err)
+      setPluginHealth(null)
+    } finally {
+      setPluginHealthLoading(false)
+    }
+  }, [])
+
+  // Update a plugin to latest version
+  const updatePlugin = useCallback(async (pluginId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pluginId })
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update plugin')
+      }
+      const data = await response.json()
+      if (data.success) {
+        // Reload health data to reflect changes
+        await loadPluginHealth()
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Failed to update plugin:', err)
+      return false
+    }
+  }, [loadPluginHealth])
+
+  // Update all outdated plugins
+  const updateAllPlugins = useCallback(async (): Promise<{ success: number; failed: number; skipped: number } | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins/update-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'user' }) // Only update user-scoped plugins
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update plugins')
+      }
+      const data = await response.json()
+      if (data.success) {
+        // Reload health data to reflect changes
+        await loadPluginHealth()
+        const success = data.results?.filter((r: any) => r.success).length || 0
+        const failed = data.results?.filter((r: any) => !r.success).length || 0
+        const skipped = data.skipped?.length || 0
+        return { success, failed, skipped }
+      }
+      return null
+    } catch (err) {
+      console.error('Failed to update all plugins:', err)
+      return null
+    }
+  }, [loadPluginHealth])
+
+  // Prune old cache versions
+  const pruneCache = useCallback(async (keepLatest: number = 1): Promise<{ removed: number; freedMB: string } | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/plugins/cache/prune`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keepLatest })
+      })
+      if (!response.ok) {
+        throw new Error('Failed to prune cache')
+      }
+      const data = await response.json()
+      if (data.success) {
+        // Reload health data to reflect changes
+        await loadPluginHealth()
+        return { removed: data.removed, freedMB: data.freedMB }
+      }
+      return null
+    } catch (err) {
+      console.error('Failed to prune cache:', err)
+      return null
+    }
+  }, [loadPluginHealth])
+
   const openFile = useCallback(async (path: string, pin: boolean = false) => {
     // Check if already open
     const existing = openFiles.find(f => f.path === path)
@@ -538,6 +666,12 @@ export function FilesProvider({ children }: { children: ReactNode }) {
       pluginsLoading,
       loadPlugins,
       togglePlugin,
+      pluginHealth,
+      pluginHealthLoading,
+      loadPluginHealth,
+      updatePlugin,
+      updateAllPlugins,
+      pruneCache,
       openFile,
       closeFile,
       pinFile,
