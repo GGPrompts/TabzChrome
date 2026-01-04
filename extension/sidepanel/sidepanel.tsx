@@ -1000,20 +1000,27 @@ function SidePanelTerminal() {
             setShowDropdown={setShowDirDropdown}
           />
 
-          {/* Dashboard Button with Dropdown */}
-          <div className="relative">
+          {/* Dashboard Button with Dropdown - Split button matching terminal spawn pattern */}
+          <div className="relative flex">
+            <button
+              onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/index.html#/home') })}
+              className="flex items-center justify-center px-2 py-1.5 rounded-l-md transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border border-transparent hover:border-[#00ff88]/30"
+              title="Open Dashboard"
+              aria-label="Open Dashboard home"
+            >
+              <HomeIcon size={16} />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 setShowDashboardDropdown(!showDashboardDropdown)
               }}
-              className="flex items-center gap-0.5 p-1.5 hover:bg-[#00ff88]/10 rounded-md transition-colors text-gray-400 hover:text-[#00ff88]"
-              title="Open Dashboard"
-              aria-label="Open Dashboard"
+              className="flex items-center justify-center px-1 py-1.5 rounded-r-md transition-all bg-white/5 hover:bg-[#00ff88]/10 text-gray-400 hover:text-[#00ff88] border-l border-gray-700"
+              title="Select dashboard section"
+              aria-label="Select dashboard section"
               aria-expanded={showDashboardDropdown}
               aria-haspopup="menu"
             >
-              <HomeIcon size={16} />
               <ChevronDownIcon size={12} />
             </button>
 
