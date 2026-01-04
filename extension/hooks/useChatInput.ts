@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { sendMessage } from '../shared/messaging'
 import { useOutsideClick } from './useOutsideClick'
+import { filterMcpTools, type McpTool } from '../shared/mcpTools'
 import type { TerminalSession } from './useTerminalSessions'
 
 interface ClaudeStatus {
@@ -40,6 +41,12 @@ export interface UseChatInputReturn {
   toggleTargetTab: (tabId: string) => void
   selectAllTargetTabs: () => void
   getTargetLabel: () => string
+  // Autocomplete
+  suggestions: McpTool[]
+  selectedSuggestionIndex: number
+  showSuggestions: boolean
+  setShowSuggestions: (show: boolean) => void
+  selectSuggestion: (tool: McpTool) => void
 }
 
 export function useChatInput({
@@ -53,13 +60,30 @@ export function useChatInput({
   const [targetTabs, setTargetTabs] = useState<Set<string>>(new Set())
   const [showTargetDropdown, setShowTargetDropdown] = useState(false)
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const chatInputRef = useRef<HTMLInputElement>(null)
+
+  // Compute filtered MCP tool suggestions based on input
+  const suggestions = useMemo(() => {
+    if (!chatInputText.trim()) return []
+    return filterMcpTools(chatInputText).slice(0, 8) // Limit to 8 suggestions
+  }, [chatInputText])
 
   const { addToHistory, navigateHistory, resetNavigation } = commandHistory
 
   // Close dropdowns when clicking outside (using shared hook)
   useOutsideClick(showTargetDropdown, useCallback(() => setShowTargetDropdown(false), []))
   useOutsideClick(showHistoryDropdown, useCallback(() => setShowHistoryDropdown(false), []))
+  useOutsideClick(showSuggestions, useCallback(() => setShowSuggestions(false), []))
+
+  // Select an MCP tool suggestion
+  const selectSuggestion = useCallback((tool: McpTool) => {
+    setChatInputText(tool.id)
+    setShowSuggestions(false)
+    setSelectedSuggestionIndex(0)
+    chatInputRef.current?.focus()
+  }, [])
 
   // Chat input send handler
   const handleChatInputSend = useCallback(() => {
@@ -175,6 +199,33 @@ export function useChatInput({
 
   // Keyboard handler for chat input
   const handleChatInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle autocomplete navigation when suggestions are shown
+    if (showSuggestions && suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(prev =>
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        )
+        return
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(prev =>
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        )
+        return
+      } else if (e.key === 'Tab' || (e.key === 'Enter' && selectedSuggestionIndex >= 0)) {
+        e.preventDefault()
+        selectSuggestion(suggestions[selectedSuggestionIndex])
+        return
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(0)
+        return
+      }
+    }
+
+    // Normal keyboard handling
     if (e.key === 'Enter') {
       e.preventDefault()
       handleChatInputSend()
@@ -182,6 +233,7 @@ export function useChatInput({
       e.preventDefault()
       setChatInputText('')
       resetNavigation()
+      setShowSuggestions(false)
       chatInputRef.current?.blur()
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
@@ -196,12 +248,16 @@ export function useChatInput({
         setChatInputText(historyCommand)
       }
     }
-  }, [handleChatInputSend, navigateHistory, resetNavigation, chatInputText])
+  }, [handleChatInputSend, navigateHistory, resetNavigation, chatInputText, showSuggestions, suggestions, selectedSuggestionIndex, selectSuggestion])
 
-  // Reset history navigation when user types manually
+  // Reset history navigation when user types manually, show suggestions
   const handleChatInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setChatInputText(e.target.value)
+    const value = e.target.value
+    setChatInputText(value)
     resetNavigation()
+    // Show suggestions if there's text and it looks like an MCP command
+    setShowSuggestions(value.trim().length > 0)
+    setSelectedSuggestionIndex(0)
   }, [resetNavigation])
 
   return {
@@ -222,5 +278,11 @@ export function useChatInput({
     toggleTargetTab,
     selectAllTargetTabs,
     getTargetLabel,
+    // Autocomplete
+    suggestions,
+    selectedSuggestionIndex,
+    showSuggestions,
+    setShowSuggestions,
+    selectSuggestion,
   }
 }

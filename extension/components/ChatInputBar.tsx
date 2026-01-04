@@ -75,6 +75,11 @@ export function ChatInputBar({
     toggleTargetTab,
     selectAllTargetTabs,
     getTargetLabel,
+    // Autocomplete
+    suggestions,
+    selectedSuggestionIndex,
+    showSuggestions,
+    selectSuggestion,
   } = chatInput
 
   const { history, removeFromHistory } = commandHistory
@@ -140,15 +145,50 @@ export function ChatInputBar({
         )}
       </div>
 
-      <input
-        ref={chatInputRef}
-        type="text"
-        className="flex-1 h-7 px-3 bg-black border border-gray-600 rounded text-sm text-white font-mono focus:border-[#00ff88]/50 focus:outline-none placeholder-gray-500"
-        value={chatInputText}
-        onChange={handleChatInputChange}
-        onKeyDown={handleChatInputKeyDown}
-        placeholder={chatInputMode === 'execute' ? "↑↓ history • Enter to execute" : "↑↓ history • Enter to send"}
-      />
+      {/* Input with MCP autocomplete dropdown */}
+      <div className="relative flex-1">
+        <input
+          ref={chatInputRef}
+          type="text"
+          className="w-full h-7 px-3 bg-black border border-gray-600 rounded text-sm text-white font-mono focus:border-[#00ff88]/50 focus:outline-none placeholder-gray-500"
+          value={chatInputText}
+          onChange={handleChatInputChange}
+          onKeyDown={handleChatInputKeyDown}
+          placeholder={chatInputMode === 'execute' ? "↑↓ history • Tab MCP • Enter" : "↑↓ history • Tab MCP • Enter"}
+        />
+
+        {/* MCP tool autocomplete dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-2xl z-50 overflow-hidden">
+            <div className="px-3 py-1.5 border-b border-gray-800 text-xs text-gray-500 flex items-center justify-between">
+              <span>MCP Tools</span>
+              <span className="text-gray-600">↑↓ Tab to select</span>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto">
+              {suggestions.map((tool, index) => (
+                <button
+                  key={tool.id}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    selectSuggestion(tool)
+                  }}
+                  className={`w-full px-3 py-2 text-left transition-colors border-b border-gray-800 last:border-b-0 ${
+                    index === selectedSuggestionIndex
+                      ? 'bg-[#00ff88]/10 text-[#00ff88]'
+                      : 'text-gray-300 hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono truncate">{tool.id}</span>
+                    <span className="text-[10px] text-gray-500 ml-2 flex-shrink-0">{tool.category}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 truncate mt-0.5">{tool.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Target tabs dropdown */}
       <div className="relative">
