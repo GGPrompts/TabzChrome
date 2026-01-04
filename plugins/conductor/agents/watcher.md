@@ -532,20 +532,41 @@ IDLE_THRESHOLD=120  # 2 minutes for idle detection
 NUDGE_COOLDOWN=300  # 5 minutes between nudges
 
 # Helper: send update to conductor AND browser notification
+# Uses deduplication to prevent spam - same event won't fire twice in 5 minutes
 notify() {
   local EVENT="$1"
   local TITLE="$2"
   local MESSAGE="$3"
+  local DEDUP_KEY="${4:-$EVENT}"  # Optional key for deduplication
 
-  # Send to conductor session (for automated action)
-  if [ -n "$CONDUCTOR_SESSION" ]; then
-    tmux send-keys -t "$CONDUCTOR_SESSION" -l "[WATCHER] $EVENT: $MESSAGE"
-    sleep 0.3
-    tmux send-keys -t "$CONDUCTOR_SESSION" C-m
+  # Deduplication: skip if same event fired recently (5 min cooldown)
+  local NOTIFY_FILE="/tmp/claude-code-state/watcher-notify-${DEDUP_KEY}.txt"
+  local NOW=$(date +%s)
+  local LAST_NOTIFY=$(cat "$NOTIFY_FILE" 2>/dev/null || echo "0")
+  local SINCE_LAST=$((NOW - LAST_NOTIFY))
+
+  if [ "$SINCE_LAST" -lt 300 ] && [ "$EVENT" != "ALL_DONE" ] && [ "$EVENT" != "WORKER_DONE" ]; then
+    return 0  # Skip - already notified recently (except completion events)
   fi
+  echo "$NOW" > "$NOTIFY_FILE"
 
-  # Send browser notification (for user awareness)
-  mcp-cli call tabz/tabz_notification_show "{\"title\": \"$TITLE\", \"message\": \"$MESSAGE\", \"type\": \"basic\"}"
+  # Send browser notification only (safer - no tmux send-keys to conductor)
+  mcp-cli call tabz/tabz_notification_show "{\"title\": \"$TITLE\", \"message\": \"$MESSAGE\", \"type\": \"basic\"}" 2>/dev/null || true
+}
+
+# Separate function for final ALL_DONE - sends to conductor once
+notify_all_done() {
+  local MESSAGE="$1"
+
+  # Browser notification
+  mcp-cli call tabz/tabz_notification_show "{\"title\": \"🏁 All Workers Done\", \"message\": \"$MESSAGE\", \"type\": \"basic\"}" 2>/dev/null || true
+
+  # Single send-keys to conductor (only for ALL_DONE)
+  if [ -n "$CONDUCTOR_SESSION" ]; then
+    tmux send-keys -t "$CONDUCTOR_SESSION" -l "[WATCHER] ALL_DONE: $MESSAGE" 2>/dev/null || true
+    sleep 0.3
+    tmux send-keys -t "$CONDUCTOR_SESSION" C-m 2>/dev/null || true
+  fi
 }
 
 while true; do
@@ -556,7 +577,7 @@ while true; do
 
   if [ -z "$WORKERS" ]; then
     echo "No active workers found. Exiting."
-    notify "ALL_DONE" "🏁 All Workers Done" "No active Claude workers remaining"
+    notify_all_done "No active Claude workers remaining"
     exit 0
   fi
 
@@ -613,7 +634,7 @@ while true; do
     if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
       STALE_SECONDS=$((NOW - PREV_TIME))
       if [ "$STALE_SECONDS" -ge 300 ]; then  # 5 minutes
-        notify "WORKER_STUCK" "🔴 Worker Stuck" "$SESSION no activity for 5+ minutes"
+        notify "WORKER_STUCK" "🔴 Worker Stuck" "$SESSION no activity for 5+ minutes" "STUCK-$SESSION"
       fi
     else
       echo "$CURRENT_HASH" > "$STALE_FILE"
@@ -624,7 +645,7 @@ while true; do
     # Claude shows context % like "29% ctx" in status bar
     CONTEXT=$(tmux capture-pane -t "$SESSION" -p 2>/dev/null | grep -oP '\d+(?=% ctx)' | tail -1)
     if [ -n "$CONTEXT" ] && [ "$CONTEXT" -ge 75 ]; then
-      notify "HIGH_CONTEXT" "⚠️ High Context" "$SESSION at ${CONTEXT}%"
+      notify "HIGH_CONTEXT" "⚠️ High Context" "$SESSION at ${CONTEXT}%" "HIGHCTX-$SESSION"
     fi
 
     # === IDLE/NUDGE DETECTION ===
@@ -642,7 +663,7 @@ while true; do
     # Check 1: Unsubmitted prompt text (1 min threshold)
     if echo "$LAST_LINE" | grep -qE '^>\s+.+'; then
       PENDING_TEXT=$(echo "$LAST_LINE" | sed 's/^>\s*//')
-      notify "PROMPT_PENDING" "⏳ Prompt Pending" "$SESSION: $PENDING_TEXT"
+      notify "PROMPT_PENDING" "⏳ Prompt Pending" "$SESSION: $PENDING_TEXT" "PENDING-$SESSION"
       echo "$NOW" > "$NUDGE_FILE"
       continue
     fi
@@ -662,14 +683,14 @@ while true; do
           if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
             GIT_CHANGES=$(git -C "$WORKDIR" status --short 2>/dev/null | wc -l)
             if [ "$GIT_CHANGES" -gt 0 ]; then
-              notify "UNCOMMITTED_WORK" "📝 Uncommitted Work" "$SESSION: $GIT_CHANGES files changed, idle $((IDLE_SECONDS / 60))+ min"
+              notify "UNCOMMITTED_WORK" "📝 Uncommitted Work" "$SESSION: $GIT_CHANGES files changed, idle $((IDLE_SECONDS / 60))+ min" "UNCOMMIT-$SESSION"
               echo "$NOW" > "$NUDGE_FILE"
               continue
             fi
           fi
 
           # Plain idle notification
-          notify "WORKER_IDLE" "💤 Worker Idle" "$SESSION idle for $((IDLE_SECONDS / 60))+ min"
+          notify "WORKER_IDLE" "💤 Worker Idle" "$SESSION idle for $((IDLE_SECONDS / 60))+ min" "IDLE-$SESSION"
           echo "$NOW" > "$NUDGE_FILE"
         fi
       else
@@ -683,7 +704,7 @@ while true; do
   # Exit if all workers done
   if [ "$ACTIVE_COUNT" -eq 0 ]; then
     echo "All workers completed. Exiting."
-    notify "ALL_DONE" "🏁 All Workers Done" "All Claude workers have completed"
+    notify_all_done "All Claude workers have completed"
     exit 0
   fi
 
