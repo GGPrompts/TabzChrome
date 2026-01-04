@@ -28,6 +28,8 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
   const { profiles } = useProfiles({})
 
   // Terminal sessions hook - we'll filter to just the one we need
+  // skipStaleCheck: true because we register with background AFTER mount,
+  // so stale check would incorrectly reset flags before registration
   const {
     sessions,
     handleWebSocketMessage,
@@ -38,6 +40,7 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
     wsConnected,
     profiles,
     getNextAvailableVoice: () => 'en-US-AndrewNeural',
+    skipStaleCheck: true,
   })
 
   // Find our target session from the sessions list

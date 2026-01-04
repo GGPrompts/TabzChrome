@@ -265,6 +265,8 @@ export default function FocusScene() {
   const { profiles } = useProfiles({})
 
   // Use terminal sessions hook to get session with appearance overrides
+  // skipStaleCheck: true because 3D focus registers with background AFTER mount,
+  // so stale check would incorrectly reset flags before registration
   const {
     sessions,
     handleWebSocketMessage,
@@ -272,6 +274,7 @@ export default function FocusScene() {
     wsConnected,
     profiles,
     getNextAvailableVoice: () => 'en-US-AndrewNeural',
+    skipStaleCheck: true,
   })
 
   // Find the target session from sessions list (includes appearance overrides)

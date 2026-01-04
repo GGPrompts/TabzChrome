@@ -37,6 +37,8 @@ interface UseTerminalSessionsParams {
   wsConnected: boolean
   profiles: Profile[]
   getNextAvailableVoice: () => string
+  /** Skip stale flag checks on load (for PopoutTerminalView/FocusScene which register after mount) */
+  skipStaleCheck?: boolean
 }
 
 interface UseTerminalSessionsReturn {
@@ -62,6 +64,7 @@ export function useTerminalSessions({
   wsConnected,
   profiles,
   getNextAvailableVoice,
+  skipStaleCheck = false,
 }: UseTerminalSessionsParams): UseTerminalSessionsReturn {
   const [sessions, setSessions] = useState<TerminalSession[]>([])
   const [currentSession, setCurrentSession] = useState<string | null>(null)
@@ -96,56 +99,60 @@ export function useTerminalSessions({
       if (result.terminalSessions && Array.isArray(result.terminalSessions)) {
         let loadedSessions = result.terminalSessions as TerminalSession[]
 
-        // Check for stale focusedIn3D flags (3D tabs that no longer exist after extension reload)
-        const focusedSessions = loadedSessions.filter(s => s.focusedIn3D)
-        if (focusedSessions.length > 0) {
-          try {
-            // Query for any open 3D focus tabs
-            const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
-            const openSessionNames = new Set<string>(
-              tabs.map(tab => {
-                const url = new URL(tab.url || '')
-                return url.searchParams.get('session')
-              }).filter((s): s is string => s !== null)
-            )
+        // Skip stale checks for popout/3D views - they register with background after mount,
+        // so the stale check would incorrectly reset flags before registration completes
+        if (!skipStaleCheck) {
+          // Check for stale focusedIn3D flags (3D tabs that no longer exist after extension reload)
+          const focusedSessions = loadedSessions.filter(s => s.focusedIn3D)
+          if (focusedSessions.length > 0) {
+            try {
+              // Query for any open 3D focus tabs
+              const tabs = await chrome.tabs.query({ url: `chrome-extension://${chrome.runtime.id}/3d/*` })
+              const openSessionNames = new Set<string>(
+                tabs.map(tab => {
+                  const url = new URL(tab.url || '')
+                  return url.searchParams.get('session')
+                }).filter((s): s is string => s !== null)
+              )
 
-            // Reset focusedIn3D for terminals whose 3D tabs no longer exist
-            loadedSessions = loadedSessions.map(s => {
-              if (s.focusedIn3D && s.sessionName && !openSessionNames.has(s.sessionName)) {
-                console.log('[Sessions] Resetting stale focusedIn3D flag for:', s.sessionName)
-                return { ...s, focusedIn3D: false }
-              }
-              return s
-            })
-          } catch (e) {
-            // If tab query fails, reset all focusedIn3D flags to be safe
-            console.warn('[Sessions] Could not query 3D tabs, resetting focusedIn3D flags:', e)
-            loadedSessions = loadedSessions.map(s => ({ ...s, focusedIn3D: false }))
-          }
-        }
-
-        // Check for stale poppedOut flags (popout windows that no longer exist)
-        const poppedOutSessions = loadedSessions.filter(s => s.poppedOut)
-        if (poppedOutSessions.length > 0) {
-          try {
-            // Query background for currently tracked popout windows
-            const response = await chrome.runtime.sendMessage({ type: 'GET_POPOUT_WINDOWS' })
-            if (response?.type === 'POPOUT_WINDOWS_RESPONSE') {
-              const activePopoutTerminalIds = new Set(response.popouts.map((p: { terminalId: string }) => p.terminalId))
-
-              // Reset poppedOut for terminals whose popout windows no longer exist
+              // Reset focusedIn3D for terminals whose 3D tabs no longer exist
               loadedSessions = loadedSessions.map(s => {
-                if (s.poppedOut && !activePopoutTerminalIds.has(s.id)) {
-                  console.log('[Sessions] Resetting stale poppedOut flag for:', s.id)
-                  return { ...s, poppedOut: false, popoutWindowId: undefined }
+                if (s.focusedIn3D && s.sessionName && !openSessionNames.has(s.sessionName)) {
+                  console.log('[Sessions] Resetting stale focusedIn3D flag for:', s.sessionName)
+                  return { ...s, focusedIn3D: false }
                 }
                 return s
               })
+            } catch (e) {
+              // If tab query fails, reset all focusedIn3D flags to be safe
+              console.warn('[Sessions] Could not query 3D tabs, resetting focusedIn3D flags:', e)
+              loadedSessions = loadedSessions.map(s => ({ ...s, focusedIn3D: false }))
             }
-          } catch (e) {
-            // If query fails, reset all poppedOut flags to be safe
-            console.warn('[Sessions] Could not query popout windows, resetting poppedOut flags:', e)
-            loadedSessions = loadedSessions.map(s => ({ ...s, poppedOut: false, popoutWindowId: undefined }))
+          }
+
+          // Check for stale poppedOut flags (popout windows that no longer exist)
+          const poppedOutSessions = loadedSessions.filter(s => s.poppedOut)
+          if (poppedOutSessions.length > 0) {
+            try {
+              // Query background for currently tracked popout windows
+              const response = await chrome.runtime.sendMessage({ type: 'GET_POPOUT_WINDOWS' })
+              if (response?.type === 'POPOUT_WINDOWS_RESPONSE') {
+                const activePopoutTerminalIds = new Set(response.popouts.map((p: { terminalId: string }) => p.terminalId))
+
+                // Reset poppedOut for terminals whose popout windows no longer exist
+                loadedSessions = loadedSessions.map(s => {
+                  if (s.poppedOut && !activePopoutTerminalIds.has(s.id)) {
+                    console.log('[Sessions] Resetting stale poppedOut flag for:', s.id)
+                    return { ...s, poppedOut: false, popoutWindowId: undefined }
+                  }
+                  return s
+                })
+              }
+            } catch (e) {
+              // If query fails, reset all poppedOut flags to be safe
+              console.warn('[Sessions] Could not query popout windows, resetting poppedOut flags:', e)
+              loadedSessions = loadedSessions.map(s => ({ ...s, poppedOut: false, popoutWindowId: undefined }))
+            }
           }
         }
 
