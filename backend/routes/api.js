@@ -2428,7 +2428,8 @@ router.get('/plugins/health', asyncHandler(async (req, res) => {
           // Commits differ - but did the plugin's actual files change?
           // Use git diff to check only the plugin's directory
           const repoPath = marketplaceHeads[marketplace].path;
-          const fromCommit = installedSha || installedVersion;
+          // Prefer installedVersion over installedSha - Claude Code updates version but leaves gitCommitSha stale
+          const fromCommit = installedVersion || installedSha;
           const filesChanged = hasPluginChanged(repoPath, name, fromCommit, currentSha);
 
           if (filesChanged) {
