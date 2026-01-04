@@ -21,9 +21,34 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 - **Desktop Notification Settings** - Configure desktop notifications for system events:
   - Master enable/disable toggle for all notifications
-  - Quiet hours with configurable start/end times
+  - Quiet hours with configurable start/end times (supports overnight ranges like 10 PM to 8 AM)
   - Per-event toggles for connection, terminal, Claude, and system events
   - Events: backend disconnect/reconnect, spawn errors, terminal errors, context critical, long-running completion, UI crashes, question waiting, download failures, orphaned sessions
+  - New `useDesktopNotifications` hook for consistent notification handling across components
+
+- **Bookmarks Manager** - Full-featured bookmark management in dedicated page:
+  - Tree view of all Chrome bookmarks with folder hierarchy
+  - Drag-and-drop reordering and folder organization
+  - Create, edit, delete bookmarks and folders
+  - Search bookmarks by title or URL
+  - Integration with new tab page shortcuts
+
+- **Dashboard Quick Access Dropdown** - Quick navigation from sidepanel header:
+  - Click home icon dropdown to jump to any dashboard section
+  - Direct links to Files, Terminals, Profiles, Audio, Settings, MCP Playground
+  - Chevron indicator shows dropdown is available
+
+- **Unified Header Indicators** - Consolidated badge for terminals outside sidebar:
+  - Ghost (purple): Detached tmux sessions - reattach or kill
+  - Popout (blue): Terminals in popup windows - return to sidebar
+  - 3D Focus (cyan): Terminals in 3D mode - return to sidebar
+  - Sectioned dropdown with color-coded headers and multi-select actions
+  - "Restore All" button to bring back all popout/3D terminals at once
+  - Keyboard navigation with arrow keys
+
+- **Close Others Context Menu** - New terminal tab context menu options:
+  - "Close Others" to kill all terminals except the selected one
+  - "Close All" to kill all terminals at once
 
 - **Weather Widget** - New tab page now shows local weather:
   - Temperature display with weather icon
@@ -78,6 +103,12 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 - **Sidepanel Header** - Cleaned up redundant elements:
   - Removed duplicate title display
   - Updated dashboard button icon for clarity
+  - Added dropdown menu for quick dashboard navigation
+
+- **File Picker Modal** - Enhanced file selection experience:
+  - Quick folder filters to jump to common directories
+  - Audited all file picker usages for consistent behavior
+  - Improved validation and error handling
 
 ### Fixed
 
@@ -85,7 +116,10 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 - **Pane Title Detection** - Shell with command pane titles (e.g., "bash: command") now treated as generic, preventing false-positive status displays
 
-- **Working Directory Notifications** - Invalid path warning now displays UI notification
+- **Working Directory Validation** - Invalid path handling improved:
+  - Validates working directory before spawning terminal
+  - Falls back gracefully with user notification
+  - Invalid path warning displays UI notification
 
 - **Profile Card Theme Preview** - Dashboard profile cards now correctly show inherited theme colors
 
