@@ -20,11 +20,12 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 
 ```
 1. Get ready issues      →  bd ready
-2. Create worktrees      →  git worktree add (parallel isolation)
-3. Spawn workers         →  TabzChrome spawn API
-4. Send prompts          →  tmux send-keys with skill hints
-5. Monitor via tmuxplexer →  Background window polling
-6. Complete pipeline     →  Merge → Sync → Push
+2. Create worktrees      →  git worktree add + npm install (parallel)
+3. Wait for deps         →  All worktrees ready before workers spawn
+4. Spawn workers         →  TabzChrome spawn API
+5. Send prompts          →  tmux send-keys with skill hints
+6. Monitor via tmuxplexer →  Background window polling
+7. Complete pipeline     →  Merge → Sync → Push
 ```
 
 ---
@@ -97,7 +98,9 @@ bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] [\(.type)] \(.title)"' | 
 
 Ask user: How many workers? (2, 3, 4, 5)
 
-### 3. Create Worktrees
+### 3. Create Worktrees (Parallel)
+
+Create all worktrees and install dependencies in parallel, then wait for completion before spawning workers.
 
 **Important**: Use file-based locking to prevent race conditions when multiple workers spawn simultaneously.
 
@@ -110,10 +113,11 @@ validate_issue_id() {
 # Lockfile for worktree creation (prevents race conditions with parallel workers)
 WORKTREE_LOCK="/tmp/git-worktree-$(basename "$PROJECT_DIR").lock"
 
-for ISSUE in TabzChrome-abc TabzChrome-def; do
-  validate_issue_id "$ISSUE" || continue
+# Function to setup a single worktree with deps
+setup_worktree() {
+  local ISSUE="$1"
+  local WORKTREE="${PROJECT_DIR}-worktrees/${ISSUE}"
 
-  WORKTREE="${PROJECT_DIR}-worktrees/${ISSUE}"
   mkdir -p -- "$(dirname "$WORKTREE")"
 
   # Use flock to serialize worktree creation across parallel workers
@@ -131,10 +135,30 @@ for ISSUE in TabzChrome-abc TabzChrome-def; do
     git worktree add -- "$WORKTREE" HEAD
   ) 200>"$WORKTREE_LOCK"
 
-  # Install deps (outside lock - can run in parallel)
-  [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ] && \
-    (cd -- "$WORKTREE" && npm ci 2>/dev/null || npm install)
+  # Install deps based on lockfile type (outside lock - can run in parallel)
+  if [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ]; then
+    cd -- "$WORKTREE"
+    if [ -f "pnpm-lock.yaml" ]; then
+      pnpm install --frozen-lockfile
+    elif [ -f "yarn.lock" ]; then
+      yarn install --frozen-lockfile
+    else
+      npm ci 2>/dev/null || npm install
+    fi
+  fi
+
+  echo "READY: $WORKTREE"
+}
+
+# Run all worktree setups in parallel
+for ISSUE in TabzChrome-abc TabzChrome-def TabzChrome-ghi; do
+  validate_issue_id "$ISSUE" || continue
+  setup_worktree "$ISSUE" &
 done
+
+# Wait for ALL worktrees to be ready before spawning workers
+wait
+echo "All worktrees initialized with dependencies"
 ```
 
 ### 4. Spawn Workers
@@ -281,10 +305,17 @@ while true; do
 
   echo "=== Wave $WAVE: $(echo "$READY" | wc -l) issues ==="
 
-  # Spawn all ready issues (with validation)
+  # PHASE 1: Initialize ALL worktrees in parallel (deps included)
   for ISSUE in $READY; do
-    # Validate issue ID before processing
-    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Skipping invalid issue: $ISSUE" >&2; continue; }
+    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Skipping invalid: $ISSUE" >&2; continue; }
+    setup_worktree "$ISSUE" &  # Uses function from section 3
+  done
+  wait  # Block until all worktrees ready with deps
+  echo "All worktrees initialized for wave $WAVE"
+
+  # PHASE 2: Spawn workers (worktrees already have deps)
+  for ISSUE in $READY; do
+    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
     spawn_worker "$ISSUE"
   done
 
