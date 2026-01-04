@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Grid3X3,
   GripVertical,
@@ -2144,11 +2145,28 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
   const [inputValue, setInputValue] = useState('')
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
+
+  // Calculate dropdown position when opening
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      // Check if click is inside container or inside the portal dropdown
+      const target = e.target as Node
+      const dropdownEl = document.getElementById('category-dropdown-portal')
+      if (containerRef.current && !containerRef.current.contains(target) && !dropdownEl?.contains(target)) {
         setIsOpen(false)
         setIsCreatingNew(false)
         setInputValue('')
@@ -2163,6 +2181,18 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
       inputRef.current.focus()
     }
   }, [isCreatingNew])
+
+  // Update position on scroll/resize when open
+  useEffect(() => {
+    if (!isOpen) return
+    const handleUpdate = () => updateDropdownPosition()
+    window.addEventListener('scroll', handleUpdate, true)
+    window.addEventListener('resize', handleUpdate)
+    return () => {
+      window.removeEventListener('scroll', handleUpdate, true)
+      window.removeEventListener('resize', handleUpdate)
+    }
+  }, [isOpen])
 
   const handleSelect = (category: string) => {
     onChange(category)
@@ -2196,8 +2226,12 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) updateDropdownPosition()
+          setIsOpen(!isOpen)
+        }}
         className="w-full px-3 py-2 bg-card border border-border rounded-lg text-sm text-left flex items-center justify-between focus:border-primary focus:outline-none"
       >
         <span className={value ? '' : 'text-muted-foreground'}>
@@ -2213,8 +2247,17 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
         </div>
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+      {isOpen && createPortal(
+        <div
+          id="category-dropdown-portal"
+          className="fixed bg-card border border-border rounded-lg shadow-xl overflow-hidden"
+          style={{
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+            zIndex: 9999,
+          }}
+        >
           {filteredCategories.length > 0 && (
             <div className="max-h-48 overflow-y-auto">
               {filteredCategories.map(category => (
@@ -2274,7 +2317,8 @@ function CategoryCombobox({ value, onChange, categories }: CategoryComboboxProps
               Create new category...
             </button>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
