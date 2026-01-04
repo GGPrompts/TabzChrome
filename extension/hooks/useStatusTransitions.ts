@@ -14,6 +14,9 @@ import { useDesktopNotifications } from './useDesktopNotifications'
 // Timeout for question waiting notification (60 seconds)
 const QUESTION_WAITING_TIMEOUT_MS = 60_000
 
+// Threshold for long-running command notification (5 minutes)
+const LONG_RUNNING_THRESHOLD_MS = 300_000
+
 export interface TerminalSession {
   id: string
   name: string
@@ -70,6 +73,8 @@ export function useStatusTransitions({
   // Question waiting timeout tracking
   const questionTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const questionDataRef = useRef<Map<string, { displayName: string; questionText: string }>>(new Map())
+  // Long-running command tracking (when terminal entered processing state)
+  const processingStartTimeRef = useRef<Map<string, number>>(new Map())
 
   // Helper to get phrase template for an event type
   const getPhraseTemplate = (eventType: AudioEventType, variant?: string): string => {
@@ -167,9 +172,15 @@ export function useStatusTransitions({
       const now = Date.now()
       const lastReadyTime = lastReadyAnnouncementRef.current.get(terminalId) || 0
       const wasWorking = prevStatus === 'processing' || prevStatus === 'tool_use'
+      const isNowWorking = currentStatus === 'processing' || currentStatus === 'tool_use'
       const isNowReady = currentStatus === 'awaiting_input' || currentStatus === 'idle'
       const isValidTransition = wasWorking && isNowReady && currentSubagentCount === 0
       const cooldownPassed = (now - lastReadyTime) > READY_ANNOUNCEMENT_COOLDOWN_MS
+
+      // Track when terminal enters processing state (for long-running detection)
+      if (!wasWorking && isNowWorking && prevStatus !== undefined) {
+        processingStartTimeRef.current.set(terminalId, now)
+      }
 
       // Freshness checks to prevent stale status files from triggering audio
       const currentLastUpdated = status.last_updated || ''
@@ -190,6 +201,27 @@ export function useStatusTransitions({
         const template = getPhraseTemplate('ready')
         const phrase = renderTemplate(template, { profile: getDisplayName() })
         playAudio(phrase, session, false, { eventType: 'ready' })
+      }
+
+      // Long-running command completion notification
+      // Check on any valid ready transition (independent of audio settings)
+      if (isValidTransition && isStatusFresh && isNotStale) {
+        const processingStartTime = processingStartTimeRef.current.get(terminalId)
+        if (processingStartTime) {
+          const elapsedMs = now - processingStartTime
+          if (elapsedMs >= LONG_RUNNING_THRESHOLD_MS) {
+            const elapsedMinutes = Math.round(elapsedMs / 60_000)
+            showNotification('longRunningComplete', {
+              title: `${getDisplayName()} finished`,
+              message: `Long-running task completed after ${elapsedMinutes}m`,
+              requireInteraction: false,
+              notificationId: `long-running-${terminalId}`,
+              priority: 1,
+            })
+          }
+          // Clear tracking after ready transition
+          processingStartTimeRef.current.delete(terminalId)
+        }
       }
 
       // Tool announcements
@@ -422,6 +454,7 @@ export function useStatusTransitions({
         prevContextPctRef.current.delete(id)
         announcedQuestionsRef.current.delete(id)
         announcedPlanApprovalRef.current.delete(id)
+        processingStartTimeRef.current.delete(id)
         clearQuestionWaitingTimeout(id)
       }
     }
