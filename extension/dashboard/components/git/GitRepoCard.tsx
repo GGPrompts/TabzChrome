@@ -16,9 +16,11 @@ interface GitRepoCardProps {
   onToggleExpand: () => void
   onRefresh: () => void
   isFocused?: boolean
+  isSelected?: boolean
+  onToggleSelect?: () => void
 }
 
-export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onToggleExpand, onRefresh, isFocused = false }: GitRepoCardProps) {
+export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onToggleExpand, onRefresh, isFocused = false, isSelected = false, onToggleSelect }: GitRepoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const hasChanges = repo.staged.length > 0 || repo.unstaged.length > 0 || repo.untracked.length > 0
   const [stashCount, setStashCount] = useState(0)
@@ -158,6 +160,17 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
         className="flex items-center gap-3 p-3 bg-card/50 hover:bg-muted/50 cursor-pointer"
         onClick={onToggleExpand}
       >
+        {/* Selection checkbox */}
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => { e.stopPropagation(); onToggleSelect() }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary/50 focus:ring-offset-0 cursor-pointer"
+          />
+        )}
+
         {/* Expand chevron */}
         <button className="p-0.5 hover:bg-muted rounded">
           {isExpanded ? (

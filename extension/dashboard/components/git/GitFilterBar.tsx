@@ -1,5 +1,5 @@
 import React, { RefObject } from 'react'
-import { Search, Star, ArrowUpDown } from 'lucide-react'
+import { Search, Star, ArrowUpDown, CheckSquare } from 'lucide-react'
 import { SortOption } from '../../../hooks/useGitVisibility'
 
 interface GitFilterBarProps {
@@ -12,6 +12,11 @@ interface GitFilterBarProps {
   totalCount: number
   filteredCount: number
   searchInputRef?: RefObject<HTMLInputElement>
+  // Selection props
+  selectedCount?: number
+  allSelected?: boolean
+  onSelectAll?: () => void
+  onDeselectAll?: () => void
 }
 
 export function GitFilterBar({
@@ -23,10 +28,32 @@ export function GitFilterBar({
   onSortChange,
   totalCount,
   filteredCount,
-  searchInputRef
+  searchInputRef,
+  selectedCount = 0,
+  allSelected = false,
+  onSelectAll,
+  onDeselectAll
 }: GitFilterBarProps) {
+  const hasSelection = selectedCount > 0
+
   return (
     <div className="flex items-center gap-3 p-3 border-b border-border bg-card/50">
+      {/* Select all checkbox */}
+      {onSelectAll && onDeselectAll && filteredCount > 0 && (
+        <button
+          onClick={allSelected ? onDeselectAll : onSelectAll}
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm transition-colors ${
+            hasSelection
+              ? 'bg-primary/20 text-primary border border-primary/30'
+              : 'hover:bg-muted text-muted-foreground border border-transparent'
+          }`}
+          title={allSelected ? 'Deselect all' : 'Select all visible repos'}
+        >
+          <CheckSquare className={`w-4 h-4 ${hasSelection ? 'fill-primary/30' : ''}`} />
+          {allSelected ? 'All' : 'Select'}
+        </button>
+      )}
+
       {/* Search */}
       <div className="relative flex-1 max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

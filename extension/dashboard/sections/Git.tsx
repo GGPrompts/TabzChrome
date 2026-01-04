@@ -3,8 +3,10 @@ import { GitBranch, RefreshCw, AlertCircle, Star, Search } from 'lucide-react'
 import { useGitRepos } from '../../hooks/useGitRepos'
 import { useGitVisibility } from '../../hooks/useGitVisibility'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
+import { useBulkGitOperations } from '../../hooks/useBulkGitOperations'
 import { GitFilterBar } from '../components/git/GitFilterBar'
 import { GitRepoCard } from '../components/git/GitRepoCard'
+import { GitBulkActionsBar } from '../components/git/GitBulkActionsBar'
 
 // Loading skeleton component
 function GitRepoSkeleton() {
@@ -42,11 +44,29 @@ export default function GitSection() {
   // Track focused repo index for keyboard navigation
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
 
+  // Track selected repos for bulk operations
+  const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set())
+
+  // Bulk operations
+  const { progress, isRunning, runBulkOperation, clearProgress } = useBulkGitOperations()
+
   // Ref for the search input
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const toggleExpand = useCallback((repoName: string) => {
     setExpandedRepos(prev => {
+      const next = new Set(prev)
+      if (next.has(repoName)) {
+        next.delete(repoName)
+      } else {
+        next.add(repoName)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelect = useCallback((repoName: string) => {
+    setSelectedRepos(prev => {
       const next = new Set(prev)
       if (next.has(repoName)) {
         next.delete(repoName)
@@ -105,6 +125,29 @@ export default function GitSection() {
       r.staged.length === 0 && r.unstaged.length === 0 && r.untracked.length === 0
     )
   }, [filteredRepos])
+
+  // Selection callbacks (must be after filteredRepos is defined)
+  const selectAllFiltered = useCallback(() => {
+    setSelectedRepos(new Set(filteredRepos.map(r => r.name)))
+  }, [filteredRepos])
+
+  const clearSelection = useCallback(() => {
+    setSelectedRepos(new Set())
+    clearProgress()
+  }, [clearProgress])
+
+  // Bulk operation handlers
+  const handleBulkFetch = useCallback(() => {
+    runBulkOperation(Array.from(selectedRepos), 'fetch', refetch)
+  }, [selectedRepos, runBulkOperation, refetch])
+
+  const handleBulkPull = useCallback(() => {
+    runBulkOperation(Array.from(selectedRepos), 'pull', refetch)
+  }, [selectedRepos, runBulkOperation, refetch])
+
+  const handleBulkPush = useCallback(() => {
+    runBulkOperation(Array.from(selectedRepos), 'push', refetch)
+  }, [selectedRepos, runBulkOperation, refetch])
 
   // Auto-expand if only one repo is showing (on initial load)
   const hasAutoExpanded = useRef(false)
@@ -211,6 +254,23 @@ export default function GitSection() {
           totalCount={data?.repos.length || 0}
           filteredCount={filteredRepos.length}
           searchInputRef={searchInputRef}
+          selectedCount={selectedRepos.size}
+          allSelected={filteredRepos.length > 0 && filteredRepos.every(r => selectedRepos.has(r.name))}
+          onSelectAll={selectAllFiltered}
+          onDeselectAll={clearSelection}
+        />
+      )}
+
+      {/* Bulk actions bar - shown when repos are selected */}
+      {selectedRepos.size > 0 && (
+        <GitBulkActionsBar
+          selectedCount={selectedRepos.size}
+          onFetchAll={handleBulkFetch}
+          onPullAll={handleBulkPull}
+          onPushAll={handleBulkPush}
+          onClearSelection={clearSelection}
+          progress={progress}
+          isRunning={isRunning}
         />
       )}
 
@@ -301,6 +361,8 @@ export default function GitSection() {
                 onToggleExpand={() => toggleExpand(repo.name)}
                 onRefresh={refetch}
                 isFocused={focusedIndex === index}
+                isSelected={selectedRepos.has(repo.name)}
+                onToggleSelect={() => toggleSelect(repo.name)}
               />
             ))}
           </div>
