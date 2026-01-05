@@ -2,7 +2,6 @@
 name: code-reviewer
 description: "Autonomous code review - finds bugs, security issues, convention violations. Auto-fixes when confident, flags blockers otherwise. No user interaction needed."
 model: opus
-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
 # Code Reviewer - Autonomous Quality Gate

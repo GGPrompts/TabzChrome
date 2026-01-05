@@ -290,7 +290,7 @@ Ensure each wave has roughly equal work:
 
 **Spawn command:**
 ```bash
-/bd-swarm beads-xxx beads-yyy beads-zzz
+/conductor:bd-swarm beads-xxx beads-yyy beads-zzz
 ```
 
 ---
@@ -317,14 +317,14 @@ Ensure each wave has roughly equal work:
 ## Quick Actions
 
 # Start Wave 1 now
-/bd-swarm beads-xxx beads-yyy beads-zzz
+/conductor:bd-swarm beads-xxx beads-yyy beads-zzz
 
 # Check progress
 bd list --status=in_progress
 
 # When Wave 1 done, start Wave 2
 bd ready  # Should show Wave 2 issues
-/bd-swarm beads-aaa beads-bbb
+/conductor:bd-swarm beads-aaa beads-bbb
 ```
 
 ---

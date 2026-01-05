@@ -10,10 +10,10 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 
 ```bash
 # Interactive: select issues and worker count
-/bd-swarm
+/conductor:bd-swarm
 
 # Auto mode: process entire backlog autonomously
-/bd-swarm --auto
+/conductor:bd-swarm --auto
 ```
 
 ## Workflow Overview
@@ -249,7 +249,7 @@ ${DESCRIPTION}
 Run \`/ui-styling:ui-styling\` or \`/xterm-js\` based on task type.
 
 ## Completion
-When done: \`/worker-done ${ISSUE_ID}\`
+When done: \`/conductor:worker-done ${ISSUE_ID}\`
 EOF
 )
 
@@ -410,10 +410,10 @@ If conductor hits 75% context:
 
 ```bash
 # Save state
-echo "$WAVE" > /tmp/bd-swarm-wave.txt
+echo "$WAVE" > /tmp/conductor:bd-swarm-wave.txt
 
 # Trigger /wipe with handoff
-# Resume with: /bd-swarm --auto --resume
+# Resume with: /conductor:bd-swarm --auto --resume
 ```
 
 ---
@@ -424,7 +424,7 @@ Each worker will:
 1. Read issue with `bd show <id>`
 2. Implement feature/fix
 3. Build and test
-4. Run `/worker-done <issue-id>` (reviews, commits, closes issue)
+4. Run `/conductor:worker-done <issue-id>` (reviews, commits, closes issue)
 
 ---
 

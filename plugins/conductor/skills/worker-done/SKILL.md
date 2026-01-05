@@ -1,6 +1,6 @@
 ---
 name: worker-done
-description: "Complete worker task: verify build, run code review, commit, and close issue. Invoke with /worker-done <issue-id>"
+description: "Complete worker task: verify build, run code review, commit, and close issue. Invoke with /conductor:worker-done <issue-id>"
 ---
 
 # Worker Done - Task Completion Pipeline
@@ -10,12 +10,12 @@ Run this when you've finished implementing a feature/fix and are ready to comple
 ## Usage
 
 ```
-/worker-done TabzChrome-abc
+/conductor:worker-done TabzChrome-abc
 ```
 
 Or if issue ID is in your task header, just:
 ```
-/worker-done
+/conductor:worker-done
 ```
 
 ## Pipeline Steps
@@ -199,7 +199,7 @@ echo "Documentation updated: [files or 'none']"
 |------|------------|
 | Build | Show errors, stop pipeline |
 | Tests | Show failures, stop pipeline |
-| Review | Show blockers, stop pipeline (fix and re-run `/worker-done`) |
+| Review | Show blockers, stop pipeline (fix and re-run `/conductor:worker-done`) |
 | Commit | Show git errors |
 | Follow-ups | Non-blocking - log and continue |
 | Docs | Non-blocking - log and continue |
@@ -210,22 +210,22 @@ echo "Documentation updated: [files or 'none']"
 If the pipeline stopped due to build/test/review failure:
 
 1. Fix the issues
-2. Run `/worker-done` again
+2. Run `/conductor:worker-done` again
 
 The pipeline is idempotent - safe to re-run.
 
 ## Customizing the Pipeline
 
 To skip steps, use flags (future enhancement):
-- `/worker-done --skip-tests` - Skip test step
-- `/worker-done --skip-review` - Skip code review (not recommended)
+- `/conductor:worker-done --skip-tests` - Skip test step
+- `/conductor:worker-done --skip-review` - Skip code review (not recommended)
 
 ## Example Session
 
 ### Feature Implementation
 
 ```
-> /worker-done TabzChrome-hyo
+> /conductor:worker-done TabzChrome-hyo
 
 === Step 1: Build Verification ===
 ✓ Build passed
@@ -263,7 +263,7 @@ Documentation updated: CLAUDE.md
 ### Research Task (creates follow-ups)
 
 ```
-> /worker-done TabzChrome-abc
+> /conductor:worker-done TabzChrome-abc
 
 === Step 1: Build Verification ===
 ✓ Build passed (no code changes, research only)
@@ -301,7 +301,7 @@ Documentation updated: docs/research/youtube-api.md
 
 ## After Completion
 
-When `/worker-done` succeeds:
+When `/conductor:worker-done` succeeds:
 - Issue is closed in beads
 - Commit is on the feature branch
 - Worker's job is done

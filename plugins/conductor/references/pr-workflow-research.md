@@ -10,7 +10,7 @@ Worker completes → code-reviewer → commit → bd close → local merge to ma
 
 Workers currently:
 1. Work in isolated worktrees with feature branches
-2. Run `/worker-done` which triggers code-reviewer subagent
+2. Run `/conductor:worker-done` which triggers code-reviewer subagent
 3. Commit directly to their feature branch
 4. Close the beads issue
 5. Conductor merges locally: `git merge --no-edit feature/issue-id`
@@ -161,7 +161,7 @@ gh pr merge $PR_NUMBER --auto --squash
 
 ## Updated Worker Pipeline
 
-### Modified `/worker-done` Skill
+### Modified `/conductor:worker-done` Skill
 
 ```markdown
 ### Step 4: Push and Create PR

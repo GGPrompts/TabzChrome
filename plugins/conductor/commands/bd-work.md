@@ -127,7 +127,7 @@ Run these commands first to load relevant patterns:
 ## Completion
 When you have finished implementing, run:
 ```
-/worker-done <issue-id>
+/conductor:worker-done <issue-id>
 ```
 
 This runs the full completion pipeline:
@@ -137,7 +137,7 @@ This runs the full completion pipeline:
 4. Commit with proper format
 5. Close beads issue
 
-If any step fails, fix the issue and run `/worker-done` again.
+If any step fails, fix the issue and run `/conductor:worker-done` again.
 ```
 
 ### 9. Begin Work
@@ -146,7 +146,7 @@ Start working on the issue with the prepared context.
 
 ### 10. On Completion
 
-Run `/worker-done <issue-id>` which handles:
+Run `/conductor:worker-done <issue-id>` which handles:
 - Build verification
 - Test verification
 - Code review (spawns subagent)
@@ -155,7 +155,7 @@ Run `/worker-done <issue-id>` which handles:
 
 ## Notes
 
-- `/worker-done` is idempotent - safe to re-run after fixing issues
+- `/conductor:worker-done` is idempotent - safe to re-run after fixing issues
 - If context gets high (>75%), use `/wipe` to handoff to fresh session
 - Update beads with progress: `bd comments <id> add "Progress: ..."`
 
