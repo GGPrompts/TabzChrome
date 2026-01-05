@@ -968,6 +968,53 @@ wss.on('connection', (ws, req) => {
           }
           break;
 
+        case 'browser-create-profile-result':
+          // Receive create profile result from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              profile: data.profile,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-update-profile-result':
+          // Receive update profile result from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              profile: data.profile,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-delete-profile-result':
+          // Receive delete profile result from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              deletedProfile: data.deletedProfile,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-import-profiles-result':
+          // Receive import profiles result from Chrome extension
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              imported: data.imported,
+              skipped: data.skipped,
+              skippedIds: data.skippedIds,
+              total: data.total,
+              error: data.error
+            });
+          }
+          break;
+
         case 'browser-download-result':
           // Receive download result from Chrome extension
           if (data.requestId) {

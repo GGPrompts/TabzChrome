@@ -199,15 +199,20 @@ export function useAudioPlayback({ sessions }: UseAudioPlaybackParams): UseAudio
     // Strip emojis for cleaner TTS
     let cleanText = stripEmojis(text)
 
-    // Debounce: use separate timers for tools vs other announcements
+    // Debounce: tools use separate timer, context alerts bypass debounce entirely
+    // All other events use the configured debounce (toolDebounceMs applies to all audio)
     const now = Date.now()
-    if (isToolAnnouncement) {
+    const isContextAlert = overrides?.eventType === 'contextWarning' || overrides?.eventType === 'contextCritical'
+    if (isContextAlert) {
+      // Context alerts skip debounce - they use hysteresis (only fire once per threshold crossing)
+    } else if (isToolAnnouncement) {
       const timeSinceLast = now - lastToolAudioTimeRef.current
       if (timeSinceLast < audioSettings.toolDebounceMs) return
       lastToolAudioTimeRef.current = now
     } else {
+      // Non-tool events also use the configured debounce
       const timeSinceLast = now - lastAudioTimeRef.current
-      if (timeSinceLast < 1000) return
+      if (timeSinceLast < audioSettings.toolDebounceMs) return
       lastAudioTimeRef.current = now
     }
 
