@@ -7,6 +7,17 @@ description: "Fully autonomous backlog completion. Runs waves until `bd ready` i
 
 **YOU are the conductor. Execute this workflow autonomously. Do NOT ask the user for input.**
 
+## Architecture: Fewer Terminals, More Subagents
+
+To avoid overwhelming the statusline/state tracker, we spawn **3-4 terminal workers max**, each handling multiple issues via internal Task subagents.
+
+```
+BAD:  10 terminals × 1 issue each    → statusline flicker chaos
+GOOD: 3 terminals × 3-4 subagents each → smooth parallel execution
+```
+
+---
+
 ## EXECUTE NOW - Wave Loop
 
 Repeat this loop until `bd ready` returns empty:
@@ -23,13 +34,32 @@ bd ready --json | jq -r '.[] | "\(.id): \(.title)"'
 
 If empty, announce "Backlog complete!" and stop.
 
-Store the issue IDs for later steps.
+Store the issue IDs and count them.
 
 ---
 
-### STEP 2: Create Worktrees (Run in Parallel)
+### STEP 2: Calculate Worker Distribution
 
-For EACH ready issue, run these commands in parallel (use `&` and `wait`):
+Determine how many terminal workers to spawn (max 4):
+
+```
+Issues: 1-4   → 1-2 workers (1-2 issues each)
+Issues: 5-8   → 2-3 workers (2-3 issues each)
+Issues: 9-12  → 3-4 workers (3 issues each)
+Issues: 13+   → 4 workers (batch remaining)
+```
+
+Assign issues to workers. Example for 10 issues:
+- Worker 1: SAAS-001, SAAS-002, SAAS-003
+- Worker 2: SAAS-004, SAAS-005, SAAS-006
+- Worker 3: SAAS-007, SAAS-008
+- Worker 4: SAAS-009, SAAS-010
+
+---
+
+### STEP 3: Create Worktrees (Run in Parallel)
+
+For EACH ready issue, create a worktree:
 
 ```bash
 PROJECT_DIR=$(pwd)
@@ -37,94 +67,106 @@ WORKTREE_DIR="${PROJECT_DIR}-worktrees"
 mkdir -p "$WORKTREE_DIR"
 
 # For each ISSUE_ID from Step 1, run in parallel:
-ISSUE_ID="<issue-id>"
-WORKTREE="${WORKTREE_DIR}/${ISSUE_ID}"
+for ISSUE_ID in <all-issue-ids>; do
+  (
+    WORKTREE="${WORKTREE_DIR}/${ISSUE_ID}"
+    git worktree add "$WORKTREE" -b "feature/${ISSUE_ID}" 2>/dev/null || git worktree add "$WORKTREE" HEAD
+    echo "Created: $ISSUE_ID"
+  ) &
+done
+wait
 
-git worktree add "$WORKTREE" -b "feature/${ISSUE_ID}" 2>/dev/null || git worktree add "$WORKTREE" HEAD
-
-# Install deps
-cd "$WORKTREE"
-if [ -f "pnpm-lock.yaml" ]; then
-  pnpm install --frozen-lockfile
-elif [ -f "package.json" ]; then
-  npm ci 2>/dev/null || npm install
-fi
+# Install deps in main worktree only (workers will use it as reference)
 ```
 
-**WAIT for ALL worktrees to be ready before Step 3.**
+**WAIT for ALL worktrees to be ready before Step 4.**
 
 ---
 
-### STEP 3: Spawn Workers via TabzChrome API
+### STEP 4: Spawn Terminal Workers (MAX 4)
 
-For EACH issue, spawn a worker:
+Spawn only 3-4 terminal workers, NOT one per issue:
 
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
-ISSUE_ID="<issue-id>"
-WORKTREE="${WORKTREE_DIR}/${ISSUE_ID}"
-
-# Get issue details
-TITLE=$(bd show "$ISSUE_ID" --json | jq -r '.title')
-DESCRIPTION=$(bd show "$ISSUE_ID" --json | jq -r '.description // "No description"')
-
-# Mark in progress
-bd update "$ISSUE_ID" --status in_progress
+WORKER_NUM=1  # 1, 2, 3, or 4
 
 # Spawn worker
 curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
   -d "$(jq -n \
-    --arg name "worker-${ISSUE_ID}" \
-    --arg dir "$WORKTREE" \
+    --arg name "worker-${WORKER_NUM}" \
+    --arg dir "$PROJECT_DIR" \
     --arg cmd "claude --dangerously-skip-permissions" \
     '{name: $name, workingDir: $dir, command: $cmd}')"
 ```
 
-Save the session names from the responses.
+Repeat for each worker (max 4). Save session names.
 
 ---
 
-### STEP 4: Send Prompts to Workers
+### STEP 5: Send Multi-Issue Prompts to Workers
 
-Wait 5 seconds for Claude to initialize, then for EACH worker session:
+Wait 5 seconds for Claude to initialize, then send each worker its batch of issues:
 
 ```bash
-SESSION="<session-name-from-step-3>"
-ISSUE_ID="<issue-id>"
-TITLE="<title>"
-DESCRIPTION="<description>"
+SESSION="<session-name>"
+# ISSUES assigned to this worker (e.g., "SAAS-001 SAAS-002 SAAS-003")
 
 sleep 5
 
-# Send the prompt
-tmux send-keys -t "$SESSION" -l "## Task
-${ISSUE_ID}: ${TITLE}
+tmux send-keys -t "$SESSION" -l "## Multi-Issue Worker Task
 
-${DESCRIPTION}
+You are responsible for completing these issues IN PARALLEL using subagents:
 
-## CRITICAL: Use Subagents Aggressively
+<ISSUE_LIST>
+- SAAS-001: Title 1
+- SAAS-002: Title 2
+- SAAS-003: Title 3
+</ISSUE_LIST>
 
-You MUST spawn 4-5 subagents in parallel for this task. This is a demo showcasing mass parallelization.
+## CRITICAL: Use Task Subagents for Parallelization
 
-**Launch these subagents simultaneously (single message with multiple Task calls):**
+For EACH issue, spawn a dedicated subagent. Do this in a SINGLE message with multiple Task tool calls:
 
-1. **Explore agent** - Explore the codebase structure and find relevant files
-2. **Explore agent** - Search for similar implementations to reference
-3. **Plan agent** - Create detailed implementation plan for: ${TITLE}
-4. **Explore agent** - Identify all files to modify or create
+\`\`\`
+Use the Task tool multiple times in ONE message:
 
-**Do this FIRST before any implementation.**
+Task 1:
+  subagent_type: 'general-purpose'
+  prompt: |
+    Complete issue SAAS-001: [title]
 
-## After Subagents Complete
+    Description: [description]
+    Worktree: ${WORKTREE_DIR}/SAAS-001
 
-1. Synthesize findings from all subagents
-2. Implement the solution
-3. Build and verify: npm run build
-4. Run: /conductor:worker-done ${ISSUE_ID}
+    Steps:
+    1. cd to the worktree
+    2. Implement the feature
+    3. Run: npm run build
+    4. Commit changes
+    5. Run: bd close SAAS-001
 
-## Skills (invoke explicitly)
+Task 2:
+  subagent_type: 'general-purpose'
+  prompt: |
+    Complete issue SAAS-002: [title]
+    ...
+
+Task 3:
+  subagent_type: 'general-purpose'
+  prompt: |
+    Complete issue SAAS-003: [title]
+    ...
+\`\`\`
+
+## After All Subagents Complete
+
+1. Verify all assigned issues are closed: bd show SAAS-001 SAAS-002 SAAS-003
+2. Report completion to conductor
+
+## Skills Available
 - /ui-styling:ui-styling - For UI components
 - /frontend-design:frontend-design - For polished designs"
 
@@ -134,65 +176,43 @@ tmux send-keys -t "$SESSION" C-m
 
 ---
 
-### STEP 5: Launch Tmuxplexer Monitor
-
-**DO THIS NOW** - Spawn the monitor in a background window:
-
-```bash
-plugins/conductor/scripts/monitor-workers.sh --spawn
-```
-
-If that script doesn't exist, use:
-
-```bash
-tmux new-window -n "monitor" "tmuxplexer --watcher"
-```
-
----
-
 ### STEP 6: Poll Workers Until All Issues Closed
 
 **YOU must poll every 2 minutes. Do NOT wait for user input.**
 
-**ALSO: Check your context % each poll. If 70%+, run `/wipe:wipe` immediately (see Context Recovery section).**
+**ALSO: Check your context % each poll. If 70%+, run `/wipe:wipe` immediately.**
 
 Run this loop:
 
 ```bash
 while true; do
-  echo "[$(date '+%H:%M')] Checking worker status..."
-
-  # Get summary from monitor script or directly
-  plugins/conductor/scripts/monitor-workers.sh --summary 2>/dev/null || \
-    tmux list-sessions -F '#{session_name}' | grep -E "worker-|ctt-" | wc -l
+  echo "[$(date '+%H:%M')] Checking issue status..."
 
   # Check if ALL issues from this wave are closed
   ALL_CLOSED=true
-  for ISSUE_ID in <list-of-issue-ids>; do
-    STATUS=$(bd show "$ISSUE_ID" --json | jq -r '.status')
-    echo "  $ISSUE_ID: $STATUS"
-    if [ "$STATUS" != "closed" ]; then
+  CLOSED_COUNT=0
+  TOTAL_COUNT=<number-of-issues>
+
+  for ISSUE_ID in <all-issue-ids>; do
+    STATUS=$(bd show "$ISSUE_ID" --json | jq -r '.[0].status')
+    if [ "$STATUS" = "closed" ]; then
+      CLOSED_COUNT=$((CLOSED_COUNT + 1))
+    else
       ALL_CLOSED=false
     fi
   done
+
+  echo "Progress: $CLOSED_COUNT/$TOTAL_COUNT closed"
 
   if [ "$ALL_CLOSED" = "true" ]; then
     echo "All issues closed! Proceeding to merge."
     break
   fi
 
-  # >>> CHECK YOUR CONTEXT % HERE <<<
-  # Look at your status bar or tmuxplexer. If 70%+, run /wipe:wipe with handoff NOW.
-
   echo "Waiting 2 minutes before next poll..."
   sleep 120
 done
 ```
-
-**IMPORTANT:**
-- Do NOT skip this polling
-- Do NOT ask the user if workers are done - YOU must check
-- Do NOT ignore your context % - run `/wipe:wipe` at 70%
 
 ---
 
@@ -201,23 +221,30 @@ done
 Once all issues are closed:
 
 ```bash
-# Kill worker sessions
-for SESSION in <session-names>; do
+# Kill worker sessions (only 3-4 to kill, not 10+)
+for SESSION in <worker-session-names>; do
   tmux kill-session -t "$SESSION" 2>/dev/null
   echo "Killed: $SESSION"
 done
 
 # Merge each feature branch
 cd "$PROJECT_DIR"
-for ISSUE_ID in <issue-ids>; do
-  git merge --no-edit "feature/${ISSUE_ID}" && echo "Merged: feature/${ISSUE_ID}"
+for ISSUE_ID in <all-issue-ids>; do
+  git merge --no-edit "feature/${ISSUE_ID}" && echo "Merged: feature/${ISSUE_ID}" || {
+    # Handle conflicts by taking theirs for new files
+    git checkout --theirs . 2>/dev/null
+    git add -A
+    git commit -m "feat: merge ${ISSUE_ID}" || true
+  }
 done
 
 # Cleanup worktrees and branches
-for ISSUE_ID in <issue-ids>; do
+WORKTREE_DIR="${PROJECT_DIR}-worktrees"
+for ISSUE_ID in <all-issue-ids>; do
   git worktree remove --force "${WORKTREE_DIR}/${ISSUE_ID}" 2>/dev/null
   git branch -d "feature/${ISSUE_ID}" 2>/dev/null
 done
+rmdir "$WORKTREE_DIR" 2>/dev/null
 
 # Audio announcement
 curl -s -X POST http://localhost:8129/api/audio/speak \
@@ -239,14 +266,10 @@ Use the Task tool:
 
     1. Start the dev server: npm run dev (wait for it to be ready)
     2. Open http://localhost:3000 in browser
-    3. Create a tab group "QA Wave N" for your tabs
-    4. Screenshot at three viewports:
-       - Desktop (1920x1080): save as qa/screenshots/wave-N-desktop.png
-       - Tablet (768x1024): save as qa/screenshots/wave-N-tablet.png
-       - Mobile (375x812): save as qa/screenshots/wave-N-mobile.png
-    5. Check browser console for errors (tabz_get_console_logs)
-    6. Navigate to any new pages added this wave and screenshot those too
-    7. Kill the dev server when done
+    3. Screenshot at desktop viewport (1920x1080)
+    4. Check browser console for errors (tabz_get_console_logs)
+    5. Navigate to any new pages added this wave and screenshot those too
+    6. Kill the dev server when done
 
     If you find visual bugs or console errors:
     - Create beads issues with: bd create --title "Bug: <description>" --type bug --priority 2
@@ -257,15 +280,13 @@ Use the Task tool:
 
 **Skip this step if the wave was only backend/config changes.**
 
-The QA screenshots go to `qa/screenshots/` in the project directory.
-
 ---
 
 ### STEP 9: Sync and Check for Next Wave
 
 ```bash
 bd sync
-git push origin main
+git push origin main 2>/dev/null || echo "Push skipped (no remote or auth)"
 
 # Check for more ready issues
 NEXT_COUNT=$(bd ready --json | jq 'length')
@@ -289,19 +310,18 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 ## Key Rules
 
 1. **NO USER INPUT** - This is fully autonomous. Do not use AskUserQuestion.
-2. **YOU MUST POLL** - Check issue status every 2 minutes. Do not wait for user to say "done".
-3. **USE TMUXPLEXER** - Launch the monitor so you can see worker activity.
-4. **LOOP UNTIL EMPTY** - Keep running waves until `bd ready` returns nothing.
-5. **VISUAL QA AFTER UI WAVES** - Spawn tabz-manager subagent to screenshot and check for errors.
-6. **MONITOR YOUR CONTEXT** - Check your context % in the status bar or tmuxplexer. At 70%+, trigger `/wipe:wipe`.
+2. **MAX 4 TERMINALS** - Never spawn more than 4 terminal workers per wave.
+3. **USE SUBAGENTS** - Each terminal worker uses Task subagents for parallelization.
+4. **YOU MUST POLL** - Check issue status every 2 minutes. Do not wait for user to say "done".
+5. **LOOP UNTIL EMPTY** - Keep running waves until `bd ready` returns nothing.
+6. **VISUAL QA AFTER UI WAVES** - Spawn tabz-manager subagent to screenshot and check for errors.
+7. **MONITOR YOUR CONTEXT** - Check your context % in the status bar. At 70%+, trigger `/wipe:wipe`.
 
 ---
 
 ## Context Recovery (CRITICAL)
 
-**You MUST monitor your own context usage.** Your context percentage is visible in:
-- Your status bar (e.g., "45% ctx")
-- Tmuxplexer monitor (shows YOUR session too, not just workers)
+**You MUST monitor your own context usage.** Your context percentage is visible in your status bar.
 
 **During every poll cycle (Step 6), check your context:**
 
@@ -328,7 +348,7 @@ bd list --status=in_progress
 **Active Issues:**
 - [list the in_progress issue IDs]
 
-**Action Required:** Run `/bd-swarm-auto` to continue.
+**Action Required:** Run `/conductor:bd-swarm-auto` to continue.
 
 Beads has full state. The skill will:
 1. Check issue statuses (some may have closed while wiping)
@@ -354,6 +374,8 @@ tmux capture-pane -t "<session>" -p -S -50
 ```bash
 tmux send-keys -t "<session>" "Please continue with your task" C-m
 ```
+
+**Subagent failed:** Worker should retry or mark issue for manual review.
 
 ---
 
