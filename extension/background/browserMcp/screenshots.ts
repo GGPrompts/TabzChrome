@@ -36,15 +36,33 @@ export async function handleBrowserScreenshot(message: {
 
     let dataUrl: string
 
-    if (message.fullPage) {
-      // Full page screenshot: scroll and stitch
-      dataUrl = await captureFullPageScreenshot(targetTab.id)
-    } else if (message.selector) {
-      // Element screenshot: capture viewport and crop to element
-      dataUrl = await captureElementScreenshot(targetTab.id, message.selector)
-    } else {
-      // Simple viewport screenshot
-      dataUrl = await chrome.tabs.captureVisibleTab(targetTab.windowId!, { format: 'png' })
+    // Check if we need to switch tabs (target tab is not active)
+    const activeTab = (await chrome.tabs.query({ active: true, windowId: targetTab.windowId! }))[0]
+    const needsTabSwitch = message.tabId && activeTab?.id !== targetTab.id
+
+    // If targeting a specific non-active tab, switch to it first
+    if (needsTabSwitch) {
+      await chrome.tabs.update(targetTab.id!, { active: true })
+      // Wait for tab to become visible
+      await new Promise(resolve => setTimeout(resolve, 150))
+    }
+
+    try {
+      if (message.fullPage) {
+        // Full page screenshot: scroll and stitch
+        dataUrl = await captureFullPageScreenshot(targetTab.id!)
+      } else if (message.selector) {
+        // Element screenshot: capture viewport and crop to element
+        dataUrl = await captureElementScreenshot(targetTab.id!, message.selector)
+      } else {
+        // Simple viewport screenshot
+        dataUrl = await chrome.tabs.captureVisibleTab(targetTab.windowId!, { format: 'png' })
+      }
+    } finally {
+      // Switch back to original tab if we switched
+      if (needsTabSwitch && activeTab?.id) {
+        await chrome.tabs.update(activeTab.id, { active: true })
+      }
     }
 
     // Generate filename with optional custom path

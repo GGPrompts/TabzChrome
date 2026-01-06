@@ -84,7 +84,7 @@ export function WebShortcuts({ onNavigate }: WebShortcutsProps) {
         allBookmarks.sort((a, b) => parseInt(b.id) - parseInt(a.id))
       }
 
-      setBookmarks(allBookmarks.slice(0, 6))
+      setBookmarks(allBookmarks.slice(0, 8))
       setLoading(false)
     })
   }, [])
@@ -96,7 +96,7 @@ export function WebShortcuts({ onNavigate }: WebShortcutsProps) {
           <div className="shortcuts-title">Web Shortcuts</div>
         </div>
         <div className="shortcuts-grid">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
             <div
               key={i}
               className="shortcut-card animate-pulse"

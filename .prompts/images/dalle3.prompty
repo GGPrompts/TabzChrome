@@ -15,6 +15,15 @@ Generate images using browser automation with TabzChrome MCP tools.
 Generate a {{subject:robot avatar}} in {{style:photorealistic|digital art|watercolor|oil painting|3D render|pixel art|minimalist|anime}} style, {{aspect:square|wide|portrait}}
 ```
 
+## URLs
+
+| Page | URL | Notes |
+|------|-----|-------|
+| DALL-E 3 GPT | `chatgpt.com/g/g-iLoR8U3iA-dall-e3` | Direct chat with image gen |
+| Images Gallery | `chatgpt.com/images` | **NEW** - All your generated images |
+
+**Batch Prompts:** ChatGPT now supports submitting multiple image prompts at once. Generate several images, then download from /images page.
+
 ## Fillable Fields
 
 | Field | Options | Notes |
@@ -40,40 +49,58 @@ mcp-cli call tabz/tabz_fill '{"selector": "#prompt-textarea", "value": "{{prompt
 
 ### 3. Submit
 ```bash
-mcp-cli call tabz/tabz_click '{"selector": "button[data-testid=\"composer-button-create-image\"]"}'
+mcp-cli call tabz/tabz_click '{"selector": "#composer-submit-button"}'
 ```
 
-### 4. Wait and capture result (15-30 seconds for generation)
+### 4. Wait for generation (15-30 seconds)
+Poll with screenshots until image appears:
 ```bash
 mcp-cli call tabz/tabz_screenshot '{}'
 ```
 
-### 5. Save generated image
+**Completion indicators:**
+- Image appears in chat response (not loading spinner)
+- "Image created" text visible
 
-**For terminal backgrounds / personal use:**
+### 5. Extract image URL
 ```bash
-# Check and create default Pictures folder
-[ -d ~/Pictures ] || mkdir -p ~/Pictures && echo "Created ~/Pictures"
-
-# Save downloaded images there for easy access in TabzChrome file picker
+# Get the generated image element (has alt="Generated image")
+mcp-cli call tabz/tabz_get_element '{"selector": "img[alt=\"Generated image\"]", "includeStyles": false, "response_format": "json"}'
+# Look for: attributes.src → "https://chatgpt.com/backend-api/estuary/content?id=..."
 ```
 
-**For project-specific AI images:**
-```
-.prompts/AI_Images/
-```
-Create folder if it doesn't exist. Contents are gitignored (your images stay local).
+Alternative selectors:
+- `main img` - First image in main content area
+- `img[alt="Generated image"]` - Most reliable
 
-> **Note:** The default image folder is `~/Pictures`. You can change this in TabzChrome Dashboard → Settings → File Picker Defaults.
+### 6. Download image
+```bash
+# Download using the src URL from step 5
+mcp-cli call tabz/tabz_download_file '{"url": "<IMAGE_SRC_URL>", "filename": "tabz/images/my-image.png"}'
+```
+
+**Note:** Use `tabz_download_file` (not `tabz_download_image`) - the latter has service worker limitations.
+
+**Default save location:** `~/Downloads/tabz/images/`
+**Project location:** `.prompts/AI_Images/` (gitignored)
+
+### 7. Download multiple images
+If DALL-E generates multiple images:
+```bash
+# Get all generated images
+mcp-cli call tabz/tabz_get_element '{"selector": "img[alt=\"Generated image\"]:nth-of-type(1)", ...}'
+mcp-cli call tabz/tabz_get_element '{"selector": "img[alt=\"Generated image\"]:nth-of-type(2)", ...}'
+# Download each URL
+```
 
 ## Key Selectors
 
-| Element | Selector |
-|---------|----------|
-| Prompt input | `#prompt-textarea` |
-| Create image button | `button[data-testid="composer-button-create-image"]` |
-| Model selector | `button.group.flex.cursor-pointer` |
-| DALL-E in sidebar | `a[href*="dall-e"]` |
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Prompt input | `#prompt-textarea` | Main text input |
+| Submit button | `#composer-submit-button` | Submits prompt (send icon) |
+| Generated image | `img[alt="Generated image"]` | **Use this for download** |
+| Generated image (alt) | `main img` | First image in main area |
 
 ## Multiple Images
 

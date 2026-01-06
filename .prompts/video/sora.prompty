@@ -43,30 +43,59 @@ mcp-cli call tabz/tabz_click '{"selector": "div.flex.items-center.justify-betwee
 ```
 
 ### 4. Wait for generation (60-120 seconds)
-Videos appear in "Drafts" section when complete.
+Videos appear in "Drafts" section when complete. Poll with screenshots:
 
 ```bash
-# Check for completion notification or thumbnail change
+# Poll every 30s until video thumbnail appears (not a loading spinner)
 mcp-cli call tabz/tabz_screenshot '{}'
 ```
 
-### 5. Save generated video
-Download videos to:
+**Completion indicators:**
+- Video thumbnail is sharp (not blurry/loading)
+- No progress bar or spinner on the card
+- Video plays on hover
+
+### 5. Click video to open detail view
+```bash
+# Click the video thumbnail to open full view
+mcp-cli call tabz/tabz_click '{"selector": "video"}'
 ```
-.prompts/AI_Videos/
+
+### 6. Extract video URL
+```bash
+# Get video src attribute (contains direct download URL)
+mcp-cli call tabz/tabz_get_element '{"selector": "video", "includeStyles": false, "response_format": "json"}'
+# Look for: attributes.src → "https://videos.openai.com/az/files/..."
 ```
-Create folder if it doesn't exist. Contents are gitignored (your videos stay local).
+
+### 7. Download video
+```bash
+# Download using the src URL from step 6
+mcp-cli call tabz/tabz_download_file '{"url": "<VIDEO_SRC_URL>", "filename": "tabz/videos/my-video.mp4"}'
+```
+
+**Default save location:** `~/Downloads/tabz/videos/`
+**Project location:** `.prompts/AI_Videos/` (gitignored)
+
+### 8. Download multiple videos
+For batch download from drafts grid:
+```bash
+# On the drafts page, each video thumbnail has a src
+# Click each one, extract src, download, go back
+# Or use nth-child selectors: video:nth-of-type(1), video:nth-of-type(2), etc.
+```
 
 ## Key Selectors
 
-| Element | Selector |
-|---------|----------|
-| Prompt textarea | `textarea` |
-| Create video button | `div.flex.items-center.justify-between > div:last-child > button:last-child` |
-| Settings button | `button#radix-:rj:` (near textarea) |
-| Profile link | `div.flex.flex-col.items-center a:last-of-type` |
-| Drafts card (on profile) | `a.relative.block.h-full.w-full.overflow-hidden` |
-| Video thumbnail | `video` |
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Prompt textarea | `textarea` | Main prompt input |
+| Create video button | `div.flex.items-center.justify-between > div:last-child > button:last-child` | Submits prompt |
+| Settings button | `button#radix-:rj:` | Duration/aspect settings |
+| Video thumbnail (grid) | `video` | Click to open detail view |
+| Video (detail view) | `video` | Has `src` attribute with download URL |
+| Video src attribute | `attributes.src` via `tabz_get_element` | Direct Azure blob URL |
+| Back to drafts | Press Escape or click outside modal | Returns to grid |
 
 ## URLs
 

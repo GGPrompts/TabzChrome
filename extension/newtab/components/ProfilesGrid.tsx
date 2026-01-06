@@ -61,7 +61,7 @@ export function ProfilesGrid({
           <div className="profiles-title">Terminals</div>
         </div>
         <div className="profiles-grid">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
             <div
               key={i}
               className="profile-card animate-pulse"
@@ -88,8 +88,8 @@ export function ProfilesGrid({
     return a.name.localeCompare(b.name)
   })
 
-  // Take top 6 for display (2x3 grid)
-  const displayProfiles = sortedProfiles.slice(0, 6)
+  // Take top 9 for display (3x3 grid)
+  const displayProfiles = sortedProfiles.slice(0, 9)
 
   return (
     <div className="profiles-section animate-slide-up stagger-3">
@@ -173,7 +173,7 @@ export function ProfilesGrid({
               {profile.icon || <Terminal className="w-4 h-4" />}
             </div>
             <div className="profile-name">{profile.name}</div>
-            {index < 6 && (
+            {index < 9 && (
               <div className="profile-shortcut">{index + 1}</div>
             )}
           </button>
