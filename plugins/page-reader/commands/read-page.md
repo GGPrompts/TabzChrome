@@ -25,15 +25,39 @@ Then extract the main text content:
 mcp-cli call tabz/tabz_execute_script '{"script": "(() => { const clone = document.body.cloneNode(true); clone.querySelectorAll(\"script, style, nav, header, footer, aside, [role=navigation], [role=banner], [aria-hidden=true]\").forEach(el => el.remove()); return clone.innerText.substring(0, 15000); })()"}'
 ```
 
-## Step 2: Summarize the Content
+## Step 2: Summarize the Content (via Codex Mini)
 
-Based on the extracted text, create a concise summary with:
+Use Codex with gpt-5.1-codex-mini for fast, cheap summarization:
+
+```bash
+# Store page content in variable
+PAGE_CONTENT="[extracted text from Step 1]"
+FOCUS_TOPIC="$ARGUMENTS"  # Empty if no specific focus
+
+# Build the prompt
+if [ -n "$FOCUS_TOPIC" ] && [ "$FOCUS_TOPIC" != "quiet" ]; then
+  PROMPT="Summarize this page, focusing on: $FOCUS_TOPIC\n\n$PAGE_CONTENT"
+else
+  PROMPT="Summarize this page:\n\n$PAGE_CONTENT"
+fi
+
+# Call Codex mini for summarization (fast and cheap)
+SUMMARY=$(mcp-cli call codex/codex "$(echo "$PROMPT" | jq -Rs '{
+  prompt: (. + "\n\nProvide:\n1. One sentence overview\n2. 3-5 key points as bullet points\n3. Notable details (numbers, dates, names)\n\nKeep it concise - 30-60 seconds of reading."),
+  model: "gpt-5.1-codex-mini",
+  sandbox: "read-only"
+}')")
+
+echo "$SUMMARY"
+```
+
+**Why gpt-5.1-codex-mini?** Summarization is a simple structured task - mini is fast, cheap, and more than capable. Saves Claude tokens for real work.
+
+The summary should include:
 
 1. **What this page is about** (1 sentence)
 2. **Key points** (3-5 bullet points of the most important information)
 3. **Notable details** (any specific numbers, dates, names, or facts worth remembering)
-
-If `$ARGUMENTS` contains a specific topic/question, focus the summary on answering that.
 
 Keep the summary concise - aim for what someone could absorb in 30-60 seconds of listening.
 

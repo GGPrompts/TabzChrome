@@ -57,19 +57,40 @@ fi
 
 ### Step 3: Code Review
 
-Spawn the code-reviewer subagent:
+Use Codex (GPT-5.2) for fast, high-quality code review:
 
-```
-Task tool:
-  subagent_type: "conductor:code-reviewer"
-  prompt: |
-    Review uncommitted changes in $(pwd) for issue $ISSUE_ID.
-    Return JSON with passed: true/false.
+```bash
+echo "=== Step 3: Code Review (via Codex) ==="
+
+# Get the diff for review
+DIFF=$(git diff --cached --stat && git diff --cached)
+
+# Call Codex for review (gpt-5.2 is optimized for analysis, faster than codex variants)
+REVIEW_RESULT=$(mcp-cli call codex/codex "$(cat <<EOF | jq -Rs '{prompt: ., model: "gpt-5.2", sandbox: "read-only", cwd: "$(pwd)"}'
+Review these code changes for issue $ISSUE_ID.
+
+Check for:
+1. Bugs or logic errors
+2. Security vulnerabilities
+3. Missing error handling
+4. Code quality issues
+
+Changes:
+$DIFF
+
+Respond with JSON only:
+{"passed": true/false, "issues": ["issue1", "issue2"], "summary": "brief summary"}
+EOF
+)")
+
+echo "$REVIEW_RESULT"
 ```
 
 **Handle result:**
 - If `passed: false` → Stop pipeline, fix the blockers listed
 - If `passed: true` → Continue to commit
+
+**Why GPT-5.2?** Pure analysis task - no tool use needed. GPT-5.2 is faster and better for review/planning than codex variants which are optimized for agentic execution.
 
 ### Step 4: Commit Changes
 

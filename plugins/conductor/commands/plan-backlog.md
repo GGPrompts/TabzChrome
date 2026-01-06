@@ -329,6 +329,54 @@ bd ready  # Should show Wave 2 issues
 
 ---
 
+## Phase 6: AI-Assisted Analysis (Optional)
+
+Use Codex (GPT-5.2) for deeper backlog insights when needed.
+
+### 6.1 Dependency Analysis
+
+```bash
+# Get all issues with dependencies as JSON
+ISSUES_JSON=$(bd list --all --json)
+
+# Ask Codex to analyze dependency graph
+mcp-cli call codex/codex "$(echo "$ISSUES_JSON" | jq -Rs '{
+  prompt: ("Analyze this issue backlog for dependency optimization:\n\n" + . + "\n\nIdentify:\n1. Circular dependencies\n2. Issues that should be dependencies but arent\n3. Critical path (longest chain)\n4. Parallelization opportunities\n\nRespond with actionable recommendations."),
+  model: "gpt-5.2",
+  sandbox: "read-only"
+}')"
+```
+
+### 6.2 Priority Recommendations
+
+```bash
+# Get Codex recommendations on priority adjustments
+mcp-cli call codex/codex "$(bd list --all --json | jq -Rs '{
+  prompt: ("Review these issues and suggest priority adjustments:\n\n" + . + "\n\nConsider:\n- Blocking relationships\n- Estimated complexity\n- User impact\n- Quick wins\n\nOutput as: ISSUE_ID: current_priority -> suggested_priority (reason)"),
+  model: "gpt-5.2",
+  sandbox: "read-only"
+}')"
+```
+
+### 6.3 Epic Breakdown Suggestions
+
+For complex epics, get AI-suggested subtasks:
+
+```bash
+EPIC_ID="beads-xxx"
+EPIC_DETAILS=$(bd show $EPIC_ID)
+
+mcp-cli call codex/codex "$(echo "$EPIC_DETAILS" | jq -Rs '{
+  prompt: ("Break down this epic into implementable subtasks:\n\n" + . + "\n\nFor each subtask provide:\n- Title\n- Type (feature/task/bug)\n- Priority (1-4)\n- Dependencies (which subtasks must complete first)\n- Estimated complexity (small/medium/large)\n\nOutput as structured list ready for bd create commands."),
+  model: "gpt-5.2",
+  sandbox: "read-only"
+}')"
+```
+
+**Why GPT-5.2?** Planning and analysis tasks benefit from GPT-5.2's reasoning without the agentic overhead of codex variants.
+
+---
+
 ## Notes
 
 - Re-run this command after each wave completes to re-plan
@@ -336,5 +384,6 @@ bd ready  # Should show Wave 2 issues
 - Use `bd comments <id> add "Progress: ..."` to track status
 - Consider `/wipe` between major planning sessions to free context
 - For complex epics, use `ultrathink` prefix before breakdown
+- Phase 6 is optional but recommended for large backlogs (10+ issues)
 
 Execute this workflow now.
