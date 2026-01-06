@@ -25,7 +25,7 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
   const [targetSession, setTargetSession] = useState<TerminalSession | null>(null)
 
   // Profiles hook for appearance settings
-  const { profiles } = useProfiles({})
+  const { profiles, defaultProfileId } = useProfiles({})
 
   // Terminal sessions hook - we'll filter to just the one we need
   // skipStaleCheck: true because we register with background AFTER mount,
@@ -137,12 +137,13 @@ export function PopoutTerminalView({ terminalId }: PopoutTerminalViewProps) {
   // allowing the terminal to automatically reconnect there.
 
   // Get effective profile for appearance
+  // Fallback chain: session's profile -> user's configured default profile -> first profile
   const getEffectiveProfile = () => {
     if (!targetSession) return null
     const sessionProfileId = targetSession.profile?.id
     const currentProfile = sessionProfileId ? profiles.find(p => p.id === sessionProfileId) : null
-    const defaultProfile = profiles.find(p => p.id === 'default') || profiles[0]
-    return currentProfile || defaultProfile
+    const fallbackProfile = profiles.find(p => p.id === defaultProfileId) || profiles[0]
+    return currentProfile || fallbackProfile
   }
 
   const effectiveProfile = getEffectiveProfile()

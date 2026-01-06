@@ -10,6 +10,7 @@ import { GitCommitHistory } from './GitCommitHistory'
 
 interface GitRepoCardProps {
   repo: GitRepo
+  projectsDir: string
   isActive: boolean
   onToggleActive: () => void
   isExpanded: boolean
@@ -20,7 +21,7 @@ interface GitRepoCardProps {
   onToggleSelect?: () => void
 }
 
-export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onToggleExpand, onRefresh, isFocused = false, isSelected = false, onToggleSelect }: GitRepoCardProps) {
+export function GitRepoCard({ repo, projectsDir, isActive, onToggleActive, isExpanded, onToggleExpand, onRefresh, isFocused = false, isSelected = false, onToggleSelect }: GitRepoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const hasChanges = repo.staged.length > 0 || repo.unstaged.length > 0 || repo.untracked.length > 0
   const [stashCount, setStashCount] = useState(0)
@@ -28,7 +29,7 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
   // Fetch stash count when expanded
   useEffect(() => {
     if (isExpanded) {
-      window.fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repo.name)}/stashes`)
+      window.fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repo.name)}/stashes?dir=${encodeURIComponent(projectsDir)}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -37,7 +38,7 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
         })
         .catch(() => {})
     }
-  }, [isExpanded, repo.name])
+  }, [isExpanded, repo.name, projectsDir])
 
   // Scroll into view when expanded
   useEffect(() => {
@@ -324,6 +325,7 @@ export function GitRepoCard({ repo, isActive, onToggleActive, isExpanded, onTogg
           <div className="border-t border-border pt-4">
             <GitCommitHistory
               repoName={repo.name}
+              projectsDir={projectsDir}
               githubUrl={repo.githubUrl}
               limit={10}
               onOpenGitlogue={handleOpenGitlogueCommit}

@@ -4,13 +4,14 @@ import { GitCommit } from '../../../hooks/useGitRepos'
 
 interface GitCommitHistoryProps {
   repoName: string
+  projectsDir: string
   githubUrl: string | null
   limit?: number
   onOpenGitlogue?: (commitHash: string) => Promise<void>
   loading?: string | null
 }
 
-export function GitCommitHistory({ repoName, githubUrl, limit = 10, onOpenGitlogue, loading: externalLoading }: GitCommitHistoryProps) {
+export function GitCommitHistory({ repoName, projectsDir, githubUrl, limit = 10, onOpenGitlogue, loading: externalLoading }: GitCommitHistoryProps) {
   const [commits, setCommits] = useState<GitCommit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -25,7 +26,7 @@ export function GitCommitHistory({ repoName, githubUrl, limit = 10, onOpenGitlog
     async function fetchCommits() {
       setLoading(true)
       try {
-        const res = await fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repoName)}/log?limit=${limit}`)
+        const res = await fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repoName)}/log?limit=${limit}&dir=${encodeURIComponent(projectsDir)}`)
         const data = await res.json()
         if (data.success) {
           setCommits(data.data.commits)
@@ -41,13 +42,13 @@ export function GitCommitHistory({ repoName, githubUrl, limit = 10, onOpenGitlog
       }
     }
     fetchCommits()
-  }, [repoName, limit])
+  }, [repoName, limit, projectsDir])
 
   const loadMore = async () => {
     setLoadingMore(true)
     const newLimit = currentLimit + 20
     try {
-      const res = await fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repoName)}/log?limit=${newLimit}`)
+      const res = await fetch(`http://localhost:8129/api/git/repos/${encodeURIComponent(repoName)}/log?limit=${newLimit}&dir=${encodeURIComponent(projectsDir)}`)
       const data = await res.json()
       if (data.success) {
         setCommits(data.data.commits)

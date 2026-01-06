@@ -351,20 +351,26 @@ export default function GitSection() {
         {/* Repo list */}
         {filteredRepos.length > 0 && (
           <div className="space-y-2">
-            {filteredRepos.map((repo, index) => (
-              <GitRepoCard
-                key={repo.path}
-                repo={repo}
-                isActive={isActive(repo.name)}
-                onToggleActive={() => toggleActive(repo.name)}
-                isExpanded={expandedRepos.has(repo.name)}
-                onToggleExpand={() => toggleExpand(repo.name)}
-                onRefresh={refetch}
-                isFocused={focusedIndex === index}
-                isSelected={selectedRepos.has(repo.name)}
-                onToggleSelect={() => toggleSelect(repo.name)}
-              />
-            ))}
+            {filteredRepos.map((repo, index) => {
+              // Use parent of repo.path as projectsDir for API calls
+              // This handles cases where the scanned dir IS the repo itself
+              const repoParentDir = repo.path.substring(0, repo.path.lastIndexOf('/')) || repo.path
+              return (
+                <GitRepoCard
+                  key={repo.path}
+                  repo={repo}
+                  projectsDir={repoParentDir}
+                  isActive={isActive(repo.name)}
+                  onToggleActive={() => toggleActive(repo.name)}
+                  isExpanded={expandedRepos.has(repo.name)}
+                  onToggleExpand={() => toggleExpand(repo.name)}
+                  onRefresh={refetch}
+                  isFocused={focusedIndex === index}
+                  isSelected={selectedRepos.has(repo.name)}
+                  onToggleSelect={() => toggleSelect(repo.name)}
+                />
+              )
+            })}
           </div>
         )}
       </div>

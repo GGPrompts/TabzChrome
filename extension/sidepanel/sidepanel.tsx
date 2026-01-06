@@ -1467,10 +1467,10 @@ function SidePanelTerminal() {
                     ? profiles.find(p => p.id === sessionProfileId)
                     : null
 
-                  // Fallback chain: current profile (if exists) -> default profile -> hardcoded defaults
-                  const defaultProfileId = profiles.find(p => p.id === 'default') ? 'default' : profiles[0]?.id
-                  const defaultProfile = profiles.find(p => p.id === defaultProfileId)
-                  const effectiveProfile = currentProfile || defaultProfile
+                  // Fallback chain: current profile (if exists) -> user's configured default profile -> hardcoded defaults
+                  // Use defaultProfileId from state (user's configured default), not a hardcoded 'default' ID
+                  const fallbackProfile = profiles.find(p => p.id === defaultProfileId) || profiles[0]
+                  const effectiveProfile = currentProfile || fallbackProfile
 
                   return (
                   <div

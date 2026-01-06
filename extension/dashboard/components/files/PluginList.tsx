@@ -145,7 +145,9 @@ function PluginRow({
   // Check if plugin has multiple files that can be expanded
   const totalFiles = (plugin.componentFiles?.skills?.length || 0) +
                      (plugin.componentFiles?.agents?.length || 0) +
-                     (plugin.componentFiles?.commands?.length || 0)
+                     (plugin.componentFiles?.commands?.length || 0) +
+                     (plugin.componentFiles?.hooks?.length || 0) +
+                     (plugin.componentFiles?.mcp?.length || 0)
   const hasMultipleFiles = totalFiles > 1
 
   return (
@@ -245,6 +247,28 @@ function PluginRow({
               {file.name}
             </button>
           ))}
+          {/* Hooks */}
+          {plugin.componentFiles?.hooks?.map(file => (
+            <button
+              key={file.path}
+              onClick={() => onOpenFile(file.path)}
+              className="flex items-center gap-2 w-full px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded"
+            >
+              <Terminal className="w-3 h-3 text-green-400" />
+              {file.name}
+            </button>
+          ))}
+          {/* MCP */}
+          {plugin.componentFiles?.mcp?.map(file => (
+            <button
+              key={file.path}
+              onClick={() => onOpenFile(file.path)}
+              className="flex items-center gap-2 w-full px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded"
+            >
+              <Plug className="w-3 h-3 text-cyan-400" />
+              {file.name}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -307,7 +331,7 @@ function MarketplaceSection({
 // Filter tabs
 type PluginFilter = 'all' | 'enabled' | 'disabled'
 type ComponentFilter = 'all' | 'skill' | 'agent' | 'command' | 'hook' | 'mcp'
-type ScopeFilter = 'all' | 'user' | 'local'
+type ScopeFilter = 'all' | 'user' | 'project' | 'local'
 
 export function PluginList() {
   const {
@@ -526,9 +550,8 @@ export function PluginList() {
         ))}
       </div>
 
-      {/* Component type and scope filters */}
+      {/* Component type filters */}
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border overflow-x-auto">
-        {/* Component filters */}
         <button
           onClick={() => setComponentFilter('all')}
           className={`px-2 py-0.5 text-xs rounded transition-colors whitespace-nowrap ${
@@ -559,25 +582,37 @@ export function PluginList() {
             </button>
           )
         })}
+      </div>
 
-        {/* Divider */}
-        <span className="text-muted-foreground/30 mx-1">|</span>
-
-        {/* Scope filters */}
-        {(['user', 'local'] as ScopeFilter[]).map(scope => {
+      {/* Scope filters */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border">
+        <span className="text-xs text-muted-foreground mr-1">Scope:</span>
+        <button
+          onClick={() => setScopeFilter('all')}
+          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+            scopeFilter === 'all'
+              ? 'bg-primary/20 text-primary'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          All
+        </button>
+        {([
+          { scope: 'user' as const, label: 'User', color: 'bg-blue-500/20 text-blue-400' },
+          { scope: 'project' as const, label: 'Project', color: 'bg-green-500/20 text-green-400' },
+          { scope: 'local' as const, label: 'Local', color: 'bg-purple-500/20 text-purple-400' },
+        ]).map(({ scope, label, color }) => {
           const count = pluginsData.scopeCounts?.[scope] || 0
           if (count === 0) return null
           return (
             <button
               key={scope}
               onClick={() => setScopeFilter(scopeFilter === scope ? 'all' : scope)}
-              className={`px-2 py-0.5 text-xs rounded transition-colors whitespace-nowrap ${
-                scopeFilter === scope
-                  ? scope === 'user' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
-                  : 'hover:bg-muted text-muted-foreground'
+              className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                scopeFilter === scope ? color : 'hover:bg-muted text-muted-foreground'
               }`}
             >
-              {scope === 'user' ? 'Global' : 'Local'} ({count})
+              {label} ({count})
             </button>
           )
         })}
