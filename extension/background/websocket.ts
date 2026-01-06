@@ -7,6 +7,7 @@ import type { ExtensionMessage } from '../shared/messaging'
 import {
   ws, setWs, wsReconnectAttempts, setWsReconnectAttempts, incrementWsReconnectAttempts,
   hadSuccessfulConnection, setHadSuccessfulConnection,
+  notifiedOffline, setNotifiedOffline,
   MAX_RECONNECT_ATTEMPTS, WS_URL, ALARM_WS_RECONNECT,
   broadcastToClients
 } from './state'
@@ -302,6 +303,7 @@ export async function connectWebSocket(): Promise<void> {
 
     setWsReconnectAttempts(0) // Reset reconnect counter on successful connection
     setHadSuccessfulConnection(true) // Mark that we've had at least one successful connection
+    setNotifiedOffline(false) // Reset offline notification flag (ready to notify on next disconnect)
     chrome.alarms.clear(ALARM_WS_RECONNECT) // Clear any pending reconnect alarm
 
     // Identify as sidebar to backend so it counts us for "multiple browser windows" warning
@@ -358,8 +360,9 @@ export async function connectWebSocket(): Promise<void> {
       url: WS_URL,
     })
 
-    // Show disconnect notification for abnormal closures
-    if (!event.wasClean || event.code === 1006) {
+    // Show disconnect notification for abnormal closures (only once per disconnect)
+    if ((!event.wasClean || event.code === 1006) && !notifiedOffline) {
+      setNotifiedOffline(true) // Prevent repeated notifications during reconnection attempts
       showConnectionNotification(
         'backendDisconnect',
         'TabzChrome Disconnected',

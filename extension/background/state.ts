@@ -9,6 +9,7 @@ import type { ExtensionMessage } from '../shared/messaging'
 export let ws: WebSocket | null = null
 export let wsReconnectAttempts = 0
 export let hadSuccessfulConnection = false  // Track if we ever connected (for reconnect notifications)
+export let notifiedOffline = false  // Track if we've already notified about offline state (prevent spam)
 export const MAX_RECONNECT_ATTEMPTS = 10
 export const WS_URL = 'ws://localhost:8129' // Extension loaded from WSL path, use localhost
 
@@ -43,6 +44,10 @@ export function incrementWsReconnectAttempts(): number {
 
 export function setHadSuccessfulConnection(value: boolean): void {
   hadSuccessfulConnection = value
+}
+
+export function setNotifiedOffline(value: boolean): void {
+  notifiedOffline = value
 }
 
 export function setPendingQueueCommand(command: string | null): void {
