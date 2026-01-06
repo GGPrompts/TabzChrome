@@ -298,6 +298,40 @@ mcp-cli call tabz/tabz_speak '{"text": "Hello world", "voice": "Google US Englis
 - Downloads go to Chrome's default download location
 - Debugger tools show Chrome's debug banner while active
 
+## AI Asset Generation (TabzArtist)
+
+For generating images via DALL-E or videos via Sora, use the **TabzArtist skill**:
+
+```
+/tabz-artist Generate assets for a fitness app landing page
+```
+
+The skill provides complete workflows for:
+- **DALL-E images:** Open ChatGPT → fill prompt → submit → download from chat or /images page
+- **Sora videos:** Open sora.chatgpt.com/drafts → fill prompt → submit → extract video src → download
+
+### Key Selectors (Quick Reference)
+
+| Platform | Element | Selector |
+|----------|---------|----------|
+| DALL-E | Prompt input | `#prompt-textarea` |
+| DALL-E | Submit button | `#composer-submit-button` |
+| DALL-E | Generated image | `img[alt="Generated image"]` |
+| DALL-E | Download btn (/images) | `div.flex.w-full > div.flex:nth-of-type(n) > span > button.flex.items-center` |
+| Sora | Prompt textarea | `textarea` |
+| Sora | Create video button | `div.flex.items-center.justify-between > div:last-child > button:last-child` |
+| Sora | Video element | `video` (src attribute has download URL) |
+
+### URLs
+
+| Platform | URL |
+|----------|-----|
+| DALL-E 3 GPT | `https://chatgpt.com/g/g-iLoR8U3iA-dall-e3` |
+| ChatGPT Images Gallery | `https://chatgpt.com/images` |
+| Sora Drafts | `https://sora.chatgpt.com/drafts` |
+
+For detailed prompt guidance, see `.prompts/images/dalle3.prompty` and `.prompts/video/sora.prompty`.
+
 ## Usage
 
 The conductor will invoke you with prompts like:
@@ -309,5 +343,7 @@ The conductor will invoke you with prompts like:
 - "Create a tab group for my research tabs"
 - "Read this page aloud using TTS"
 - "Save the current page to bookmarks"
+- "Generate a hero image for this landing page" (use TabzArtist skill)
+- "Create a product demo video" (use TabzArtist skill)
 
 Report results clearly - include screenshot paths, element states, or error messages as appropriate.
