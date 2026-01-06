@@ -41,7 +41,7 @@ const VOICE_OPTIONS = [
 function stripMarkdown(text) {
   return text
     .replace(/```[\s\S]*?```/g, ' code block ')  // Remove code blocks
-    .replace(/`[^`]+`/g, '')                      // Remove inline code
+    .replace(/`([^`]+)`/g, '$1')                   // Inline code to plain text
     .replace(/#{1,6}\s*/g, '')                    // Remove headers
     .replace(/\*\*([^*]+)\*\*/g, '$1')            // Bold to plain
     .replace(/\*([^*]+)\*/g, '$1')                // Italic to plain
@@ -157,6 +157,11 @@ async function generateAudio({
   // Strip markdown for faster TTS processing
   let cleanText = stripMarkdown(text);
 
+  // Check for empty text after stripping
+  if (!cleanText || cleanText.trim().length === 0) {
+    return { success: false, error: 'Text is empty after markdown stripping' };
+  }
+
   // Truncate very long text - Microsoft TTS has ~3000 char limit per request
   const MAX_TEXT_LENGTH = 3000;
   if (cleanText.length > MAX_TEXT_LENGTH) {
@@ -190,8 +195,11 @@ async function generateAudio({
     return { success: true, url: cacheResult.url, cached: true };
   }
 
-  // Generate with edge-tts
+  // Generate with edge-tts (with retry for transient failures)
   let tempTextFile = null;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 1000;
+
   try {
     const args = ['-v', resolvedVoice];
     if (rate && rate !== '+0%') {
@@ -211,22 +219,44 @@ async function generateAudio({
 
     // Scale timeout with text length
     const timeoutMs = Math.min(maxTimeoutMs, baseTimeoutMs + Math.floor(cleanText.length / 1000) * timeoutPerKb);
-    await execFileAsync('edge-tts', args, { timeout: timeoutMs });
 
-    // Verify file was created with content
-    const stats = fs.statSync(cacheFile);
-    if (stats.size > 0) {
-      return { success: true, url: getAudioUrl(cacheKey), cached: false };
-    } else {
-      fs.unlinkSync(cacheFile);
-      return { success: false, error: 'Audio generation produced empty file' };
+    // Retry loop for transient failures (NoAudioReceived, network issues)
+    let lastError = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await execFileAsync('edge-tts', args, { timeout: timeoutMs });
+
+        // Verify file was created with content
+        const stats = fs.statSync(cacheFile);
+        if (stats.size > 0) {
+          return { success: true, url: getAudioUrl(cacheKey), cached: false };
+        } else {
+          // Empty file - might be transient, retry
+          try { fs.unlinkSync(cacheFile); } catch {}
+          lastError = new Error('Audio generation produced empty file');
+        }
+      } catch (err) {
+        lastError = err;
+        // Check if error is retryable (NoAudioReceived, network issues)
+        const isRetryable = err.stderr?.includes('NoAudioReceived') ||
+                           err.message?.includes('ETIMEDOUT') ||
+                           err.message?.includes('ECONNRESET') ||
+                           err.message?.includes('ENETUNREACH');
+
+        if (!isRetryable || attempt === MAX_RETRIES) {
+          break;
+        }
+
+        // Wait before retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+      }
     }
-  } catch (err) {
-    // Only log non-network errors
-    if (!err.message?.includes('ETIMEDOUT') && !err.message?.includes('ENETUNREACH')) {
-      console.error('[Audio] edge-tts error:', err.message);
-      if (err.stderr) {
-        console.error('[Audio] edge-tts stderr:', err.stderr);
+
+    // All retries failed
+    if (lastError && !lastError.message?.includes('ETIMEDOUT') && !lastError.message?.includes('ENETUNREACH')) {
+      console.error(`[Audio] edge-tts error after ${MAX_RETRIES} attempts:`, lastError.message);
+      if (lastError.stderr) {
+        console.error('[Audio] edge-tts stderr:', lastError.stderr);
       }
     }
     return { success: false, error: 'TTS generation failed' };
