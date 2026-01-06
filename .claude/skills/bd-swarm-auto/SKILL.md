@@ -154,6 +154,8 @@ tmux new-window -n "monitor" "tmuxplexer --watcher"
 
 **YOU must poll every 2 minutes. Do NOT wait for user input.**
 
+**ALSO: Check your context % each poll. If 70%+, run /wipe immediately (see Context Recovery section).**
+
 Run this loop:
 
 ```bash
@@ -179,12 +181,18 @@ while true; do
     break
   fi
 
+  # >>> CHECK YOUR CONTEXT % HERE <<<
+  # Look at your status bar. If 70%+, run /wipe with handoff NOW.
+
   echo "Waiting 2 minutes before next poll..."
   sleep 120
 done
 ```
 
-**IMPORTANT:** Do NOT skip this polling. Do NOT ask the user if workers are done. YOU must check.
+**IMPORTANT:**
+- Do NOT skip this polling
+- Do NOT ask the user if workers are done - YOU must check
+- Do NOT ignore your context % - wipe at 70%
 
 ---
 
@@ -250,18 +258,49 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 2. **YOU MUST POLL** - Check issue status every 2 minutes. Do not wait for user to say "done".
 3. **USE TMUXPLEXER** - Launch the monitor so you can see worker activity.
 4. **LOOP UNTIL EMPTY** - Keep running waves until `bd ready` returns nothing.
+5. **MONITOR YOUR CONTEXT** - Check your context % in the status bar. At 70%+, trigger /wipe.
 
 ---
 
-## Context Recovery
+## Context Recovery (CRITICAL)
 
-If you hit 70% context, run `/wipe` with this handoff:
+**You MUST monitor your own context usage.** Your context percentage is shown in your status bar (e.g., "45% ctx").
+
+**During every poll cycle (Step 6), check your context:**
+
+- **Below 70%:** Continue normally
+- **At 70% or above:** IMMEDIATELY run `/wipe` with this handoff
+
+**How to wipe with handoff:**
+
+1. First, save current wave state:
+```bash
+# Note which issues are still in progress
+bd list --status=in_progress
+```
+
+2. Then invoke /wipe with this exact handoff message:
 
 ```
+/wipe
+
 ## BD Swarm Auto In Progress
-Autonomous backlog processing. Run `/bd-swarm-auto` to continue.
-Beads tracks all state - just resume.
+
+**Wave State:** Workers are processing issues. Resume monitoring.
+
+**Active Issues:**
+- [list the in_progress issue IDs]
+
+**Action Required:** Run `/bd-swarm-auto` to continue.
+
+Beads has full state. The skill will:
+1. Check issue statuses (some may have closed while wiping)
+2. Resume polling for remaining in_progress issues
+3. Merge and cleanup when done
+4. Start next wave if more issues ready
 ```
+
+**DO NOT wait until you run out of context.** Wipe proactively at 70%.
 
 ---
 
