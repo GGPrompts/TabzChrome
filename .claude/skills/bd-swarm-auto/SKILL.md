@@ -154,7 +154,7 @@ tmux new-window -n "monitor" "tmuxplexer --watcher"
 
 **YOU must poll every 2 minutes. Do NOT wait for user input.**
 
-**ALSO: Check your context % each poll. If 70%+, run /wipe immediately (see Context Recovery section).**
+**ALSO: Check your context % each poll. If 70%+, run `/wipe:wipe` immediately (see Context Recovery section).**
 
 Run this loop:
 
@@ -182,7 +182,7 @@ while true; do
   fi
 
   # >>> CHECK YOUR CONTEXT % HERE <<<
-  # Look at your status bar. If 70%+, run /wipe with handoff NOW.
+  # Look at your status bar or tmuxplexer. If 70%+, run /wipe:wipe with handoff NOW.
 
   echo "Waiting 2 minutes before next poll..."
   sleep 120
@@ -192,7 +192,7 @@ done
 **IMPORTANT:**
 - Do NOT skip this polling
 - Do NOT ask the user if workers are done - YOU must check
-- Do NOT ignore your context % - wipe at 70%
+- Do NOT ignore your context % - run `/wipe:wipe` at 70%
 
 ---
 
@@ -258,7 +258,7 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 2. **YOU MUST POLL** - Check issue status every 2 minutes. Do not wait for user to say "done".
 3. **USE TMUXPLEXER** - Launch the monitor so you can see worker activity.
 4. **LOOP UNTIL EMPTY** - Keep running waves until `bd ready` returns nothing.
-5. **MONITOR YOUR CONTEXT** - Check your context % in the status bar. At 70%+, trigger /wipe.
+5. **MONITOR YOUR CONTEXT** - Check your context % in the status bar or tmuxplexer. At 70%+, trigger `/wipe:wipe`.
 
 ---
 
@@ -271,7 +271,7 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 **During every poll cycle (Step 6), check your context:**
 
 - **Below 70%:** Continue normally
-- **At 70% or above:** IMMEDIATELY run `/wipe` with this handoff
+- **At 70% or above:** IMMEDIATELY run `/wipe:wipe` with this handoff
 
 **How to wipe with handoff:**
 
@@ -281,10 +281,10 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 bd list --status=in_progress
 ```
 
-2. Then invoke /wipe with this exact handoff message:
+2. Then invoke /wipe:wipe with this exact handoff message:
 
 ```
-/wipe
+/wipe:wipe
 
 ## BD Swarm Auto In Progress
 
