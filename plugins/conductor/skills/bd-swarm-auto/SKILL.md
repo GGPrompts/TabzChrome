@@ -264,7 +264,9 @@ echo "=== BD SWARM AUTO COMPLETE ==="
 
 ## Context Recovery (CRITICAL)
 
-**You MUST monitor your own context usage.** Your context percentage is shown in your status bar (e.g., "45% ctx").
+**You MUST monitor your own context usage.** Your context percentage is visible in:
+- Your status bar (e.g., "45% ctx")
+- Tmuxplexer monitor (shows YOUR session too, not just workers)
 
 **During every poll cycle (Step 6), check your context:**
 
