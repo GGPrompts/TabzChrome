@@ -5,306 +5,180 @@ description: "Multi-session Claude workflow orchestration. Spawn workers via Tab
 
 # Orchestration Skill - Multi-Session Workflows
 
-This skill enables you to orchestrate multiple Claude Code sessions, spawn workers, and coordinate parallel work using TabzChrome.
+Orchestrate multiple Claude Code sessions, spawn workers, and coordinate parallel work.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Vanilla Claude Session (you)                               │
-│  ✅ Has Task tool → can spawn subagents                     │
-│                                                             │
-│  Subagents (via Task tool):                                 │
-│    → conductor:skill-picker (haiku) - find/install skills   │
-│    → conductor:tui-expert (opus) - spawn TUI tools          │
-│    → conductor:code-reviewer (sonnet) - review changes      │
-│                                                             │
-│  Monitoring (via tmuxplexer):                               │
-│    → Background window shows all AI sessions                │
-│    → Conductor polls directly, no subagent needed           │
-│                                                             │
-│  Terminal Workers (via TabzChrome spawn API):               │
-│    → Each is a vanilla Claude with full Task tool           │
-│    → Can use their own subagents for exploration            │
-│    → Assigned tab groups for browser isolation              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Vanilla Claude Session (you)
+├── Task tool -> can spawn subagents
+│   ├── conductor:initializer (opus) - create worktrees
+│   ├── conductor:code-reviewer (sonnet) - review changes
+│   ├── conductor:skill-picker (haiku) - find/install skills
+│   └── conductor:tui-expert (opus) - spawn TUI tools
+├── Monitoring via tmuxplexer (background window)
+└── Terminal Workers via TabzChrome spawn API
+    └── Each has full Task tool, can spawn own subagents
 ```
 
-**Why this works:** Skills add knowledge without restricting tools. You keep the Task tool and can spawn lightweight subagents for monitoring while workers run in separate terminals with full capabilities.
+---
 
-## Core Capabilities (TabzChrome)
+## Quick Reference
 
-### Tabz MCP Tools
-
-```bash
-mcp-cli info tabz/<tool>  # Check schema before calling
-```
-
-| Category | Tools |
-|----------|-------|
-| **Tabs** | tabz_list_tabs, tabz_switch_tab, tabz_rename_tab, tabz_get_page_info, tabz_open_url |
-| **Tab Groups** | tabz_list_groups, tabz_create_group, tabz_update_group, tabz_add_to_group, tabz_claude_group_add |
-| **Windows** | tabz_list_windows, tabz_create_window, tabz_tile_windows, tabz_popout_terminal |
-| **Screenshots** | tabz_screenshot, tabz_screenshot_full |
-| **Interaction** | tabz_click, tabz_fill, tabz_get_element, tabz_execute_script |
-| **DOM/Debug** | tabz_get_dom_tree, tabz_get_console_logs, tabz_profile_performance |
-| **Network** | tabz_enable_network_capture, tabz_get_network_requests |
-| **Downloads** | tabz_download_image, tabz_download_file, tabz_get_downloads |
-| **Audio/TTS** | tabz_speak, tabz_list_voices, tabz_play_audio |
-
-### Subagents (via Task Tool)
-
-Since you're running as vanilla Claude (not via `--agent`), the Task tool is available:
-
-| Subagent | Model | Purpose | Invocation |
-|----------|-------|---------|------------|
-| `conductor:initializer` | opus | Create isolated worktrees, install deps, return assignments | `Task(subagent_type="conductor:initializer")` |
-| `conductor:code-reviewer` | sonnet | Autonomous review, auto-fix, quality gate | `Task(subagent_type="conductor:code-reviewer")` |
-| `conductor:skill-picker` | haiku | Search/install skills from skillsmp.com | `Task(subagent_type="conductor:skill-picker")` |
-| `conductor:tui-expert` | opus | Spawn btop, lazygit, lnav, tfe | `Task(subagent_type="conductor:tui-expert")` |
-| `conductor:docs-updater` | opus | Update docs after merges | `Task(subagent_type="conductor:docs-updater")` |
-
-**Example - Prepare worktrees for parallel workers:**
-```
-Task tool:
-  subagent_type: "conductor:initializer"
-  prompt: "Prepare 3 workers for issues beads-abc, beads-def, beads-ghi in /home/matt/projects/myapp"
-```
-
-### Worker Monitoring (via tmuxplexer)
-
-Instead of a watcher subagent, monitor workers directly via tmuxplexer in a background window:
-
-```bash
-# Spawn tmuxplexer --watcher as background window
-plugins/conductor/scripts/monitor-workers.sh --spawn
-
-# Poll worker status every ~2 minutes
-plugins/conductor/scripts/monitor-workers.sh --status
-# Output: ctt-worker-abc|tool_use|45
-
-# Get summary
-plugins/conductor/scripts/monitor-workers.sh --summary
-# Output: WORKERS:3 WORKING:2 IDLE:0 AWAITING:1 STALE:0
-```
-
-**Note:** `awaiting_input` means worker is at prompt, not necessarily AskUserQuestion. Check actual pane if idle too long.
-
-### Terminal Workers
-
-Workers are spawned as separate Claude sessions via TabzChrome API. Each worker:
-- Has full Task tool (can spawn their own subagents)
-- Runs in isolated worktree with own `node_modules`
-- Gets assigned port for dev server (no conflicts)
-- Uses build lock for test/build (serialized)
-
-**Worker internal flow:**
-```
-1. Code the solution (main work)
-2. Task(conductor:code-reviewer) → quality gate
-   - If passed=false → fix blockers, re-review
-   - If passed=true → continue
-3. Acquire build lock → npm test && npm build
-4. git commit
-5. bd close <issue> --reason "..."
-```
-
-## Terminal Management
-
-**Get auth token:**
-```bash
-cat /tmp/tabz-auth-token
-```
-
-**Spawn a worker:**
+### Spawn Worker
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
 curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Claude: Task Name", "workingDir": "/path/to/project", "command": "claude --dangerously-skip-permissions"}'
+  -d '{"name": "Claude: Task", "workingDir": "/path", "command": "claude --dangerously-skip-permissions"}'
 ```
 
-- Always include "Claude:" in name (enables status tracking)
-- Always use `--dangerously-skip-permissions`
-- Response includes `terminal.sessionName` - save for sending prompts
-
-**Send prompt to worker:**
+### Send Prompt
 ```bash
-SESSION="ctt-claude-task-xxxxx"
-sleep 4  # Wait for Claude init
-
-# CRITICAL: Validate session exists before sending (prevents crashes)
-if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-  echo "ERROR: Session $SESSION does not exist"
-  exit 1
-fi
-
-tmux send-keys -t "$SESSION" -l 'Your prompt here...'
+SESSION="ctt-claude-xxx"
+sleep 4
+tmux send-keys -t "$SESSION" -l 'Your prompt...'
 sleep 0.3
 tmux send-keys -t "$SESSION" C-m
 ```
 
-**List active sessions:**
+### Monitor Workers
 ```bash
-# All tmux sessions (includes TabzChrome-spawned ones)
-tmux list-sessions
-
-# Filter to workers only
-tmux list-sessions -F '#{session_name}' | grep -E "worker-|ctt-"
+plugins/conductor/scripts/monitor-workers.sh --spawn   # Start monitor
+plugins/conductor/scripts/monitor-workers.sh --summary # Poll status
 ```
 
-**Kill a session:**
+### Kill Session
 ```bash
-# TabzChrome spawn creates tmux sessions - kill them via tmux
 tmux kill-session -t "ctt-worker-xxx"
-
-# Or by worker naming convention
-tmux kill-session -t "worker-issue-id"
 ```
 
-**Note:** There is no REST API to kill terminals. TabzChrome's `/api/spawn` creates tmux sessions, cleanup is via `tmux kill-session`.
+**Full details:** `references/terminal-management.md`
 
-## Worker Prompt Structure
+---
 
-When sending tasks to workers, include relevant capabilities:
+## Subagents (via Task Tool)
+
+| Subagent | Model | Purpose |
+|----------|-------|---------|
+| `conductor:initializer` | opus | Create worktrees, install deps |
+| `conductor:code-reviewer` | sonnet | Autonomous review, quality gate |
+| `conductor:skill-picker` | haiku | Search/install skills |
+| `conductor:tui-expert` | opus | Spawn btop, lazygit, lnav |
+| `conductor:docs-updater` | opus | Update docs after merges |
 
 ```markdown
-## Task
-[Clear description of what needs to be done]
-
-## Approach
-- Use the xterm-js skill for terminal patterns
-- Use subagents in parallel to explore the codebase
-- Use tabz MCP tools for browser automation (if worker has tab group)
-
-## Files
-@path/to/relevant/file.ts
-@path/to/another/file.ts
-
-## Constraints
-[What NOT to change, requirements to follow]
-
-## Success Criteria
-[How to verify the task is complete]
+Task(
+  subagent_type="conductor:initializer",
+  prompt="Prepare 3 workers for issues beads-abc, beads-def"
+)
 ```
 
-### Capability Triggers
+---
 
-Skills require explicit phrasing. Use "use the ___ skill to..." format:
+## Tabz MCP Tools
 
-| Need | Trigger |
-|------|---------|
+| Category | Tools |
+|----------|-------|
+| **Tabs** | tabz_list_tabs, tabz_switch_tab, tabz_open_url |
+| **Tab Groups** | tabz_create_group, tabz_add_to_group |
+| **Windows** | tabz_list_windows, tabz_tile_windows |
+| **Screenshots** | tabz_screenshot, tabz_screenshot_full |
+| **Interaction** | tabz_click, tabz_fill, tabz_execute_script |
+| **Audio/TTS** | tabz_speak, tabz_list_voices |
+
+```bash
+mcp-cli info tabz/<tool>  # Check schema before calling
+```
+
+---
+
+## Worker Flow
+
+```
+1. Code the solution
+2. Task(conductor:code-reviewer) -> quality gate
+3. Acquire build lock -> npm test && npm build
+4. git commit
+5. bd close <issue>
+```
+
+---
+
+## Capability Triggers
+
+| Need | Trigger Phrase |
+|------|---------------|
 | Terminal UI | "use the xterm-js skill" |
-| Debugging | "use the debugging skill" |
 | UI components | "use the shadcn-ui skill" |
 | Complex reasoning | "use the sequential-thinking skill" |
 | Exploration | "use subagents in parallel to explore" |
 | Deep thinking | Prepend `ultrathink` |
 
-## Tab Group Isolation
-
-When spawning multiple workers that need browser access:
-
-1. Create a unique tab group per worker
-2. Pass the groupId to the worker
-3. Worker uses explicit tabId - never relies on active tab
-
-```bash
-# Create isolated tab group for worker
-tabz_create_group --title "Worker-1" --color "blue"
-# Returns groupId - pass to worker prompt
-```
+---
 
 ## Workflows
 
 ### Parallel Workers
-
 ```bash
-# Spawn multiple workers
-curl -s -X POST http://localhost:8129/api/spawn ... -d '{"name": "Claude: Frontend", ...}'
-curl -s -X POST http://localhost:8129/api/spawn ... -d '{"name": "Claude: Backend", ...}'
+# Spawn workers
+curl -s -X POST ... -d '{"name": "Claude: Frontend"}'
+curl -s -X POST ... -d '{"name": "Claude: Backend"}'
 
-# Start monitor in background window
+# Monitor
 plugins/conductor/scripts/monitor-workers.sh --spawn
-
-# Poll periodically
 plugins/conductor/scripts/monitor-workers.sh --summary
 ```
 
 ### Beads Issue Swarm
 
-Use `/conductor:bd-swarm` command or:
-
+Use `/conductor:bd-swarm` or:
 1. `bd ready` - Get unblocked issues
 2. Spawn workers (1 per issue)
-3. Send skill-aware prompts with issue context
-4. Workers close issues when done: `bd close <id> --reason "..."`
+3. Send skill-aware prompts
+4. Workers close issues when done
 
-### TUI Tools
-
-Invoke tui-expert subagent for system info:
-
-```
-Task(subagent_type="conductor:tui-expert",
-     prompt="Check system resources with btop")
-```
+---
 
 ## Best Practices
 
-1. **Use subagents for monitoring** - Haiku watcher is cheap
+1. **Use subagents for monitoring** - Haiku is cheap
 2. **Workers are vanilla Claude** - They have full Task tool
 3. **Tab groups for isolation** - Each browser worker gets own group
 4. **One goal per worker** - Keep context focused
-5. **Capability triggers** - Activate skills explicitly
-6. **Clean up when done** - Kill tmux sessions, remove worktrees, delete branches
+5. **Clean up when done** - Kill sessions, remove worktrees
 
-## Session Cleanup
-
-**Critical:** Always clean up after orchestration completes. Sessions and worktrees don't auto-cleanup.
-
-```bash
-# Kill worker sessions
-tmux list-sessions -F '#{session_name}' | grep -E "worker-|ctt-worker" | while read S; do
-  tmux kill-session -t "$S"
-done
-
-# Remove worktrees
-git worktree list | grep worktrees | awk '{print $1}' | while read W; do
-  git worktree remove --force "$W"
-done
-
-# Delete merged feature branches
-git branch | grep "feature/" | xargs -r git branch -d
-```
-
-**Checklist before ending session:**
-- [ ] All worker tmux sessions killed
-- [ ] All worktrees removed
-- [ ] Feature branches merged and deleted
-- [ ] `bd sync` run to persist issue state
+---
 
 ## Error Handling
 
-**Backend not running:**
 ```bash
+# Backend not running
 curl -s http://localhost:8129/api/health || echo "Start TabzChrome backend"
-```
 
-**Auth token missing:**
-```bash
+# Auth token missing
 cat /tmp/tabz-auth-token || echo "Token missing - restart backend"
-```
 
-**Session not found:**
-```bash
+# Session not found
 tmux has-session -t "$SESSION" 2>/dev/null || echo "Session does not exist"
 ```
 
+---
+
 ## Related Commands
 
-- `/conductor:bd-swarm` - Spawn workers for beads issues
-- `/conductor:plan-backlog` - Sprint planning for parallel work
-- `/conductor:bd-status` - Check beads issue status
-- `/conductor:bd-work` - Work on a single beads issue
+| Command | Purpose |
+|---------|---------|
+| `/conductor:bd-swarm` | Spawn workers for beads issues |
+| `/conductor:plan-backlog` | Sprint planning for parallel work |
+| `/conductor:bd-status` | Check beads issue status |
+| `/conductor:bd-work` | Work on a single issue |
+
+---
+
+## Reference Files
+
+| File | Content |
+|------|---------|
+| `references/terminal-management.md` | Spawn, prompt, kill, cleanup procedures |

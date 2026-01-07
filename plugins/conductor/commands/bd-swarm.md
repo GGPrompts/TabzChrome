@@ -19,13 +19,13 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 ## Workflow Overview
 
 ```
-1. Get ready issues      →  bd ready
-2. Create worktrees      →  git worktree add + npm install (parallel)
-3. Wait for deps         →  All worktrees ready before workers spawn
-4. Spawn workers         →  TabzChrome API or direct tmux (both create tmux sessions)
-5. Send prompts          →  tmux send-keys with skill hints
-6. Monitor via tmuxplexer →  Background window polling
-7. Complete pipeline     →  Kill sessions → Merge → Remove worktrees → Sync → Push
+1. Get ready issues      ->  bd ready
+2. Create worktrees      ->  scripts/setup-worktree.sh (parallel)
+3. Wait for deps         ->  All worktrees ready before workers spawn
+4. Spawn workers         ->  TabzChrome API or direct tmux
+5. Send prompts          ->  tmux send-keys with skill hints
+6. Monitor               ->  scripts/monitor-workers.sh
+7. Complete              ->  scripts/completion-pipeline.sh
 ```
 
 **Key insight:** TabzChrome spawn creates tmux sessions. Cleanup is via `tmux kill-session`.
@@ -34,454 +34,115 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 
 ## Monitoring Workers
 
-**Key change**: Instead of a watcher subagent, monitor workers directly via tmuxplexer in a background window.
-
-### Spawn Monitor
+See: `references/bd-swarm/monitoring.md`
 
 ```bash
-# Spawn tmuxplexer --watcher as background window (window 2)
+# Spawn tmuxplexer as background monitor
 plugins/conductor/scripts/monitor-workers.sh --spawn
-```
 
-The monitor shows all AI sessions with:
-- Status: idle, processing, tool_use, awaiting_input
-- Context %
-- Current tool
-
-### Poll Status
-
-```bash
-# Get parsed worker statuses
-plugins/conductor/scripts/monitor-workers.sh --status
-# Output: ctt-worker-abc|tool_use|45
-
-# Get summary
+# Poll status
 plugins/conductor/scripts/monitor-workers.sh --summary
 # Output: WORKERS:3 WORKING:2 IDLE:0 AWAITING:1 STALE:0
-
-# Check specific issue
-plugins/conductor/scripts/monitor-workers.sh --check-issue TabzChrome-abc
-# Output: CLOSED or OPEN
 ```
-
-### Decision Logic
-
-Poll every ~2 minutes and decide:
 
 | Status | Action |
 |--------|--------|
-| `🔧 AskUserQuestion` | **Don't nudge** - worker waiting for user answer |
-| `🔧 <other tool>` | Working, leave alone |
-| `awaiting_input` / `idle` | At prompt - check if issue closed or stuck |
-| `stale` (5+ min no activity) | May be hung, investigate pane |
-| Issue closed | Worker done, ready for cleanup |
-
-**Detection:** Tmuxplexer shows `🔧 Using AskUserQuestion` when worker has a question pending. Never nudge these workers.
-
-### Drill Down
-
-Only capture worker panes when needed:
-
-```bash
-tmux capture-pane -t <worker-session> -p -S -50
-```
+| `AskUserQuestion` | Don't nudge - waiting for user |
+| `<other tool>` | Working, leave alone |
+| `idle` / `awaiting_input` | Check if issue closed or stuck |
+| Issue closed | Ready for cleanup |
 
 ---
 
-## Interactive Mode (Default)
-
-### 1. Get Ready Issues
-
-```bash
-bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] [\(.type)] \(.title)"' | head -5
-```
-
-### 2. Select Worker Count
-
-Ask user: How many workers? (2, 3, 4, 5)
-
-### 3. Create Worktrees (Parallel)
-
-Create all worktrees and install dependencies in parallel, then wait for completion before spawning workers.
-
-**Important**: Use file-based locking to prevent race conditions when multiple workers spawn simultaneously.
-
-```bash
-# Validate issue ID format (alphanumeric with dash only)
-validate_issue_id() {
-  [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "ERROR: Invalid issue ID" >&2; return 1; }
-}
-
-# Lockfile for worktree creation (prevents race conditions with parallel workers)
-WORKTREE_LOCK="/tmp/git-worktree-$(basename "$PROJECT_DIR").lock"
-
-# Function to setup a single worktree with deps
-setup_worktree() {
-  local ISSUE="$1"
-  local WORKTREE="${PROJECT_DIR}-worktrees/${ISSUE}"
-
-  mkdir -p -- "$(dirname "$WORKTREE")"
-
-  # Use flock to serialize worktree creation across parallel workers
-  # Lock is automatically released when subshell exits (success or error)
-  (
-    flock -x 200 || { echo "ERROR: Failed to acquire worktree lock" >&2; exit 1; }
-
-    # Check if worktree already exists (another worker may have created it)
-    if [ -d "$WORKTREE" ]; then
-      echo "Worktree already exists: $WORKTREE"
-      exit 0
-    fi
-
-    git worktree add -- "$WORKTREE" -b "feature/${ISSUE}" 2>/dev/null || \
-    git worktree add -- "$WORKTREE" HEAD
-  ) 200>"$WORKTREE_LOCK"
-
-  # Install deps based on lockfile type (outside lock - can run in parallel)
-  if [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ]; then
-    cd -- "$WORKTREE"
-    if [ -f "pnpm-lock.yaml" ]; then
-      pnpm install --frozen-lockfile
-    elif [ -f "yarn.lock" ]; then
-      yarn install --frozen-lockfile
-    else
-      npm ci 2>/dev/null || npm install
-    fi
-  fi
-
-  echo "READY: $WORKTREE"
-}
-
-# Run all worktree setups in parallel
-for ISSUE in TabzChrome-abc TabzChrome-def TabzChrome-ghi; do
-  validate_issue_id "$ISSUE" || continue
-  setup_worktree "$ISSUE" &
-done
-
-# Wait for ALL worktrees to be ready before spawning workers
-wait
-echo "All worktrees initialized with dependencies"
-```
-
-### 4. Spawn Workers
-
-**How spawning works:**
-- TabzChrome's `/api/spawn` (POST) creates tmux sessions with `ctt-*` prefix
-- Direct tmux spawning uses `worker-*` prefix (also works fine)
-- Both appear in tmuxplexer and can be monitored the same way
-- **Sessions must be killed via tmux** - there is no REST API for cleanup
-
-**Option A: Via TabzChrome API** (appears in browser terminal UI)
-
-```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
-ISSUE_ID="TabzChrome-abc"
-WORKTREE="/home/user/project-worktrees/${ISSUE_ID}"
-
-bd update "$ISSUE_ID" --status in_progress
-
-# Safe JSON construction using jq (handles special characters in values)
-JSON_PAYLOAD=$(jq -n \
-  --arg name "worker-${ISSUE_ID}" \
-  --arg dir "$WORKTREE" \
-  --arg cmd "claude --dangerously-skip-permissions" \
-  '{name: $name, workingDir: $dir, command: $cmd}')
-
-# POST creates a tmux session named ctt-worker-${ISSUE_ID}-xxxx
-curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d "$JSON_PAYLOAD"
-
-# Store session name for later cleanup (parse from response)
-SESSION_ID=$(curl -s -X POST http://localhost:8129/api/spawn ... | jq -r '.terminal.id')
-echo "$SESSION_ID" >> /tmp/swarm-sessions.txt
-```
-
-**Option B: Direct tmux** (simpler, CLI-only)
-
-```bash
-ISSUE_ID="TabzChrome-abc"
-WORKTREE="/home/user/project-worktrees/${ISSUE_ID}"
-SESSION="worker-${ISSUE_ID}"
-
-bd update "$ISSUE_ID" --status in_progress
-
-tmux new-session -d -s "$SESSION" -c "$WORKTREE"
-tmux send-keys -t "$SESSION" "claude --dangerously-skip-permissions" C-m
-
-# Store session name for later cleanup
-echo "$SESSION" >> /tmp/swarm-sessions.txt
-```
-
-### 5. Send Skill-Aware Prompts
-
-**Security**: Validate session names and use heredoc for prompts with dynamic content.
-
-```bash
-SESSION="ctt-claude-xxx"
-ISSUE_ID="TabzChrome-abc"
-TITLE="Fix something"
-DESCRIPTION="Details here"
-
-sleep 4
-
-# Validate session name format (alphanumeric, dash, underscore only)
-if [[ ! "$SESSION" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-  echo "ERROR: Invalid session name format"
-  exit 1
-fi
-
-if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-  echo "ERROR: Session does not exist"
-  exit 1
-fi
-
-# Use heredoc for safe multiline prompt with variables
-# This avoids shell escaping issues with special characters in title/description
-
-# Set autonomous mode marker if --auto flag was used
-if [ "$AUTO_MODE" = "true" ]; then
-  MODE_HEADER="**MODE: AUTONOMOUS**
-
-Do NOT use AskUserQuestion. Make reasonable defaults for any ambiguity.
-If truly blocked, close issue with reason 'needs-clarification' and create follow-up.
-
-"
-else
-  MODE_HEADER=""
-fi
-
-PROMPT=$(cat <<EOF
-## Task
-${ISSUE_ID}: ${TITLE}
-
-${MODE_HEADER}${DESCRIPTION}
-
-## Skills
-Run \`/ui-styling:ui-styling\` or \`/xterm-js\` based on task type.
-
-## Completion
-When done: \`/conductor:worker-done ${ISSUE_ID}\`
-EOF
-)
-
-# Send prompt safely using printf to handle special characters
-printf '%s' "$PROMPT" | tmux load-buffer -
-tmux paste-buffer -t "$SESSION"
-sleep 0.3
-tmux send-keys -t "$SESSION" C-m
-```
-
-### 6. Start Monitor & Poll
-
-```bash
-# Spawn background monitor
-plugins/conductor/scripts/monitor-workers.sh --spawn
-
-# Poll every 2 minutes
-while true; do
-  SUMMARY=$(plugins/conductor/scripts/monitor-workers.sh --summary)
-  echo "[$(date)] $SUMMARY"
-
-  # Check if all issues closed
-  ALL_CLOSED=true
-  for ISSUE in $ISSUES; do
-    # Validate issue ID before checking
-    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-    if ! bd show "$ISSUE" 2>/dev/null | grep -q "Status: closed"; then
-      ALL_CLOSED=false
-      break
-    fi
-  done
-
-  if $ALL_CLOSED; then
-    echo "All issues closed - running completion pipeline"
-    break
-  fi
-
-  sleep 120
-done
-```
-
-### 7. Completion Pipeline
-
-When all workers done, clean up in this order: **Sessions → Worktrees → Branches → Sync**
-
-```bash
-cd -- "$PROJECT_DIR"
-
-# ============================================
-# STEP 1: Kill worker tmux sessions
-# ============================================
-# Option A: From saved session list
-if [ -f /tmp/swarm-sessions.txt ]; then
-  while read -r SESSION; do
-    [[ "$SESSION" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-      tmux kill-session -t "$SESSION"
-      echo "Killed session: $SESSION"
-    fi
-  done < /tmp/swarm-sessions.txt
-  rm /tmp/swarm-sessions.txt
-fi
-
-# Option B: Kill by pattern (if session list not available)
-for ISSUE in $ISSUES; do
-  [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-  # Try both naming conventions
-  tmux kill-session -t "worker-${ISSUE}" 2>/dev/null && echo "Killed: worker-${ISSUE}"
-  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "ctt-.*${ISSUE}" | while read -r S; do
-    tmux kill-session -t "$S" 2>/dev/null && echo "Killed: $S"
-  done
-done
-
-# ============================================
-# STEP 2: Merge branches
-# ============================================
-MERGE_COUNT=0
-for ISSUE in $ISSUES; do
-  [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Skipping invalid issue: $ISSUE" >&2; continue; }
-  if git merge --no-edit -- "feature/${ISSUE}"; then
-    MERGE_COUNT=$((MERGE_COUNT + 1))
-  fi
-done
-
-# ============================================
-# STEP 3: Cleanup worktrees and branches
-# ============================================
-for ISSUE in $ISSUES; do
-  [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-  git worktree remove --force -- "${PROJECT_DIR}-worktrees/${ISSUE}"
-  git branch -d -- "feature/${ISSUE}"
-done
-
-echo "Worktrees cleaned up, $MERGE_COUNT branches merged"
-
-# ============================================
-# STEP 4: Audio summary of merge completion
-# ============================================
-AUDIO_TEXT="Wave complete. $MERGE_COUNT branches merged successfully. Worktrees cleaned up."
-curl -s -X POST http://localhost:8129/api/audio/speak \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg text "$AUDIO_TEXT" '{text: $text, voice: "en-GB-SoniaNeural", rate: "+15%", priority: "high"}')" \
-  > /dev/null 2>&1 &
-
-# ============================================
-# STEP 5: Sync and push
-# ============================================
-bd sync && git push origin main
-
-# Final completion announcement
-curl -s -X POST http://localhost:8129/api/audio/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Sprint complete. All changes pushed to main.", "voice": "en-GB-SoniaNeural", "rate": "+15%", "priority": "high"}' \
-  > /dev/null 2>&1 &
-```
-
-**Important:** Sessions MUST be killed before removing worktrees, otherwise Claude processes may hold file locks.
+## Interactive Mode
+
+**See full details:** `references/bd-swarm/interactive-mode.md`
+
+1. Get ready issues: `bd ready`
+2. Ask user for worker count (2-5)
+3. Create worktrees in parallel:
+   ```bash
+   for ISSUE in $ISSUES; do
+     plugins/conductor/scripts/setup-worktree.sh "$ISSUE" &
+   done
+   wait
+   ```
+4. Spawn workers via TabzChrome API or direct tmux
+5. Send skill-aware prompts with issue context
+6. Monitor via `monitor-workers.sh --summary` every 2 min
+7. Run completion pipeline when all issues closed
 
 ---
 
 ## Auto Mode (`--auto`)
 
-Fully autonomous backlog completion. Runs until `bd ready` returns empty.
+**See full details:** `references/bd-swarm/auto-mode.md`
 
-**Sets `AUTO_MODE=true`** - Workers receive `MODE: AUTONOMOUS` marker and will not ask questions.
+Fully autonomous backlog completion. Runs waves until `bd ready` is empty.
 
-### Wave Loop
-
-```bash
-WAVE=1
-while true; do
-  READY=$(bd ready --json | jq -r '.[].id')
-  [ -z "$READY" ] && break
-
-  echo "=== Wave $WAVE: $(echo "$READY" | wc -l) issues ==="
-
-  # PHASE 1: Initialize ALL worktrees in parallel (deps included)
-  for ISSUE in $READY; do
-    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Skipping invalid: $ISSUE" >&2; continue; }
-    setup_worktree "$ISSUE" &  # Uses function from section 3
-  done
-  wait  # Block until all worktrees ready with deps
-  echo "All worktrees initialized for wave $WAVE"
-
-  # PHASE 2: Spawn workers (worktrees already have deps)
-  for ISSUE in $READY; do
-    [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-    spawn_worker "$ISSUE"
-  done
-
-  # Monitor until wave complete
-  monitor_wave "$READY"
-
-  # Merge wave results
-  merge_wave "$READY"
-
-  # Audio announcement for wave completion
-  ISSUE_COUNT=$(echo "$READY" | wc -w)
-  curl -s -X POST http://localhost:8129/api/audio/speak \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg text "Wave $WAVE complete. $ISSUE_COUNT issues merged. Starting next wave." \
-      '{text: $text, voice: "en-GB-SoniaNeural", rate: "+15%", priority: "high"}')" \
-    > /dev/null 2>&1 &
-
-  WAVE=$((WAVE + 1))
-done
-
-# Final completion with audio
-bd sync && git push origin main
-curl -s -X POST http://localhost:8129/api/audio/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Backlog complete! All waves finished and pushed to main.", "voice": "en-GB-SoniaNeural", "rate": "+15%", "priority": "high"}' \
-  > /dev/null 2>&1 &
-echo "Backlog complete!"
-```
-
-### Auto Mode Differences
+**Workers receive:** `MODE: AUTONOMOUS` marker - no questions, reasonable defaults.
 
 | Aspect | Interactive | Auto |
 |--------|-------------|------|
 | Worker count | Ask user | All ready issues |
-| Waves | One wave | Repeat until empty |
-| Decisions | AskUserQuestion | Reasonable defaults |
-| Context check | Manual | Auto /wipe at 75% |
+| Waves | One wave | Loop until empty |
+| Decisions | AskUserQuestion ok | No questions |
+| Context | Manual check | Auto /wipe at 75% |
 
-### Context Recovery
+---
 
-If conductor hits 75% context:
+## Completion Pipeline
+
+**See full details:** `references/bd-swarm/completion-pipeline.md`
 
 ```bash
-# Save state
-echo "$WAVE" > /tmp/conductor:bd-swarm-wave.txt
-
-# Trigger /wipe with handoff
-# Resume with: /conductor:bd-swarm --auto --resume
+# Run after all workers done
+plugins/conductor/scripts/completion-pipeline.sh "$ISSUES"
 ```
+
+Order: **Kill sessions -> Merge branches -> Remove worktrees -> Sync**
 
 ---
 
 ## Worker Expectations
 
 Each worker will:
-1. Read issue with `bd show <id>`
+1. Read issue: `bd show <id>`
 2. Implement feature/fix
 3. Build and test
-4. Run `/conductor:worker-done <issue-id>` (reviews, commits, closes issue)
+4. Complete: `/conductor:worker-done <issue-id>`
 
 ---
 
 ## Skill Matching
 
-Match skills to issue content:
-
 | Keywords | Skill |
 |----------|-------|
 | terminal, xterm, pty | `/xterm-js` |
-| ui, component, modal, button | `/ui-styling:ui-styling` |
-| plugin, skill, agent | `/plugin-development:plugin-development` |
-| debug, fix, error, bug | Debugging patterns |
+| ui, component, modal | `/ui-styling:ui-styling` |
+| plugin, skill, agent | `/plugin-development` |
+| debug, fix, error | Debugging patterns |
+
+---
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/setup-worktree.sh` | Create worktree + install deps |
+| `scripts/monitor-workers.sh` | Spawn/poll tmuxplexer watcher |
+| `scripts/completion-pipeline.sh` | Kill sessions, merge, cleanup |
+
+---
+
+## Reference Files
+
+| File | Content |
+|------|---------|
+| `references/bd-swarm/monitoring.md` | Worker status monitoring details |
+| `references/bd-swarm/interactive-mode.md` | Full interactive workflow |
+| `references/bd-swarm/auto-mode.md` | Auto mode wave loop |
+| `references/bd-swarm/completion-pipeline.md` | Cleanup steps |
 
 ---
 
@@ -489,27 +150,5 @@ Match skills to issue content:
 
 - Workers run in isolated worktrees (prevents conflicts)
 - Monitor via tmuxplexer background window (no watcher subagent)
-- User can switch to monitor window via status bar click
 - Check actual pane content before nudging idle workers
-
-## Session Cleanup Checklist
-
-Before ending a swarm session, verify cleanup is complete:
-
-```bash
-# Check for leftover worker sessions
-tmux list-sessions | grep -E "worker-|ctt-worker"
-
-# Check for leftover worktrees
-ls ${PROJECT_DIR}-worktrees/ 2>/dev/null
-
-# Check for orphaned feature branches
-git branch | grep "feature/"
-
-# Manual cleanup if needed
-tmux kill-session -t "worker-xxx"
-git worktree remove --force "${PROJECT_DIR}-worktrees/xxx"
-git branch -d "feature/xxx"
-```
-
-**Common issue:** If conductor session ends before completion pipeline runs, sessions/worktrees are orphaned. Always run the completion pipeline or clean up manually.
+- Sessions MUST be killed before removing worktrees
