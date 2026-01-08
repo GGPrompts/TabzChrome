@@ -1,6 +1,6 @@
 ---
 name: tabz-guide
-description: "Progressive disclosure guide to TabzChrome capabilities. This skill should be used when users ask about profiles, terminal management, browser automation, MCP tools, audio/TTS notifications, integration, debugging, API, or setup. Provides on-demand help organized by topic with references to detailed documentation."
+description: "Guide for working ON TabzChrome itself. Covers profiles, terminal management, MCP browser tools, audio/TTS settings, debugging, and internal features. For external projects integrating WITH TabzChrome, use the tabz-integration plugin instead."
 ---
 
 # TabzChrome Guide
@@ -9,13 +9,18 @@ TabzChrome is a Chrome extension providing **full Linux terminals in your browse
 
 ## When to Use This Skill
 
-Trigger on questions about:
+**Use this skill** when working ON TabzChrome itself:
 - Profile creation and management
-- Terminal spawning and API integration
-- MCP browser automation tools
-- Audio/TTS notifications and settings
 - Debugging terminal issues
+- Understanding internal MCP tools
+- Audio/TTS settings and configuration
 - Recent features and changes
+
+**Use tabz-integration plugin** for external projects connecting TO TabzChrome:
+- Spawning terminals from scripts/apps
+- REST API and WebSocket integration
+- MCP tools setup in other projects
+- TTS notifications from external code
 
 ## Quick Reference
 
@@ -36,9 +41,10 @@ Profiles are templates for spawning terminals with saved settings (theme, font, 
 - Import/Export as JSON
 - Drag-drop reordering in dashboard
 
-### Integration
+### Internal Integration (Dashboard Links)
 
-**Markdown Links** - Create runnable buttons in `.md` files viewed in dashboard:
+Create runnable buttons in `.md` files viewed in the TabzChrome dashboard:
+
 ```markdown
 [Run Tests](tabz:spawn?cmd=npm%20test&name=Tests)
 [Launch Claude](tabz:spawn?profile=claude%20code)
@@ -53,21 +59,7 @@ Profiles are templates for spawning terminals with saved settings (theme, font, 
 | Queue to chat | `tabz:queue?text=xxx` | Blue |
 | Paste to terminal | `tabz:paste?text=xxx` | Orange |
 
-**Spawn API** - Create terminals programmatically:
-```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
-curl -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Worker", "workingDir": "~/projects", "command": "claude"}'
-```
-
-**HTML triggers** - Add to any web page element:
-```html
-<button data-terminal-command="npm run dev">Start Dev</button>
-```
-
-For full API documentation, read `references/api-endpoints.md`.
+> **For external project integration** (REST API, WebSocket, spawning from scripts), install the `tabz-integration` plugin.
 
 ### MCP Tools
 
@@ -124,14 +116,9 @@ Neural text-to-speech notifications for Claude Code status changes. Audio genera
 - 50% warning: `+100Hz`, `+15%` rate
 - 75% critical: `+200Hz`, `+30%` rate
 
-**API example:**
-```bash
-curl -X POST http://localhost:8129/api/audio/generate \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Task complete", "pitch": "+20Hz"}'
-```
+For voice codes and configuration details, read `references/audio-tts.md`.
 
-For voice codes, parameters, and API details, read `references/audio-tts.md`.
+> **For TTS from external scripts/code**, see the `tabz-integration` plugin.
 
 ### Recent Features
 

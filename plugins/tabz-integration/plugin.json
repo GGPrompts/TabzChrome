@@ -1,5 +1,8 @@
 {
   "name": "tabz-integration",
   "version": "1.0.0",
-  "description": "Integration guide for connecting projects to TabzChrome terminals"
+  "description": "Integration guide for connecting any project to TabzChrome terminals via API, WebSocket, MCP tools, and TTS",
+  "author": "TabzChrome",
+  "repository": "https://github.com/AgeofIA/TabzChrome",
+  "keywords": ["tabzchrome", "integration", "api", "mcp", "tts", "terminal"]
 }

@@ -1,6 +1,8 @@
-# TabzChrome API Reference
+# TabzChrome API Reference (Internal)
 
-REST API at `localhost:8129` for spawning terminals, managing sessions, syncing settings.
+REST API at `localhost:8129` for debugging, testing, and TabzChrome development.
+
+> **For external project integration**, use the `tabz-integration` plugin which provides comprehensive integration documentation.
 
 ## Authentication
 

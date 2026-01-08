@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "tabz-integration",
+      "description": "Integration guide for connecting any project to TabzChrome terminals via API, WebSocket, MCP tools, and TTS. Install in external projects that need to spawn terminals, add browser automation, or use audio notifications.",
+      "path": "plugins/tabz-integration",
+      "keywords": ["integration", "api", "mcp", "tts", "spawn"]
+    },
+    {
+      "name": "xterm-js",
+      "description": "Best practices for xterm.js terminal implementations, React integration, WebSocket communication, and debugging. For building terminal applications.",
+      "path": "plugins/xterm-js",
+      "keywords": ["xterm", "terminal", "react", "websocket"]
+    },
+    {
+      "name": "conductor",
+      "description": "Multi-session orchestration, parallel workers, code review, and issue management. For complex multi-step workflows.",
+      "path": "plugins/conductor",
+      "keywords": ["orchestration", "workers", "review", "automation"]
+    },
+    {
+      "name": "ctthandoff",
+      "description": "Generate handoff summaries, copy to clipboard, and speak via TTS. For session transitions.",
+      "path": "plugins/ctthandoff",
+      "keywords": ["handoff", "summary", "tts"]
+    },
+    {
+      "name": "page-reader",
+      "description": "Capture and summarize web pages, read aloud via TTS. For content consumption.",
+      "path": "plugins/page-reader",
+      "keywords": ["page", "reader", "tts", "summary"]
+    }
+  ]
+}

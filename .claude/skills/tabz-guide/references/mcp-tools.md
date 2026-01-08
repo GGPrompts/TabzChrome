@@ -2,6 +2,8 @@
 
 TabzChrome provides 71 MCP tools for browser automation via Chrome Extension APIs.
 
+> **For MCP setup in external projects**, use the `tabz-integration` plugin.
+
 ## Tool Categories
 
 | Category | Tools | Purpose |
