@@ -214,6 +214,23 @@ Workers do NOT kill their own session - the conductor handles cleanup after rece
 
 ---
 
+## Visual Review Policy
+
+**Workers do NOT do visual review.** Visual review (browser-based UI verification) happens at the conductor level after merge, not in individual workers.
+
+**Why:**
+- Parallel workers opening browser tabs fight over the same browser window
+- Workers cannot create isolated tab groups (tabz_claude_group_* uses a single shared group)
+- Conductor can do unified visual review after merging all changes - better coverage, no conflicts
+
+**Worker focus:** Implementation → Tests → Build → Code Review (static) → Commit
+
+**Conductor handles:** Merge → Unified Visual Review → Final Verification
+
+See TabzChrome-s19 for the architectural decision to move visual review to conductor.
+
+---
+
 ## Reference Files
 
 | File | Content |

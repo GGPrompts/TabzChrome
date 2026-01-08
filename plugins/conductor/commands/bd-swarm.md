@@ -25,7 +25,8 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 4. Spawn workers         ->  TabzChrome /api/spawn (see below)
 5. Send prompts          ->  tmux send-keys with skill hints
 6. Monitor               ->  scripts/monitor-workers.sh
-7. Complete              ->  scripts/completion-pipeline.sh
+7. Merge & review        ->  Merge branches, visual review (conductor only)
+8. Cleanup               ->  scripts/completion-pipeline.sh
 ```
 
 **Key insight:** TabzChrome spawn creates tmux sessions with `ctt-*` prefix. Cleanup is via `tmux kill-session`.
@@ -162,7 +163,12 @@ Fully autonomous backlog completion. Runs waves until `bd ready` is empty.
 ${CLAUDE_PLUGIN_ROOT}/scripts/completion-pipeline.sh "$ISSUES"
 ```
 
-Order: **Kill sessions -> Merge branches -> Remove worktrees -> Sync**
+Order: **Kill sessions -> Merge branches -> Visual review -> Remove worktrees -> Sync**
+
+**Visual review happens here** (at conductor level, after merge):
+- Conductor opens browser tabs for UI verification
+- No tab conflicts since workers are done
+- Full context of all merged changes
 
 ---
 
@@ -173,6 +179,8 @@ Each worker will:
 2. Implement feature/fix
 3. Build and test
 4. Complete: `/conductor:worker-done <issue-id>`
+
+**Workers do NOT do visual review.** Visual review (browser-based UI verification) happens at the conductor level after merge. This prevents parallel workers from fighting over browser tabs.
 
 ---
 
@@ -266,3 +274,4 @@ See `references/bd-swarm/interactive-mode.md` for the `match_skills()` function 
 - Monitor via tmuxplexer background window (no watcher subagent)
 - Check actual pane content before nudging idle workers
 - Sessions MUST be killed before removing worktrees
+- **Visual review happens at conductor level only** - workers skip it to avoid browser tab conflicts (see TabzChrome-s19)

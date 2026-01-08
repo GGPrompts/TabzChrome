@@ -1,6 +1,6 @@
 # Completion Pipeline - BD Swarm
 
-Clean up in this order: **Sessions -> Worktrees -> Branches -> Sync**
+Clean up in this order: **Sessions -> Merge -> Visual Review -> Worktrees -> Branches -> Sync**
 
 ## Quick Reference
 
@@ -51,7 +51,31 @@ for ISSUE in $ISSUES; do
 done
 ```
 
-### Step 3: Cleanup Worktrees and Branches
+### Step 3: Visual Review (Conductor Only)
+
+**This is when visual review happens** - after merge, before cleanup.
+
+Workers skip visual review to avoid browser tab conflicts. The conductor does unified visual review here:
+
+```bash
+# Conductor opens browser tabs for UI verification
+# - Use tabz_screenshot to capture UI state
+# - Use tabz_open_url to navigate to affected pages
+# - Verify all merged changes work together
+
+# Example: screenshot the dashboard after all changes merged
+mcp-cli call tabz/tabz_open_url '{"url": "http://localhost:3000/dashboard"}'
+mcp-cli call tabz/tabz_screenshot '{}'
+```
+
+**Why here:**
+- All worker changes are merged - see complete picture
+- No tab conflicts - workers are done
+- Better review quality - interactions between changes visible
+
+See TabzChrome-s19 for the architectural decision.
+
+### Step 4: Cleanup Worktrees and Branches
 
 ```bash
 for ISSUE in $ISSUES; do
@@ -63,7 +87,7 @@ done
 echo "Worktrees cleaned up, $MERGE_COUNT branches merged"
 ```
 
-### Step 4: Audio Summary
+### Step 5: Audio Summary
 
 ```bash
 AUDIO_TEXT="Wave complete. $MERGE_COUNT branches merged successfully. Worktrees cleaned up."
@@ -73,7 +97,7 @@ curl -s -X POST http://localhost:8129/api/audio/speak \
   > /dev/null 2>&1 &
 ```
 
-### Step 5: Sync and Push
+### Step 6: Sync and Push
 
 ```bash
 bd sync && git push origin main
