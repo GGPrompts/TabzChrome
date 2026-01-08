@@ -26,6 +26,7 @@ Orchestrates the full task completion pipeline by composing atomic commands.
 | 3 | `/conductor:commit-changes` | Yes - stop on failure | No |
 | 4 | `/conductor:create-followups` | No - log and continue | No |
 | 5 | `/conductor:update-docs` | No - log and continue | No |
+| 5.5 | Record completion info | No - best effort | No |
 | 6 | `/conductor:close-issue` | Yes - report result | No |
 | 7 | Notify conductor | No - best effort | No |
 
@@ -97,6 +98,24 @@ echo "=== Step 4: Follow-up Tasks ==="
 echo "=== Step 5: Documentation Check ==="
 ```
 Run `/conductor:create-followups` and `/conductor:update-docs`. Log and continue.
+
+### Step 5.5: Record Completion Info
+```bash
+echo "=== Step 5.5: Record Completion Info ==="
+
+# Get existing notes and append completion info
+EXISTING_NOTES=$(bd show "$ISSUE_ID" --json 2>/dev/null | jq -r '.notes // ""')
+COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# Append completion info to existing notes
+NEW_NOTES="${EXISTING_NOTES}
+completed_at: $(date -Iseconds)
+commit: $COMMIT_SHA"
+
+bd update "$ISSUE_ID" --notes "$NEW_NOTES"
+```
+
+This creates an audit trail with start time (from spawn) and completion time + commit.
 
 ### Step 6: Close Issue
 ```bash

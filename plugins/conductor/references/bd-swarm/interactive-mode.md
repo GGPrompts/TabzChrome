@@ -68,14 +68,19 @@ JSON_PAYLOAD=$(jq -n \
   '{name: $name, workingDir: $dir, command: $cmd}')
 
 # POST creates a tmux session named ctt-worker-${ISSUE_ID}-xxxx
-curl -s -X POST http://localhost:8129/api/spawn \
+RESPONSE=$(curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d "$JSON_PAYLOAD"
+  -d "$JSON_PAYLOAD")
 
-# Store session name for later cleanup (parse from response)
-SESSION_ID=$(curl -s -X POST http://localhost:8129/api/spawn ... | jq -r '.terminal.id')
+# Store session name for later cleanup
+SESSION_ID=$(echo "$RESPONSE" | jq -r '.terminal.id')
 echo "$SESSION_ID" >> /tmp/swarm-sessions.txt
+
+# Record session IDs in beads for audit trail
+bd update "$ISSUE_ID" --notes "conductor_session: $CONDUCTOR_SESSION
+worker_session: $SESSION_ID
+started_at: $(date -Iseconds)"
 ```
 
 ### Option B: Direct tmux (simpler, CLI-only)
@@ -96,6 +101,11 @@ tmux send-keys -t "$SESSION" "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_
 
 # Store session name for later cleanup
 echo "$SESSION" >> /tmp/swarm-sessions.txt
+
+# Record session IDs in beads for audit trail
+bd update "$ISSUE_ID" --notes "conductor_session: $CONDUCTOR_SESSION
+worker_session: $SESSION
+started_at: $(date -Iseconds)"
 ```
 
 ## 5. Craft Enhanced Prompts

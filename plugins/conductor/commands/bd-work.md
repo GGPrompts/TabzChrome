@@ -126,9 +126,16 @@ RESPONSE=$(curl -s -X POST http://localhost:8129/api/spawn \
 # Response: {"success":true,"terminal":{"id":"ctt-xxx","ptyInfo":{"tmuxSession":"ctt-xxx"}}}
 SESSION=$(echo "$RESPONSE" | jq -r '.terminal.ptyInfo.tmuxSession')
 echo "Spawned: $SESSION"
+
+# Record session IDs in beads for audit trail
+bd update "$ISSUE_ID" --notes "conductor_session: $CONDUCTOR_SESSION
+worker_session: $SESSION
+started_at: $(date -Iseconds)"
 ```
 
 **Why CONDUCTOR_SESSION?** When worker runs `/conductor:worker-done`, it sends a completion notification back to the conductor via tmux. No polling needed - push-based.
+
+**Why record session IDs?** Enables later audit of which Claude session worked on which issue. Can review chat histories to improve prompts/workflows.
 
 **No worktree needed** - single worker, no conflict risk.
 
