@@ -1,0 +1,20 @@
+# TabzChrome Beads Configuration
+# Note: Custom issue types are NOT supported in beads v0.46
+# Use labels and custom statuses instead for workflow differentiation
+
+# Conductor workflow approach:
+# - Labels distinguish work type: conductor, worker, wave, cross-train
+# - Custom statuses track pipeline stages (configured via bd config)
+#
+# Custom statuses configured:
+#   awaiting_review   - Work complete, needs review
+#   awaiting_merge    - Review passed, ready to merge
+#   awaiting_wave     - Blocked on wave completion
+#   assigned_worker   - Assigned to a worker session
+#
+# Example usage:
+#   bd create --title "Merge wave-1 PRs" --label conductor
+#   bd create --title "Implement feature X" --label worker
+#   bd set-state <id> status=awaiting_review
+#   bd list --label conductor
+#   bd list --label "status:awaiting_merge"
