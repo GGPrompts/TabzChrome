@@ -1,10 +1,10 @@
 ---
-description: "Pick the top ready beads issue, explore codebase, and start working with skill-aware prompting. Adapts behavior for autonomous vs interactive mode."
+description: "Pick the top ready beads issue and spawn a visible worker to complete it"
 ---
 
-# Beads Work - Smart Issue Workflow
+# Beads Work - Single Issue Worker
 
-Pick the highest priority ready issue, explore relevant codebase, and begin working.
+Spawn a visible worker to tackle one beads issue. Unlike bd-swarm, no worktree is created since there's only one worker.
 
 ## Quick Start
 
@@ -13,159 +13,161 @@ Pick the highest priority ready issue, explore relevant codebase, and begin work
 /conductor:bd-work TabzChrome-abc  # Work on specific issue
 ```
 
-## Mode Detection
+---
 
-| Mode | Trigger | Behavior |
-|------|---------|----------|
-| **Interactive** | Default | Can ask clarifying questions |
-| **Autonomous** | Prompt contains "MODE: AUTONOMOUS" | Make defaults, no questions |
+## Workflow
+
+```
+1. Select issue       →  bd ready (pick top) or use provided ID
+2. Get issue details  →  bd show <id>
+3. Explore context    →  Task(Explore) for relevant files
+4. Craft prompt       →  Follow worker-architecture.md template
+5. Spawn worker       →  TabzChrome API (no worktree)
+6. Send prompt        →  tmux send-keys
+7. User watches       →  Worker visible in sidebar
+```
 
 ---
 
-## Quick Reference Workflows
+## Phase 1: Select Issue
 
-### Simple Issue (bug/task)
 ```bash
+# If no ID provided, get top ready issue
+bd ready --json | jq -r '.[0]'
+
+# Get full issue details
 bd show <id>
-bd update <id> --status in_progress
-# Implement fix
-/conductor:worker-done <id>
-```
-
-### Feature Issue (interactive)
-```bash
-bd show <id>
-bd update <id> --status in_progress
-# Explore codebase (Phase 3)
-# Ask questions if unclear
-# Implement
-/conductor:worker-done <id>
-```
-
-### Feature Issue (autonomous)
-```bash
-bd show <id>
-bd update <id> --status in_progress
-# Explore codebase
-# Make reasonable defaults (no questions)
-# Implement
-/conductor:worker-done <id>
 ```
 
 ---
 
-## Workflow Overview
+## Phase 2: Explore Context
 
-| Phase | Purpose | When |
-|-------|---------|------|
-| 1. Select | Claim issue | Always |
-| 2. Complexity | Determine depth | Always |
-| 3. Explore | Analyze codebase | Medium/Complex |
-| 4. Questions | Clarify ambiguity | Interactive only |
-| 5. Environment | Setup deps | Always |
-| 6. Skills | Match to skill | As needed |
-| 7. Implement | Write code | Always |
-| 8. Complete | worker-done | Always |
-
-**Full details:** `references/bd-work/workflow-phases.md`
-
----
-
-## Phase 1: Select & Claim
-
-```bash
-# Get ready issues
-bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] \(.title)"' | head -5
-
-# Claim the issue
-bd update $ISSUE_ID --status in_progress
-```
-
----
-
-## Phase 2: Determine Complexity
-
-| Type | Complexity | Path |
-|------|------------|------|
-| Simple bug/task | Simple | Skip to implement |
-| Complex bug | Medium | Explore first |
-| Feature | Medium/Complex | Explore + questions |
-| Epic | Complex | Explore + architecture |
-
-**Simple indicators:** Single-file fix, config/docs only
-**Complex indicators:** "refactor", "redesign", multi-component
-
----
-
-## Phase 3: Exploration (Features)
-
-Use the built-in Explore subagent for codebase exploration:
+Before crafting the prompt, understand what files are relevant:
 
 ```markdown
 Task(
   subagent_type="Explore",
   model="haiku",
-  prompt="Find files and patterns for: '<issue-title>'
-         Return: relevant files, patterns to follow, approach"
+  prompt="Find files relevant to: '<issue-title>'
+         Return: key files, patterns to follow"
 )
 ```
 
-Specify thoroughness: "quick", "medium", or "very thorough" in the prompt.
+---
+
+## Phase 3: Match Skills
+
+Based on issue keywords, identify skill hints to weave into prompt:
+
+| Keywords | Skill Trigger Words |
+|----------|---------------------|
+| UI, component, modal | "following UI styling best practices" |
+| terminal, xterm, pty | "following xterm.js patterns" |
+| backend, API, server | "following backend development patterns" |
+| plugin, skill, agent | "following plugin development best practices" |
+| MCP, tools, browser | "using MCP browser automation" |
+
+**Remember:** Weave skill hints naturally into task instructions, don't list them.
 
 ---
 
-## Phase 4: Autonomous vs Interactive
+## Phase 4: Craft Prompt
 
-**Interactive:** Use AskUserQuestion for ambiguities
+Follow the template from `references/worker-architecture.md`:
 
-**Autonomous:** Make defaults, document assumptions:
-```bash
-# If truly blocked
-bd comments $ISSUE_ID add "BLOCKED: Need clarification on <topic>"
-bd close $ISSUE_ID --reason "needs-clarification"
-bd create --title "Clarify: <topic>" --type task --priority 1
+```markdown
+## Task: ISSUE-ID - Title
+[Explicit, actionable description of what to do]
+
+## Context
+[WHY this matters, background from issue description]
+
+## Key Files
+[File paths as text - worker reads on-demand]
+- path/to/relevant/file.ts
+- path/to/pattern/to/follow.ts
+
+## Approach
+[How to tackle this, with skill hints woven in naturally]
+Example: "Update the component following UI styling best practices,
+ensuring accessibility and responsive design."
+
+## When Done
+Run `/conductor:worker-done ISSUE-ID`
 ```
 
 ---
 
-## Skill Matching
-
-| Keywords | Skill |
-|----------|-------|
-| UI, component | `/shadcn-ui`, `/ui-styling:ui-styling` |
-| terminal, xterm | `/xterm-js` |
-| MCP, tools | `/mcp-builder:mcp-builder` |
-| code review | `/conductor:code-review` |
-
----
-
-## File Size Guidelines
-
-| Size | Action |
-|------|--------|
-| < 200 lines | Safe to @ reference |
-| 200-500 lines | Only if highly relevant |
-| 500+ lines | Use subagents to explore |
-
----
-
-## Completion
+## Phase 5: Spawn Worker
 
 ```bash
-/conductor:worker-done <issue-id>
+TOKEN=$(cat /tmp/tabz-auth-token)
+curl -s -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
+  -d '{
+    "name": "<issue-id>-worker",
+    "workingDir": "/home/marci/projects/TabzChrome",
+    "command": "claude --dangerously-skip-permissions"
+  }'
 ```
 
-This runs: build -> test -> review -> commit -> close
+**No worktree needed** - single worker, no conflict risk.
 
-**If fails:** Fix the issue, re-run worker-done.
+---
+
+## Phase 6: Send Prompt
+
+Wait for Claude to load (~8 seconds), then send:
+
+```bash
+sleep 8
+tmux send-keys -t ctt-<issue-id>-worker-<uuid> -l "<crafted-prompt>"
+sleep 0.3
+tmux send-keys -t ctt-<issue-id>-worker-<uuid> C-m
+```
+
+---
+
+## Phase 7: Monitor
+
+User watches worker progress in TabzChrome sidebar. Worker will:
+1. Read issue details
+2. Explore codebase as needed
+3. Implement the fix/feature
+4. Run `/conductor:worker-done <issue-id>`
+
+---
+
+## Cleanup
+
+After worker completes:
+
+```bash
+# Kill the worker session
+tmux kill-session -t ctt-<issue-id>-worker-<uuid>
+```
+
+---
+
+## Comparison with bd-swarm
+
+| Aspect | bd-work | bd-swarm |
+|--------|---------|----------|
+| Workers | 1 | Multiple |
+| Worktree | No | Yes (per worker) |
+| Conflict risk | None | Managed via isolation |
+| Use case | Single issue focus | Batch parallel processing |
+| Cleanup | Just kill session | Merge branches + cleanup |
 
 ---
 
 ## Notes
 
-- `/conductor:worker-done` is idempotent - safe to re-run
-- If context > 75%, use `/wipe` to handoff
-- Update progress: `bd comments <id> add "Progress: ..."`
-- In autonomous mode, document assumptions in commit message
+- Conductor crafts the prompt, worker executes
+- Worker is visible in TabzChrome sidebar
+- No worktree = simpler cleanup
+- Worker completes with `/conductor:worker-done`
 
 Execute this workflow now.
