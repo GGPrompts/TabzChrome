@@ -44,7 +44,7 @@ Workers invoke subagents based on issue type:
 1. **Simplicity** - Workers are just Claude sessions, no special configuration
 2. **On-demand skills** - Skills load via subagent frontmatter, saving context
 3. **Flexible** - Same worker can handle any issue type by invoking different subagents
-4. **Maintainable** - Subagent definitions live in `~/plugins/my-plugins/agents/`
+4. **Maintainable** - Subagent definitions live in plugin `agents/` directories
 
 ## Worker Lifecycle
 

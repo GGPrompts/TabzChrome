@@ -22,7 +22,7 @@ Create new projects from TabzTemplates starters with pre-configured beads issues
 
 ## Available Starters
 
-Starters are located in `~/projects/TabzTemplates/starters/`:
+Starters are located in `${TABZ_TEMPLATES_DIR:-~/projects/TabzTemplates}/starters/`:
 
 | Starter | Description | Tech Stack |
 |---------|-------------|------------|
@@ -43,7 +43,8 @@ For UI components and design inspiration, see:
 If no `--starter` specified, list available starters:
 
 ```bash
-ls ~/projects/TabzTemplates/starters/
+TEMPLATES_DIR="${TABZ_TEMPLATES_DIR:-$HOME/projects/TabzTemplates}"
+ls "$TEMPLATES_DIR/starters/"
 ```
 
 For each starter, read its `manifest.yaml` and display:
@@ -175,7 +176,7 @@ Ready! To start building:
 
 | Error | Resolution |
 |-------|------------|
-| TabzTemplates not found | Clone from GitHub or create ~/projects/TabzTemplates |
+| TabzTemplates not found | Set `TABZ_TEMPLATES_DIR` env var or clone to `~/projects/TabzTemplates` |
 | Starter not found | List available starters |
 | Target dir exists | Ask to overwrite or choose new path |
 | beads init fails | Check beads MCP server is running |
