@@ -1,5 +1,3 @@
 {
-  "enabledPlugins": {
-    "tabz-guide@tabz-chrome": true
-  }
+  "enabledPlugins": {}
 }
