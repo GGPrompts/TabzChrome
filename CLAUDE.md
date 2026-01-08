@@ -210,6 +210,38 @@ Use these skills when working on TabzChrome itself:
 
 **Trigger with:** "use the xterm-js skill to debug terminal rendering"
 
+### Skill & Command Invocation Patterns
+
+**IMPORTANT:** Skills and slash commands have different invocation patterns.
+
+| Context | Format | Example |
+|---------|--------|---------|
+| **User types** (chat) | `/plugin:command` or `/command` | `/conductor:worker-done` |
+| **Claude calls** (Skill tool) | `skill: "plugin:skill"` (no slash) | `Skill(skill: "conductor:worker-done")` |
+
+**Common mistakes to avoid:**
+- ❌ `Skill(skill: "/conductor:worker-done")` - NO leading slash in Skill tool
+- ❌ `/pmux` - WRONG, use `/pmux:pmux` (plugin:skill format)
+- ❌ `skill: "worker-done"` - WRONG, need full `plugin:skill` name
+
+**Correct patterns:**
+```
+# User typing in chat (slash command):
+/conductor:worker-done TabzChrome-abc
+/rebuild
+/bd-status
+
+# Claude calling programmatically (Skill tool):
+Skill(skill: "conductor:worker-done", args: "TabzChrome-abc")
+Skill(skill: "rebuild")
+Skill(skill: "pmux:pmux")
+```
+
+**Shorthand rules:**
+- `/rebuild` works if unambiguous (only one `rebuild` skill exists)
+- `/worker-done` may NOT work - use `/conductor:worker-done` for clarity
+- When in doubt, use full `plugin:skill` format
+
 ### Slash Commands
 
 | Command | Purpose |
