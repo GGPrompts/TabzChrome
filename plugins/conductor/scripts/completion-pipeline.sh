@@ -68,18 +68,50 @@ for ISSUE in $ISSUES; do
 done
 
 echo ""
-echo "=== Step 2: Merge Branches ==="
+echo "=== Step 2: Merge Branches to Main ==="
+
+# Ensure we're on main before merging
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "Switching to main branch (was on: $CURRENT_BRANCH)"
+  if ! git checkout main; then
+    echo "ERROR: Failed to checkout main branch"
+    exit 1
+  fi
+  # Pull latest to avoid push conflicts
+  git pull --ff-only origin main 2>/dev/null || true
+fi
 
 MERGE_COUNT=0
+MERGE_FAILED=0
 for ISSUE in $ISSUES; do
   [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Skipping invalid: $ISSUE" >&2; continue; }
-  if git merge --no-edit "feature/${ISSUE}" 2>/dev/null; then
-    echo "Merged: feature/${ISSUE}"
+  BRANCH="feature/${ISSUE}"
+
+  # Check if branch exists
+  if ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+    echo "SKIP: Branch $BRANCH does not exist"
+    continue
+  fi
+
+  echo "Merging $BRANCH..."
+  MERGE_OUTPUT=$(git merge --no-edit "$BRANCH" 2>&1)
+  MERGE_STATUS=$?
+
+  if [ $MERGE_STATUS -eq 0 ]; then
+    echo "  OK: Merged $BRANCH"
     MERGE_COUNT=$((MERGE_COUNT + 1))
   else
-    echo "WARN: Could not merge feature/${ISSUE} (may not exist or conflicts)"
+    echo "  CONFLICT: Failed to merge $BRANCH"
+    echo "$MERGE_OUTPUT" | sed 's/^/    /'
+    # Abort the failed merge and continue with others
+    git merge --abort 2>/dev/null || true
+    MERGE_FAILED=$((MERGE_FAILED + 1))
   fi
 done
+
+echo ""
+echo "Merge summary: $MERGE_COUNT succeeded, $MERGE_FAILED failed"
 
 echo ""
 echo "=== Step 3: Cleanup Worktrees ==="
@@ -99,7 +131,11 @@ rmdir "$WORKTREE_DIR" 2>/dev/null || true
 echo ""
 echo "=== Step 4: Audio Notification ==="
 
-AUDIO_TEXT="Wave complete. $MERGE_COUNT branches merged successfully."
+if [ "$MERGE_FAILED" -gt 0 ]; then
+  AUDIO_TEXT="Wave complete. $MERGE_COUNT branches merged. $MERGE_FAILED had conflicts."
+else
+  AUDIO_TEXT="Wave complete. $MERGE_COUNT branches merged successfully."
+fi
 curl -s -X POST http://localhost:8129/api/audio/speak \
   -H "Content-Type: application/json" \
   -d "$(jq -n --arg text "$AUDIO_TEXT" '{text: $text, voice: "en-GB-SoniaNeural", rate: "+15%", priority: "high"}')" \
@@ -108,6 +144,9 @@ curl -s -X POST http://localhost:8129/api/audio/speak \
 echo ""
 echo "=== Pipeline Complete ==="
 echo "Merged: $MERGE_COUNT branches"
+if [ "$MERGE_FAILED" -gt 0 ]; then
+  echo "Failed: $MERGE_FAILED branches (resolve conflicts manually)"
+fi
 echo ""
 echo "Next steps:"
 echo "  bd sync && git push origin main"
