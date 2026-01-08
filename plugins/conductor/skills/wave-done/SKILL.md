@@ -31,7 +31,7 @@ Orchestrates the completion of a wave of parallel workers spawned by bd-swarm. H
 | 8 | Sync and push | Yes | Final push to remote |
 | 9 | Audio summary | No | Announce completion |
 
-**Why unified review at wave level:** Workers run individual code reviews, but the conductor does a unified review after merge to catch cross-worker interactions and ensure the combined changes work together.
+**Why unified review at wave level:** Workers do NOT run code review (to avoid conflicts when running in parallel). The conductor does the sole code review after merge, catching cross-worker interactions and ensuring the combined changes work together.
 
 ---
 
@@ -161,7 +161,7 @@ Run `/conductor:code-review`. This reviews all merged changes together to catch:
 - Combined code patterns
 - Architectural consistency
 
-**Note:** Each worker already ran code review on their individual changes. This is a final unified review of the combined result.
+**Note:** Workers do NOT run code review (to avoid parallel conflicts). This conductor-level review is the sole code review for all worker changes.
 
 If blockers found -> **STOP**, fix issues, re-run.
 
