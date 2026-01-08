@@ -40,6 +40,11 @@ echo "Blocked: $(bd blocked --json | jq 'length')"
 
 # High-impact blockers (prioritize these)
 bd list --all --json | jq -r '.[] | select(.blocks | length > 0) | "\(.id): blocks \(.blocks | length)"'
+
+# Epic analysis - list children of an epic
+bd list --filter-parent <epic-id>        # All issues under epic
+bd ready --filter-parent <epic-id>       # Ready issues in epic
+bd blocked --filter-parent <epic-id>     # Blocked issues in epic
 ```
 
 ---
@@ -84,6 +89,16 @@ Workers receive skill hints in prompts based on issue keywords:
 - **Wave 2:** Issues unblocked after Wave 1
 - **Wave 3:** Issues unblocked after Wave 2
 
+**Per-epic wave planning:**
+```bash
+# Plan waves for a specific epic
+bd ready --filter-parent <epic-id>        # Wave 1 for this epic
+bd blocked --filter-parent <epic-id>      # Future waves (resolve deps first)
+
+# Example: Focus a swarm on one epic
+bd ready --filter-parent TabzChrome-xyz --json | jq -r '.[].id' | xargs /conductor:bd-swarm
+```
+
 ### 4. Output Format
 
 ```markdown
@@ -104,6 +119,15 @@ Spawn workers: `/conductor:bd-swarm xxx yyy`
 ```bash
 # Find epics
 bd list --all --json | jq -r '.[] | select(.type == "epic") | .id'
+
+# Analyze epic children (use --filter-parent)
+bd list --filter-parent <epic-id>         # All children of epic
+bd ready --filter-parent <epic-id>        # Ready children (can start now)
+bd blocked --filter-parent <epic-id>      # Blocked children (need deps resolved)
+
+# Count children by status
+echo "Total: $(bd list --filter-parent <epic-id> --json | jq 'length')"
+echo "Ready: $(bd ready --filter-parent <epic-id> --json | jq 'length')"
 
 # Create subtasks with deps
 bd create --title="Design API" --type=task --priority=2
