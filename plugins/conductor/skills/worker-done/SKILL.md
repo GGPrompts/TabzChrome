@@ -113,10 +113,17 @@ Run `/conductor:close-issue <issue-id>`. Reports final status.
 
 **DO NOT SKIP THIS STEP.** After closing the issue, notify the conductor:
 
+**Finding the conductor session:**
+1. **Primary: Check your prompt** - Look for the "## Conductor Session" section in your task prompt. It contains the session name (e.g., `ctt-claude-abc123`).
+2. **Backup: Check env var** - `CONDUCTOR_SESSION` environment variable (may be lost in some contexts).
+
+**Why prompt text is primary:** Env vars are fragile and not visible in conversation context. The session name in your prompt is always accessible.
+
 ```bash
 echo "=== Step 8: Notify Conductor ==="
 
-# Get conductor session from environment (set when worker was spawned)
+# Get conductor session from prompt text (primary) or environment (backup)
+# Workers: Look in your "## Conductor Session" prompt section for the session name
 CONDUCTOR_SESSION="${CONDUCTOR_SESSION:-}"
 
 if [ -n "$CONDUCTOR_SESSION" ]; then
@@ -130,9 +137,11 @@ if [ -n "$CONDUCTOR_SESSION" ]; then
 
   echo "Notified conductor: $CONDUCTOR_SESSION"
 else
-  echo "No CONDUCTOR_SESSION set - conductor will detect completion via polling"
+  echo "No CONDUCTOR_SESSION found - conductor will detect completion via polling"
 fi
 ```
+
+**Note for workers:** If the env var is empty, extract the session name from your prompt's "## Conductor Session" section and use it directly in the tmux command.
 
 ---
 

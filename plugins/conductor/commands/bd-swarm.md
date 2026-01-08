@@ -98,16 +98,20 @@ Worker completes → /conductor:worker-done
 ```
 
 **How it works:**
-1. Conductor sets `CONDUCTOR_SESSION` env var when spawning workers
-2. Worker-done sends completion summary to conductor via tmux
-3. Conductor receives notification and can cleanup that worker immediately
-4. No polling needed - workers push completion status
+1. Conductor includes session name in worker **prompt text** (primary, reliable)
+2. Conductor also sets `CONDUCTOR_SESSION` env var (backup, may be lost)
+3. Worker-done sends completion summary to conductor via tmux
+4. Conductor receives notification and can cleanup that worker immediately
+5. No polling needed - workers push completion status
 
-**Spawn with env vars:**
+**Why prompt text is primary:** Env vars are fragile and not visible in conversation context. Workers can always find the session name in their "## Conductor Session" prompt section.
+
+**Spawn with session in prompt + env var backup:**
 ```bash
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
 # Include in spawn command (BD_SOCKET prevents daemon conflicts in parallel workers):
 "command": "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions"
+# IMPORTANT: Also include session in the prompt text (see Enhanced Prompt Structure)
 ```
 
 ---
@@ -269,9 +273,15 @@ After implementation, verify the build passes and test the changes work as expec
 Run: /conductor:worker-done ISSUE-ID
 
 This command will: build, run code review, commit changes, and close the issue.
+
+## Conductor Session
+Notify conductor session CONDUCTOR-SESSION-NAME when done via:
+tmux send-keys -t CONDUCTOR-SESSION-NAME -l "WORKER COMPLETE: ISSUE-ID - summary"
 ```
 
 **The `/conductor:worker-done` instruction is mandatory** - without it, workers don't know how to signal completion and the conductor can't clean up.
+
+**The conductor session is in the prompt text** (not just env var) so workers can reliably notify completion even if CONDUCTOR_SESSION env var is lost.
 
 See `references/bd-swarm/interactive-mode.md` for the `match_skills()` function that auto-generates skill hints.
 
