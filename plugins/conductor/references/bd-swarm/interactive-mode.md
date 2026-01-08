@@ -57,11 +57,14 @@ PLUGIN_DIR="./plugins/worker-minimal"  # Choose based on issue type
 
 bd update "$ISSUE_ID" --status in_progress
 
+# BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
+CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
+
 # Safe JSON construction using jq (handles special characters in values)
 JSON_PAYLOAD=$(jq -n \
   --arg name "worker-${ISSUE_ID}" \
   --arg dir "$WORKTREE" \
-  --arg cmd "claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" \
+  --arg cmd "BD_SOCKET=/tmp/bd-worker-${ISSUE_ID}.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" \
   '{name: $name, workingDir: $dir, command: $cmd}')
 
 # POST creates a tmux session named ctt-worker-${ISSUE_ID}-xxxx
@@ -85,8 +88,11 @@ PLUGIN_DIR="./plugins/worker-minimal"  # Choose based on issue type
 
 bd update "$ISSUE_ID" --status in_progress
 
+# BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
+CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
+
 tmux new-session -d -s "$SESSION" -c "$WORKTREE"
-tmux send-keys -t "$SESSION" "claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" C-m
+tmux send-keys -t "$SESSION" "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" C-m
 
 # Store session name for later cleanup
 echo "$SESSION" >> /tmp/swarm-sessions.txt

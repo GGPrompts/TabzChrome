@@ -154,6 +154,7 @@ spawn_auto_worker() {
   local ISSUE_ID="$1"
   local WORKTREE="$2"
   local SESSION="worker-${ISSUE_ID}"
+  local CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
 
   # Get issue details
   local ISSUE_JSON=$(bd show "$ISSUE_ID" --json 2>/dev/null)
@@ -164,8 +165,9 @@ spawn_auto_worker() {
   local PROMPT=$(build_auto_prompt "$ISSUE_ID" "$TITLE" "$DESCRIPTION")
 
   # Spawn and send
+  # BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
   tmux new-session -d -s "$SESSION" -c "$WORKTREE"
-  tmux send-keys -t "$SESSION" "claude --dangerously-skip-permissions" C-m
+  tmux send-keys -t "$SESSION" "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions" C-m
   sleep 6
 
   printf '%s' "$PROMPT" | tmux load-buffer -

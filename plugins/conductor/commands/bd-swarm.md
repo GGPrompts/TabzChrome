@@ -42,11 +42,12 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 TOKEN=$(cat /tmp/tabz-auth-token)
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
 
-# 2. Spawn worker with CONDUCTOR_SESSION env var (creates ctt-worker-ISSUE-xxxx tmux session)
+# 2. Spawn worker with env vars (creates ctt-worker-ISSUE-xxxx tmux session)
+# BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
 RESPONSE=$(curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d "{\"name\": \"worker-$ISSUE_ID\", \"workingDir\": \"$WORKTREE_PATH\", \"command\": \"CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions\"}")
+  -d "{\"name\": \"worker-$ISSUE_ID\", \"workingDir\": \"$WORKTREE_PATH\", \"command\": \"BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions\"}")
 
 # 3. Extract session name from response
 SESSION_NAME=$(echo "$RESPONSE" | jq -r '.terminal.ptyInfo.tmuxSession // .terminal.id')
@@ -64,7 +65,8 @@ tmux send-keys -t "$SESSION_NAME" C-m
 SESSION="worker-$ISSUE_ID"
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
 tmux new-session -d -s "$SESSION" -c "$WORKTREE_PATH"
-tmux send-keys -t "$SESSION" "CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions" C-m
+# BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
+tmux send-keys -t "$SESSION" "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions" C-m
 sleep 4
 tmux send-keys -t "$SESSION" -l 'Your prompt here...'
 sleep 0.3
@@ -89,11 +91,11 @@ Worker completes → /conductor:worker-done
 3. Conductor receives notification and can cleanup that worker immediately
 4. No polling needed - workers push completion status
 
-**Spawn with CONDUCTOR_SESSION:**
+**Spawn with env vars:**
 ```bash
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
-# Include in spawn command:
-"command": "CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions"
+# Include in spawn command (BD_SOCKET prevents daemon conflicts in parallel workers):
+"command": "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions"
 ```
 
 ---
@@ -271,6 +273,7 @@ See `references/bd-swarm/interactive-mode.md` for the `match_skills()` function 
 ## Notes
 
 - Workers run in isolated worktrees (prevents conflicts)
+- **BD_SOCKET isolates beads daemon per worker** - prevents daemon conflicts when multiple workers run `bd` commands simultaneously (beads v0.45+)
 - Monitor via tmuxplexer background window (no watcher subagent)
 - Check actual pane content before nudging idle workers
 - Sessions MUST be killed before removing worktrees
