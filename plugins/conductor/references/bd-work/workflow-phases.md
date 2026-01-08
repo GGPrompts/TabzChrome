@@ -177,7 +177,7 @@ Match issue keywords to relevant skills:
 | Issue mentions... | Relevant skill |
 |-------------------|----------------|
 | UI, component, modal, form | `/shadcn-ui` |
-| terminal, xterm, pty | `/xterm-js` |
+| terminal, xterm, pty | `/xterm-js:xterm-js` |
 | style, CSS, tailwind | `/tailwindcss` or `/ui-styling:ui-styling` |
 | MCP, tools, server | `/mcp-builder:mcp-builder` |
 | docs, documentation | `/docs-seeker:docs-seeker` |

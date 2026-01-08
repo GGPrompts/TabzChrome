@@ -73,10 +73,10 @@ Workers receive skill hints in prompts based on issue keywords:
 
 | Area Keywords | Skill Hint | Purpose |
 |---------------|-----------|---------|
-| terminal, xterm, pty, resize | `/xterm-js` | Terminal rendering, WebSocket |
-| UI, component, modal, dashboard | `/ui-styling` | shadcn/ui, Tailwind patterns |
-| backend, api, server, endpoint | `/backend-development` | APIs, databases |
-| mcp, browser, screenshot | `/tabz-mcp` | Browser automation |
+| terminal, xterm, pty, resize | `/xterm-js:xterm-js` | Terminal rendering, WebSocket |
+| UI, component, modal, dashboard | `/ui-styling:ui-styling` | shadcn/ui, Tailwind patterns |
+| backend, api, server, endpoint | `/backend-development:backend-development` | APIs, databases |
+| mcp, browser, screenshot | `/conductor:tabz-mcp` | Browser automation |
 
 ### 3. Build Waves
 
@@ -90,8 +90,8 @@ Workers receive skill hints in prompts based on issue keywords:
 ## Wave 1 (Start Now)
 | Issue | Type | Priority | Skill Hint |
 |-------|------|----------|------------|
-| xxx | feature | P1 | /ui-styling |
-| yyy | bug | P2 | /xterm-js |
+| xxx | feature | P1 | /ui-styling:ui-styling |
+| yyy | bug | P2 | /xterm-js:xterm-js |
 
 **Next steps:**
 Spawn workers: `/conductor:bd-swarm xxx yyy`

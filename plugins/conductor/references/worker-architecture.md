@@ -7,7 +7,7 @@ This document describes the unified worker architecture for parallel issue proce
 ```
 Worker (vanilla Claude via tmux/TabzChrome)
   ├─> Gets context from `bd show <issue-id>`
-  ├─> Receives skill hint in prompt (e.g., "use /xterm-js skill")
+  ├─> Receives skill hint in prompt (e.g., "use /xterm-js:xterm-js skill")
   ├─> Invokes skill directly when needed
   └─> Completes with /conductor:worker-done
 ```
@@ -31,11 +31,11 @@ The conductor matches issue keywords to skill hints for worker prompts:
 
 | Issue Keywords | Skill Hint | Purpose |
 |----------------|-----------|---------|
-| terminal, xterm, PTY, resize | `/xterm-js` | Terminal rendering, resize, WebSocket |
-| UI, component, modal, dashboard | `/ui-styling` | shadcn/ui, Tailwind patterns |
-| backend, API, server, database | `/backend-development` | Node.js, APIs, databases |
-| browser, screenshot, click | `/tabz-mcp` | Browser automation tools |
-| auth, login, oauth | `/better-auth` | Authentication patterns |
+| terminal, xterm, PTY, resize | `/xterm-js:xterm-js` | Terminal rendering, resize, WebSocket |
+| UI, component, modal, dashboard | `/ui-styling:ui-styling` | shadcn/ui, Tailwind patterns |
+| backend, API, server, database | `/backend-development:backend-development` | Node.js, APIs, databases |
+| browser, screenshot, click | `/conductor:tabz-mcp` | Browser automation tools |
+| auth, login, oauth | `/better-auth:better-auth` | Authentication patterns |
 
 ## Why This Architecture?
 

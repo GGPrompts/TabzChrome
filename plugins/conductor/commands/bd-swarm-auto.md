@@ -43,7 +43,7 @@ description: "Fully autonomous backlog completion. Runs waves until `bd ready` i
 4. **Send skill-aware prompts:**
    For each worker, send a prompt with:
    - Issue context from `bd show`
-   - Skill hint based on issue keywords (terminal→`/xterm-js`, UI→`/ui-styling`, etc.)
+   - Skill hint based on issue keywords (terminal→`/xterm-js:xterm-js`, UI→`/ui-styling:ui-styling`, etc.)
    - Completion command: `/conductor:worker-done <issue-id>`
 
 5. **Monitor and loop:**

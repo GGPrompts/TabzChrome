@@ -77,7 +77,7 @@ Wait 5 seconds for Claude to initialize, then send each worker its prompt:
 SESSION="<session-name>"
 ISSUE_ID="<issue-id>"
 TITLE="<issue-title>"
-SKILL_HINT="<matched-skill>"  # e.g., /xterm-js, /ui-styling
+SKILL_HINT="<matched-skill>"  # e.g., /xterm-js:xterm-js, /ui-styling:ui-styling
 
 sleep 5
 

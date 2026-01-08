@@ -181,7 +181,7 @@ Workers are vanilla Claude sessions that receive skill-aware prompts:
 ```
 Worker (vanilla Claude via tmux/TabzChrome)
   ├─> Gets context from `bd show <issue-id>`
-  ├─> Receives skill hint in prompt (e.g., "use /xterm-js skill")
+  ├─> Receives skill hint in prompt (e.g., "use /xterm-js:xterm-js skill")
   ├─> Invokes skill directly when needed
   └─> Completes with /conductor:worker-done
 ```
@@ -196,11 +196,11 @@ Match issue keywords to skill hints for worker prompts:
 
 | Keywords | Skill Hint | Purpose |
 |----------|-----------|---------|
-| terminal, xterm, pty, resize | `/xterm-js` | Terminal rendering, resize, WebSocket |
-| UI, component, modal, dashboard | `/ui-styling` | shadcn/ui, Tailwind patterns |
-| backend, api, server, websocket | `/backend-development` | Node.js, APIs, databases |
-| browser, screenshot, click, mcp | `/tabz-mcp` | Browser automation tools |
-| auth, login, oauth | `/better-auth` | Authentication patterns |
+| terminal, xterm, pty, resize | `/xterm-js:xterm-js` | Terminal rendering, resize, WebSocket |
+| UI, component, modal, dashboard | `/ui-styling:ui-styling` | shadcn/ui, Tailwind patterns |
+| backend, api, server, websocket | `/backend-development:backend-development` | Node.js, APIs, databases |
+| browser, screenshot, click, mcp | `/conductor:tabz-mcp` | Browser automation tools |
+| auth, login, oauth | `/better-auth:better-auth` | Authentication patterns |
 
 ---
 
