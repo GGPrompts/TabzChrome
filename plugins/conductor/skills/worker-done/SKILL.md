@@ -22,6 +22,7 @@ Orchestrates the full task completion pipeline by composing atomic commands.
 |------|---------|-----------|-------------------|
 | 0 | Detect change types | No | - |
 | 1 | `/conductor:verify-build` | Yes - stop on failure | Yes |
+| 1a | `plugin-validator` agent | Yes - stop on failure | ONLY if DOCS_ONLY |
 | 2 | `/conductor:run-tests` | Yes - stop on failure | Yes |
 | 3 | `/conductor:commit-changes` | Yes - stop on failure | No |
 | 4 | `/conductor:create-followups` | No - log and continue | No |
@@ -32,7 +33,7 @@ Orchestrates the full task completion pipeline by composing atomic commands.
 
 **CRITICAL: You MUST execute Step 7 after Step 6.** Workers that skip Step 7 force the conductor to poll, wasting resources.
 
-**DOCS_ONLY mode:** When all changes are markdown files (`.md`, `.markdown`), steps 1-2 are skipped. This saves time and API calls for documentation-only changes.
+**DOCS_ONLY mode:** When all changes are markdown files (`.md`, `.markdown`), steps 1-2 are replaced with the `plugin-validator` agent. This validates markdown structure and content without running expensive build/test steps.
 
 **Code review happens at conductor level:** Workers do NOT run code review. The conductor runs unified code review after merging all worker branches (see `/conductor:wave-done`). This prevents conflicts when multiple workers run in parallel.
 
@@ -69,8 +70,8 @@ else
 fi
 ```
 
-If `DOCS_ONLY=true`: Skip to **Step 4** (skip build, tests, and review).
-If `DOCS_ONLY=false`: Continue with full pipeline.
+If `DOCS_ONLY=true`: Run **Step 1a** (plugin-validator), then skip to **Step 3**.
+If `DOCS_ONLY=false`: Continue with full pipeline (Steps 1, 2, 3...).
 
 ---
 
@@ -79,6 +80,29 @@ If `DOCS_ONLY=false`: Continue with full pipeline.
 echo "=== Step 1: Build Verification ==="
 ```
 Run `/conductor:verify-build`. If `passed: false` -> **STOP**, fix errors, re-run.
+
+### Step 1a: Plugin Validator (ONLY if DOCS_ONLY)
+
+When `DOCS_ONLY=true`, run the `plugin-validator` agent instead of build/test:
+
+```bash
+echo "=== Step 1a: Plugin Validation (markdown-only changes) ==="
+```
+
+**Invoke the plugin-validator agent** to validate the changed markdown files:
+
+```
+Task(subagent_type="plugin-dev:plugin-validator", prompt="Validate the following changed markdown files: <list files from git diff>. Check for: broken links, invalid YAML frontmatter, missing required sections, and consistent formatting.")
+```
+
+The agent will:
+1. Check YAML frontmatter syntax in skill/agent files
+2. Verify required fields are present (name, description, etc.)
+3. Check for broken internal links
+4. Validate markdown structure
+
+If validation fails -> **STOP**, fix issues, re-run.
+If validation passes -> Skip to **Step 3** (commit).
 
 ### Step 2: Run Tests (skip if DOCS_ONLY)
 ```bash
