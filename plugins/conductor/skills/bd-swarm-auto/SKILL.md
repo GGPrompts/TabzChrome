@@ -92,10 +92,28 @@ Issues to complete IN PARALLEL using subagents:
 - ISSUE-001: Title
 - ISSUE-002: Title
 
-For EACH issue, spawn a Task subagent in ONE message.
+For EACH issue, invoke the appropriate subagent:
+- UI/component work → Task(subagent_type="frontend-builder", ...)
+- Backend/API work → Task(subagent_type="backend-builder", ...)
+- Terminal/xterm work → Task(subagent_type="terminal-builder", ...)
 
-Skills: /ui-styling:ui-styling, /frontend-design:frontend-design
+Spawn all Task subagents in ONE message for maximum parallelism.
 ```
+
+---
+
+## Visual QA with tabz-manager
+
+After completing a wave with UI changes, spawn tabz-manager in a **separate terminal** for visual QA:
+
+```bash
+# Via TabzChrome API
+curl -X POST http://localhost:8129/api/spawn \
+  -H "X-Auth-Token: $(cat /tmp/tabz-auth-token)" \
+  -d '{"name": "Visual QA", "command": "claude --agent conductor:tabz-manager --dangerously-skip-permissions"}'
+```
+
+tabz-manager can take screenshots, click elements, and verify UI changes work correctly.
 
 ---
 

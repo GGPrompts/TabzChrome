@@ -67,14 +67,16 @@ bd ready --json | jq -r '.[] | "\(.id): [\(.priority)] \(.title)"'
 
 Ask: How many parallel workers? (2-5, recommend 3)
 
-### 2. Match Issues to Worker Types
+### 2. Match Issues to Subagents
 
-| Area Keywords | Worker Agent | Skills |
-|---------------|--------------|--------|
-| terminal, xterm, pty, resize | `worker-terminal` | xterm-js |
-| UI, component, modal, dashboard | `worker-frontend` | ui-styling, web-frameworks, frontend-design |
-| backend, api, server, endpoint | `worker-backend` | backend-development, databases |
-| mcp, browser, screenshot | (use tabz-mcp skill) | tabz-mcp |
+Workers are vanilla Claude sessions that invoke subagents for specialized tasks:
+
+| Area Keywords | Subagent to Invoke | Skills Loaded |
+|---------------|-------------------|---------------|
+| terminal, xterm, pty, resize | `terminal-builder` | xterm-js |
+| UI, component, modal, dashboard | `frontend-builder` | aesthetic, ui-styling, web-frameworks, frontend-design |
+| backend, api, server, endpoint | `backend-builder` | backend-development, databases, better-auth |
+| mcp, browser, screenshot | `conductor:tabz-manager` | tabz-mcp |
 
 ### 3. Build Waves
 
@@ -86,10 +88,10 @@ Ask: How many parallel workers? (2-5, recommend 3)
 
 ```markdown
 ## Wave 1 (Start Now)
-| Issue | Type | Priority | Worker |
-|-------|------|----------|--------|
-| xxx | feature | P1 | worker-frontend |
-| yyy | bug | P2 | worker-terminal |
+| Issue | Type | Priority | Subagent |
+|-------|------|----------|----------|
+| xxx | feature | P1 | frontend-builder |
+| yyy | bug | P2 | terminal-builder |
 
 **Next steps:**
 1. Draft prompts: `/conductor:draft-prompts xxx yyy`

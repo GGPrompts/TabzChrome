@@ -1,5 +1,0 @@
-{
-  "name": "conductor",
-  "version": "1.0.0",
-  "description": "Minimal worker commands - task completion pipeline only"
-}

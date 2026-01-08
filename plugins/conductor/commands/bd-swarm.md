@@ -114,39 +114,35 @@ Each worker will:
 
 ---
 
-## Worker Plugin Directories
+## Worker Architecture
 
-Spawn lean workers with only the plugins they need using `--plugin-dir`:
+Workers are vanilla Claude sessions that invoke subagents for specialized tasks:
 
-| Worker Type | Plugin Dir | Contains |
-|-------------|------------|----------|
-| `worker-minimal` | `./plugins/worker-minimal` | Task completion commands only |
-| `worker-browser` | `./plugins/worker-browser` | tabz-mcp, tabz-manager agent |
-| `worker-codegen` | `./plugins/worker-codegen` | xterm-js skill |
-| `worker-review` | `./plugins/worker-review` | code-reviewer, silent-failure-hunter agents |
-
-**Spawn command:**
-```bash
-claude --plugin-dir ./plugins/worker-minimal --dangerously-skip-permissions
+```
+Worker (vanilla Claude via tmux/TabzChrome)
+  ├─> Gets context from `bd show <issue-id>`
+  ├─> For specialized tasks, invokes subagents:
+  │     Task(subagent_type="frontend-builder", ...)
+  │     Task(subagent_type="backend-builder", ...)
+  │     Task(subagent_type="terminal-builder", ...)
+  └─> Each subagent has skills in frontmatter
 ```
 
-**Benefits:**
-- Workers get exactly the skills they need
-- Main session stays lean
-- Context budget goes to actual work
+**Why not `--plugin-dir`?** Workers share the same plugin context as the main session. Subagent invocation is cleaner - skills load on-demand via agent frontmatter.
 
 ---
 
 ## Skill Matching
 
-Match issue keywords to worker plugin type:
+Match issue keywords to subagents workers should invoke:
 
-| Keywords | Plugin Dir | Skills/Agents |
-|----------|------------|---------------|
-| terminal, xterm, pty | `worker-codegen` | xterm-js skill |
-| browser, screenshot, click | `worker-browser` | tabz-mcp, tabz-manager |
-| review, audit, quality | `worker-review` | code-reviewer, silent-failure-hunter |
-| general, any other | `worker-minimal` | task completion only |
+| Keywords | Subagent to Invoke | Skills Loaded |
+|----------|-------------------|---------------|
+| terminal, xterm, pty | `terminal-builder` | xterm-js |
+| UI, component, modal | `frontend-builder` | aesthetic, ui-styling, web-frameworks, frontend-design |
+| backend, api, server | `backend-builder` | backend-development, databases, better-auth |
+| browser, screenshot, click | `conductor:tabz-manager` | tabz-mcp |
+| review, audit, quality | `conductor:code-reviewer` | code-review |
 
 ---
 

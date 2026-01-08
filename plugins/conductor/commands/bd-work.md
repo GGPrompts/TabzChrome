@@ -99,6 +99,8 @@ bd update $ISSUE_ID --status in_progress
 
 ## Phase 3: Exploration (Features)
 
+Use the built-in Explore subagent for codebase exploration:
+
 ```markdown
 Task(
   subagent_type="Explore",
@@ -107,6 +109,8 @@ Task(
          Return: relevant files, patterns to follow, approach"
 )
 ```
+
+Specify thoroughness: "quick", "medium", or "very thorough" in the prompt.
 
 ---
 

@@ -1,0 +1,5 @@
+{
+  "name": "tabz-integration",
+  "version": "1.0.0",
+  "description": "Integration guide for connecting any project to TabzChrome terminals via API, WebSocket, MCP tools, and TTS"
+}
