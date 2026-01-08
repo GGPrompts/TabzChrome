@@ -4,6 +4,31 @@
 
 set -e
 
+# Helper function: Check if changes are docs-only (markdown files)
+# Exported for use by SKILL.md instructions and other scripts
+# Returns 0 (true) if only .md/.markdown files changed, 1 (false) otherwise
+# Usage: if is_docs_only; then echo "Skip tests"; fi
+is_docs_only() {
+  local staged unstaged
+  staged=$(git diff --cached --name-only 2>/dev/null)
+  unstaged=$(git diff --name-only 2>/dev/null)
+
+  # No changes = not docs-only (run normal pipeline)
+  if [ -z "$staged" ] && [ -z "$unstaged" ]; then
+    return 1
+  fi
+
+  # Check if any non-markdown file changed
+  if echo "$staged" | grep -qvE '^\s*$' && echo "$staged" | grep -qvE '\.(md|markdown)$'; then
+    return 1
+  fi
+  if echo "$unstaged" | grep -qvE '^\s*$' && echo "$unstaged" | grep -qvE '\.(md|markdown)$'; then
+    return 1
+  fi
+
+  return 0
+}
+
 ISSUES="$1"
 PROJECT_DIR="${2:-$(pwd)}"
 WORKTREE_DIR="${PROJECT_DIR}-worktrees"

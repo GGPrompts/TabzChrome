@@ -18,33 +18,70 @@ Orchestrates the full task completion pipeline by composing atomic commands.
 
 ## Pipeline Overview
 
-| Step | Command | Blocking? |
-|------|---------|-----------|
-| 1 | `/conductor:verify-build` | Yes - stop on failure |
-| 2 | `/conductor:run-tests` | Yes - stop on failure |
-| 3 | `/conductor:code-review` | Yes - stop on failure |
-| 4 | `/conductor:commit-changes` | Yes - stop on failure |
-| 5 | `/conductor:create-followups` | No - log and continue |
-| 6 | `/conductor:update-docs` | No - log and continue |
-| 7 | `/conductor:close-issue` | Yes - report result |
+| Step | Command | Blocking? | Skip if DOCS_ONLY? |
+|------|---------|-----------|-------------------|
+| 0 | Detect change types | No | - |
+| 1 | `/conductor:verify-build` | Yes - stop on failure | Yes |
+| 2 | `/conductor:run-tests` | Yes - stop on failure | Yes |
+| 3 | `/conductor:code-review` | Yes - stop on failure | Yes |
+| 4 | `/conductor:commit-changes` | Yes - stop on failure | No |
+| 5 | `/conductor:create-followups` | No - log and continue | No |
+| 6 | `/conductor:update-docs` | No - log and continue | No |
+| 7 | `/conductor:close-issue` | Yes - report result | No |
+
+**DOCS_ONLY mode:** When all changes are markdown files (`.md`, `.markdown`), steps 1-3 are skipped. This saves time and API calls for documentation-only changes.
 
 ---
 
 ## Execute Pipeline
 
-### Step 1: Verify Build
+### Step 0: Detect Change Types
+```bash
+echo "=== Step 0: Detecting Change Types ==="
+# Check if only markdown files changed (staged + unstaged)
+git diff --cached --name-only
+git diff --name-only
+```
+
+**Detection logic:**
+1. Get list of all changed files (staged and unstaged)
+2. Check if ALL changes are markdown files (`.md`, `.markdown`)
+3. Set `DOCS_ONLY=true` if only markdown, otherwise `DOCS_ONLY=false`
+
+```bash
+# Detection check - if ANY file is non-markdown, run full pipeline
+if git diff --cached --name-only | grep -qvE '\.(md|markdown)$' 2>/dev/null; then
+  DOCS_ONLY=false
+elif git diff --name-only | grep -qvE '\.(md|markdown)$' 2>/dev/null; then
+  DOCS_ONLY=false
+else
+  # Check if there are actually any changes at all
+  if [ -z "$(git diff --cached --name-only)$(git diff --name-only)" ]; then
+    DOCS_ONLY=false  # No changes = run normal pipeline
+  else
+    DOCS_ONLY=true
+  fi
+fi
+```
+
+If `DOCS_ONLY=true`: Skip to **Step 4** (skip build, tests, and review).
+If `DOCS_ONLY=false`: Continue with full pipeline.
+
+---
+
+### Step 1: Verify Build (skip if DOCS_ONLY)
 ```bash
 echo "=== Step 1: Build Verification ==="
 ```
 Run `/conductor:verify-build`. If `passed: false` -> **STOP**, fix errors, re-run.
 
-### Step 2: Run Tests
+### Step 2: Run Tests (skip if DOCS_ONLY)
 ```bash
 echo "=== Step 2: Test Verification ==="
 ```
 Run `/conductor:run-tests`. If `passed: false` -> **STOP**, fix tests, re-run.
 
-### Step 3: Code Review
+### Step 3: Code Review (skip if DOCS_ONLY)
 ```bash
 echo "=== Step 3: Code Review ==="
 ```
