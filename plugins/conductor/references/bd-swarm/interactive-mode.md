@@ -166,6 +166,9 @@ sleep 0.3
 tmux send-keys -t "$SESSION" C-m
 sleep 2  # Wait for /context output
 
+# Get conductor session name for prompt (not just env var)
+CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
+
 # Build enhanced prompt with all context
 PROMPT=$(cat <<EOF
 Fix beads issue ${ISSUE_ID}: "${TITLE}"
@@ -185,6 +188,10 @@ After implementation, verify the build passes and test the changes work as expec
 Run: /conductor:worker-done ${ISSUE_ID}
 
 This command will: build, run code review, commit changes, and close the issue.
+
+## Conductor Session
+Notify conductor session ${CONDUCTOR_SESSION} when done via:
+tmux send-keys -t ${CONDUCTOR_SESSION} -l "WORKER COMPLETE: ${ISSUE_ID} - summary"
 EOF
 )
 
@@ -205,6 +212,7 @@ tmux send-keys -t "$SESSION" C-m
 | Key Files | Starting points (optional) |
 | Guidance | Skill hints woven naturally |
 | When Done | **Mandatory** `/conductor:worker-done` instruction |
+| Conductor Session | **Mandatory** - session name in prompt text for reliable notification |
 
 **Why `/context` first?** Workers sometimes forget to use available skills. By running `/context` before the work prompt, workers see their full capability list in conversation context, making them more likely to invoke relevant skills.
 
