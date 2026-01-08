@@ -184,6 +184,22 @@ Each worker will:
 
 **Workers do NOT do visual review.** Visual review (browser-based UI verification) happens at the conductor level after merge. This prevents parallel workers from fighting over browser tabs.
 
+### Self-Service Optimization (Optional)
+
+Workers can self-optimize before starting real work:
+
+```
+1. Worker receives basic prompt from conductor
+2. Worker runs /conductor:worker-init (or spawns prompt-enhancer agent)
+3. Issue is analyzed, skills identified, enhanced prompt crafted
+4. Context reset (/clear) and enhanced prompt auto-submitted
+5. Worker now has full context budget for implementation
+```
+
+**When to use:** Complex issues where context optimization helps. Skip for simple fixes.
+
+See `commands/worker-init.md` and `agents/prompt-enhancer.md`.
+
 ---
 
 ## Worker Architecture

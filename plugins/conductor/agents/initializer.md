@@ -14,6 +14,26 @@ tools: Bash
 
 Do NOT analyze the codebase, find relevant files, or craft prompts. The conductor handles that.
 
+## Self-Service Mode
+
+Workers needing context optimization should use:
+
+| Option | When to Use |
+|--------|-------------|
+| `prompt-enhancer` agent | Get enhanced prompt via Task tool, handle wipe manually |
+| `/conductor:worker-init` command | Full automated flow: analyze → craft prompt → /clear → resubmit |
+
+**Flow for self-service:**
+```
+1. Worker receives basic prompt from conductor
+2. Worker spawns prompt-enhancer (Task tool) OR runs /conductor:worker-init
+3. Gets skill-aware enhanced prompt back
+4. Context reset (/clear) and resubmit enhanced prompt
+5. Worker now has full context budget for implementation
+```
+
+See `agents/prompt-enhancer.md` and `commands/worker-init.md` for details.
+
 ## Single Worktree Setup
 
 Run this script with the issue ID and project directory:
