@@ -1,6 +1,6 @@
 ---
 name: worker-done
-description: "Complete worker task: verify build, run code review, commit, and close issue. Invoke with /conductor:worker-done <issue-id>"
+description: "Complete worker task: verify build, run tests, commit, and close issue. Code review happens at conductor level after merge. Invoke with /conductor:worker-done <issue-id>"
 ---
 
 # Worker Done - Task Completion Orchestrator
@@ -23,16 +23,17 @@ Orchestrates the full task completion pipeline by composing atomic commands.
 | 0 | Detect change types | No | - |
 | 1 | `/conductor:verify-build` | Yes - stop on failure | Yes |
 | 2 | `/conductor:run-tests` | Yes - stop on failure | Yes |
-| 3 | `/conductor:code-review` | Yes - stop on failure | Yes |
-| 4 | `/conductor:commit-changes` | Yes - stop on failure | No |
-| 5 | `/conductor:create-followups` | No - log and continue | No |
-| 6 | `/conductor:update-docs` | No - log and continue | No |
-| 7 | `/conductor:close-issue` | Yes - report result | No |
-| 8 | Notify conductor | No - best effort | No |
+| 3 | `/conductor:commit-changes` | Yes - stop on failure | No |
+| 4 | `/conductor:create-followups` | No - log and continue | No |
+| 5 | `/conductor:update-docs` | No - log and continue | No |
+| 6 | `/conductor:close-issue` | Yes - report result | No |
+| 7 | Notify conductor | No - best effort | No |
 
-**CRITICAL: You MUST execute Step 8 after Step 7.** Workers that skip Step 8 force the conductor to poll, wasting resources.
+**CRITICAL: You MUST execute Step 7 after Step 6.** Workers that skip Step 7 force the conductor to poll, wasting resources.
 
-**DOCS_ONLY mode:** When all changes are markdown files (`.md`, `.markdown`), steps 1-3 are skipped. This saves time and API calls for documentation-only changes.
+**DOCS_ONLY mode:** When all changes are markdown files (`.md`, `.markdown`), steps 1-2 are skipped. This saves time and API calls for documentation-only changes.
+
+**Code review happens at conductor level:** Workers do NOT run code review. The conductor runs unified code review after merging all worker branches (see `/conductor:wave-done`). This prevents conflicts when multiple workers run in parallel.
 
 ---
 
@@ -84,37 +85,31 @@ echo "=== Step 2: Test Verification ==="
 ```
 Run `/conductor:run-tests`. If `passed: false` -> **STOP**, fix tests, re-run.
 
-### Step 3: Code Review (skip if DOCS_ONLY)
+### Step 3: Commit Changes
 ```bash
-echo "=== Step 3: Code Review ==="
-```
-Run `/conductor:code-review` (spawns code-reviewer subagent). If `passed: false` -> **STOP**, fix blockers, re-run.
-
-### Step 4: Commit Changes
-```bash
-echo "=== Step 4: Commit ==="
+echo "=== Step 3: Commit ==="
 ```
 Run `/conductor:commit-changes <issue-id>`. Creates conventional commit with Claude signature.
 
-### Step 5-6: Non-blocking
+### Step 4-5: Non-blocking
 ```bash
-echo "=== Step 5: Follow-up Tasks ==="
-echo "=== Step 6: Documentation Check ==="
+echo "=== Step 4: Follow-up Tasks ==="
+echo "=== Step 5: Documentation Check ==="
 ```
 Run `/conductor:create-followups` and `/conductor:update-docs`. Log and continue.
 
-### Step 7: Close Issue
+### Step 6: Close Issue
 ```bash
-echo "=== Step 7: Close Issue ==="
+echo "=== Step 6: Close Issue ==="
 ```
 Run `/conductor:close-issue <issue-id>`. Reports final status.
 
-### Step 8: Notify Conductor (REQUIRED)
+### Step 7: Notify Conductor (REQUIRED)
 
 **DO NOT SKIP THIS STEP.** After closing the issue, notify the conductor:
 
 ```bash
-echo "=== Step 8: Notify Conductor ==="
+echo "=== Step 7: Notify Conductor ==="
 
 # Get conductor session from environment (set when worker was spawned)
 CONDUCTOR_SESSION="${CONDUCTOR_SESSION:-}"
@@ -142,12 +137,12 @@ fi
 |---------|-------------|
 | `/conductor:verify-build` | Run build, report errors |
 | `/conductor:run-tests` | Run tests if available |
-| `/conductor:code-review` | Opus review with auto-fix |
-| `/conductor:codex-review` | Codex review (read-only, cheaper) |
 | `/conductor:commit-changes` | Stage + commit with conventional format |
 | `/conductor:create-followups` | Create follow-up beads issues |
 | `/conductor:update-docs` | Check/update documentation |
 | `/conductor:close-issue` | Close beads issue |
+
+**Note:** `/conductor:code-review` is NOT used by workers. Code review runs at conductor level after merge (see `/conductor:wave-done`).
 
 ---
 
@@ -155,7 +150,7 @@ fi
 
 Compose commands for custom workflows:
 
-**Quick commit (skip review):**
+**Standard worker completion:**
 ```
 /conductor:verify-build
 /conductor:run-tests
@@ -163,10 +158,11 @@ Compose commands for custom workflows:
 /conductor:close-issue <id>
 ```
 
-**Review-focused (no commit):**
+**Quick commit (skip tests):**
 ```
 /conductor:verify-build
-/conductor:code-review
+/conductor:commit-changes
+/conductor:close-issue <id>
 ```
 
 ---
@@ -177,7 +173,6 @@ Compose commands for custom workflows:
 |------|------------|
 | Build | Show errors, stop pipeline |
 | Tests | Show failures, stop pipeline |
-| Review | Show blockers, stop pipeline |
 | Commit | Show git errors, stop pipeline |
 | Follow-ups | Non-blocking - log and continue |
 | Docs | Non-blocking - log and continue |
@@ -214,20 +209,29 @@ Workers do NOT kill their own session - the conductor handles cleanup after rece
 
 ---
 
-## Visual Review Policy
+## Review Policy
 
-**Workers do NOT do visual review.** Visual review (browser-based UI verification) happens at the conductor level after merge, not in individual workers.
+**Workers do NOT do code review or visual review.** All reviews happen at the conductor level after merge, not in individual workers.
 
-**Why:**
+### Why reviews are conductor-level only:
+
+**Code Review:**
+- Parallel workers running code review simultaneously causes resource contention
+- Unified review after merge catches cross-worker interactions and combined code patterns
+- Avoids duplicate review effort (workers reviewed individually, then conductor reviews again)
+
+**Visual Review:**
 - Parallel workers opening browser tabs fight over the same browser window
 - Workers cannot create isolated tab groups (tabz_claude_group_* uses a single shared group)
-- Conductor can do unified visual review after merging all changes - better coverage, no conflicts
+- Unified visual review after merge provides better coverage with no conflicts
 
-**Worker focus:** Implementation → Tests → Build → Code Review (static) → Commit
+### Division of Responsibility
 
-**Conductor handles:** Merge → Unified Visual Review → Final Verification
+**Worker focus:** Implementation → Tests → Build → Commit → Close
 
-See TabzChrome-s19 for the architectural decision to move visual review to conductor.
+**Conductor handles:** Merge → Unified Code Review → Visual QA → Final Push
+
+See `/conductor:wave-done` for the full conductor pipeline.
 
 ---
 
