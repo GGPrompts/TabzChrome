@@ -114,14 +114,39 @@ Each worker will:
 
 ---
 
+## Worker Plugin Directories
+
+Spawn lean workers with only the plugins they need using `--plugin-dir`:
+
+| Worker Type | Plugin Dir | Contains |
+|-------------|------------|----------|
+| `worker-minimal` | `./plugins/worker-minimal` | Task completion commands only |
+| `worker-browser` | `./plugins/worker-browser` | tabz-mcp, tabz-manager agent |
+| `worker-codegen` | `./plugins/worker-codegen` | xterm-js skill |
+| `worker-review` | `./plugins/worker-review` | code-reviewer, silent-failure-hunter agents |
+
+**Spawn command:**
+```bash
+claude --plugin-dir ./plugins/worker-minimal --dangerously-skip-permissions
+```
+
+**Benefits:**
+- Workers get exactly the skills they need
+- Main session stays lean
+- Context budget goes to actual work
+
+---
+
 ## Skill Matching
 
-| Keywords | Skill |
-|----------|-------|
-| terminal, xterm, pty | `/xterm-js` |
-| ui, component, modal | `/ui-styling:ui-styling` |
-| plugin, skill, agent | `/plugin-development` |
-| debug, fix, error | Debugging patterns |
+Match issue keywords to worker plugin type:
+
+| Keywords | Plugin Dir | Skills/Agents |
+|----------|------------|---------------|
+| terminal, xterm, pty | `worker-codegen` | xterm-js skill |
+| browser, screenshot, click | `worker-browser` | tabz-mcp, tabz-manager |
+| review, audit, quality | `worker-review` | code-reviewer, silent-failure-hunter |
+| general, any other | `worker-minimal` | task completion only |
 
 ---
 

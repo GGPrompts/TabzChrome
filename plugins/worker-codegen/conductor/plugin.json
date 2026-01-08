@@ -1,0 +1,5 @@
+{
+  "name": "conductor",
+  "version": "1.0.0",
+  "description": "Code generation worker - task completion commands"
+}

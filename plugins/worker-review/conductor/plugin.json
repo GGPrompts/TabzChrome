@@ -1,0 +1,5 @@
+{
+  "name": "conductor",
+  "version": "1.0.0",
+  "description": "Code review worker - code-reviewer agent, review commands"
+}

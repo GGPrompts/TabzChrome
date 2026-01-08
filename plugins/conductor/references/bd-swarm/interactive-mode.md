@@ -38,12 +38,22 @@ echo "All worktrees initialized with dependencies"
 - Both appear in tmuxplexer and can be monitored the same way
 - **Sessions must be killed via tmux** - there is no REST API for cleanup
 
+**Worker plugin directories** (use `--plugin-dir` for lean workers):
+
+| Worker Type | Plugin Dir | Use For |
+|-------------|------------|---------|
+| `worker-minimal` | `./plugins/worker-minimal` | General tasks |
+| `worker-browser` | `./plugins/worker-browser` | Browser automation |
+| `worker-codegen` | `./plugins/worker-codegen` | Terminal/xterm work |
+| `worker-review` | `./plugins/worker-review` | Code review tasks |
+
 ### Option A: Via TabzChrome API (appears in browser terminal UI)
 
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
 ISSUE_ID="TabzChrome-abc"
 WORKTREE="/home/user/project-worktrees/${ISSUE_ID}"
+PLUGIN_DIR="./plugins/worker-minimal"  # Choose based on issue type
 
 bd update "$ISSUE_ID" --status in_progress
 
@@ -51,7 +61,7 @@ bd update "$ISSUE_ID" --status in_progress
 JSON_PAYLOAD=$(jq -n \
   --arg name "worker-${ISSUE_ID}" \
   --arg dir "$WORKTREE" \
-  --arg cmd "claude --dangerously-skip-permissions" \
+  --arg cmd "claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" \
   '{name: $name, workingDir: $dir, command: $cmd}')
 
 # POST creates a tmux session named ctt-worker-${ISSUE_ID}-xxxx
@@ -71,11 +81,12 @@ echo "$SESSION_ID" >> /tmp/swarm-sessions.txt
 ISSUE_ID="TabzChrome-abc"
 WORKTREE="/home/user/project-worktrees/${ISSUE_ID}"
 SESSION="worker-${ISSUE_ID}"
+PLUGIN_DIR="./plugins/worker-minimal"  # Choose based on issue type
 
 bd update "$ISSUE_ID" --status in_progress
 
 tmux new-session -d -s "$SESSION" -c "$WORKTREE"
-tmux send-keys -t "$SESSION" "claude --dangerously-skip-permissions" C-m
+tmux send-keys -t "$SESSION" "claude --plugin-dir $PLUGIN_DIR --dangerously-skip-permissions" C-m
 
 # Store session name for later cleanup
 echo "$SESSION" >> /tmp/swarm-sessions.txt
@@ -105,14 +116,12 @@ if ! tmux has-session -t "$SESSION" 2>/dev/null; then
 fi
 
 # Use heredoc for safe multiline prompt with variables
+# Note: Skills are pre-loaded via --plugin-dir, no need to invoke them
 PROMPT=$(cat <<EOF
 ## Task
 ${ISSUE_ID}: ${TITLE}
 
 ${DESCRIPTION}
-
-## Skills
-Run \`/ui-styling:ui-styling\` or \`/xterm-js\` based on task type.
 
 ## Completion
 When done: \`/conductor:worker-done ${ISSUE_ID}\`

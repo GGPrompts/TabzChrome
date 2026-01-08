@@ -25,9 +25,11 @@ while true; do
   echo "All worktrees initialized for wave $WAVE"
 
   # PHASE 2: Spawn workers (worktrees already have deps)
+  # Each worker uses --plugin-dir for lean context
   for ISSUE in $READY; do
     [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-    spawn_worker "$ISSUE"
+    PLUGIN_DIR=$(select_plugin_dir "$ISSUE")  # Based on issue keywords
+    spawn_worker "$ISSUE" "$PLUGIN_DIR"
   done
 
   # Monitor until wave complete
@@ -64,6 +66,28 @@ echo "Backlog complete!"
 | Waves | One wave | Repeat until empty |
 | Decisions | AskUserQuestion | Reasonable defaults |
 | Context check | Manual | Auto /wipe at 75% |
+
+## Worker Plugin Selection
+
+Select plugin directory based on issue keywords:
+
+```bash
+select_plugin_dir() {
+  local ISSUE_ID="$1"
+  local TITLE=$(bd show "$ISSUE_ID" --json | jq -r '.title' | tr '[:upper:]' '[:lower:]')
+
+  case "$TITLE" in
+    *terminal*|*xterm*|*pty*)
+      echo "./plugins/worker-codegen" ;;
+    *browser*|*screenshot*|*click*|*tabz*)
+      echo "./plugins/worker-browser" ;;
+    *review*|*audit*|*quality*)
+      echo "./plugins/worker-review" ;;
+    *)
+      echo "./plugins/worker-minimal" ;;
+  esac
+}
+```
 
 ## Prompt Header for Autonomous Workers
 

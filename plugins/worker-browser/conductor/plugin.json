@@ -1,0 +1,5 @@
+{
+  "name": "conductor",
+  "version": "1.0.0",
+  "description": "Browser automation worker - tabz MCP tools, screenshots, page interaction"
+}
