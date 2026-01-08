@@ -160,6 +160,12 @@ if ! tmux has-session -t "$SESSION" 2>/dev/null; then
   exit 1
 fi
 
+# Send /context first so worker sees available skills in conversation
+tmux send-keys -t "$SESSION" -l '/context'
+sleep 0.3
+tmux send-keys -t "$SESSION" C-m
+sleep 2  # Wait for /context output
+
 # Build enhanced prompt with all context
 PROMPT=$(cat <<EOF
 Fix beads issue ${ISSUE_ID}: "${TITLE}"
@@ -193,11 +199,14 @@ tmux send-keys -t "$SESSION" C-m
 
 | Section | Purpose |
 |---------|---------|
+| `/context` first | **Run before prompt** - shows worker its available skills |
 | Title line | Issue ID + title for clarity |
 | Context | Description + WHY this matters |
 | Key Files | Starting points (optional) |
 | Guidance | Skill hints woven naturally |
 | When Done | **Mandatory** `/conductor:worker-done` instruction |
+
+**Why `/context` first?** Workers sometimes forget to use available skills. By running `/context` before the work prompt, workers see their full capability list in conversation context, making them more likely to invoke relevant skills.
 
 ## 6. Start Monitor & Poll
 

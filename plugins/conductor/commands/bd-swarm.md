@@ -53,8 +53,14 @@ RESPONSE=$(curl -s -X POST http://localhost:8129/api/spawn \
 SESSION_NAME=$(echo "$RESPONSE" | jq -r '.terminal.ptyInfo.tmuxSession // .terminal.id')
 echo "Spawned: $SESSION_NAME"
 
-# 4. Wait for Claude to initialize, then send prompt
+# 4. Wait for Claude to initialize, then send /context and prompt
 sleep 4
+# Send /context first so worker sees available skills
+tmux send-keys -t "$SESSION_NAME" -l '/context'
+sleep 0.3
+tmux send-keys -t "$SESSION_NAME" C-m
+sleep 2  # Wait for /context output
+# Now send the work prompt
 tmux send-keys -t "$SESSION_NAME" -l 'Your prompt here...'
 sleep 0.3
 tmux send-keys -t "$SESSION_NAME" C-m
@@ -68,6 +74,12 @@ tmux new-session -d -s "$SESSION" -c "$WORKTREE_PATH"
 # BD_SOCKET isolates beads daemon per worker (prevents conflicts in parallel workers)
 tmux send-keys -t "$SESSION" "BD_SOCKET=/tmp/bd-worker-$ISSUE_ID.sock CONDUCTOR_SESSION='$CONDUCTOR_SESSION' claude --dangerously-skip-permissions" C-m
 sleep 4
+# Send /context first so worker sees available skills
+tmux send-keys -t "$SESSION" -l '/context'
+sleep 0.3
+tmux send-keys -t "$SESSION" C-m
+sleep 2  # Wait for /context output
+# Now send the work prompt
 tmux send-keys -t "$SESSION" -l 'Your prompt here...'
 sleep 0.3
 tmux send-keys -t "$SESSION" C-m
