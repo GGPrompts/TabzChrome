@@ -57,8 +57,12 @@ fi
 # Option B: Kill by pattern (fallback)
 for ISSUE in $ISSUES; do
   [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+  # Extract short ID (e.g., "511" from "TabzChrome-511")
+  SHORT_ID="${ISSUE##*-}"
   tmux kill-session -t "worker-${ISSUE}" 2>/dev/null && echo "Killed: worker-${ISSUE}" || true
-  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "ctt-.*${ISSUE}" | while read -r S; do
+  tmux kill-session -t "worker-${SHORT_ID}" 2>/dev/null && echo "Killed: worker-${SHORT_ID}" || true
+  # Match session names like ctt-worker-511-uuid
+  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -E "ctt-worker-${SHORT_ID}-" | while read -r S; do
     tmux kill-session -t "$S" 2>/dev/null && echo "Killed: $S"
   done || true
 done
