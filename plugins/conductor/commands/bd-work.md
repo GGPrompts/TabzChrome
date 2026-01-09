@@ -20,11 +20,12 @@ Spawn a visible worker to tackle one beads issue. Unlike bd-swarm, no worktree i
 ```
 1. Select issue       →  bd ready (pick top) or use provided ID
 2. Get issue details  →  bd show <id>
-3. Explore context    →  Task(Explore) for relevant files
-4. Craft prompt       →  Follow worker-architecture.md template
-5. Spawn worker       →  TabzChrome API (no worktree)
-6. Send prompt        →  tmux send-keys
-7. User watches       →  Worker visible in sidebar
+3. VERIFY SKILLS      →  scripts/match-skills.sh --available-full (MANDATORY)
+4. Explore context    →  Task(Explore) for relevant files
+5. Craft prompt       →  Follow worker-architecture.md template (VERIFIED skills only)
+6. Spawn worker       →  TabzChrome API (no worktree)
+7. Send prompt        →  tmux send-keys
+8. User watches       →  Worker visible in sidebar
 ```
 
 ---
@@ -41,30 +42,24 @@ bd show <id>
 
 ---
 
-## Phase 2: Explore Context
+## Phase 2: VERIFY Skills (MANDATORY)
 
-Before crafting the prompt, understand what files are relevant:
-
-```markdown
-Task(
-  subagent_type="Explore",
-  model="haiku",
-  prompt="Find files relevant to: '<issue-title>'
-         Return: key files, patterns to follow"
-)
-```
-
----
-
-## Phase 3: Discover Skills
-
-Find actual available skills using the discovery script:
+**CRITICAL: Run this BEFORE crafting prompts.** Only include skills that appear in output:
 
 ```bash
-./plugins/conductor/scripts/discover-skills.sh "backend api terminal"
+# List ALL available skills - ONLY use these in prompts
+${CLAUDE_PLUGIN_ROOT}/scripts/match-skills.sh --available-full
+
+# Or verify and match for specific keywords
+${CLAUDE_PLUGIN_ROOT}/scripts/match-skills.sh --verify "backend api terminal"
 ```
 
-This finds real skills from the API and filesystem. Common mappings:
+**Rules:**
+- If a skill doesn't appear in `--available-full`, DO NOT include it in prompts
+- MCP tools (shadcn/*, tabz/*) are NOT skills - call them via `mcp-cli call`
+- If no skills match, omit the "Skills to Load" section entirely
+
+Common verified skill patterns (if installed):
 
 | Keywords | Skill to Invoke |
 |----------|-----------------|
@@ -76,6 +71,21 @@ This finds real skills from the API and filesystem. Common mappings:
 | auth, login, oauth | `/better-auth:better-auth` |
 
 **CRITICAL:** Use full `plugin:skill` format. "Use the X skill" does NOT trigger invocation.
+
+---
+
+## Phase 3: Explore Context
+
+Before crafting the prompt, understand what files are relevant:
+
+```markdown
+Task(
+  subagent_type="Explore",
+  model="haiku",
+  prompt="Find files relevant to: '<issue-title>'
+         Return: key files, patterns to follow"
+)
+```
 
 ---
 

@@ -20,16 +20,37 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 
 ```
 1. Get ready issues      ->  bd ready
-2. Create worktrees      ->  scripts/setup-worktree.sh (parallel)
-3. Wait for deps         ->  All worktrees ready before workers spawn
-4. Spawn workers         ->  TabzChrome /api/spawn (see below)
-5. Send prompts          ->  tmux send-keys with skill hints
-6. Monitor               ->  scripts/monitor-workers.sh
-7. Merge & review        ->  Merge branches, visual review (conductor only)
-8. Cleanup               ->  scripts/completion-pipeline.sh
+2. VERIFY SKILLS         ->  scripts/match-skills.sh --available-full (MANDATORY)
+3. Create worktrees      ->  scripts/setup-worktree.sh (parallel)
+4. Wait for deps         ->  All worktrees ready before workers spawn
+5. Spawn workers         ->  TabzChrome /api/spawn (see below)
+6. Send prompts          ->  tmux send-keys with VERIFIED skill hints only
+7. Monitor               ->  scripts/monitor-workers.sh
+8. Merge & review        ->  Merge branches, visual review (conductor only)
+9. Cleanup               ->  scripts/completion-pipeline.sh
 ```
 
 **Key insight:** TabzChrome spawn creates tmux sessions with `ctt-*` prefix. Cleanup is via `tmux kill-session`.
+
+---
+
+## MANDATORY: Verify Skills Before Spawning
+
+**CRITICAL:** Before crafting prompts, verify which skills are actually available:
+
+```bash
+# List all available skills with descriptions
+${CLAUDE_PLUGIN_ROOT}/scripts/match-skills.sh --available-full
+
+# Or match and verify for specific keywords
+${CLAUDE_PLUGIN_ROOT}/scripts/match-skills.sh --verify "terminal ui api"
+```
+
+**Only include skills in prompts that appear in `--available-full` output.**
+
+- If a skill doesn't exist, workers will fail trying to invoke it
+- The `--verify` flag filters to only available skills
+- MCP tools (like shadcn/*) are NOT skills - they're called directly via `mcp-cli`
 
 ---
 

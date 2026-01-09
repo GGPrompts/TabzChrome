@@ -14,7 +14,15 @@ description: "Fully autonomous backlog completion. Runs waves until `bd ready` i
    ```
    If empty, announce "Backlog complete!" and stop.
 
-2. **Create worktrees in parallel:**
+2. **VERIFY available skills (MANDATORY):**
+   ```bash
+   # Get list of actually available skills - ONLY use these in prompts
+   ${CLAUDE_PLUGIN_ROOT}/scripts/match-skills.sh --available-full
+   ```
+   Save this output. Only include skills that appear here in worker prompts.
+   MCP tools (shadcn/*, tabz/*) are NOT skills - they're called directly via `mcp-cli`.
+
+4. **Create worktrees in parallel:**
    ```bash
    PROJECT_DIR=$(pwd)
    WORKTREE_DIR="${PROJECT_DIR}-worktrees"
@@ -26,7 +34,7 @@ description: "Fully autonomous backlog completion. Runs waves until `bd ready` i
    wait
    ```
 
-3. **Spawn workers (max 4):**
+5. **Spawn workers (max 4):**
    ```bash
    TOKEN=$(cat /tmp/tabz-auth-token)
    for ISSUE_ID in $(bd ready --json | jq -r '.[].id' | head -4); do
@@ -40,18 +48,19 @@ description: "Fully autonomous backlog completion. Runs waves until `bd ready` i
    done
    ```
 
-4. **Send skill-aware prompts:**
+6. **Send skill-aware prompts (ONLY verified skills):**
    For each worker, send a prompt with:
    - Issue context from `bd show`
-   - Skill hints from beads notes (persisted by plan-backlog) or match on-the-fly:
+   - Skill hints: ONLY skills from step 2's `--available-full` output
      ```bash
-     # Read skill hints (from notes or match)
+     # Read skill hints AND verify availability
      MATCH_SCRIPT="${CLAUDE_PLUGIN_ROOT:-./plugins/conductor}/scripts/match-skills.sh"
-     SKILL_HINTS=$($MATCH_SCRIPT --issue "$ISSUE_ID")
+     SKILL_HINTS=$($MATCH_SCRIPT --verify --issue "$ISSUE_ID")
      ```
+   - If no skills match, omit the "Skills to Load" section entirely
    - Completion command: `/conductor:worker-done <issue-id>`
 
-5. **Monitor and loop:**
+7. **Monitor and loop:**
    - Poll `${CLAUDE_PLUGIN_ROOT}/scripts/monitor-workers.sh --summary` every 2 min
    - When all issues closed, run completion pipeline
    - Check `bd ready` - if more issues, start next wave
