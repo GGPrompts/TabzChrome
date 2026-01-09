@@ -20,17 +20,20 @@
 # Add new mappings here - all skills/commands reference this file
 
 SKILL_MAPPINGS=(
-  # Terminal / xterm.js
-  "terminal|xterm|pty|resize|buffer|fitaddon|websocket.*terminal|Use the xterm-js skill for terminal rendering and resize handling."
+  # Terminal / TabzChrome (project-specific skill)
+  "terminal|xterm|pty|resize|buffer|fitaddon|websocket.*terminal|Use the tabz-guide skill for TabzChrome terminal patterns."
 
   # UI / Frontend
   "ui|component|modal|dashboard|styling|tailwind|shadcn|form|button|Use the ui-styling skill for shadcn/ui components and Tailwind CSS."
+
+  # Frontend frameworks
+  "react|next|vue|svelte|frontend|Use the frontend-development skill for React and frontend patterns."
 
   # Backend / API
   "backend|api|server|database|endpoint|express|websocket.*server|Use the backend-development skill for API and server patterns."
 
   # Browser automation / MCP
-  "browser|screenshot|click|mcp|tabz|automation|Use MCP browser automation tools (tabz_*) for testing and interaction."
+  "browser|screenshot|click|mcp|tabz_|automation|Use the tabz-mcp skill for browser automation tools."
 
   # Authentication
   "auth|login|oauth|session|token|jwt|Use the better-auth skill for authentication patterns."
@@ -39,22 +42,34 @@ SKILL_MAPPINGS=(
   "plugin|skill|agent|hook|command|frontmatter|Use the plugin-dev skills for plugin/skill/agent structure."
 
   # Conductor / orchestration
-  "prompt|worker|swarm|conductor|orchestrat|Follow conductor orchestration patterns."
+  "prompt|worker|swarm|conductor|orchestrat|Use the conductor:orchestration skill for multi-session coordination."
 
-  # Audio / TTS
-  "audio|tts|speech|sound|voice|speak|Use the ai-multimodal skill for audio processing."
+  # Audio / TTS / Multimodal
+  "audio|tts|speech|sound|voice|speak|gemini|Use the ai-multimodal skill for audio and media processing."
 
   # Media processing
   "image|video|media|ffmpeg|imagemagick|Use the media-processing skill for multimedia handling."
 
-  # 3D / Three.js
+  # 3D / Three.js (project-specific reference)
   "3d|three|scene|focus.*mode|webgl|Reference extension/3d/ for Three.js and React Three Fiber patterns."
 
-  # Chrome extension
-  "chrome|extension|manifest|sidepanel|background|service.*worker|Reference CLAUDE.md for Chrome extension patterns."
+  # Chrome extension (project-specific reference)
+  "chrome|extension|manifest|sidepanel|background|service.*worker|Use the tabz-guide skill for Chrome extension patterns."
 
-  # Testing
-  "test|jest|vitest|spec|coverage|Use standard testing patterns - check existing test files for conventions."
+  # Databases
+  "postgres|mongodb|redis|sql|database|query|Use the databases skill for database operations."
+
+  # Documentation discovery
+  "docs|documentation|llms.txt|repomix|Use the docs-seeker skill to find documentation."
+
+  # Code review
+  "review|pr|pull.*request|lint|Use the code-review skill for review best practices."
+
+  # Web frameworks
+  "nextjs|express|fastapi|django|nest|Use the web-frameworks skill for framework guidance."
+
+  # Testing (general guidance, not a specific skill)
+  "test|jest|vitest|spec|coverage|Check existing test files for testing conventions."
 )
 
 # ============================================================================
@@ -71,6 +86,57 @@ LABEL_MAPPINGS=(
   "plugin|skill|conductor"
   "audio|media"
 )
+
+# ============================================================================
+# RUNTIME SKILL DISCOVERY
+# ============================================================================
+# Get list of actually available skills (for verification)
+
+get_available_skills() {
+  local AVAILABLE=""
+
+  # 1. Plugin skills (from TabzChrome API if running)
+  if curl -s --max-time 2 http://localhost:8129/api/plugins/skills >/dev/null 2>&1; then
+    local PLUGIN_SKILLS=$(curl -s http://localhost:8129/api/plugins/skills 2>/dev/null | jq -r '.skills[].id' 2>/dev/null)
+    AVAILABLE="$AVAILABLE $PLUGIN_SKILLS"
+  fi
+
+  # 2. Project skills (.claude/skills/)
+  if [ -d ".claude/skills" ]; then
+    for skill_dir in .claude/skills/*/; do
+      [ -d "$skill_dir" ] && [ -f "$skill_dir/SKILL.md" ] && AVAILABLE="$AVAILABLE $(basename "$skill_dir")"
+    done
+  fi
+
+  # 3. User skills (~/.claude/skills/)
+  if [ -d "$HOME/.claude/skills" ]; then
+    for skill_dir in "$HOME/.claude/skills"/*/; do
+      [ -d "$skill_dir" ] && [ -f "$skill_dir/SKILL.md" ] && AVAILABLE="$AVAILABLE $(basename "$skill_dir")"
+    done
+  fi
+
+  # 4. Common plugin skills (conductor, plugin-dev, etc.) - check plugin dirs
+  for plugin_dir in "$HOME/.claude/plugins"/*/ ".claude/plugins"/*/; do
+    [ -d "$plugin_dir" ] || continue
+    [ -d "$plugin_dir/skills" ] || continue
+    for skill_dir in "$plugin_dir/skills"/*/; do
+      [ -d "$skill_dir" ] && [ -f "$skill_dir/SKILL.md" ] && AVAILABLE="$AVAILABLE $(basename "$skill_dir")"
+    done
+  done 2>/dev/null
+
+  echo "$AVAILABLE" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' '
+}
+
+# Check if a skill name is available
+is_skill_available() {
+  local SKILL_NAME="$1"
+  local AVAILABLE=$(get_available_skills)
+
+  # Normalize skill name (strip plugin prefix if present)
+  local NORMALIZED=$(echo "$SKILL_NAME" | sed 's/.*://')
+
+  echo "$AVAILABLE" | grep -qw "$NORMALIZED"
+}
 
 # ============================================================================
 # MATCH FUNCTION
@@ -183,6 +249,52 @@ get_issue_skills() {
 }
 
 # ============================================================================
+# VERIFIED MATCHING (Runtime Check)
+# ============================================================================
+# Match skills AND verify they're actually available
+
+match_skills_verified() {
+  local INPUT_TEXT="$1"
+
+  # Get candidate matches (fast, static)
+  local CANDIDATES=$(match_skills "$INPUT_TEXT")
+
+  if [ -z "$CANDIDATES" ]; then
+    return 0
+  fi
+
+  # Get available skills (runtime discovery)
+  local AVAILABLE=$(get_available_skills)
+
+  if [ -z "$AVAILABLE" ]; then
+    # Can't verify, return all candidates with warning
+    echo "# Note: Could not verify skill availability (API unreachable)"
+    echo "$CANDIDATES"
+    return 0
+  fi
+
+  # Filter to only available skills
+  local VERIFIED=""
+  while IFS= read -r trigger; do
+    [ -z "$trigger" ] && continue
+
+    # Extract skill name from trigger text (e.g., "xterm-js" from "Use the xterm-js skill...")
+    local SKILL_NAME=$(echo "$trigger" | grep -oE '[a-z]+-[a-z]+(-[a-z]+)?' | head -1)
+
+    if [ -z "$SKILL_NAME" ]; then
+      # Non-skill trigger (like "Reference CLAUDE.md..."), include it
+      VERIFIED="$VERIFIED$trigger "
+    elif echo "$AVAILABLE" | grep -qw "$SKILL_NAME"; then
+      # Skill is available
+      VERIFIED="$VERIFIED$trigger "
+    fi
+    # Skip unavailable skills silently
+  done <<< "$CANDIDATES"
+
+  echo "$VERIFIED"
+}
+
+# ============================================================================
 # PERSIST SKILLS TO BEADS
 # ============================================================================
 # Used by plan-backlog to save skill hints
@@ -220,19 +332,30 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       echo "Usage: match-skills.sh [OPTIONS] 'text to match'"
       echo ""
       echo "Options:"
-      echo "  --json     Output as JSON array"
-      echo "  --issue    Match from beads issue ID"
-      echo "  --persist  Persist skills to issue: --persist ISSUE-ID 'skill1, skill2'"
+      echo "  --json       Output as JSON array"
+      echo "  --issue      Match from beads issue ID"
+      echo "  --verify     Match AND verify skills are available (runtime check)"
+      echo "  --available  List all currently available skills"
+      echo "  --persist    Persist skills to issue: --persist ISSUE-ID 'skill1, skill2'"
       echo ""
       echo "Examples:"
       echo "  match-skills.sh 'fix terminal resize bug'"
-      echo "  match-skills.sh --json 'add dashboard component'"
+      echo "  match-skills.sh --verify 'add dashboard component'"
       echo "  match-skills.sh --issue TabzChrome-abc"
+      echo "  match-skills.sh --available"
       echo "  match-skills.sh --persist TabzChrome-abc 'xterm-js, ui-styling'"
       ;;
     --json)
       shift
       match_skills "$*" "json"
+      ;;
+    --verify)
+      shift
+      match_skills_verified "$*"
+      ;;
+    --available)
+      echo "Available skills:"
+      get_available_skills | tr ' ' '\n' | grep -v '^$' | sort | sed 's/^/  - /'
       ;;
     --issue)
       shift
