@@ -291,14 +291,15 @@ SKILL_HINTS=$($MATCH_SCRIPT --verify --issue "$ISSUE_ID")
 
 See `scripts/match-skills.sh` for the complete, authoritative list of skill mappings. Key patterns:
 
-| Keywords | Skill Trigger |
-|----------|---------------|
-| terminal, xterm, pty, resize | "Use the xterm-js skill..." |
-| UI, component, modal, dashboard | "Use the ui-styling skill..." |
-| backend, api, server, websocket | "Use the backend-development skill..." |
-| browser, screenshot, click, mcp | "Use MCP browser automation tools (tabz_*)..." |
+| Keywords | Skill to Invoke |
+|----------|-----------------|
+| terminal, xterm, pty, resize | `/xterm-js` |
+| UI, component, modal, dashboard | `/ui-styling` |
+| backend, api, server, websocket | `/backend-development` |
+| plugin, skill, agent, conductor | `/plugin-dev` |
+| browser, screenshot, click, mcp | (use tabz_* MCP tools directly) |
 
-**Key insight from pmux**: "Use the X skill for Y" triggers skill activation better than "follow X patterns".
+**Key insight**: Neither "Use the X skill" nor "follow X patterns" triggers invocation. Workers need explicit `/skill-name` commands in a "Skills to Load" section.
 
 ### Enhanced Prompt Structure
 
@@ -307,6 +308,13 @@ All worker prompts must follow this structure (see `references/worker-architectu
 ```markdown
 Fix beads issue ISSUE-ID: "Title"
 
+## Skills to Load
+**FIRST**, invoke these skills before starting work:
+- /backend-development
+- /plugin-dev
+
+These load patterns and context you'll need.
+
 ## Context
 [Description from bd show - explains WHY]
 
@@ -314,7 +322,7 @@ Fix beads issue ISSUE-ID: "Title"
 [Relevant file paths, or "Explore as needed"]
 
 ## Approach
-[Skill triggers woven naturally: "Use the ui-styling skill for shadcn/ui..."]
+[Implementation guidance - what to do, not which skills to use]
 
 After implementation, verify the build passes and test the changes work as expected.
 
@@ -322,15 +330,16 @@ After implementation, verify the build passes and test the changes work as expec
 Run: /conductor:worker-done ISSUE-ID
 
 This command will: build, run code review, commit changes, and close the issue.
-
-## Conductor Session
-Notify conductor session CONDUCTOR-SESSION-NAME when done via:
-tmux send-keys -t CONDUCTOR-SESSION-NAME -l "WORKER COMPLETE: ISSUE-ID - summary"
-sleep 0.3
-tmux send-keys -t CONDUCTOR-SESSION-NAME C-m
 ```
 
-**CRITICAL:** The `sleep 0.3` before `C-m` prevents corrupting the conductor session.
+**CRITICAL: Skills must be INVOKED, not just mentioned.**
+
+| ❌ Doesn't trigger invocation | ✅ Triggers invocation |
+|------------------------------|------------------------|
+| "Use the backend-development skill for..." | "First, run `/backend-development`" |
+| "Follow patterns from xterm-js skill" | "Invoke `/xterm-js` to load terminal patterns" |
+
+Workers interpret "use the X skill" as guidance to apply knowledge they already have. They need explicit `/skill-name` commands to actually load the skill content.
 
 **The `/conductor:worker-done` instruction is mandatory** - without it, workers don't know how to signal completion and the conductor can't clean up.
 

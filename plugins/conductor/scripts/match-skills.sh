@@ -63,61 +63,65 @@ CONDUCTOR_ROOT=$(find_conductor_root)
 # ============================================================================
 # SKILL MAPPINGS - Single Source of Truth
 # ============================================================================
-# Format: keyword_pattern|skill_trigger_text
+# Format: keyword_pattern|skill_invocation_command
 # Pattern uses bash regex (extended)
 # Add new mappings here - all skills/commands reference this file
+#
+# IMPORTANT: Output is explicit invocation commands (e.g., "/xterm-js")
+# Workers need explicit /skill-name commands to actually load skills.
+# "Use the X skill" is interpreted as guidance, not invocation.
 
 SKILL_MAPPINGS=(
   # Terminal / TabzChrome (project-specific skill)
-  "terminal|xterm|pty|resize|buffer|fitaddon|websocket.*terminal|Use the tabz-guide skill for TabzChrome terminal patterns."
+  "terminal|xterm|pty|resize|buffer|fitaddon|websocket.*terminal|/tabz-guide"
 
   # UI / Frontend
-  "ui|component|modal|dashboard|styling|tailwind|shadcn|form|button|Use the ui-styling skill for shadcn/ui components and Tailwind CSS."
+  "ui|component|modal|dashboard|styling|tailwind|shadcn|form|button|/ui-styling"
 
   # Frontend frameworks
-  "react|next|vue|svelte|frontend|Use the frontend-development skill for React and frontend patterns."
+  "react|next|vue|svelte|frontend|/frontend-development"
 
   # Backend / API
-  "backend|api|server|database|endpoint|express|websocket.*server|Use the backend-development skill for API and server patterns."
+  "backend|api|server|database|endpoint|express|websocket.*server|/backend-development"
 
-  # Browser automation / MCP
-  "browser|screenshot|click|mcp|tabz_|automation|Use the tabz-mcp skill for browser automation tools."
+  # Browser automation / MCP (direct tool use, not a skill)
+  "browser|screenshot|click|mcp|tabz_|automation|# Use tabz_* MCP tools directly"
 
   # Authentication
-  "auth|login|oauth|session|token|jwt|Use the better-auth skill for authentication patterns."
+  "auth|login|oauth|session|token|jwt|/better-auth"
 
   # Plugin development
-  "plugin|skill|agent|hook|command|frontmatter|Use the plugin-dev skills for plugin/skill/agent structure."
+  "plugin|skill|agent|hook|command|frontmatter|/plugin-dev"
 
   # Conductor / orchestration
-  "prompt|worker|swarm|conductor|orchestrat|Use the conductor:orchestration skill for multi-session coordination."
+  "prompt|worker|swarm|conductor|orchestrat|/conductor:orchestration"
 
   # Audio / TTS / Multimodal
-  "audio|tts|speech|sound|voice|speak|gemini|Use the ai-multimodal skill for audio and media processing."
+  "audio|tts|speech|sound|voice|speak|gemini|/ai-multimodal"
 
   # Media processing
-  "image|video|media|ffmpeg|imagemagick|Use the media-processing skill for multimedia handling."
+  "image|video|media|ffmpeg|imagemagick|/media-processing"
 
-  # 3D / Three.js (project-specific reference)
-  "3d|three|scene|focus.*mode|webgl|Reference extension/3d/ for Three.js and React Three Fiber patterns."
+  # 3D / Three.js (project-specific reference - not a skill)
+  "3d|three|scene|focus.*mode|webgl|# Reference extension/3d/ for Three.js patterns"
 
   # Chrome extension (project-specific reference)
-  "chrome|extension|manifest|sidepanel|background|service.*worker|Use the tabz-guide skill for Chrome extension patterns."
+  "chrome|extension|manifest|sidepanel|background|service.*worker|/tabz-guide"
 
   # Databases
-  "postgres|mongodb|redis|sql|database|query|Use the databases skill for database operations."
+  "postgres|mongodb|redis|sql|database|query|/databases"
 
   # Documentation discovery
-  "docs|documentation|llms.txt|repomix|Use the docs-seeker skill to find documentation."
+  "docs|documentation|llms.txt|repomix|/docs-seeker"
 
   # Code review
-  "review|pr|pull.*request|lint|Use the code-review skill for review best practices."
+  "review|pr|pull.*request|lint|/code-review"
 
   # Web frameworks
-  "nextjs|express|fastapi|django|nest|Use the web-frameworks skill for framework guidance."
+  "nextjs|express|fastapi|django|nest|/web-frameworks"
 
   # Testing (general guidance, not a specific skill)
-  "test|jest|vitest|spec|coverage|Check existing test files for testing conventions."
+  "test|jest|vitest|spec|coverage|# Check existing test files for testing conventions"
 )
 
 # ============================================================================
@@ -308,20 +312,27 @@ get_issue_skills() {
   local PERSISTED_SKILLS=$(echo "$NOTES" | grep -oP 'skills?:\s*\K.*' | head -1)
 
   if [ -n "$PERSISTED_SKILLS" ]; then
-    # Convert comma-separated skill names to trigger text
+    # Convert comma-separated skill names to explicit invocation commands
     for skill in $(echo "$PERSISTED_SKILLS" | tr ',' ' '); do
       skill=$(echo "$skill" | tr -d ' ')
       case "$skill" in
-        xterm-js|xterm) echo "Use the xterm-js skill for terminal rendering and resize handling." ;;
-        ui-styling|ui) echo "Use the ui-styling skill for shadcn/ui components and Tailwind CSS." ;;
-        backend*) echo "Use the backend-development skill for API and server patterns." ;;
-        tabz-mcp|mcp|browser) echo "Use MCP browser automation tools (tabz_*) for testing." ;;
-        better-auth|auth) echo "Use the better-auth skill for authentication patterns." ;;
-        plugin-dev|plugin) echo "Use the plugin-dev skills for plugin/skill/agent structure." ;;
-        conductor) echo "Follow conductor orchestration patterns." ;;
-        ai-multimodal|audio) echo "Use the ai-multimodal skill for audio processing." ;;
-        media-processing|media) echo "Use the media-processing skill for multimedia handling." ;;
-        *) echo "Use the $skill skill." ;;
+        xterm-js|xterm|tabz-guide) echo "/tabz-guide" ;;
+        ui-styling|ui) echo "/ui-styling" ;;
+        backend*) echo "/backend-development" ;;
+        tabz-mcp|mcp|browser) echo "# Use tabz_* MCP tools directly" ;;
+        better-auth|auth) echo "/better-auth" ;;
+        plugin-dev|plugin) echo "/plugin-dev" ;;
+        conductor*|orchestration) echo "/conductor:orchestration" ;;
+        ai-multimodal|audio) echo "/ai-multimodal" ;;
+        media-processing|media) echo "/media-processing" ;;
+        docs-seeker|docs) echo "/docs-seeker" ;;
+        code-review|review) echo "/code-review" ;;
+        *)
+          # For unknown skills, output as invocation if it looks like a skill name
+          if [[ "$skill" =~ ^[a-z]+(-[a-z]+)*$ ]]; then
+            echo "/$skill"
+          fi
+          ;;
       esac
     done
     return 0
