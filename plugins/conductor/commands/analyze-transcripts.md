@@ -119,23 +119,58 @@ For analyzing patterns across multiple transcripts:
 ```bash
 echo "=== Batch Analysis ==="
 
+# Aggregate token usage and costs
+echo "=== Token & Cost Summary ==="
+TOTAL_COST=0
+TOTAL_IN=0
+TOTAL_OUT=0
+TOTAL_TOOLS=0
+
+for f in .beads/transcripts/*.txt; do
+  [ -f "$f" ] || continue
+  COST=$(grep -oE 'Cost: \$[0-9.]+' "$f" 2>/dev/null | head -1 | grep -oE '[0-9.]+' || echo "0")
+  IN=$(grep -oE 'Tokens In: [0-9]+' "$f" 2>/dev/null | head -1 | grep -oE '[0-9]+' || echo "0")
+  OUT=$(grep -oE 'Tokens Out: [0-9]+' "$f" 2>/dev/null | head -1 | grep -oE '[0-9]+' || echo "0")
+  TOOLS=$(grep -oE 'Tool Calls: [0-9]+' "$f" 2>/dev/null | head -1 | grep -oE '[0-9]+' || echo "0")
+
+  TOTAL_COST=$(echo "$TOTAL_COST + $COST" | bc 2>/dev/null || echo "$TOTAL_COST")
+  TOTAL_IN=$((TOTAL_IN + IN))
+  TOTAL_OUT=$((TOTAL_OUT + OUT))
+  TOTAL_TOOLS=$((TOTAL_TOOLS + TOOLS))
+
+  echo "$(basename "$f" .txt): \$${COST}, ${IN}/${OUT} tokens, ${TOOLS} tools"
+done
+
+echo ""
+echo "TOTALS: \$${TOTAL_COST}, ${TOTAL_IN} in / ${TOTAL_OUT} out, ${TOTAL_TOOLS} tool calls"
+echo ""
+
 # Count skill usage across all transcripts
-echo "Skill invocation frequency:"
+echo "=== Skill Invocation Frequency ==="
 grep -rh "^/[a-z]" .beads/transcripts/ 2>/dev/null | sort | uniq -c | sort -rn | head -10
 
 # Common errors
 echo ""
-echo "Common errors:"
+echo "=== Common Errors ==="
 grep -rhi "error\|failed" .beads/transcripts/ 2>/dev/null | sort | uniq -c | sort -rn | head -10
 
 # Workers that didn't use skills
 echo ""
-echo "Transcripts with no skill invocations:"
+echo "=== Transcripts With No Skill Invocations ==="
 for f in .beads/transcripts/*.txt; do
   if ! grep -qE "^/[a-z]+-[a-z]+" "$f" 2>/dev/null; then
     basename "$f" .txt
   fi
 done
+
+# Most expensive issues
+echo ""
+echo "=== Most Expensive Issues ==="
+for f in .beads/transcripts/*.txt; do
+  [ -f "$f" ] || continue
+  COST=$(grep -oE 'Cost: \$[0-9.]+' "$f" 2>/dev/null | head -1 | grep -oE '[0-9.]+' || echo "0")
+  echo "$COST $(basename "$f" .txt)"
+done | sort -rn | head -5
 ```
 
 ## AI-Assisted Analysis
