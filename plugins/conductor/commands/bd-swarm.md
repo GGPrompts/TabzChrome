@@ -38,6 +38,12 @@ Spawn multiple Claude workers to tackle beads issues in parallel, with skill-awa
 **IMPORTANT**: Use this exact pattern to spawn workers via TabzChrome:
 
 ```bash
+# 0. Setup worktree FIRST (installs deps + builds)
+ISSUE_ID="TabzChrome-xxx"
+./plugins/conductor/scripts/setup-worktree.sh "$ISSUE_ID"
+# Output: READY: /path/to/TabzChrome-worktrees/TabzChrome-xxx
+WORKTREE_PATH="$(pwd)-worktrees/$ISSUE_ID"
+
 # 1. Get auth token and conductor session
 TOKEN=$(cat /tmp/tabz-auth-token)
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
@@ -66,8 +72,19 @@ sleep 0.3
 tmux send-keys -t "$SESSION_NAME" C-m
 ```
 
+**The setup-worktree.sh script:**
+- Creates worktree with proper locking (safe for parallel workers)
+- Installs dependencies (npm/pnpm/yarn based on lockfile)
+- Runs initial build
+- Output: `READY: /path/to/worktree`
+
 **Alternative - Direct tmux** (simpler, no TabzChrome UI):
 ```bash
+# Setup worktree first
+ISSUE_ID="TabzChrome-xxx"
+./plugins/conductor/scripts/setup-worktree.sh "$ISSUE_ID"
+WORKTREE_PATH="$(pwd)-worktrees/$ISSUE_ID"
+
 SESSION="worker-$ISSUE_ID"
 CONDUCTOR_SESSION=$(tmux display-message -p '#{session_name}')
 tmux new-session -d -s "$SESSION" -c "$WORKTREE_PATH"

@@ -37,6 +37,7 @@ WORKTREE_LOCK="/tmp/git-worktree-$(basename "$PROJECT_DIR").lock"
 
 # Install deps based on lockfile type (outside lock - can run in parallel)
 if [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ]; then
+  echo "Installing dependencies..."
   cd "$WORKTREE"
   if [ -f "pnpm-lock.yaml" ]; then
     pnpm install --frozen-lockfile
@@ -44,6 +45,15 @@ if [ -f "$WORKTREE/package.json" ] && [ ! -d "$WORKTREE/node_modules" ]; then
     yarn install --frozen-lockfile
   else
     npm ci 2>/dev/null || npm install
+  fi
+fi
+
+# Run initial build if package.json has a build script
+if [ -f "$WORKTREE/package.json" ]; then
+  cd "$WORKTREE"
+  if grep -q '"build"' package.json; then
+    echo "Running initial build..."
+    npm run build 2>&1 | tail -5 || echo "Build had warnings (continuing)"
   fi
 fi
 
