@@ -121,7 +121,11 @@ Worker completes → /conductor:worker-done
 ## Conductor Session
 Notify conductor session MY-SESSION-NAME when done via:
 tmux send-keys -t MY-SESSION-NAME -l "WORKER COMPLETE: ISSUE-ID - summary"
+sleep 0.3
+tmux send-keys -t MY-SESSION-NAME C-m
 ```
+
+**CRITICAL:** The `sleep 0.3` before `C-m` prevents corrupting the conductor session.
 
 ### Sending Prompts
 

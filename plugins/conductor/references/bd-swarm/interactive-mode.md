@@ -191,6 +191,8 @@ This command will: build, run code review, commit changes, and close the issue.
 ## Conductor Session
 Notify conductor session ${CONDUCTOR_SESSION} when done via:
 tmux send-keys -t ${CONDUCTOR_SESSION} -l "WORKER COMPLETE: ${ISSUE_ID} - summary"
+sleep 0.3
+tmux send-keys -t ${CONDUCTOR_SESSION} C-m
 EOF
 )
 

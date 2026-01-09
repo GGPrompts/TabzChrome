@@ -319,7 +319,11 @@ This command will: build, run code review, commit changes, and close the issue.
 ## Conductor Session
 Notify conductor session CONDUCTOR-SESSION-NAME when done via:
 tmux send-keys -t CONDUCTOR-SESSION-NAME -l "WORKER COMPLETE: ISSUE-ID - summary"
+sleep 0.3
+tmux send-keys -t CONDUCTOR-SESSION-NAME C-m
 ```
+
+**CRITICAL:** The `sleep 0.3` before `C-m` prevents corrupting the conductor session.
 
 **The `/conductor:worker-done` instruction is mandatory** - without it, workers don't know how to signal completion and the conductor can't clean up.
 
