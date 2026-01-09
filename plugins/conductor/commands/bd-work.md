@@ -56,20 +56,26 @@ Task(
 
 ---
 
-## Phase 3: Match Skills
+## Phase 3: Discover Skills
 
-Based on issue keywords, use **natural trigger language** (like pmux does) to activate skills:
+Find actual available skills using the discovery script:
 
-| Keywords | Natural Trigger Language |
-|----------|-------------------------|
-| UI, component, modal, dashboard | "Use the ui-styling skill for shadcn/ui components and Tailwind." |
-| terminal, xterm, pty, resize | "Use the xterm-js skill for terminal rendering and resize handling." |
-| backend, API, server, websocket | "Use the backend-development skill for API and server patterns." |
-| plugin, skill, agent, hook | "Use the plugin-dev skills for plugin/skill structure." |
-| MCP, tools, browser, screenshot | "Use MCP browser automation tools via tabz_* for testing." |
-| auth, login, oauth | "Use the better-auth skill for authentication patterns." |
+```bash
+./plugins/conductor/scripts/discover-skills.sh "backend api terminal"
+```
 
-**Key insight from pmux**: "Use the X skill for Y" triggers skill activation better than "follow X patterns".
+This finds real skills from the API and filesystem. Common mappings:
+
+| Keywords | Skill to Invoke |
+|----------|-----------------|
+| UI, component, modal, dashboard | `/ui-styling:ui-styling` |
+| terminal, xterm, pty, resize | `/xterm-js:xterm-js` |
+| backend, API, server, websocket | `/backend-development:backend-development` |
+| plugin, skill, agent, hook | `/plugin-dev:plugin-dev` |
+| MCP, browser, screenshot | `/conductor:tabz-mcp` |
+| auth, login, oauth | `/better-auth:better-auth` |
+
+**CRITICAL:** Use full `plugin:skill` format. "Use the X skill" does NOT trigger invocation.
 
 ---
 
@@ -80,6 +86,13 @@ Follow the template from `references/worker-architecture.md`:
 ```markdown
 Fix beads issue ISSUE-ID: "Title"
 
+## Skills to Load
+**FIRST**, invoke these skills before starting work:
+- /backend-development:backend-development
+- /ui-styling:ui-styling
+
+These load patterns and context you'll need.
+
 ## Context
 [WHY this matters, background from issue description]
 
@@ -89,9 +102,7 @@ Fix beads issue ISSUE-ID: "Title"
 - path/to/pattern/to/follow.ts
 
 ## Approach
-[Skill triggers woven naturally using "Use the X skill for Y" pattern]
-Example: "Use the ui-styling skill for shadcn/ui components. Reference
-existing patterns in extension/components/ for consistency."
+[Implementation guidance - what to do, not which skills to use]
 
 After implementation, verify the build passes and test the changes work as expected.
 

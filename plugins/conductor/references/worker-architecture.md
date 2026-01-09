@@ -7,8 +7,8 @@ This document describes the unified worker architecture for parallel issue proce
 ```
 Worker (vanilla Claude via tmux/TabzChrome)
   ├─> Gets context from `bd show <issue-id>`
-  ├─> Receives skill hint in prompt (e.g., "use /xterm-js:xterm-js skill")
-  ├─> Invokes skill directly when needed
+  ├─> Receives explicit skill invocations in prompt (e.g., "/xterm-js:xterm-js")
+  ├─> Invokes skills FIRST before starting work
   └─> Completes with /conductor:worker-done
 ```
 
@@ -108,37 +108,40 @@ Structure worker prompts in clear sections:
 ## Task: ISSUE-ID - Title
 [What to do - explicit, actionable]
 
+## Skills to Load
+**FIRST**, invoke these skills before starting work:
+- /backend-development:backend-development
+- /ui-styling:ui-styling
+
+These load patterns and context you'll need.
+
 ## Context
 [Background, WHY this matters]
 
 ## Key Files
 [File paths as text, not @file - workers read on-demand]
 
-## Guidance
-[Skill hints and pattern references]
+## Approach
+[Implementation guidance - what to do, not which skills to use]
 
 ## When Done
 Run `/conductor:worker-done ISSUE-ID`
 ```
 
-### Skill Hints: Weave, Don't List
+### Skill Invocation: Explicit Commands
 
-Skill hints should be woven into task instructions naturally, not listed in a separate "available tools" section:
+**CRITICAL:** Skills must be invoked with explicit `/plugin:skill` commands in a dedicated section.
 
-```markdown
-# Bad - sidebar listing (workers may ignore)
-## Skills Available
-Use `/plugin-dev:skill-reviewer` to analyze quality.
+| ❌ Doesn't work | ✅ Works |
+|-----------------|----------|
+| "Use the X skill for Y" | `/backend-development:backend-development` |
+| "Follow patterns from X skill" | `/ui-styling:ui-styling` |
+| Weaving into prose | Explicit invocation in "Skills to Load" section |
 
-# Good - woven into task flow (workers will invoke)
-Use the plugin-dev:skill-reviewer skill to analyze each plugin's
-structure before making changes.
+To find available skills:
+```bash
+./plugins/conductor/scripts/discover-skills.sh "backend api terminal"
 ```
-
-This matters because:
-- Sidebar lists read as optional reference, not actions
-- Skills use progressive disclosure - listing may trigger auto-loading
-- Natural phrasing makes it part of the work, not metadata
 
 ### Anti-Patterns
 
@@ -148,7 +151,8 @@ This matters because:
 | "Don't do X" | Negative framing is harder to follow | "Do Y instead" (positive framing) |
 | Vague adjectives ("good", "proper") | Undefined, varies by interpretation | Specific criteria or examples |
 | Including full file contents | Bloats prompt, may be stale | File paths as text, read on-demand |
-| Listing skills in sidebar section | Reads as optional, may auto-load | Weave into task instructions |
+| "Use the X skill for..." | Interpreted as guidance, not invocation | Explicit `/plugin:skill` commands |
+| Shorthand skill names | May not resolve (e.g., `/backend-development`) | Full format `/plugin:skill` |
 
 ## Related Files
 

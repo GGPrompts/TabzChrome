@@ -85,7 +85,12 @@ NEXT=$(bd ready --json | jq 'length')
 ```markdown
 ## Task: ISSUE-ID - Title
 
-[Explicit, actionable description - what exactly to do, not just "fix the bug"]
+## Skills to Load
+**FIRST**, invoke these skills before starting work:
+- /backend-development:backend-development
+- /conductor:orchestration
+
+These load patterns and context you'll need.
 
 ## Context
 [WHY this matters - helps Claude generalize and make good decisions]
@@ -94,13 +99,25 @@ NEXT=$(bd ready --json | jq 'length')
 - path/to/file.ts (focus on lines X-Y)
 - path/to/other.ts
 
-## Guidance
-Use the `/skill-name` skill for [specific aspect].
-Follow the pattern in [existing-file.ts] for consistency.
+## Approach
+[Implementation guidance - what to do]
 
 ## When Done
 Run `/conductor:worker-done ISSUE-ID`
 ```
+
+**CRITICAL: Use full `plugin:skill` format for skill invocation.**
+
+To find actual available skills, run:
+```bash
+./plugins/conductor/scripts/discover-skills.sh "backend api terminal"
+```
+
+| ❌ Wrong format | ✅ Correct format |
+|-----------------|-------------------|
+| `/backend-development` | `/backend-development:backend-development` |
+| `/xterm-js` | `/xterm-js:xterm-js` |
+| "Use the X skill" | Explicit `/plugin:skill` invocation |
 
 **Prompt Guidelines:**
 - **Be explicit** - "Fix null reference on line 45" not "fix the bug"

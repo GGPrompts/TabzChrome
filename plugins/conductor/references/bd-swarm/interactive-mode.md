@@ -112,24 +112,26 @@ started_at: $(date -Iseconds)"
 
 Before sending, craft a detailed prompt following the structure in `references/worker-architecture.md`.
 
-### Step 5a: Match Skills to Issue
+### Step 5a: Discover Skills to Invoke
 
-Match issue keywords to skill triggers (weave into guidance, don't list):
+Find real available skills using the discovery script:
 
 ```bash
-# Find the script (works from project root or with CLAUDE_PLUGIN_ROOT)
+# Discover actual skills (queries API + filesystem)
+./plugins/conductor/scripts/discover-skills.sh "backend api terminal"
+
+# Or use match-skills.sh for keyword-based matching:
 MATCH_SCRIPT="${CLAUDE_PLUGIN_ROOT:-./plugins/conductor}/scripts/match-skills.sh"
-
-# Reads from beads notes first (persisted by plan-backlog), falls back to matching
-SKILL_HINTS=$($MATCH_SCRIPT --issue "$ISSUE_ID")
-
-# Or if you have title/description directly:
-SKILL_HINTS=$($MATCH_SCRIPT "$TITLE $DESCRIPTION $LABELS")
-
-# For the full mappings, see the script directly
+SKILL_INVOCATIONS=$($MATCH_SCRIPT --issue "$ISSUE_ID")
+# Output: /backend-development:backend-development /conductor:orchestration
 ```
 
-**Note:** Skills are persisted by `plan-backlog` in issue notes. If persisted, `--issue` reads from notes. Otherwise, it matches on-the-fly from title/description/labels.
+**CRITICAL:** Use full `plugin:skill` format. "Use the X skill" does NOT trigger invocation.
+
+| ❌ Wrong | ✅ Correct |
+|----------|-----------|
+| `/backend-development` | `/backend-development:backend-development` |
+| "Use the X skill for..." | Explicit `/plugin:skill` in "Skills to Load" section |
 
 ### Step 5b: Get Key Files (Optional)
 
@@ -147,7 +149,9 @@ SESSION="ctt-claude-xxx"
 ISSUE_ID="TabzChrome-abc"
 TITLE="Fix something"
 DESCRIPTION="Details from bd show"
-SKILL_HINTS="UI styling best practices, xterm-js patterns"
+# Skill invocations from discover-skills.sh or match-skills.sh:
+SKILL_INVOCATIONS="/backend-development:backend-development
+/ui-styling:ui-styling"
 KEY_FILES="extension/components/Terminal.tsx
 extension/hooks/useTerminalSessions.ts"
 
@@ -164,11 +168,15 @@ if ! tmux has-session -t "$SESSION" 2>/dev/null; then
   exit 1
 fi
 
-# Skills are already loaded in worker context at session start
-
-# Build enhanced prompt with all context
+# Build enhanced prompt with skill invocations
 PROMPT=$(cat <<EOF
 Fix beads issue ${ISSUE_ID}: "${TITLE}"
+
+## Skills to Load
+**FIRST**, invoke these skills before starting work:
+${SKILL_INVOCATIONS}
+
+These load patterns and context you'll need.
 
 ## Context
 ${DESCRIPTION}
@@ -177,7 +185,7 @@ ${DESCRIPTION}
 ${KEY_FILES:-"Explore as needed based on the issue description."}
 
 ## Approach
-${SKILL_HINTS}Reference existing patterns in the codebase for consistency.
+Reference existing patterns in the codebase for consistency.
 
 After implementation, verify the build passes and test the changes work as expected.
 
@@ -201,12 +209,13 @@ tmux send-keys -t "$SESSION" C-m
 | Section | Purpose |
 |---------|---------|
 | Title line | Issue ID + title for clarity |
+| Skills to Load | **Explicit** `/plugin:skill` invocations |
 | Context | Description + WHY this matters |
 | Key Files | Starting points (optional) |
-| Guidance | Skill hints woven naturally |
+| Approach | Implementation guidance |
 | When Done | **Mandatory** `/conductor:worker-done` instruction |
 
-**Note:** Skills are loaded in worker context at session start. The `/conductor:worker-done` command automatically notifies the conductor via API.
+**Note:** The `/conductor:worker-done` command automatically notifies the conductor via API.
 
 ## 6. Start Monitor & Poll
 
