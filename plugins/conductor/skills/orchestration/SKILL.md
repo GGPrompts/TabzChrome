@@ -12,10 +12,10 @@ Orchestrate multiple Claude Code sessions, spawn workers, and coordinate paralle
 ```
 Vanilla Claude Session (you)
 ├── Task tool -> can spawn subagents
-│   ├── conductor:initializer (opus) - create worktrees
 │   ├── conductor:code-reviewer (sonnet) - review changes
 │   ├── conductor:skill-picker (haiku) - find/install skills
 │   └── conductor:tui-expert (opus) - spawn TUI tools
+├── Worktree setup via scripts/setup-worktree.sh
 ├── Monitoring via tmuxplexer (background window)
 └── Terminal Workers via TabzChrome spawn API
     └── Each has full Task tool, can spawn own subagents
@@ -65,7 +65,6 @@ tmux kill-session -t "ctt-worker-xxx"
 
 | Subagent | Model | Purpose |
 |----------|-------|---------|
-| `conductor:initializer` | opus | Create worktrees, install deps |
 | `conductor:code-reviewer` | sonnet | Autonomous review, quality gate |
 | `conductor:skill-picker` | haiku | Search/install skills |
 | `conductor:tui-expert` | opus | Spawn btop, lazygit, lnav |
@@ -73,9 +72,14 @@ tmux kill-session -t "ctt-worker-xxx"
 
 ```markdown
 Task(
-  subagent_type="conductor:initializer",
-  prompt="Prepare 3 workers for issues beads-abc, beads-def"
+  subagent_type="conductor:code-reviewer",
+  prompt="Review changes in feature/beads-abc branch"
 )
+```
+
+**Worktree setup** (use script, not subagent):
+```bash
+${CLAUDE_PLUGIN_ROOT:-./plugins/conductor}/scripts/setup-worktree.sh "ISSUE_ID"
 ```
 
 ---

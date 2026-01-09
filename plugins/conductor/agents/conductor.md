@@ -32,11 +32,11 @@ When running via `/conductor:orchestration` skill (not as `--agent`), you have a
 ```
 Vanilla Claude Session (you)
 ├── Task tool -> can spawn subagents
-│   ├── conductor:initializer (opus) - create worktrees, install deps
 │   ├── conductor:code-reviewer (sonnet) - autonomous review
 │   ├── conductor:skill-picker (haiku) - find/install skills
 │   ├── conductor:tui-expert (opus) - spawn btop, lazygit, lnav
 │   └── conductor:docs-updater (opus) - update docs after merges
+├── Worktree setup via scripts/setup-worktree.sh
 ├── Monitoring via tmuxplexer (background window)
 └── Terminal Workers via TabzChrome spawn API
     └── Each has full Task tool, can spawn own subagents
@@ -45,8 +45,8 @@ Vanilla Claude Session (you)
 **Spawn subagent example:**
 ```
 Task(
-  subagent_type="conductor:initializer",
-  prompt="Prepare 3 workers for issues TabzChrome-abc, TabzChrome-def"
+  subagent_type="conductor:code-reviewer",
+  prompt="Review changes in feature/TabzChrome-abc branch"
 )
 ```
 
@@ -406,5 +406,5 @@ tmux send-keys -t "$SESSION" C-m
 | `/conductor:bd-swarm-auto` | Fully autonomous backlog completion |
 | `conductor:tabz-manager` | Browser automation agent |
 | `conductor:tui-expert` | Spawn TUI tools (btop, lazygit, lnav) |
-| `conductor:initializer` | Create worktrees, install deps |
 | `conductor:code-reviewer` | Autonomous code review |
+| `scripts/setup-worktree.sh` | Create worktrees, install deps |
