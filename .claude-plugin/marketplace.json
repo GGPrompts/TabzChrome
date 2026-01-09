@@ -12,43 +12,57 @@
       "name": "conductor",
       "description": "Orchestrate multi-session Claude workflows with browser automation, tabz-mcp tools, and parallel workers",
       "source": "./plugins/conductor",
-      "category": "agents"
+      "category": "agents",
+      "keywords": ["conductor", "orchestrate", "workflow", "multi-session", "parallel", "worker", "spawn", "swarm", "browser", "automation", "mcp"]
     },
     {
       "name": "xterm-js",
       "description": "xterm.js terminal emulator patterns - React integration, WebSocket, state management",
       "source": "./plugins/xterm-js",
-      "category": "skills"
+      "category": "skills",
+      "keywords": ["xterm", "terminal", "emulator", "react", "websocket", "pty", "console", "shell", "resize", "buffer"]
     },
     {
       "name": "ctthandoff",
       "description": "Generate a handoff summary, copy to clipboard, and speak via Tabz TTS",
       "source": "./plugins/ctthandoff",
-      "category": "commands"
+      "category": "commands",
+      "keywords": ["handoff", "summary", "clipboard", "tts", "speak", "audio", "transfer", "session"]
     },
     {
       "name": "tabz-integration",
       "description": "Integration guide for connecting projects to TabzChrome terminals",
       "source": "./plugins/tabz-integration",
-      "category": "commands"
+      "category": "commands",
+      "keywords": ["tabz", "integration", "connect", "terminal", "api", "spawn", "project"]
     },
     {
       "name": "state-tracker",
       "description": "Live session state tracking hooks - enables TabzChrome terminal updates and audio notifications",
       "source": "./plugins/state-tracker",
-      "category": "hooks"
+      "category": "hooks",
+      "keywords": ["state", "tracker", "hook", "session", "terminal", "update", "notification", "audio", "live"]
     },
     {
       "name": "page-reader",
       "description": "Summarize and read aloud current browser page content via TTS",
       "source": "./plugins/page-reader",
-      "category": "commands"
+      "category": "commands",
+      "keywords": ["page", "reader", "summarize", "tts", "speak", "browser", "content", "read", "aloud"]
     },
     {
       "name": "discover-profiles",
       "description": "Scan system for CLI tools (claude, lazygit, htop, etc.) and create TabzChrome profiles",
       "source": "./plugins/discover-profiles",
-      "category": "commands"
+      "category": "commands",
+      "keywords": ["discover", "profile", "cli", "tool", "scan", "lazygit", "htop", "create", "system"]
+    },
+    {
+      "name": "codex",
+      "description": "Query OpenAI Codex for code analysis, debugging assistance, and root cause investigation",
+      "source": "./plugins/codex",
+      "category": "tools",
+      "keywords": ["codex", "openai", "analysis", "debug", "query", "investigate", "code", "review"]
     }
   ]
 }
