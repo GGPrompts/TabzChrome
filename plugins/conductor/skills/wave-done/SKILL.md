@@ -23,7 +23,7 @@ Orchestrates the completion of a wave of parallel workers spawned by bd-swarm. H
 |------|-------------|-----------|-------|
 | 1 | Verify all workers completed | Yes | All issues must be closed |
 | 1.5 | Review worker discoveries | No | Check for untracked TODOs, list discovered-from issues |
-| 2 | Kill worker sessions | No | Clean termination |
+| 2 | Capture transcripts and kill sessions | No | Save session output for analysis, then terminate |
 | 3 | Merge branches to main | Yes | Stop on conflicts |
 | 4 | Build verification | Yes | Verify merged code builds |
 | 5 | Unified code review | Yes | Review all changes together |
@@ -114,18 +114,35 @@ This step:
 
 ---
 
-### Step 2: Kill Worker Sessions
+### Step 2: Capture Transcripts and Kill Sessions
 
 ```bash
-echo "=== Step 2: Kill Worker Sessions ==="
+echo "=== Step 2: Capture Transcripts and Kill Sessions ==="
+
+CAPTURE_SCRIPT="${CLAUDE_PLUGIN_ROOT:-./plugins/conductor}/scripts/capture-session.sh"
+
+# Helper function to capture and kill
+capture_and_kill() {
+  local SESSION="$1"
+  local ISSUE="$2"
+
+  # Capture transcript before killing
+  if [ -x "$CAPTURE_SCRIPT" ]; then
+    "$CAPTURE_SCRIPT" "$SESSION" "$ISSUE" 2>/dev/null || echo "Warning: Could not capture $SESSION"
+  fi
+
+  # Kill session
+  tmux kill-session -t "$SESSION" 2>/dev/null && echo "Killed: $SESSION"
+}
 
 # Option A: From saved session list (if bd-swarm saved it)
 if [ -f /tmp/swarm-sessions.txt ]; then
   while read -r SESSION; do
     [[ "$SESSION" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
     if tmux has-session -t "$SESSION" 2>/dev/null; then
-      tmux kill-session -t "$SESSION"
-      echo "Killed session: $SESSION"
+      # Extract issue ID from session name (ctt-worker-ISSUEID-xxx or worker-ISSUEID)
+      ISSUE_FROM_SESSION=$(echo "$SESSION" | sed -E 's/^(ctt-)?worker-([^-]+(-[a-z0-9]+)?).*/\2/')
+      capture_and_kill "$SESSION" "$ISSUE_FROM_SESSION"
     fi
   done < /tmp/swarm-sessions.txt
   rm -f /tmp/swarm-sessions.txt
@@ -135,15 +152,25 @@ fi
 for ISSUE in $ISSUES; do
   [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
   SHORT_ID="${ISSUE##*-}"
-  tmux kill-session -t "worker-${ISSUE}" 2>/dev/null && echo "Killed: worker-${ISSUE}" || true
-  tmux kill-session -t "worker-${SHORT_ID}" 2>/dev/null && echo "Killed: worker-${SHORT_ID}" || true
-  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -E "ctt-worker-${SHORT_ID}-" | while read -r S; do
-    tmux kill-session -t "$S" 2>/dev/null && echo "Killed: $S"
+
+  # Try worker-ISSUE format
+  if tmux has-session -t "worker-${ISSUE}" 2>/dev/null; then
+    capture_and_kill "worker-${ISSUE}" "$ISSUE"
+  fi
+
+  # Try ctt-worker-* format
+  tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -E "ctt-worker.*${SHORT_ID}" | while read -r S; do
+    capture_and_kill "$S" "$ISSUE"
   done || true
 done
+
+echo "Transcripts saved to .beads/transcripts/"
 ```
 
-**Important:** Sessions MUST be killed before removing worktrees to release file locks.
+**Important:**
+- Transcripts are captured BEFORE killing sessions to preserve context
+- Sessions MUST be killed before removing worktrees to release file locks
+- Transcripts can be analyzed later with `/conductor:analyze-transcripts`
 
 ---
 

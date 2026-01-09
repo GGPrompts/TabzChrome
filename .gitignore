@@ -50,3 +50,6 @@ backend/.settings.json
 
 # MCP config (contains user's tool preferences)
 mcp-config.json
+
+# Session transcripts (local analysis only)
+.beads/transcripts/
