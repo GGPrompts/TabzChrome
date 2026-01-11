@@ -11,6 +11,31 @@ const { createModuleLogger } = require('../modules/logger');
 const log = createModuleLogger('FileTree');
 
 /**
+ * Paths that should never be traversed - virtual filesystems that can cause
+ * infinite recursion, disappearing files, or heap exhaustion
+ */
+const SKIP_PATHS = new Set([
+  '/proc',
+  '/sys',
+  '/dev',
+  '/run',
+  '/snap'
+]);
+
+/**
+ * Check if a path should be skipped entirely
+ */
+function shouldSkipPath(filePath) {
+  // Check if path starts with any skip path
+  for (const skipPath of SKIP_PATHS) {
+    if (filePath === skipPath || filePath.startsWith(skipPath + '/')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Check if a file/folder should always be visible even when showHidden=false
  * These are AI-relevant files that developers need to monitor
  */
@@ -37,8 +62,38 @@ function shouldAlwaysShow(name) {
 }
 
 // Helper function to build file tree recursively
-async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = false) {
+// visitedPaths tracks real paths to detect symlink cycles
+async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = false, visitedPaths = new Set()) {
   try {
+    // Skip dangerous virtual filesystems
+    if (shouldSkipPath(dirPath)) {
+      return null;
+    }
+
+    // Use lstat first to check if it's a symlink before following it
+    const lstats = await fs.lstat(dirPath);
+
+    // For symlinks, resolve the real path and check for cycles
+    if (lstats.isSymbolicLink()) {
+      try {
+        const realPath = await fs.realpath(dirPath);
+
+        // Skip if real path is in dangerous areas
+        if (shouldSkipPath(realPath)) {
+          return null;
+        }
+
+        // Skip if we've already visited this real path (cycle detection)
+        if (visitedPaths.has(realPath)) {
+          log.debug(` Skipping symlink cycle: ${dirPath} -> ${realPath}`);
+          return null;
+        }
+      } catch (err) {
+        // Broken symlink - skip
+        return null;
+      }
+    }
+
     const stats = await fs.stat(dirPath);
     const name = path.basename(dirPath);
 
@@ -63,6 +118,17 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
         children: [],
         modified: stats.mtime.toISOString()
       };
+    }
+
+    // Track this directory's real path to prevent cycles
+    let realDirPath;
+    try {
+      realDirPath = await fs.realpath(dirPath);
+      visitedPaths.add(realDirPath);
+    } catch {
+      // If we can't get real path, use the original
+      realDirPath = dirPath;
+      visitedPaths.add(dirPath);
     }
 
     // It's a directory within depth limit - recurse into it
@@ -105,12 +171,28 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
     // Process entries
     for (const entry of sortedEntries) {
       const childPath = path.join(dirPath, entry.name);
+
+      // Skip dangerous paths early
+      if (shouldSkipPath(childPath)) {
+        continue;
+      }
+
       try {
-        // Check if this is a symlink and if it's broken
+        // Check if this is a symlink and if it's broken or dangerous
         if (entry.isSymbolicLink()) {
           try {
-            // Try to stat the symlink target - this will fail if broken
-            await fs.stat(childPath);
+            // Get real path to check for cycles and dangerous targets
+            const realPath = await fs.realpath(childPath);
+
+            // Skip symlinks pointing to dangerous filesystems
+            if (shouldSkipPath(realPath)) {
+              continue;
+            }
+
+            // Skip if we've already visited (cycle)
+            if (visitedPaths.has(realPath)) {
+              continue;
+            }
           } catch (symlinkErr) {
             // Broken symlink - skip it silently
             if (currentDepth <= 2) {
@@ -120,7 +202,7 @@ async function buildFileTree(dirPath, depth = 5, currentDepth = 0, showHidden = 
           }
         }
 
-        const child = await buildFileTree(childPath, depth, currentDepth + 1, showHidden);
+        const child = await buildFileTree(childPath, depth, currentDepth + 1, showHidden, visitedPaths);
         if (child) children.push(child);
       } catch (err) {
         // Silently skip common errors:
