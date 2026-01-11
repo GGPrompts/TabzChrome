@@ -4,6 +4,13 @@ import { FileFilter, ClaudeFileType } from '../utils/claudeFileTypes'
 
 const API_BASE = "http://localhost:8129"
 
+// Check if a path is a home directory (not a specific project)
+const isHomePath = (path: string | null | undefined): boolean => {
+  if (!path) return false
+  if (path === "~") return true
+  return /^\/(?:home|Users)\/[^/]+\/?$/.test(path)
+}
+
 // Types
 interface FileNode {
   name: string
@@ -165,7 +172,7 @@ export function FilesProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem('tabz-files-tree-path')
     // Don't restore stale home directory paths - they cause race conditions
     // Only restore actual project paths
-    if (stored === '~' || stored === '/home/matt' || stored?.endsWith('/matt')) {
+    if (isHomePath(stored)) {
       localStorage.removeItem('tabz-files-tree-path')
       return null
     }

@@ -77,6 +77,15 @@ interface FileTreeProps {
 
 const API_BASE = "http://localhost:8129"
 
+// Check if a path is a home directory (not a specific project)
+// Matches: ~, /home/username, /Users/username
+const isHomePath = (path: string | null | undefined): boolean => {
+  if (!path) return false
+  if (path === "~") return true
+  // Match /home/username or /Users/username (but not subdirectories)
+  return /^\/(?:home|Users)\/[^/]+\/?$/.test(path)
+}
+
 export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenProp = false, maxDepth = 5, waitForLoad = false, onQuickOpen }: FileTreeProps) {
   // Use context for caching file tree across tab switches
   const { fileTree, setFileTree, fileTreePath, setFileTreePath, pendingTreeNavigation, clearPendingNavigation, toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
@@ -112,8 +121,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
       return // Still waiting for working directory to load
     }
 
-    const isBasePathHome = basePath === "~" || basePath === "/home/matt"
-    const wasInitializedWithHome = initializedWithPath === "~" || initializedWithPath === "/home/matt"
+    const isBasePathHome = isHomePath(basePath)
+    const wasInitializedWithHome = isHomePath(initializedWithPath)
 
     // Case 1: First initialization
     if (initializedWithPath === null) {
@@ -148,7 +157,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
 
     // Don't use cache if target is home directory - always fetch fresh
     // This prevents stale ~ cache from blocking real project loads
-    const isTargetHome = targetPath === "~" || targetPath === "/home/matt"
+    const isTargetHome = isHomePath(targetPath)
 
     // Use cached tree if available and path matches what we want
     if (!forceRefresh && !isTargetHome && fileTree && fileTree.path) {
@@ -226,7 +235,7 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
     // Don't fetch if currentPath is still "~" but basePath has a real project path
     // This prevents a race condition where fetch runs before currentPath syncs
-    if (currentPath === "~" && basePath !== "~" && basePath !== "/home/matt") {
+    if (currentPath === "~" && !isHomePath(basePath)) {
       return
     }
     fetchFileTree()

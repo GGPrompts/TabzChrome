@@ -4,9 +4,14 @@
 
 const terminalRegistry = require('./modules/terminal-registry');
 const unifiedSpawn = require('./modules/unified-spawn');
+const os = require('os');
+
+// Use home directory as default working dir for tests
+const TEST_WORKING_DIR = process.env.TEST_WORKING_DIR || os.homedir();
 
 async function testSpawn() {
   console.log('=== Tabz Spawn Test ===');
+  console.log(`Using working directory: ${TEST_WORKING_DIR}`);
 
   try {
     // Test 1: Spawn a bash terminal (PTY)
@@ -14,7 +19,7 @@ async function testSpawn() {
     const bashResult = await unifiedSpawn.spawn({
       terminalType: 'bash',
       platform: 'local',
-      workingDir: '/home/matt/workspace/opustrator'
+      workingDir: TEST_WORKING_DIR
     });
 
     if (bashResult.success) {
@@ -33,7 +38,7 @@ async function testSpawn() {
     const claudeResult = await unifiedSpawn.spawn({
       terminalType: 'claude-code',
       platform: 'local', // All terminals run locally now
-      workingDir: '/home/matt/workspace/opustrator'
+      workingDir: TEST_WORKING_DIR
     });
 
     if (claudeResult.success) {
