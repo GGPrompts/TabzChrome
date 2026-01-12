@@ -107,7 +107,15 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
   const [folderFilter, setFolderFilter] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPath, setCurrentPath] = useState(basePath)
-  const [showHidden, setShowHidden] = useState(showHiddenProp)
+  // Persist showHidden to localStorage so it survives tab switches and remounts
+  const [showHidden, setShowHiddenState] = useState(() => {
+    const stored = localStorage.getItem('tabz-files-show-hidden')
+    return stored === 'true' || showHiddenProp
+  })
+  const setShowHidden = (value: boolean) => {
+    setShowHiddenState(value)
+    localStorage.setItem('tabz-files-show-hidden', value.toString())
+  }
   // Track which basePath we initialized with (not just boolean)
   const [initializedWithPath, setInitializedWithPath] = useState<string | null>(null)
   // Git status for files in the tree

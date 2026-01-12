@@ -37,12 +37,13 @@ export function MarkdownViewer({ file, viewerSettings, onOpenFile }: MarkdownVie
       }}
     >
       {/* Frontmatter header for skill/agent files */}
-      {frontmatter && (frontmatter.name || frontmatter.description) && (
+      {frontmatter && Object.keys(frontmatter).length > 0 && (
         <div className="mb-6 pb-4 border-b border-border">
           {frontmatter.name && (
             <h1 className="text-2xl font-bold text-primary mb-2 flex items-center gap-2">
               {file.name.toLowerCase().includes('skill') && <span>⚡</span>}
               {file.name.toLowerCase().includes('agent') && <span>🤖</span>}
+              {file.name.toLowerCase().includes('command') && <span>⚡</span>}
               {frontmatter.name}
             </h1>
           )}
@@ -51,11 +52,23 @@ export function MarkdownViewer({ file, viewerSettings, onOpenFile }: MarkdownVie
               {frontmatter.description}
             </p>
           )}
-          {frontmatter.license && (
-            <p className="text-xs text-muted-foreground/60 mt-2">
-              📜 {frontmatter.license}
-            </p>
-          )}
+          {/* Show all other frontmatter fields */}
+          {(() => {
+            const otherFields = Object.entries(frontmatter).filter(
+              ([key]) => !['name', 'description'].includes(key)
+            )
+            if (otherFields.length === 0) return null
+            return (
+              <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                {otherFields.map(([key, value]) => (
+                  <React.Fragment key={key}>
+                    <span className="text-muted-foreground/70 font-medium">{key}:</span>
+                    <span className="text-foreground/90 font-mono text-xs">{value}</span>
+                  </React.Fragment>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
       <ReactMarkdown
