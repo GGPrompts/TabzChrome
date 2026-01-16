@@ -168,10 +168,10 @@ This project has local skills and agents in `.claude/`:
 
 | Location | Purpose |
 |----------|---------|
-| `.claude/skills/xterm-js/` | Terminal rendering, resize handling |
-| `.claude/skills/spawning-terminals/` | Spawn workers via TabzChrome API |
-| `.claude/skills/taking-screenshots/` | Screenshots via tabz MCP |
-| `.claude/skills/engineering-prompts/` | Craft context-rich prompts |
+| `.claude/skills/tabz-browser/` | Screenshots, forms, network debugging, responsive testing, TTS |
+| `.claude/skills/tabz-terminals/` | Spawn workers via TabzChrome API, worktree setup |
+| `.claude/skills/tabz-development/` | Working on TabzChrome codebase (Terminal.tsx, xterm.js) |
+| `.claude/skills/claude-code-setup/` | Diagnose/manage Claude Code CLI config, MCP, plugins |
 | `.claude/agents/tabz-expert.md` | Browser automation specialist (70 MCP tools) |
 
 ### MCP Tools (Project-Scoped)

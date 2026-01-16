@@ -38,7 +38,7 @@ You are a [role] working on [context].
 
 [Natural language guidance with skill triggers woven in]
 
-When you're done, run `/conductor:bdw-worker-done ISSUE-ID`
+When you're done, close the issue: `bd close ISSUE-ID --reason="done"`
 ```
 
 ## Skill Activation: Natural Triggers
@@ -177,5 +177,5 @@ Store the preference in localStorage for persistence.
 If you need to explore how theming works across the app, use subagents
 in parallel to find all theme-related files first.
 
-When you're done, run `/conductor:bdw-worker-done TabzBeads-123`
+When you're done, close the issue: `bd close TabzBeads-123 --reason="done"`
 ```

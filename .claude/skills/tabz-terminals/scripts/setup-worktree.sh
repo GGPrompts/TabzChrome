@@ -80,12 +80,11 @@ if [ -f "$WORKTREE/package.json" ]; then
   fi
 fi
 
-# Copy worker-specific PRIME.md to worktree
-WORKER_PRIME="$PROJECT_DIR/plugins/conductor/references/WORKER_PRIME.md"
-if [ -f "$WORKER_PRIME" ]; then
+# Copy default beads PRIME.md to worktree (if bd is available)
+if command -v bd &> /dev/null; then
   mkdir -p "$WORKTREE/.beads"
-  cp "$WORKER_PRIME" "$WORKTREE/.beads/PRIME.md"
-  echo "Worker PRIME.md installed"
+  bd prime --export > "$WORKTREE/.beads/PRIME.md" 2>/dev/null || true
+  echo "Default beads PRIME.md installed"
 fi
 
 echo "READY: $WORKTREE"
