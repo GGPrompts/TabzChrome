@@ -1,6 +1,6 @@
 ---
-name: terminal-tools
-description: "Reference knowledge for tmux mastery and TUI tool control. Use when working with tmux sessions, sending keys, capturing output, or spawning TUI tools."
+name: using-terminal-tools
+description: "Provides reference knowledge for tmux mastery and TUI tool control. Use when the user asks to 'send keys to tmux', 'capture terminal output', 'control htop/btop/lazygit', 'navigate a TUI', or needs tmux send-keys patterns and TUI keybindings."
 ---
 
 # Terminal Tools Skill

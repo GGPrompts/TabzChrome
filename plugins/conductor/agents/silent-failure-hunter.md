@@ -1,6 +1,6 @@
 ---
 name: silent-failure-hunter
-description: "Specialized reviewer for error handling. Finds empty catch blocks, swallowed errors, silent fallbacks, missing logging. Use for thorough reviews or standalone audit."
+description: "Audit code for silent failure patterns. Use when the user asks to 'find swallowed errors', 'audit error handling', 'check for empty catch blocks', 'review error logging', or needs a thorough review of how errors are handled in the codebase."
 model: sonnet
 ---
 

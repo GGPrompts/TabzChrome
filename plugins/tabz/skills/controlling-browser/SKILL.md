@@ -1,6 +1,6 @@
 ---
-name: browser-control
-description: "Control browser via tabz MCP tools - click, fill, navigate"
+name: controlling-browser
+description: "Clicks buttons, fills forms, and navigates web pages via tabz MCP tools. Use when the user asks to 'click a button', 'fill out a form', 'navigate to a page', 'interact with a website', or needs to automate browser interactions."
 ---
 
 # Browser Control

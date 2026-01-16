@@ -6,6 +6,23 @@ description: "Complete worker task: verify build, run tests, commit, and close i
 
 Orchestrates the full task completion pipeline by composing atomic commands.
 
+## Before Starting: Create Todo List
+
+**Use TodoWrite to track pipeline progress.** This ensures no steps are missed:
+
+```
+1. Detect change types
+2. Verify build (if code changes)
+3. Run tests (if code changes)
+4. Commit changes
+5. Create follow-ups
+6. Update docs
+7. Close issue
+8. Notify conductor
+```
+
+Mark each step as `in_progress` when starting and `completed` when done.
+
 ## Usage
 
 ```bash

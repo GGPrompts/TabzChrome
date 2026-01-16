@@ -1,6 +1,6 @@
 ---
-name: prompt-engineer
-description: "Craft monster prompts for beads issues. First explores codebase with parallel haiku agents to gather context (files, patterns, dependencies), then crafts detailed prompts. Use before spawning workers."
+name: engineering-prompts
+description: "Crafts detailed, context-rich prompts for beads issues. Explores codebase with parallel haiku agents to gather context (files, patterns, dependencies), then synthesizes findings into prompts. Use before spawning workers."
 model: opus
 allowed-tools:
   - Read

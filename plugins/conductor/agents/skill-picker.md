@@ -1,6 +1,6 @@
 ---
 name: skill-picker
-description: "Search and install skills from skillsmp.com (28k+ skills). Invoked via Task tool. Use when spawning workers that need specific capabilities, or when user asks to find/install skills."
+description: "Search and install skills from skillsmp.com marketplace. Use when the user asks to 'find a skill for X', 'install a skill', 'search skillsmp', or when spawning workers that need specific capabilities not already available."
 model: haiku
 tools: Bash, Read, Write, WebFetch
 ---

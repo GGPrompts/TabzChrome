@@ -1,6 +1,6 @@
 ---
-name: screenshot
-description: "Take browser screenshots via tabz_screenshot MCP tool"
+name: taking-screenshots
+description: "Captures browser screenshots via tabz_screenshot MCP tool. Use when the user asks to 'take a screenshot', 'capture the page', 'screenshot this tab', or needs to visually verify web page content."
 ---
 
 # Screenshot

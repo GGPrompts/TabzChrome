@@ -1,6 +1,6 @@
 ---
 name: tabz-artist
-description: "Visual asset generator - DALL-E images, Sora videos, diagrams via browser automation. Use when projects need hero images, icons, product videos, or visual documentation."
+description: "Generate images via DALL-E and videos via Sora using browser automation. Use when the user asks to 'generate images for my project', 'create a hero image', 'make product screenshots', 'generate a demo video', or needs AI-generated visual assets."
 model: opus
 tools: Bash, Read, mcp:tabz:*
 ---

@@ -1,6 +1,6 @@
 ---
-name: spawn-terminal
-description: "Spawn a new TabzChrome terminal via /api/spawn"
+name: spawning-terminals
+description: "Creates new terminal tabs in TabzChrome via REST API. Use when the user asks to 'spawn a terminal', 'create a new tab', 'start a Claude worker', 'open a terminal in the sidebar', or needs to programmatically create terminal sessions."
 ---
 
 # Spawn Terminal

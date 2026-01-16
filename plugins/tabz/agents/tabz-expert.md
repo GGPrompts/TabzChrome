@@ -1,13 +1,13 @@
 ---
 name: tabz-expert
-description: "Browser automation and terminal spawning expert - 70 MCP tools for screenshots, clicks, forms, history, cookies, emulation, TTS, notifications. Use for all tabz_* MCP operations and TabzChrome API integration."
+description: "Browser automation and terminal spawning expert with 70 MCP tools. Use when the user asks to 'automate the browser', 'take screenshots', 'fill forms', 'spawn terminals', 'use TTS', or needs any tabz_* MCP tool or TabzChrome REST API integration."
 model: opus
 tools:
   - Bash
   - Read
   - mcp:tabz:*
 skills:
-  - tabz-artist
+  - generating-assets
 ---
 
 # Tabz Expert - Browser & Terminal Specialist

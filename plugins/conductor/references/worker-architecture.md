@@ -121,7 +121,7 @@ Avoid ALL CAPS and aggressive phrasing—Claude 4.x may overtrigger:
 
 ### Prompt Structure
 
-Use `/conductor:prompt-engineer` (forked context) to craft prompts. It generates:
+Use `/conductor:engineering-prompts` (forked context) to craft prompts. It generates:
 
 ```markdown
 ## Task: ISSUE-ID - Title

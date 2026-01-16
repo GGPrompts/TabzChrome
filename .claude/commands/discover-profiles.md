@@ -153,7 +153,7 @@ curl -X POST http://localhost:8129/api/browser/profiles/import \
 echo '$JSON_CONTENT' > "/mnt/c/Users/$USER/Downloads/new-profiles.json"
 ```
 
-Tell the user the profiles were created, or if using Option B: "I've saved the profiles to your Downloads folder. In TabzChrome, go to Settings (⚙️) → Profiles → Import and select `new-profiles.json`"
+Tell the user the profiles were created, or if using Option B: "I've saved the profiles to your Downloads folder. In TabzChrome, go to Settings (gear icon) → Profiles → Import and select `new-profiles.json`"
 
 ## Updating Existing Profiles
 
@@ -177,7 +177,7 @@ curl -s http://localhost:8129/api/browser/profiles | jq '.profiles[] | {name, co
 
 **Fallback** - If backend is not running, ask user to export:
 
-1. Tell user: "Click **Export** in Settings (⚙️) → Profiles tab"
+1. Tell user: "Click **Export** in Settings (gear icon) → Profiles tab"
 2. Find the downloaded file:
    ```bash
    mcp-cli call tabz/tabz_get_downloads '{"limit": 5, "state": "complete"}'

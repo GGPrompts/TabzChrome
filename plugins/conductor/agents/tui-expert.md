@@ -1,6 +1,6 @@
 ---
 name: tui-expert
-description: "Spawn, control, and interpret TUI tools via tmux. Invoked via Task tool. Use for: checking system resources (btop/htop), git status (lazygit), log analysis (lnav), documentation viewing (TFE)."
+description: "Spawn and control TUI tools via tmux. Use when the user asks to 'check system resources', 'open btop/htop', 'use lazygit', 'view logs with lnav', or needs to interact with any terminal-based UI application."
 model: opus
 tools: Bash, Read
 ---

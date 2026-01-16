@@ -1,6 +1,6 @@
 ---
-name: codex-setup
-description: "Configure Codex CLI optimally. Use when user mentions: 'set up codex', 'configure codex', 'codex config', 'codex.toml', 'codex settings', 'codex mcp', 'codex sandbox', 'codex approval', or wants help with Codex CLI configuration."
+name: configuring-codex
+description: "Configures Codex CLI optimally. Use when user mentions: 'set up codex', 'configure codex', 'codex config', 'codex.toml', 'codex settings', 'codex mcp', 'codex sandbox', 'codex approval', or wants help with Codex CLI configuration."
 ---
 
 # Codex Configuration Best Practices

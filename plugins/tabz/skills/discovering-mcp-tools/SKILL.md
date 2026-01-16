@@ -1,6 +1,6 @@
 ---
-name: mcp-discovery
-description: "Discover available tabz_* MCP tools"
+name: discovering-mcp-tools
+description: "Lists and inspects available TabzChrome MCP tools. Use when the user asks 'what tabz tools are available', 'list MCP tools', 'find browser automation tools', or needs to discover tool schemas before using them."
 ---
 
 # MCP Discovery

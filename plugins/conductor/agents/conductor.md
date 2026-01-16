@@ -1,6 +1,6 @@
 ---
 name: conductor
-description: "Orchestrate multi-session Claude workflows. Use for: spawning Claude agents in TabzChrome sidebar, killing terminals, sending prompts to other sessions via tmux, coordinating parallel work, browser automation via tabz MCP tools."
+description: "Orchestrate multi-session Claude workflows. Use when the user asks to 'spawn workers', 'coordinate parallel work', 'manage multiple Claude sessions', 'send prompts to other terminals', or needs to orchestrate complex multi-agent workflows."
 model: opus
 tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, mcp:tabz:*
 ---
@@ -180,7 +180,7 @@ Run `/conductor:worker-done ISSUE-ID`
 
 ### Prompt Crafting
 
-Use `/conductor:prompt-engineer` (forked context) to craft worker prompts:
+Use `/conductor:engineering-prompts` (forked context) to craft worker prompts:
 - Spawns haiku Explore agents per issue
 - Gathers file paths, patterns, dependencies
 - Returns ready-to-use prompts

@@ -124,10 +124,10 @@ Before sending, craft a detailed prompt following the structure in `references/w
 
 ### Step 5a: Craft Prompts
 
-**Load prompt-engineer skill** to get prompting guidelines:
+**Load engineering-prompts skill** to get prompting guidelines:
 
 ```
-Skill(skill: "conductor:prompt-engineer")
+Skill(skill: "conductor:engineering-prompts")
 ```
 
 Then **execute its workflow**:
@@ -163,7 +163,7 @@ tmux send-keys -t "$SESSION" C-m
 
 ### Prompt Structure
 
-The prompt-engineer generates prompts like:
+The engineering-prompts skill generates prompts like:
 
 | Section | Purpose |
 |---------|---------|

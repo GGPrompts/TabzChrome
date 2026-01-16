@@ -1,6 +1,6 @@
 ---
-name: claude-code-config
-description: "Guide for configuring Claude Code optimally. Use when users ask about: CLAUDE.md structure, plugin architecture, skill patterns, hooks, MCP integration, settings.json, slash commands, or Claude Code best practices."
+name: configuring-claude-code
+description: "Provides guidance for configuring Claude Code optimally. Use when users ask about: CLAUDE.md structure, plugin architecture, skill patterns, hooks, MCP integration, settings.json, slash commands, or Claude Code best practices."
 ---
 
 # Claude Code Configuration Guide

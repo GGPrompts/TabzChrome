@@ -6,6 +6,22 @@ description: "Pick the top ready beads issue and spawn a visible worker to compl
 
 Spawn a visible worker to tackle one beads issue. Unlike bd-swarm, no worktree is created since there's only one worker.
 
+## Before Starting: Create Todo List
+
+**Use TodoWrite to track workflow progress.** This ensures no steps are missed:
+
+```
+1. Select issue (bd ready or provided ID)
+2. Get issue details (bd show)
+3. Craft prompt (engineering-prompts skill)
+4. Set CONDUCTOR_SESSION
+5. Spawn worker
+6. Send prompt
+7. Monitor completion
+```
+
+Mark each step as `in_progress` when starting and `completed` when done.
+
 ## Prerequisites
 
 **First, load orchestration context** (spawn patterns, tmux commands):
@@ -28,7 +44,7 @@ Skip if already loaded or running as `--agent conductor:conductor`.
 ```
 1. Select issue       →  bd ready (pick top) or use provided ID
 2. Get issue details  →  bd show <id>
-3. Craft prompt       →  /conductor:prompt-engineer (forked context)
+3. Craft prompt       →  /conductor:engineering-prompts (forked context)
 4. Spawn worker       →  TabzChrome API (no worktree)
 5. Send prompt        →  tmux send-keys
 6. User watches       →  Worker visible in sidebar
@@ -50,10 +66,10 @@ bd show <id>
 
 ## Phase 2: Craft Prompt
 
-Use the prompt-engineer skill to craft a context-rich prompt:
+Use the engineering-prompts skill to craft a context-rich prompt:
 
 ```bash
-/conductor:prompt-engineer
+/conductor:engineering-prompts
 ```
 
 This runs in **forked context** and:

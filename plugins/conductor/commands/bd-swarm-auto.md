@@ -59,9 +59,9 @@ Skip only if already loaded this session or running as `--agent conductor:conduc
    done
    ```
 
-5. **Craft prompts via prompt-engineer:**
+5. **Craft prompts via engineering-prompts:**
    ```
-   Skill(skill: "conductor:prompt-engineer")
+   Skill(skill: "conductor:engineering-prompts")
    ```
    Then execute its workflow:
    - Spawn parallel Explore agents (haiku) per issue via Task tool

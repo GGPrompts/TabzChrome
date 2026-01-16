@@ -6,6 +6,22 @@ description: "Spawn multiple Claude workers with skill-aware prompts to tackle b
 
 Spawn multiple Claude workers to tackle beads issues in parallel.
 
+## Before Starting: Create Todo List
+
+**Use TodoWrite to track workflow progress.** This ensures no steps are missed:
+
+```
+1. Get ready issues (bd ready)
+2. Create worktrees (BEFORE spawning)
+3. Set CONDUCTOR_SESSION
+4. Spawn workers
+5. Craft and send prompts
+6. Monitor workers
+7. Run wave-done when complete
+```
+
+Mark each step as `in_progress` when starting and `completed` when done.
+
 ## Prerequisites (Execute Now)
 
 **Invoke orchestration skill** to load spawn patterns and tmux commands:
@@ -33,7 +49,7 @@ Skip only if already loaded this session or running as `--agent conductor:conduc
 2. Create worktrees      →  scripts/setup-worktree.sh (BEFORE spawning)
 3. Set CONDUCTOR_SESSION →  tmux display-message (REQUIRED for notifications)
 4. Spawn workers         →  TabzChrome /api/spawn
-5. Craft & send prompts  →  prompt-engineer skill + tmux send-keys
+5. Craft & send prompts  →  engineering-prompts skill + tmux send-keys
 6. Monitor               →  scripts/monitor-workers.sh
 7. Merge & review        →  /conductor:wave-done
 ```
@@ -49,15 +65,15 @@ Skip only if already loaded this session or running as `--agent conductor:conduc
 
 ## Prompt Crafting with prompt-engineer
 
-Invoke the prompt-engineer skill to craft context-rich prompts:
+Invoke the engineering-prompts skill to craft context-rich prompts:
 
 ```
-Skill(skill: "conductor:prompt-engineer")
+Skill(skill: "conductor:engineering-prompts")
 ```
 
 Then follow its workflow for the issues you're processing.
 
-The prompt-engineer workflow:
+The engineering-prompts workflow:
 
 1. **Match skills** for each issue using `scripts/match-skills.sh`
 2. **Spawn parallel Explore agents** (haiku) per issue via Task tool
@@ -369,7 +385,7 @@ Workers share the same plugin context as the conductor, so all skills are availa
 
 ## Prompt Structure
 
-The prompt-engineer skill generates prompts following this structure:
+The engineering-prompts skill generates prompts following this structure:
 
 ```markdown
 ## Task: ISSUE-ID - Title
