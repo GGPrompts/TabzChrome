@@ -64,8 +64,8 @@ Self-service command for workers:
 ## Missing from PRIME.md (Should They Be Added?)
 
 ### Commands Referenced in PRIME.md Prerequisites
-- ✅ `/conductor:prompt-engineer` - Listed in prerequisites but doesn't exist as a command file
-  - **Action:** This might be a skill or subagent reference, not a command
+- ✅ `/conductor:engineering-prompts` - Listed in prerequisites, now exists as a skill
+  - **Action:** Reference updated to use new skill name
 
 ### Commands Not in PRIME.md but Important
 - `/conductor:wave-done` - Critical for parallel workflows (bd-swarm completion)
@@ -91,8 +91,8 @@ Self-service command for workers:
 - `/conductor:wave-done` - Merge branches, unified review, cleanup, push
 ```
 
-### 2. Clarify prompt-engineer prerequisite
-Is this a skill, subagent, or missing command file?
+### 2. ~~Clarify prompt-engineer prerequisite~~ ✅ DONE
+Renamed to engineering-prompts skill.
 
 ### 3. Consider adding codex-review as alternative
 ```markdown

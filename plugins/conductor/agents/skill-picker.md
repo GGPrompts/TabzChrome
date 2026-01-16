@@ -172,7 +172,7 @@ cat .claude/skills/.safelist 2>/dev/null || echo "(no safelist)"
 
 # Example .safelist content:
 # xterm-js
-# tabz-mcp
+# automating-browser
 # mcp-builder
 ```
 

@@ -324,7 +324,7 @@ mcp-cli call tabz/tabz_speak '{"text": "Hello world", "voice": "Google US Englis
 For generating images via DALL-E or videos via Sora, use the **TabzArtist skill**:
 
 ```
-/tabz-artist Generate assets for a fitness app landing page
+/tabz:generating-assets Generate assets for a fitness app landing page
 ```
 
 The skill provides complete workflows for:

@@ -63,7 +63,7 @@ Skip only if already loaded this session or running as `--agent conductor:conduc
 
 ---
 
-## Prompt Crafting with prompt-engineer
+## Prompt Crafting with engineering-prompts
 
 Invoke the engineering-prompts skill to craft context-rich prompts:
 

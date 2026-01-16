@@ -153,7 +153,7 @@ if ! tmux has-session -t "$SESSION" 2>/dev/null; then
   exit 1
 fi
 
-# Send the prompt crafted by prompt-engineer
+# Send the prompt crafted by engineering-prompts
 sleep 4
 printf '%s' "$PROMPT" | tmux load-buffer -
 tmux paste-buffer -t "$SESSION"

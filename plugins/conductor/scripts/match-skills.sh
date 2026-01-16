@@ -96,13 +96,13 @@ SKILL_MAPPINGS=(
   "backend|api|server|endpoint|express|websocket.*server|backend-development|backend development, REST API, Node.js, Python FastAPI|backend APIs and server patterns"
 
   # Browser automation / MCP
-  "browser|screenshot|click|mcp|tabz_|automation|tabz-mcp|browser automation, MCP tools, screenshots, DOM interaction|browser automation via MCP"
+  "browser|screenshot|click|mcp|tabz_|automation|automating-browser|browser automation, MCP tools, screenshots, DOM interaction|browser automation via MCP"
 
   # Visual QA / UI review
   "visual|qa|regression|console.*error|ui.*test|screenshot.*test|visual-qa|visual QA, UI testing, screenshot comparison, console error detection|visual QA and UI testing"
 
   # Visual asset generation
-  "hero.*image|team.*photo|icon.*generat|poster|dall-e|sora|video.*generat|tabz-artist|DALL-E image generation, Sora video, visual assets, poster design|visual asset generation"
+  "hero.*image|team.*photo|icon.*generat|poster|dall-e|sora|video.*generat|generating-assets|DALL-E image generation, Sora video, visual assets, poster design|visual asset generation"
 
   # Authentication
   "auth|login|oauth|session|token|jwt|backend-development|Better Auth, authentication, OAuth, session management, JWT tokens|authentication patterns"
@@ -377,7 +377,7 @@ get_issue_skills() {
         # Terminal
         xterm-js|xterm|tabz-guide|terminal) echo "xterm.js terminal, resize handling, FitAddon" ;;
         # Browser automation
-        tabz-mcp|mcp|browser) echo "browser automation, MCP tools, screenshots" ;;
+        automating-browser|mcp|browser) echo "browser automation, MCP tools, screenshots" ;;
         # Orchestration
         conductor*|orchestration) echo "multi-session orchestration, worker coordination" ;;
         # Code review
