@@ -1,5 +1,5 @@
 ---
-name: Claude Code Setup
+name: cc-setup
 description: This skill should be used when the user asks to "diagnose Claude Code", "fix MCP errors", "manage plugins", "configure MCP servers", "check /doctor errors", "debug plugin issues", "add MCP server", "remove plugin", "list plugins", "list MCP servers", "fix schema errors", or needs help with Claude Code CLI configuration and troubleshooting.
 version: 1.0.0
 ---
