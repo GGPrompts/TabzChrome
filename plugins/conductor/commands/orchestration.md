@@ -113,22 +113,54 @@ Run `/conductor:worker-done ISSUE-ID`
 
 ---
 
-## Important: Workers Use `bd` CLI, Not MCP
+## Workers: `bd` CLI vs MCP
 
-Workers should use the `bd` command-line tool:
+Both work, but `bd` CLI is recommended for workers:
 
 ```bash
-# CORRECT - use bd CLI
+# Preferred - simpler, no MCP server dependency
 bd show TabzChrome-abc
 bd close TabzChrome-abc --reason "done"
 bd update TabzChrome-abc --status in_progress
 
-# WRONG - don't use beads MCP
-mcp-cli call beads/show ...   # Workers can't use MCP reliably
-mcp-cli call beads/admin ...  # This command doesn't exist
+# Also works (if worktree created via bd worktree create)
+mcp-cli call beads/show '{"id": "TabzChrome-abc"}'
 ```
 
-The `bd` CLI is always available and doesn't require MCP server connection.
+**Why prefer `bd` CLI:**
+- Always available, no MCP server connection needed
+- Simpler syntax, less verbose
+- Works even if MCP has issues
+
+**Note:** MCP works in worktrees when created via `bd worktree create` (sets up beads redirect).
+
+---
+
+## bd CLI Reference
+
+Essential commands for conductor workflows:
+
+| Command | Purpose |
+|---------|---------|
+| `bd ready` | Show issues ready to work (no blockers) |
+| `bd show <id>` | View issue details |
+| `bd update <id> --status in_progress` | Claim work |
+| `bd close <id> --reason "done"` | Complete work |
+| `bd worktree create <name>` | Create worktree with beads redirect |
+| `bd prime` | Output AI workflow context (run after session start) |
+| `bd sync` | Sync with git remote |
+| `bd stats` | Project statistics |
+
+### Worktree Commands
+
+```bash
+bd worktree create feature-auth           # Create worktree with beads redirect
+bd worktree create bugfix --branch fix-1  # Create with specific branch name
+bd worktree list                          # List all worktrees
+bd worktree remove feature-auth           # Remove worktree (with safety checks)
+```
+
+The `setup-worktree.sh` script wraps `bd worktree create` with npm install and build.
 
 ---
 

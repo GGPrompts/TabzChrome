@@ -31,8 +31,11 @@ WORKTREE_LOCK="/tmp/git-worktree-$(basename "$PROJECT_DIR").lock"
     exit 0
   fi
 
-  git -C "$PROJECT_DIR" worktree add "$WORKTREE" -b "feature/${ISSUE}" 2>/dev/null || \
-  git -C "$PROJECT_DIR" worktree add "$WORKTREE" HEAD
+  # Use bd worktree create - handles beads redirect automatically
+  cd "$PROJECT_DIR"
+  bd worktree create "$WORKTREE" --branch "feature/${ISSUE}" 2>/dev/null || \
+  bd worktree create "$WORKTREE" 2>/dev/null || \
+  git worktree add "$WORKTREE" HEAD  # Fallback if bd fails
 ) 200>"$WORKTREE_LOCK"
 
 # Install deps based on lockfile type (outside lock - can run in parallel)
