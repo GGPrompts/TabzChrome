@@ -56,7 +56,11 @@ curl -X POST http://localhost:8129/api/browser/profiles/import \
   "workingDir": "",
   "fontSize": 16,
   "fontFamily": "JetBrains Mono, monospace",
-  "themeName": "high-contrast"
+  "themeName": "high-contrast",
+  "reference": "~/docs/my-tool-guide.md",
+  "backgroundMedia": "~/Videos/ambient.mp4",
+  "backgroundMediaType": "video",
+  "backgroundMediaOpacity": 30
 }
 ```
 
@@ -64,12 +68,40 @@ curl -X POST http://localhost:8129/api/browser/profiles/import \
 |-------|----------|-------------|
 | `id` | Auto | Unique ID (generated if not provided) |
 | `name` | Yes | Display name |
-| `category` | No | Grouping category |
+| `category` | No | Grouping category (e.g., "Claude Code", "TUI Tools") |
 | `command` | No | Command to run (empty = bash) |
 | `workingDir` | No | Starting directory (empty = inherit from header) |
 | `fontSize` | No | Font size (default: 16) |
-| `fontFamily` | No | Font (default: JetBrains Mono) |
+| `fontFamily` | No | Font (default: monospace) |
 | `themeName` | No | Theme: high-contrast, dracula, ocean, neon, amber, matrix |
+| `reference` | No | Reference URL or file path (shows 📎 paperclip on tab) |
+| `pinnedToNewTab` | No | Show on New Tab page (up to 6 pinned profiles) |
+| `useDefaultTheme` | No | Inherit theme settings from default profile |
+
+### Background Media Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `backgroundMedia` | No | Path to image/video file (e.g., ~/Pictures/space.mp4) |
+| `backgroundMediaType` | No | Type: "none", "image", or "video" |
+| `backgroundMediaOpacity` | No | 0-100, controls media visibility (default: 50) |
+
+### Theme Customization Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `backgroundGradient` | No | Override gradient (undefined = use theme default) |
+| `panelColor` | No | Base panel color shown through gradient (default: #000000) |
+| `transparency` | No | Gradient opacity 0-100 (default: 100) |
+
+### Audio Override Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `audioOverrides.mode` | No | "default" (follow global), "enabled", or "disabled" |
+| `audioOverrides.voice` | No | Override TTS voice for this profile |
+| `audioOverrides.rate` | No | Override speech rate (e.g., "+30%") |
+| `audioOverrides.pitch` | No | Override pitch (e.g., "+20Hz") |
 
 ## Instructions
 
