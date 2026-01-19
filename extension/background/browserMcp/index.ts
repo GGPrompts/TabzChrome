@@ -14,6 +14,7 @@ export {
 // Profiles and settings
 export {
   handleBrowserGetProfiles,
+  handleBrowserGetCategories,
   handleBrowserGetSettings,
   handleBrowserCreateProfile,
   handleBrowserUpdateProfile,

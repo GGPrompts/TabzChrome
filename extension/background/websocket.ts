@@ -27,6 +27,7 @@ import {
   handleBrowserGetActiveTab,
   handleBrowserOpenUrl,
   handleBrowserGetProfiles,
+  handleBrowserGetCategories,
   handleBrowserGetSettings,
   handleBrowserCreateProfile,
   handleBrowserUpdateProfile,
@@ -532,8 +533,14 @@ function routeWebSocketMessage(message: any): void {
   }
 
   if (message.type === 'browser-get-profiles') {
-    console.log('Browser MCP: get-profiles request', message.requestId)
+    console.log('Browser MCP: get-profiles request', message.requestId, message.categories ? `categories=${message.categories.join(',')}` : '')
     handleBrowserGetProfiles(message)
+    return
+  }
+
+  if (message.type === 'browser-get-categories') {
+    console.log('Browser MCP: get-categories request', message.requestId)
+    handleBrowserGetCategories(message)
     return
   }
 

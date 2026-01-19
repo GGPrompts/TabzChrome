@@ -19,20 +19,38 @@ function generateProfileId(name: string): string {
 /**
  * Get all profiles from Chrome storage
  * Allows Claude to see available terminal profiles for spawning
+ * Optional: categories filter to only return profiles in specified categories
  */
-export async function handleBrowserGetProfiles(message: { requestId: string }): Promise<void> {
+export async function handleBrowserGetProfiles(message: {
+  requestId: string
+  categories?: string[]
+}): Promise<void> {
   try {
     const result = await chrome.storage.local.get(['profiles', 'defaultProfile', 'globalWorkingDir'])
     // Return full profile data - don't strip fields
-    const profiles = (result.profiles || []) as Array<Record<string, unknown>>
+    let profiles = (result.profiles || []) as Array<Record<string, unknown>>
     const defaultProfileId = result.defaultProfile as string | undefined
     const globalWorkingDir = (result.globalWorkingDir as string) || '~'
+
+    // Track total before filtering
+    const total = profiles.length
+
+    // Filter by category if specified
+    if (message.categories && message.categories.length > 0) {
+      const categorySet = new Set(message.categories.map(c => c.toLowerCase()))
+      profiles = profiles.filter(p => {
+        const profileCategory = (p.category as string)?.toLowerCase()
+        return profileCategory && categorySet.has(profileCategory)
+      })
+    }
 
     sendToWebSocket({
       type: 'browser-profiles-result',
       requestId: message.requestId,
       success: true,
       profiles,  // Pass through all profile fields
+      total,  // Total profiles in system (before filter)
+      filtered: profiles.length,  // Profiles returned after filter
       defaultProfileId,
       globalWorkingDir
     })
@@ -42,6 +60,49 @@ export async function handleBrowserGetProfiles(message: { requestId: string }): 
       requestId: message.requestId,
       success: false,
       profiles: [],
+      error: (err as Error).message
+    })
+  }
+}
+
+/**
+ * Get all unique category names from profiles
+ * Returns sorted list of categories for use in filtering
+ */
+export async function handleBrowserGetCategories(message: { requestId: string }): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get(['profiles'])
+    const profiles = (result.profiles || []) as Array<{ category?: string }>
+
+    // Extract unique categories (case-preserving, but dedupe case-insensitively)
+    const categoryMap = new Map<string, string>()  // lowercase -> original
+    for (const profile of profiles) {
+      if (profile.category) {
+        const lower = profile.category.toLowerCase()
+        if (!categoryMap.has(lower)) {
+          categoryMap.set(lower, profile.category)
+        }
+      }
+    }
+
+    // Sort alphabetically
+    const categories = Array.from(categoryMap.values()).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    )
+
+    sendToWebSocket({
+      type: 'browser-categories-result',
+      requestId: message.requestId,
+      success: true,
+      categories,
+      total: profiles.length
+    })
+  } catch (err) {
+    sendToWebSocket({
+      type: 'browser-categories-result',
+      requestId: message.requestId,
+      success: false,
+      categories: [],
       error: (err as Error).message
     })
   }

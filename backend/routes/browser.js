@@ -454,8 +454,16 @@ router.get('/settings', async (req, res) => {
 });
 
 // GET /api/browser/profiles - Get all terminal profiles from Chrome storage
+// Optional query params:
+//   category: filter by category name (can be repeated for multiple categories)
 router.get('/profiles', async (req, res) => {
-  log.debug('GET /profiles');
+  // Parse category filter - can be single string or array
+  const category = req.query.category;
+  const categories = category
+    ? (Array.isArray(category) ? category : [category])
+    : undefined;
+
+  log.debug('GET /profiles', { categories });
 
   const broadcast = req.app.get('broadcast');
   if (!broadcast) {
@@ -466,11 +474,32 @@ router.get('/profiles', async (req, res) => {
   }
 
   try {
-    const result = await makeBrowserRequest(broadcast, 'browser-get-profiles', {});
+    const result = await makeBrowserRequest(broadcast, 'browser-get-profiles', { categories });
     res.json(result);
   } catch (error) {
     log.error('get-profiles error:', error);
     res.json({ success: false, profiles: [], error: error.message });
+  }
+});
+
+// GET /api/browser/categories - Get all unique category names from profiles
+router.get('/categories', async (req, res) => {
+  log.debug('GET /categories');
+
+  const broadcast = req.app.get('broadcast');
+  if (!broadcast) {
+    return res.status(500).json({
+      success: false,
+      error: 'WebSocket broadcast not available'
+    });
+  }
+
+  try {
+    const result = await makeBrowserRequest(broadcast, 'browser-get-categories', {});
+    res.json(result);
+  } catch (error) {
+    log.error('get-categories error:', error);
+    res.json({ success: false, categories: [], error: error.message });
   }
 });
 
