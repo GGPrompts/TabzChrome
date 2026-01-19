@@ -58,7 +58,9 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     presets: [
       { method: 'GET', url: '/api/agents', name: 'List All Agents' },
       { method: 'GET', url: '/api/agents/:id', name: 'Get Agent by ID' },
-      { method: 'POST', url: '/api/spawn', name: 'Spawn Terminal', body: { name: 'Test Terminal', command: 'bash', workingDir: '~' } },
+      { method: 'POST', url: '/api/agents', name: 'Spawn Agent (Profile)', body: { profileId: 'claude-worker', workingDir: '~/projects' } },
+      { method: 'POST', url: '/api/agents', name: 'Spawn Agent (Type)', body: { terminalType: 'bash', name: 'Test', workingDir: '/tmp' } },
+      { method: 'POST', url: '/api/spawn', name: 'Spawn Terminal (Legacy)', body: { name: 'Test Terminal', command: 'bash', workingDir: '~' } },
       { method: 'POST', url: '/api/agents/:id/command', name: 'Send Command', body: { command: 'echo hello' } },
       { method: 'POST', url: '/api/agents/:id/resize', name: 'Resize Terminal', body: { cols: 120, rows: 30 } },
       { method: 'POST', url: '/api/agents/:id/detach', name: 'Detach Agent' },
@@ -107,7 +109,8 @@ const PRESET_CATEGORIES: PresetCategory[] = [
   {
     name: 'Configuration',
     presets: [
-      { method: 'GET', url: '/api/browser/profiles', name: 'Get Profiles' },
+      { method: 'GET', url: '/api/browser/profiles', name: 'Get All Profiles' },
+      { method: 'GET', url: '/api/browser/profiles?category=AI%20Assistants', name: 'Get AI Profiles' },
       { method: 'POST', url: '/api/browser/profiles', name: 'Create Profile', body: { profile: { name: 'New Profile', category: 'API' } } },
       { method: 'PUT', url: '/api/browser/profiles/:id', name: 'Update Profile', body: { name: 'Updated Name' } },
       { method: 'DELETE', url: '/api/browser/profiles/:id', name: 'Delete Profile' },

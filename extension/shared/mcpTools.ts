@@ -195,6 +195,22 @@ export const MCP_TOOLS: McpTool[] = [
     triggers: ['clear notification', 'dismiss notification', 'close notification'] },
   { id: 'tabz_notification_list', name: 'List Notifications', desc: 'Get active notifications', tokens: 800, category: 'Notifications',
     triggers: ['list notifications', 'active notifications', 'show notifications'] },
+  // Profiles tools
+  { id: 'tabz_list_profiles', name: 'List Profiles', desc: 'List terminal profiles with optional category filter', tokens: 1200, category: 'Profiles',
+    triggers: ['list profiles', 'terminal profiles', 'available profiles', 'show profiles'] },
+  { id: 'tabz_list_categories', name: 'List Categories', desc: 'List all profile categories', tokens: 800, category: 'Profiles',
+    triggers: ['list categories', 'profile categories', 'category list'] },
+  // Plugins tools
+  { id: 'tabz_list_plugins', name: 'List Plugins', desc: 'List installed Claude Code plugins', tokens: 1500, category: 'Plugins',
+    triggers: ['list plugins', 'installed plugins', 'show plugins', 'what plugins'] },
+  { id: 'tabz_list_skills', name: 'List Skills', desc: 'List skills from enabled plugins', tokens: 1200, category: 'Plugins',
+    triggers: ['list skills', 'available skills', 'find skill', 'what skills'] },
+  { id: 'tabz_get_skill', name: 'Get Skill', desc: 'Get full SKILL.md content', tokens: 1000, category: 'Plugins',
+    triggers: ['get skill', 'skill details', 'show skill content'] },
+  { id: 'tabz_plugins_health', name: 'Plugin Health', desc: 'Check plugin versions and cache', tokens: 1000, category: 'Plugins',
+    triggers: ['plugin health', 'outdated plugins', 'check plugins'] },
+  { id: 'tabz_toggle_plugin', name: 'Toggle Plugin', desc: 'Enable or disable a plugin', tokens: 800, category: 'Plugins',
+    triggers: ['enable plugin', 'disable plugin', 'toggle plugin'] },
 ]
 
 /**

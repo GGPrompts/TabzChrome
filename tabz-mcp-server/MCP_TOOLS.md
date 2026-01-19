@@ -53,6 +53,13 @@ Quick reference for the browser MCP tools available to Claude Code.
 | `tabz_speak` | "say", "announce", "speak", "read aloud", "TTS" | Speak text aloud using neural TTS (respects user audio settings) |
 | `tabz_list_voices` | "list voices", "TTS voices", "available voices" | List available neural TTS voices |
 | `tabz_play_audio` | "play sound", "play audio", "soundboard", "notification sound" | Play audio file by URL (MP3, WAV, etc.) |
+| `tabz_list_profiles` | "list profiles", "terminal profiles", "available profiles" | List terminal profiles with optional category filter |
+| `tabz_list_categories` | "list categories", "profile categories" | List all profile categories |
+| `tabz_list_plugins` | "list plugins", "installed plugins" | List Claude Code plugins with status |
+| `tabz_list_skills` | "list skills", "available skills", "find skill" | List skills from enabled plugins |
+| `tabz_get_skill` | "get skill", "skill details", "show skill" | Get full SKILL.md content for a skill |
+| `tabz_plugins_health` | "plugin health", "outdated plugins" | Check plugin versions and cache |
+| `tabz_toggle_plugin` | "enable plugin", "disable plugin" | Toggle plugin enabled/disabled |
 
 > **Note:** Most tools support a `tabId` parameter to target a specific tab. Get tab IDs from `tabz_list_tabs`.
 
@@ -2260,6 +2267,86 @@ Place audio files in `backend/public/sounds/` to serve them at `http://localhost
 
 ---
 
+## tabz_list_profiles
+
+**Purpose:** List terminal profiles configured in TabzChrome.
+
+**Trigger phrases:**
+- [List profiles](tabz:paste?text=List%20profiles)
+- [What profiles are available?](tabz:paste?text=What%20profiles%20are%20available%3F)
+- [Show AI assistant profiles](tabz:paste?text=Show%20AI%20assistant%20profiles)
+
+**Parameters:**
+- `category` (optional): Filter by category name (e.g., "AI Assistants", "TUI Tools")
+- `response_format`: `markdown` (default) or `json`
+
+**Returns (JSON format):**
+```json
+{
+  "total": 62,
+  "filtered": 11,
+  "defaultProfileId": "claude",
+  "globalWorkingDir": "~/projects",
+  "profiles": [
+    {
+      "id": "claude-worker",
+      "name": "Claude Worker",
+      "category": "AI Assistants",
+      "command": "claude",
+      "themeName": "matrix"
+    }
+  ]
+}
+```
+
+**Examples:**
+```javascript
+// List all profiles
+{}
+
+// Filter by category
+{ category: "AI Assistants" }
+
+// Get JSON format
+{ response_format: "json" }
+```
+
+**Notes:**
+- Use `tabz_list_categories` first to see available category names
+- Profile IDs can be used with `/api/agents` endpoint for spawning
+
+---
+
+## tabz_list_categories
+
+**Purpose:** List all profile categories in TabzChrome.
+
+**Trigger phrases:**
+- [List categories](tabz:paste?text=List%20categories)
+- [What profile categories exist?](tabz:paste?text=What%20profile%20categories%20exist%3F)
+
+**Parameters:**
+- `response_format`: `markdown` (default) or `json`
+
+**Returns (JSON format):**
+```json
+{
+  "total": 62,
+  "categories": [
+    "AI Assistants",
+    "TUI Tools",
+    "Git Tools",
+    "NoCommand"
+  ]
+}
+```
+
+**Notes:**
+- Use categories with `tabz_list_profiles` to filter profiles
+- Categories are user-defined in profile settings
+
+---
+
 ## tabz_list_plugins
 
 **Purpose:** List installed Claude Code plugins with their status.
@@ -2346,12 +2433,12 @@ Place audio files in `backend/public/sounds/` to serve them at `http://localhost
 
 ## Architecture
 
-All 76 MCP tools use **Chrome Extension APIs** exclusively (no CDP required since v1.2.0).
+All 77 MCP tools use **Chrome Extension APIs** exclusively (no CDP required since v1.2.0).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     EXTENSION-BASED ARCHITECTURE                     │
-│   All 71 tools: tabs, screenshots, clicks, network, windows, etc.    │
+│   All 77 tools: tabs, screenshots, clicks, network, windows, etc.    │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  Chrome Browser                                                      │
@@ -2415,7 +2502,7 @@ Install the `tabz-mcp` skill for guided browser automation. The skill **dynamica
 
 ## Extension API Reference
 
-All 71 tools use **Chrome Extension APIs** - no CDP or `--remote-debugging-port=9222` flag required.
+All 77 tools use **Chrome Extension APIs** - no CDP or `--remote-debugging-port=9222` flag required.
 
 | Tool | Needs Extension? | Implementation |
 |------|-----------------|----------------|

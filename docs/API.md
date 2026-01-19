@@ -95,6 +95,72 @@ curl http://localhost:8129/api/agents
 
 ---
 
+### POST /api/agents
+
+Spawn a terminal using profile settings or explicit parameters.
+
+**Headers:**
+- `Content-Type: application/json`
+- `X-Auth-Token: <token>` (required)
+
+**Body:**
+```json
+{
+  "profileId": "claude-worker",
+  "workingDir": "~/projects/my-app"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `profileId` | string | One of these | Profile ID to use (inherits name, command, theme) |
+| `terminalType` | string | One of these | Terminal type: `bash`, `claude`, etc. |
+| `name` | string | No | Display name (defaults to profile name or "Agent") |
+| `workingDir` | string | No | Starting directory (overrides profile) |
+| `platform` | string | No | `local` (default) or `docker` |
+| `resumable` | boolean | No | Enable tmux persistence (default: false) |
+| `color` | string | No | Hex color (e.g., `#ff5733`) |
+| `icon` | string | No | Emoji icon |
+| `env` | object | No | Environment variables |
+| `prompt` | string | No | Initial prompt to send |
+| `autoStart` | boolean | No | Start immediately (default: true) |
+
+**Note:** Either `profileId` or `terminalType` is required.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Agent 'Claude Worker' spawned successfully",
+  "data": {
+    "id": "ctt-claude-worker-a1b2c3d4",
+    "name": "Claude Worker",
+    "terminalType": "bash",
+    "profileId": "claude-worker",
+    "profileName": "Claude Worker",
+    "state": "active"
+  }
+}
+```
+
+**Examples:**
+```bash
+# Spawn using profile
+TOKEN=$(cat /tmp/tabz-auth-token)
+curl -X POST http://localhost:8129/api/agents \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
+  -d '{"profileId": "claude-worker", "workingDir": "~/projects"}'
+
+# Spawn with explicit terminal type
+curl -X POST http://localhost:8129/api/agents \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
+  -d '{"terminalType": "bash", "name": "My Terminal", "workingDir": "/tmp"}'
+```
+
+---
+
 ### DELETE /api/agents/:id
 
 Kill a terminal by ID.
@@ -570,6 +636,12 @@ Manage terminal profiles programmatically. Profiles define appearance, startup c
 
 List all terminal profiles with their settings.
 
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `category` | string | Filter profiles by category (e.g., `AI Assistants`, `TUI Tools`) |
+
 **Response:**
 ```json
 {
@@ -591,10 +663,15 @@ List all terminal profiles with their settings.
 }
 ```
 
-**Example:**
+**Examples:**
 ```bash
+# List all profiles
 TOKEN=$(cat /tmp/tabz-auth-token)
 curl http://localhost:8129/api/browser/profiles \
+  -H "X-Auth-Token: $TOKEN"
+
+# Filter by category
+curl "http://localhost:8129/api/browser/profiles?category=AI%20Assistants" \
   -H "X-Auth-Token: $TOKEN"
 ```
 
