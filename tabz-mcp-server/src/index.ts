@@ -19,7 +19,7 @@
  * - audio: tabz_speak, tabz_list_voices, tabz_play_audio
  * - history: tabz_history_search, tabz_history_visits, tabz_history_recent, tabz_history_delete_url, tabz_history_delete_range
  * - cookies: (future) tabz_check_auth, tabz_get_cookies
- * - profiles: tabz_list_profiles, tabz_list_categories
+ * - profiles: tabz_list_profiles, tabz_list_categories, tabz_spawn_profile, tabz_get_profile, tabz_create_profile, tabz_update_profile, tabz_delete_profile
  * - plugins: tabz_list_plugins, tabz_list_skills, tabz_get_skill, tabz_plugins_health, tabz_toggle_plugin
  *
  * Tool groups can be configured via the backend /api/mcp-config endpoint.
@@ -129,9 +129,9 @@ const TOOL_GROUPS: Record<string, ToolGroupRegistrar> = {
   notifications: (server) => {
     registerNotificationTools(server); // tabz_notification_show, tabz_notification_update, tabz_notification_progress, tabz_notification_clear, tabz_notification_list
   },
-  // Profile tools (terminal profiles and categories)
+  // Profile tools (terminal profiles CRUD and spawning)
   profiles: (server) => {
-    registerProfileTools(server);      // tabz_list_profiles, tabz_list_categories
+    registerProfileTools(server);      // tabz_list_profiles, tabz_list_categories, tabz_spawn_profile, tabz_get_profile, tabz_create_profile, tabz_update_profile, tabz_delete_profile
   },
   // Plugins tools (Claude Code plugin management)
   plugins: (server) => {
