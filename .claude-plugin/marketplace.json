@@ -11,11 +11,7 @@
     {
       "name": "conductor",
       "description": "AI backlog grooming + TabzChrome terminal spawning for parallel beads workflows",
-      "source": {
-        "source": "github",
-        "repo": "GGPrompts/TabzChrome",
-        "path": "plugins/conductor"
-      },
+      "source": "./plugins/conductor",
       "category": "orchestration",
       "keywords": ["orchestration", "beads", "planning", "tabzchrome", "spawn", "parallel", "brainstorm", "conductor", "worker"]
     }
