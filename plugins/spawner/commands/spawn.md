@@ -86,13 +86,13 @@ curl -s -X POST http://localhost:8129/api/spawn \
   -d "{
     \"name\": \"$ISSUE_ID\",
     \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BEADS_NO_DAEMON=1 claude $PLUGIN_DIRS\"
+    \"command\": \"BD_SOCKET=/tmp/bd-worker-\${ISSUE_ID}.sock claude $PLUGIN_DIRS\"
   }"
 ```
 
 **Key settings:**
 - `name`: Use issue ID for easy lookup
-- `BEADS_NO_DAEMON=1`: Worktrees share the DB
+- `BD_SOCKET`: Isolates beads daemon per worker, enabling MCP tools (mcp__beads__show, etc.) to work in parallel workers
 - `--plugin-dir`: Workers need access to plugins
 
 ## Step 4a: Wait for Claude Initialization
@@ -178,7 +178,7 @@ curl -s -X POST http://localhost:8129/api/spawn \
   -d "{
     \"name\": \"$ISSUE_ID\",
     \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BEADS_NO_DAEMON=1 claude $PLUGIN_DIRS\"
+    \"command\": \"BD_SOCKET=/tmp/bd-worker-\${ISSUE_ID}.sock claude $PLUGIN_DIRS\"
   }"
 
 # Wait and get session
@@ -224,5 +224,5 @@ curl -s -X POST http://localhost:8129/api/spawn \
 - Initialize deps SYNCHRONOUSLY before spawning
 - Wait 8+ seconds for Claude to boot before sending prompt
 - Workers follow PRIME.md - they'll read the issue and work autonomously
-- Use `BEADS_NO_DAEMON=1` in worker command (worktrees share DB)
+- Use `BD_SOCKET=/tmp/bd-worker-${ISSUE_ID}.sock` to give each worker its own beads daemon for MCP tool support
 - Pass `--plugin-dir` flags so workers have access to plugins
