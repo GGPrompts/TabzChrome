@@ -1,17 +1,17 @@
 {
-  "name": "conductor",
+  "name": "tabzchrome-marketplace",
   "owner": {
-    "name": "TabzChrome"
+    "name": "GGPrompts"
   },
   "metadata": {
-    "description": "Spawn and monitor Claude workers via TabzChrome API and MCP tools, with beads-native issue tracking, tmuxplexer dashboard, and browser debugging",
-    "version": "2.5.0"
+    "description": "TabzChrome plugins - terminal management, browser automation, and worker orchestration",
+    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "conductor",
       "description": "AI backlog grooming + TabzChrome terminal spawning for parallel beads workflows",
-      "source": ".",
+      "source": "./plugins/conductor",
       "category": "orchestration",
       "keywords": ["orchestration", "beads", "planning", "tabzchrome", "spawn", "parallel", "brainstorm", "conductor", "worker"]
     }
