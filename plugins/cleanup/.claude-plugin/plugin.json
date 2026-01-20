@@ -1,5 +1,14 @@
 {
   "name": "cleanup",
   "version": "1.0.0",
-  "description": "Post-work cleanup: merge branches, remove worktrees, sync beads"
+  "description": "Post-work cleanup: merge branches, remove worktrees, sync beads",
+  "commands": [
+    "./commands/done.md"
+  ],
+  "agents": [
+    "./agents/cleanup.md"
+  ],
+  "skills": [
+    "./skills/merge"
+  ]
 }

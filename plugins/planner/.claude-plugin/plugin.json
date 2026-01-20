@@ -1,5 +1,14 @@
 {
   "name": "planner",
   "version": "1.0.0",
-  "description": "Break down features and epics into concrete backlog issues with dependencies"
+  "description": "Break down features and epics into concrete backlog issues with dependencies",
+  "commands": [
+    "./commands/plan.md"
+  ],
+  "agents": [
+    "./agents/planner.md"
+  ],
+  "skills": [
+    "./skills/breakdown"
+  ]
 }

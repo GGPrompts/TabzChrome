@@ -54,3 +54,6 @@ mcp-config.json
 # Session transcripts (local analysis only)
 .beads/transcripts/
 .worktrees/
+
+# Plugin audit logs
+.audit-logs/

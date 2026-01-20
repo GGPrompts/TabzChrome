@@ -1,5 +1,22 @@
 {
   "name": "conductor",
   "version": "3.0.0",
-  "description": "Lightweight orchestrator - coordinates planner, prompt-writer, spawner, and cleanup plugins"
+  "description": "Lightweight orchestrator - coordinates planner, prompt-writer, spawner, and cleanup plugins",
+  "commands": [
+    "./commands/auto.md",
+    "./commands/plan-backlog.md",
+    "./commands/gate-runner.md",
+    "./commands/status.md"
+  ],
+  "agents": [
+    "./agents/precommit-gate.md"
+  ],
+  "skills": [
+    "./skills/automating-browser",
+    "./skills/brainstorming",
+    "./skills/checking-docs",
+    "./skills/checking-visuals",
+    "./skills/reviewing-code",
+    "./skills/running-tests"
+  ]
 }
