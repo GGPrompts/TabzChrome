@@ -1,6 +1,6 @@
 ---
 name: gg-auto
-description: "Autonomous worker loop - delegates to planner, prompt-writer, spawner, and cleanup plugins"
+description: "Autonomous worker loop - delegates to planner, spawner, and cleanup plugins"
 context:
   skills:
     - spawner:terminals           # TabzChrome API patterns
@@ -92,7 +92,8 @@ The spawner will:
 - Initialize dependencies (npm, python, etc.)
 - Run `npm run build` for Next.js types
 - Spawn terminal via TabzChrome
-- Send prepared prompt to worker
+- Generate a pep-talk prompt directly from issue title/description
+- Send prompt to worker (workers are Opus and can figure out context from `bd show`)
 
 ## Step 4: Monitor and Cleanup
 
@@ -203,9 +204,8 @@ The conductor detects closed status via poller and delegates cleanup.
 
 | Plugin | Purpose |
 |--------|---------|
-| `/prompt-writer` | Craft worker prompts from backlog issues |
 | `/planner` | Break down features into tasks |
-| `/spawner` | Spawn workers in worktrees |
+| `/spawner` | Spawn workers in worktrees (generates prompts directly) |
 | `/cleanup` | Merge and cleanup after completion |
 
 ## Notes
