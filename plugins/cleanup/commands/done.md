@@ -8,15 +8,19 @@ argument-hint: "ISSUE_ID"
 
 Clean up after a worker finishes their issue.
 
-## Usage
+## Steps
 
-```bash
-/cleanup:done ISSUE-ID
-```
+Add these to your to-dos:
 
-## Workflow
+1. **Verify issue is closed** - Worker must complete first
+2. **Kill terminal** - Stop worker via TabzChrome API
+3. **Merge branch** - Use `/cleanup:merge` skill (Haiku)
+4. **Remove worktree and branch** - Clean up git state
+5. **Sync beads and push** - Persist changes
 
-### 1. Verify Issue is Closed
+---
+
+## Step 1: Verify Issue is Closed
 
 ```python
 issue = mcp__beads__show(issue_id="ISSUE-ID")
@@ -28,7 +32,7 @@ STATUS=$(bd show "$ISSUE_ID" --json | jq -r '.[0].status')
 [ "$STATUS" != "closed" ] && echo "Issue not closed!" && exit 1
 ```
 
-### 2. Kill Terminal via TabzChrome API
+## Step 2: Kill Terminal via TabzChrome API
 
 ```bash
 TABZ_API="http://localhost:8129"
@@ -43,14 +47,14 @@ SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg id "$ISSUE_ID" \
   -H "X-Auth-Token: $TOKEN"
 ```
 
-### 3. Capture Session Transcript (Optional)
+## Step 2a: Capture Session Transcript (Optional)
 
 For debugging or handoff:
 ```bash
 curl -s "$TABZ_API/api/tmux/sessions/$SESSION/capture" | jq -r '.data.content' > ".worktrees/$ISSUE_ID/session.log"
 ```
 
-### 4. Merge Feature Branch
+## Step 3: Merge Feature Branch
 
 ```bash
 git merge "feature/$ISSUE_ID" --no-edit
@@ -61,14 +65,14 @@ git merge "feature/$ISSUE_ID" --no-edit
 - Leave worktree intact for manual resolution
 - Output conflict files for user
 
-### 5. Remove Worktree and Branch
+## Step 4: Remove Worktree and Branch
 
 ```bash
 git worktree remove ".worktrees/$ISSUE_ID" --force
 git branch -d "feature/$ISSUE_ID"
 ```
 
-### 6. Sync Beads and Push
+## Step 5: Sync Beads and Push
 
 ```bash
 bd sync

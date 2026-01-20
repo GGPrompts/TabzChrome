@@ -1,6 +1,11 @@
 ---
 name: merge
-description: "Branch merging and conflict resolution patterns"
+description: |
+  Branch merging and conflict resolution patterns.
+  Use when merging feature branches, handling conflicts, or cleaning up worktrees.
+  Trigger with "merge branch", "resolve conflicts", "cleanup worktree".
+model: haiku
+allowed-tools: Bash, Read
 ---
 
 # Merge - Branch Management
