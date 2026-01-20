@@ -47,12 +47,25 @@ SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg id "$ISSUE_ID" \
   -H "X-Auth-Token: $TOKEN"
 ```
 
-## Step 2a: Capture Session Transcript (Optional)
+## Step 2a: Capture Session with Cost Stats (Recommended)
 
-For debugging or handoff:
+Capture transcript AND token usage before killing the session:
 ```bash
-curl -s "$TABZ_API/api/tmux/sessions/$SESSION/capture" | jq -r '.data.content' > ".worktrees/$ISSUE_ID/session.log"
+# Find capture-session.sh
+CAPTURE_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "capture-session.sh" 2>/dev/null | head -1)
+
+# Capture if script exists and session is still alive
+if [ -n "$CAPTURE_SCRIPT" ] && tmux has-session -t "$SESSION" 2>/dev/null; then
+  "$CAPTURE_SCRIPT" "$SESSION" "$ISSUE_ID" "$(pwd)"
+fi
 ```
+
+This captures:
+- Full session transcript to `.beads/transcripts/<issue-id>.txt`
+- Actual token usage from Claude's session JSONL files
+- Calculated cost (Opus 4.5 pricing)
+- Tool call and skill invocation counts
+- Stats attached to issue notes for tracking
 
 ## Step 3: Merge Feature Branch
 
@@ -90,9 +103,16 @@ TOKEN=$(cat /tmp/tabz-auth-token)
 STATUS=$(bd show "$ISSUE_ID" --json | jq -r '.[0].status')
 [ "$STATUS" != "closed" ] && echo "Issue not closed!" && exit 1
 
-# 2. Kill terminal via API
+# 2. Get session ID
 SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg id "$ISSUE_ID" \
   '.data[] | select(.name == $id) | .id')
+
+# 2a. Capture session with cost stats BEFORE killing
+CAPTURE_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "capture-session.sh" 2>/dev/null | head -1)
+[ -n "$CAPTURE_SCRIPT" ] && [ -n "$SESSION" ] && tmux has-session -t "$SESSION" 2>/dev/null && \
+  "$CAPTURE_SCRIPT" "$SESSION" "$ISSUE_ID" "$(pwd)"
+
+# 2b. Kill terminal via API
 [ -n "$SESSION" ] && curl -s -X DELETE "$TABZ_API/api/agents/$SESSION" \
   -H "X-Auth-Token: $TOKEN"
 

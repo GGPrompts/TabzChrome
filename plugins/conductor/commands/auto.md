@@ -106,42 +106,50 @@ cat /tmp/worker-status.json | jq '{workers: .workers, in_progress: .in_progress 
 tail -5 /tmp/worker-events.jsonl 2>/dev/null
 ```
 
-When an issue closes, spawn a cleanup task:
+When issues close, collect them for batch cleanup:
 
-```python
-# Check for closed events
-events = Read("/tmp/worker-events.jsonl")  # Get recent events
-
-for event in new_closed_events:
-    Task(
-        subagent_type="general-purpose",
-        model="haiku",
-        prompt=f"/cleanup:done {event['issue']}",
-        description=f"Cleanup {event['issue']}"
-    )
+```bash
+# Get all newly closed issue IDs from events file
+CLOSED_ISSUES=$(cat /tmp/worker-events.jsonl 2>/dev/null | jq -sr '[.[].issue] | unique | join(" ")')
 ```
 
-The cleanup will:
-- Verify issue is closed
-- Merge feature branch to main
-- Remove worktree
-- Delete local branch
-- Sync beads
-- Push to remote
+## Step 5: Wave Completion
 
-## Step 5: Complete
+When a wave is done (all spawned workers have closed their issues), run the completion pipeline:
 
-When no active workers and no ready tasks:
+```bash
+# Find completion-pipeline.sh
+PIPELINE=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "completion-pipeline.sh" 2>/dev/null | head -1)
+
+# Run with audio notification
+AUDIO=1 "$PIPELINE" "$CLOSED_ISSUES"
+```
+
+The completion pipeline:
+1. **Captures session transcripts** with token usage stats
+2. **Kills worker terminals**
+3. **Merges feature branches** to main (handles conflicts gracefully)
+4. **Removes worktrees** and deletes merged branches
+5. **Generates wave summary** with total costs and git stats
+
+For individual issue cleanup, use: `/cleanup:done ISSUE_ID`
+
+## Step 6: Final Sync and Next Wave
 
 ```bash
 # Stop poller
 pkill -f poll-workers.sh
 
-# Final sync
+# Final sync and push
 bd sync
 git push
-echo "All work complete!"
+
+# Check for more work
+NEXT_READY=$(bd ready --json | jq 'length')
+echo "Wave complete! $NEXT_READY issues ready for next wave."
 ```
+
+If more issues are ready, go back to Step 3 (spawn workers).
 
 ## Background Polling Benefits
 
