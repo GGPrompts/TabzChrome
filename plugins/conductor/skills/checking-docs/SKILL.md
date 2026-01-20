@@ -1,6 +1,6 @@
 ---
-name: docs-check
-description: "Documentation check checkpoint for conductor gates. Analyzes code changes to determine if documentation needs updating. Returns structured result with pass/fail status and documentation suggestions."
+name: checking-docs
+description: "Documentation check checkpoint for conductor gates. Analyzes code changes to determine if documentation needs updating. Returns structured result with pass/fail status and documentation suggestions. Use when: 'check docs', 'documentation check', 'are docs updated'."
 user-invocable: true
 ---
 

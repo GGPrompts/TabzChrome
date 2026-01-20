@@ -1,6 +1,6 @@
 ---
-name: visual-qa
-description: "Visual QA checkpoint for conductor gates. Uses tabz MCP tools to check browser console errors, take screenshots, and identify obvious UI issues. Returns structured result with pass/fail status and captured screenshots."
+name: checking-visuals
+description: "Visual QA checkpoint for conductor gates. Uses tabz MCP tools to check browser console errors, take screenshots, and identify obvious UI issues. Returns structured result with pass/fail status and captured screenshots. Use when: 'visual QA', 'check UI', 'screenshot check', 'console errors'."
 user-invocable: true
 ---
 

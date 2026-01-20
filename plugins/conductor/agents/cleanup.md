@@ -12,12 +12,12 @@ tools:
 model: sonnet
 skills:
   - spawning-terminals
-  - brainstorm
-  - codex-review
+  - brainstorming
+  - reviewing-code
   - automating-browser
-  - test-runner
-  - visual-qa
-  - docs-check
+  - running-tests
+  - checking-visuals
+  - checking-docs
 ---
 
 # Cleanup Agent

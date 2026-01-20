@@ -1,6 +1,6 @@
 ---
-name: codex-review
-description: "Code review checkpoint for conductor gates. Calls codex/review MCP tool to analyze code changes. Returns structured result with pass/fail status, issues found, and whether visual QA is needed."
+name: reviewing-code
+description: "Code review checkpoint for conductor gates. Calls codex/review MCP tool to analyze code changes. Returns structured result with pass/fail status, issues found, and whether visual QA is needed. Use when: 'code review', 'review changes', 'codex review', 'check my code'."
 user-invocable: true
 ---
 

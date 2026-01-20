@@ -5,297 +5,101 @@ description: "Spawn and manage terminal tabs via TabzChrome REST API. Use when s
 
 # TabzChrome Terminal Management
 
-Spawn terminals, manage workers, and orchestrate parallel Claude sessions via REST API or MCP tools.
+Spawn terminals, manage workers, and orchestrate parallel Claude sessions.
 
 ## MCP Tools (Preferred)
 
-When TabzChrome MCP server is connected, use these tools instead of raw curl commands:
-
 | Tool | Purpose |
 |------|---------|
-| `tabz_list_profiles` | List terminal profiles (filter by category) |
+| `tabz_spawn_profile` | Spawn terminal using saved profile |
+| `tabz_list_profiles` | List terminal profiles |
 | `tabz_list_categories` | List profile categories |
-| `tabz_spawn_profile` | Spawn terminal using a saved profile |
-| `tabz_get_profile` | Get profile details |
-| `tabz_create_profile` | Create a new terminal profile |
-| `tabz_update_profile` | Update an existing profile |
-| `tabz_delete_profile` | Delete a profile |
-| `tabz_list_plugins` | List Claude Code plugins |
-| `tabz_list_skills` | List available skills |
-
-### Profile-Based Spawning with MCP
 
 ```python
-# List available AI assistant profiles
-tabz_list_profiles(category="AI Assistants")
-
-# Spawn using a profile with workingDir override
+# Spawn worker with profile
 tabz_spawn_profile(
     profileId="claude-worker",
-    workingDir="~/projects/myapp/.worktrees/V4V-ct9",
-    name="V4V-ct9"
+    workingDir="~/projects/.worktrees/ISSUE-ID",
+    name="ISSUE-ID"
 )
-
-# Check what skills workers will have
-tabz_list_skills()
 ```
 
-## Prerequisites (for REST API)
+## REST API
 
-```bash
-# Check TabzChrome is running
-curl -sf http://localhost:8129/api/health >/dev/null && echo "OK" || echo "TabzChrome not running"
-
-# Get auth token
-TOKEN=$(cat /tmp/tabz-auth-token)
-```
-
-## Spawn API
-
-### Basic Spawn
+### Spawn Terminal
 
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Worker", "workingDir": "~/projects"}'
-```
-
-### Spawn with Command
-
-```bash
-curl -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
   -d '{
-    "name": "Build Worker",
-    "workingDir": "~/projects/myapp",
-    "command": "npm run build"
+    "name": "ISSUE-ID",
+    "workingDir": "/path/to/worktree",
+    "command": "BEADS_NO_DAEMON=1 claude --plugin-dir ~/.claude/plugins/marketplaces"
   }'
 ```
 
-### Spawn Claude Worker
+| Param | Required | Description |
+|-------|----------|-------------|
+| `name` | No | Display name (use issue ID for workers) |
+| `workingDir` | No | Starting directory |
+| `command` | No | Command to auto-execute |
+| `profileId` | No | Terminal profile for appearance/command |
+
+### Worker Management
 
 ```bash
-PLUGIN_DIRS="--plugin-dir $HOME/.claude/plugins/marketplaces --plugin-dir $HOME/plugins/my-plugins"
-
-curl -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d "{
-    \"name\": \"ISSUE-ID\",
-    \"workingDir\": \"/path/to/worktree\",
-    \"command\": \"BEADS_NO_DAEMON=1 claude $PLUGIN_DIRS\"
-  }"
-```
-
-### Profile-Based Spawning (Recommended)
-
-Profiles encapsulate command, theme, and settings. Use profiles for consistent worker spawning:
-
-```bash
-# List profiles
-curl -s http://localhost:8129/api/profiles | jq '.profiles[] | {id, name, category}'
-
-# Spawn using a profile via /api/agents
-curl -X POST http://localhost:8129/api/agents \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d '{
-    "profileId": "claude-worker",
-    "name": "V4V-ct9",
-    "workingDir": "~/projects/.worktrees/V4V-ct9"
-  }'
-```
-
-Profile-based spawning inherits:
-- Command (e.g., `claude`)
-- Theme/colors
-- Font settings
-- Environment variables
-
-### Spawn Parameters
-
-| Param | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `name` | No | "Claude Terminal" | Display name (use issue ID for workers) |
-| `workingDir` | No | $HOME | Starting directory |
-| `command` | No | - | Command to auto-execute after spawn |
-| `profileId` | No | default | Terminal profile for appearance and command |
-
-### Response
-
-```json
-{
-  "success": true,
-  "terminalId": "ctt-ISSUE-ID-abc123",
-  "tmuxSession": "ctt-ISSUE-ID-abc123"
-}
-```
-
-## Worker Management
-
-### List All Workers
-
-```bash
+# List workers
 curl -s http://localhost:8129/api/agents | jq '.data[]'
-```
 
-### Find Worker by Name (Issue ID)
+# Find by name
+curl -s http://localhost:8129/api/agents | jq -r '.data[] | select(.name == "ISSUE-ID")'
 
-```bash
-curl -s http://localhost:8129/api/agents | jq -r '.data[] | select(.name == "V4V-ct9")'
-```
-
-### Get Session ID
-
-```bash
-SESSION=$(curl -s http://localhost:8129/api/agents | jq -r '.data[] | select(.name == "V4V-ct9") | .id')
-```
-
-### Kill Worker
-
-```bash
-curl -s -X DELETE "http://localhost:8129/api/agents/$SESSION" \
-  -H "X-Auth-Token: $TOKEN"
-```
-
-### Capture Terminal Output
-
-```bash
-curl -s "http://localhost:8129/api/tmux/sessions/$SESSION/capture" | jq -r '.data.content' | tail -50
-```
-
-### Detect Stale Workers
-
-```bash
-CUTOFF=$(date -d '5 minutes ago' -Iseconds)
-curl -s http://localhost:8129/api/agents | jq -r \
-  --arg cutoff "$CUTOFF" '.data[] | select(.lastActivity < $cutoff) | .name'
-```
-
-## Sending Prompts via tmux
-
-```bash
-SESSION="ctt-V4V-ct9-abc123"
-
-# Wait for Claude to initialize (8+ seconds after spawn)
-sleep 8
-
-# Find safe-send-keys.sh for reliable prompt delivery
-SAFE_SEND_KEYS=$(find ~/plugins ~/.claude/plugins -name "safe-send-keys.sh" -path "*conductor*" 2>/dev/null | head -1)
-
-# Send prompt
-PROMPT="Complete beads issue V4V-ct9. Run: bd show V4V-ct9 --json"
-"$SAFE_SEND_KEYS" "$SESSION" "$PROMPT"
-
-# Verify delivery
-tmux capture-pane -t "$SESSION" -p | tail -5
-```
-
-## Git Worktrees for Parallel Workers
-
-Worktrees allow multiple workers on the same repo without conflicts.
-
-### Create Worktree
-
-```bash
-ISSUE_ID="V4V-ct9"
-
-# Create worktree with new branch
-git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
-```
-
-### Initialize Dependencies
-
-Worktrees share git but NOT node_modules. Initialize before spawning:
-
-```bash
-INIT_SCRIPT=$(find ~/plugins -name "init-worktree.sh" -path "*conductor*" 2>/dev/null | head -1)
-$INIT_SCRIPT ".worktrees/$ISSUE_ID" 2>&1 | tail -5
-```
-
-### Full Spawn Workflow
-
-```bash
-ISSUE_ID="V4V-ct9"
-WORKDIR=$(pwd)
-TOKEN=$(cat /tmp/tabz-auth-token)
-PLUGIN_DIRS="--plugin-dir $HOME/.claude/plugins/marketplaces --plugin-dir $HOME/plugins/my-plugins"
-
-# 1. Create worktree
-git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
-
-# 2. Initialize dependencies SYNCHRONOUSLY
-INIT_SCRIPT=$(find ~/plugins -name "init-worktree.sh" -path "*conductor*" 2>/dev/null | head -1)
-$INIT_SCRIPT ".worktrees/$ISSUE_ID" 2>&1 | tail -5
-
-# 3. Spawn terminal
-curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d "{
-    \"name\": \"$ISSUE_ID\",
-    \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BEADS_NO_DAEMON=1 claude $PLUGIN_DIRS\"
-  }"
-
-echo "Waiting for Claude to initialize..."
-sleep 8
-
-# 4. Get session ID
-SESSION=$(curl -s http://localhost:8129/api/agents | jq -r --arg id "$ISSUE_ID" '.data[] | select(.name == $id) | .id')
-
-# 5. Find safe-send-keys.sh
-SAFE_SEND_KEYS=$(find ~/plugins ~/.claude/plugins -name "safe-send-keys.sh" -path "*conductor*" 2>/dev/null | head -1)
-
-# 6. Send prompt
-PROMPT="Complete beads issue $ISSUE_ID. Run: bd show $ISSUE_ID --json"
-"$SAFE_SEND_KEYS" "$SESSION" "$PROMPT"
-```
-
-### Cleanup Worktree
-
-```bash
-ISSUE_ID="V4V-ct9"
-
-# Get and kill session
-SESSION=$(curl -s http://localhost:8129/api/agents | jq -r ".data[] | select(.name == \"$ISSUE_ID\") | .id")
+# Kill worker
 curl -s -X DELETE "http://localhost:8129/api/agents/$SESSION" -H "X-Auth-Token: $TOKEN"
+```
 
-# Remove worktree and branch
+## Git Worktrees
+
+Worktrees allow parallel workers on same repo without conflicts.
+
+```bash
+ISSUE_ID="ISSUE-ID"
+
+# Create worktree
+git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
+
+# Initialize deps (SYNCHRONOUS - before spawning)
+INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*conductor*" 2>/dev/null | head -1)
+$INIT_SCRIPT ".worktrees/$ISSUE_ID"
+
+# Cleanup
 git worktree remove ".worktrees/$ISSUE_ID" --force
 git branch -d "feature/$ISSUE_ID"
 ```
 
-## Naming Convention
-
-**Use the issue ID as the terminal name.** This enables:
-- Easy lookup via `/api/agents`
-- Clear display in tmuxplexer dashboard
-- Correlation: terminal name = issue ID = branch name = worktree name
-
-## Worker Dashboard
-
-Launch tmuxplexer watcher to monitor all Claude sessions:
+## Sending Prompts
 
 ```bash
-curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d '{
-    "name": "Worker Dashboard",
-    "workingDir": "/home/marci/projects/tmuxplexer",
-    "command": "./tmuxplexer --watcher"
-  }'
+# Wait for Claude to initialize (8+ seconds)
+sleep 8
+
+# Find safe-send-keys.sh
+SAFE_SEND_KEYS=$(find ~/plugins ~/.claude/plugins -name "safe-send-keys.sh" -path "*conductor*" 2>/dev/null | head -1)
+
+# Send prompt
+"$SAFE_SEND_KEYS" "$SESSION" "Complete beads issue $ISSUE_ID. Run: bd show $ISSUE_ID --json"
 ```
 
 ## Important Notes
 
 1. **Name terminals with issue ID** for easy lookup
-2. **Initialize deps SYNCHRONOUSLY** before spawning (not background)
+2. **Initialize deps SYNCHRONOUSLY** before spawning
 3. **Use `BEADS_NO_DAEMON=1`** in worker command (worktrees share DB)
-4. **Pass `--plugin-dir` flags** so workers have plugins
-5. **Wait 8+ seconds** before sending prompt for Claude to initialize
-6. **Workers follow PRIME.md** - MCP tools and bd sync work in worktrees
+4. **Wait 8+ seconds** before sending prompt for Claude to initialize
+
+## References
+
+- [handoff-format.md](references/handoff-format.md) - Worker handoff note format
+- [model-routing.md](references/model-routing.md) - Model selection guide
