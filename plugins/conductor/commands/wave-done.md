@@ -1,12 +1,25 @@
 ---
 name: gg-wave-done
-description: "Complete a wave - capture sessions, merge branches, cleanup, show summary with costs"
+description: "Batch cleanup when individual cleanups were skipped - capture, merge, cleanup, summary"
 argument-hint: "ISSUE1 ISSUE2 ISSUE3..."
 ---
 
 # Wave Done - Batch Completion
 
-Complete an entire wave of workers at once with cost tracking.
+Batch cleanup for multiple issues when you **skipped** individual `/cleanup:done` calls.
+
+## When to Use
+
+| Scenario | Use |
+|----------|-----|
+| Normal auto mode | `/cleanup:done` per issue (automatic) |
+| Skipped cleanups | `/conductor:wave-done` for batch |
+| Just want stats | `wave-summary.sh` directly |
+
+**In `/conductor:auto`**, cleanup happens immediately per-issue. Use this command only if:
+- You ran workers manually without auto mode
+- Cleanup was skipped/failed for some issues
+- You want to batch-process remaining uncleaned issues
 
 ## Usage
 
@@ -14,10 +27,9 @@ Complete an entire wave of workers at once with cost tracking.
 /conductor:wave-done V4V-abc V4V-def V4V-ghi
 ```
 
-Or automatically collect closed issues:
+Or collect from events file:
 
 ```bash
-# Get closed issues from events file
 CLOSED=$(cat /tmp/worker-events.jsonl 2>/dev/null | jq -sr '[.[].issue] | unique | join(" ")')
 /conductor:wave-done $CLOSED
 ```
@@ -26,8 +38,8 @@ CLOSED=$(cat /tmp/worker-events.jsonl 2>/dev/null | jq -sr '[.[].issue] | unique
 
 The completion pipeline runs these steps:
 
-1. **Capture Sessions** - Transcript + token usage + cost for each worker
-2. **Kill Terminals** - Stop all worker sessions via TabzChrome API
+1. **Capture Sessions** - Transcript + token usage + cost (if not already captured)
+2. **Kill Terminals** - Stop worker sessions via TabzChrome API
 3. **Merge Branches** - Feature branches to main (handles conflicts gracefully)
 4. **Cleanup Worktrees** - Remove worktrees and delete merged branches
 5. **Wave Summary** - Total costs, git stats, next wave status

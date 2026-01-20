@@ -106,33 +106,44 @@ cat /tmp/worker-status.json | jq '{workers: .workers, in_progress: .in_progress 
 tail -5 /tmp/worker-events.jsonl 2>/dev/null
 ```
 
-When issues close, collect them for batch cleanup:
+When an issue closes, **immediately** run cleanup (don't wait for batch):
 
-```bash
-# Get all newly closed issue IDs from events file
-CLOSED_ISSUES=$(cat /tmp/worker-events.jsonl 2>/dev/null | jq -sr '[.[].issue] | unique | join(" ")')
+```python
+# When poller detects a closed issue
+Task(
+    subagent_type="general-purpose",
+    model="haiku",
+    prompt=f"/cleanup:done {closed_issue_id}",
+    description=f"Cleanup {closed_issue_id}"
+)
 ```
 
-## Step 5: Wave Completion
+The cleanup captures session stats (tokens, cost) before killing the terminal, then merges.
 
-When a wave is done (all spawned workers have closed their issues), run the completion pipeline:
+## Step 5: Wave Stats (Every 3 Completions)
+
+Track completions and show aggregate stats periodically:
 
 ```bash
-# Find completion-pipeline.sh
-PIPELINE=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "completion-pipeline.sh" 2>/dev/null | head -1)
+# Count completions in this wave
+COMPLETED=$(cat /tmp/worker-events.jsonl 2>/dev/null | wc -l)
 
-# Run with audio notification
-AUDIO=1 "$PIPELINE" "$CLOSED_ISSUES"
+# Every 3 completions (or when wave ends), show stats
+if [ $((COMPLETED % 3)) -eq 0 ] || [ "$READY_COUNT" -eq 0 ]; then
+  CLOSED_ISSUES=$(cat /tmp/worker-events.jsonl | jq -sr '[.[].issue] | join(" ")')
+
+  # Find wave-summary.sh
+  SUMMARY=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "wave-summary.sh" 2>/dev/null | head -1)
+
+  # Show stats (costs are already in issue notes from cleanup)
+  "$SUMMARY" "$CLOSED_ISSUES" --quiet
+fi
 ```
 
-The completion pipeline:
-1. **Captures session transcripts** with token usage stats
-2. **Kills worker terminals**
-3. **Merges feature branches** to main (handles conflicts gracefully)
-4. **Removes worktrees** and deletes merged branches
-5. **Generates wave summary** with total costs and git stats
-
-For individual issue cleanup, use: `/cleanup:done ISSUE_ID`
+**Pattern:**
+- `/cleanup:done` runs immediately per-issue (fast, captures cost)
+- `wave-summary.sh` shows aggregate stats every 3 completions
+- `/conductor:wave-done` is for manual batch cleanup (skips individual cleanup)
 
 ## Step 6: Final Sync and Next Wave
 
