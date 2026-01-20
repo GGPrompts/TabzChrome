@@ -1,5 +1,5 @@
 ---
-name: auto
+name: gg-auto
 description: "Autonomous worker loop - delegates to planner, prompt-writer, spawner, and cleanup plugins"
 ---
 

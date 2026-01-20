@@ -1,5 +1,5 @@
 ---
-name: status
+name: gg-status
 description: "Show status of workers, issues, and plugins"
 ---
 

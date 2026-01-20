@@ -1,5 +1,5 @@
 ---
-name: plan
+name: gg-plan
 description: "Break down a feature or epic into concrete backlog issues with dependencies"
 argument-hint: "FEATURE_DESCRIPTION or --epic EPIC-ID"
 ---

@@ -1,5 +1,5 @@
 ---
-name: plan-backlog
+name: gg-plan-backlog
 description: "AI-assisted backlog grooming: prioritize, add dependencies, assign quality gates, draft worker prompts"
 ---
 

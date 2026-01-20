@@ -1,5 +1,5 @@
 ---
-name: write-all
+name: gg-write-all
 description: "Batch process all backlog issues - craft prompts and mark ready in parallel"
 ---
 

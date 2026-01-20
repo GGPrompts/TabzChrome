@@ -1,5 +1,5 @@
 ---
-name: gate-runner
+name: gg-gate-runner
 description: "Run gates for completed issues - spawns checkpoint profiles, reads results, resolves or reopens"
 ---
 

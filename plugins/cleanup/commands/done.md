@@ -1,5 +1,5 @@
 ---
-name: done
+name: gg-done
 description: "Clean up after a worker completes - merge, remove worktree, sync beads"
 argument-hint: "ISSUE_ID"
 ---

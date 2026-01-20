@@ -1,5 +1,5 @@
 ---
-name: write
+name: gg-write
 description: "Craft a worker prompt for a backlog issue"
 argument-hint: "ISSUE_ID"
 ---

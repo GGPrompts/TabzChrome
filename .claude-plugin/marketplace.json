@@ -29,7 +29,7 @@
         "worker",
         "pipeline"
       ],
-      "strict": false,
+      "strict": true,
       "commands": [
         "./commands/auto.md",
         "./commands/plan-backlog.md",
@@ -67,13 +67,12 @@
         "workers",
         "beads"
       ],
-      "strict": false,
+      "strict": true,
       "commands": [
-        "./commands/write.md"
+        "./commands/write.md",
+        "./commands/write-all.md"
       ],
-      "agents": [
-        "./agents/writer.md"
-      ],
+      "agents": [],
       "skills": [
         "./skills/prompt-craft"
       ]
@@ -98,13 +97,11 @@
         "backlog",
         "beads"
       ],
-      "strict": false,
+      "strict": true,
       "commands": [
         "./commands/plan.md"
       ],
-      "agents": [
-        "./agents/planner.md"
-      ],
+      "agents": [],
       "skills": [
         "./skills/breakdown"
       ]
@@ -129,7 +126,7 @@
         "tabzchrome",
         "workers"
       ],
-      "strict": false,
+      "strict": true,
       "commands": [
         "./commands/spawn.md"
       ],
@@ -157,13 +154,11 @@
         "worktrees",
         "git"
       ],
-      "strict": false,
+      "strict": true,
       "commands": [
         "./commands/done.md"
       ],
-      "agents": [
-        "./agents/cleanup.md"
-      ],
+      "agents": [],
       "skills": [
         "./skills/merge"
       ]

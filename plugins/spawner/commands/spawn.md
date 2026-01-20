@@ -1,5 +1,5 @@
 ---
-name: spawn
+name: gg-spawn
 description: "Spawn a Claude worker for a ready issue"
 argument-hint: "ISSUE_ID"
 ---
