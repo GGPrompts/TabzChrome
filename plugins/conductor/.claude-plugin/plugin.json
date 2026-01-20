@@ -1,0 +1,5 @@
+{
+  "name": "conductor",
+  "version": "2.5.0",
+  "description": "Spawn and monitor Claude workers via TabzChrome API and MCP tools, with beads-native issue tracking, tmuxplexer dashboard, and browser debugging"
+}
