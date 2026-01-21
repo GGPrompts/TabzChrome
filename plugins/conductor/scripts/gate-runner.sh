@@ -121,19 +121,78 @@ spawn_checkpoint() {
   local gate_type="$2"
   local worktree="$3"
 
-  local skill="${GATE_SKILLS[$gate_type]:-}"
   local file="${CHECKPOINT_FILES[$gate_type]:-}"
-  if [ -z "$skill" ] || [ -z "$file" ]; then
+  if [ -z "$file" ]; then
     log_err "Unsupported gate type: $gate_type"
     return 1
   fi
 
   local term_name="chk-${issue_id}-${gate_type}"
 
+  log "Spawning checkpoint $term_name..."
+
+  # For codex-review, run `codex review` directly (non-interactive, no terminal needed)
+  # For other gates, spawn Claude with the skill
+  if [ "$gate_type" = "codex-review" ]; then
+    # Run codex review directly - it's non-interactive and exits on completion
+    # No need to spawn a terminal, just run in background and write checkpoint
+    (
+      cd "$worktree"
+      mkdir -p .checkpoints
+
+      # Run codex review (--base main for branch diff, or --uncommitted)
+      local review_output
+      if git diff --quiet main...HEAD 2>/dev/null; then
+        # No branch diff, check uncommitted
+        review_output="$(codex review --uncommitted --title "$issue_id review" 2>&1)" || true
+      else
+        # Has branch changes
+        review_output="$(codex review --base main --title "$issue_id review" 2>&1)" || true
+      fi
+
+      # Parse result - codex review exits 0 on success, non-zero on issues
+      local passed="true"
+      local summary="Code review passed"
+
+      # Check if review found issues (look for P1/P2 markers or "incorrect" verdict)
+      if echo "$review_output" | grep -qE '\[P[12]\]|incorrect'; then
+        passed="false"
+        summary="Code review found issues"
+      fi
+
+      # Write checkpoint
+      cat > ".checkpoints/$file" <<EOF
+{
+  "checkpoint": "codex-review",
+  "timestamp": "$(date -Iseconds)",
+  "passed": $passed,
+  "summary": "$summary",
+  "issues": []
+}
+EOF
+      log_ok "Codex review complete: $passed"
+    ) &
+
+    # Return a fake session ID (codex review runs in background, not in terminal)
+    echo "codex-review-$$"
+    return 0
+  fi
+
+  # Other gates use Claude with skills
+  local skill="${GATE_SKILLS[$gate_type]:-}"
+  if [ -z "$skill" ]; then
+    log_err "No skill for gate type: $gate_type"
+    return 1
+  fi
+
   local plugin_dirs="--plugin-dir $HOME/.claude/plugins/marketplaces"
   [ -d "$HOME/plugins/my-plugins" ] && plugin_dirs="$plugin_dirs --plugin-dir $HOME/plugins/my-plugins"
+  local command="BEADS_NO_DAEMON=1 claude $plugin_dirs"
+  local prompt="Run /$skill for issue $issue_id.
 
-  log "Spawning checkpoint $term_name..."
+When finished, write the result JSON to .checkpoints/$file and exit.
+
+Include: {checkpoint, timestamp, passed, summary}."
 
   local resp
   resp="$(curl -s -X POST "$TABZ_API/api/spawn" \
@@ -142,7 +201,7 @@ spawn_checkpoint() {
     -d "{
       \"name\": \"$term_name\",
       \"workingDir\": \"$worktree\",
-      \"command\": \"BEADS_NO_DAEMON=1 claude $plugin_dirs\"
+      \"command\": \"$command\"
     }")"
 
   local err
@@ -162,8 +221,6 @@ spawn_checkpoint() {
     return 1
   fi
 
-  local prompt
-  prompt=$'Run /'"$skill"$' for issue '"$issue_id"$'.\n\nWhen finished, write the result JSON to .checkpoints/'"$file"$' and exit.\n\nInclude: {checkpoint, timestamp, passed, summary}.'
   "$SAFE_SEND_KEYS" "$session" "$prompt"
 
   echo "$session"
@@ -225,18 +282,38 @@ run_gate() {
 
   mkdir -p "$worktree/.checkpoints"
 
-  if ! spawn_checkpoint "$issue_id" "$gate_type" "$worktree" >/dev/null; then
+  local session
+  session="$(spawn_checkpoint "$issue_id" "$gate_type" "$worktree")"
+  if [ -z "$session" ]; then
     log_err "$issue_id: failed to spawn $gate_type"
     return 1
   fi
 
-  if ! wait_for_checkpoint_file "$term_name" "$checkpoint_path"; then
-    log_err "$issue_id: $gate_type did not produce a valid checkpoint"
+  # codex-review runs in background without a terminal - just wait for file
+  if [ "$gate_type" = "codex-review" ]; then
+    log "Waiting for codex review to complete..."
+    local start elapsed
+    start="$(date +%s)"
+    while true; do
+      if [ -f "$checkpoint_path" ] && jq -e '.passed' "$checkpoint_path" >/dev/null 2>&1; then
+        break
+      fi
+      elapsed=$(( $(date +%s) - start ))
+      if [ "$elapsed" -gt "$TIMEOUT" ]; then
+        log_err "$issue_id: codex review timed out after ${TIMEOUT}s"
+        return 1
+      fi
+      sleep 5
+    done
+  else
+    # Other gates run in terminals - wait and cleanup
+    if ! wait_for_checkpoint_file "$term_name" "$checkpoint_path"; then
+      log_err "$issue_id: $gate_type did not produce a valid checkpoint"
+      kill_checkpoint "$term_name"
+      return 1
+    fi
     kill_checkpoint "$term_name"
-    return 1
   fi
-
-  kill_checkpoint "$term_name"
 
   local passed summary
   passed="$(jq -r '.passed' "$checkpoint_path" 2>/dev/null || echo "false")"
