@@ -5,7 +5,7 @@ description: |
   Use when spawning workers, managing terminals, or setting up worktrees.
   Trigger with "spawn worker", "create terminal", "worktree setup".
 model: haiku
-allowed-tools: Bash, Read
+allowed-tools: Bash, Read, mcp__tabz__*
 ---
 
 # Terminals - Worker Spawning
