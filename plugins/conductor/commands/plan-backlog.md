@@ -93,17 +93,16 @@ bd label add ID frontend,auth --json
 
 ## Step 4: Assign Quality Gates
 
-Based on issue characteristics, assign appropriate quality gates. The `/conductor:gate-runner` will execute these gates before merging.
+Based on issue characteristics, assign appropriate quality checkpoints. The `/conductor:gate-runner` (or the one-shot `finalize-issue.sh`) runs these checkpoints before merging.
 
 ### Gate Types
 
 | Gate | Purpose | Checkpoint Skill |
 |------|---------|-----------------|
-| `codex-review` | Code review via Codex | `/codex-review` |
-| `test-runner` | Run project tests | `/test-runner` |
-| `visual-qa` | Visual/UI verification | `/visual-qa` |
-| `docs-check` | Documentation updates | `/docs-check` |
-| `human` | Manual approval | (requires `bd gate resolve`) |
+| `codex-review` | Code review via Codex | `/conductor:reviewing-code` |
+| `test-runner` | Run project tests | `/conductor:running-tests` |
+| `visual-qa` | Visual/UI verification | `/conductor:visual-qa` |
+| `docs-check` | Changelog/docs hygiene | `/conductor:docs-check` |
 
 #### Assignment Heuristics
 
@@ -127,31 +126,28 @@ Analyze each issue and suggest gates based on:
 | `needs-tests`, `testing` | `test-runner` |
 | `needs-review`, `security` | `codex-review` |
 | `needs-docs` | `docs-check` |
-| `needs-manual`, `breaking-change` | `human` |
 
-#### Creating Gates
+#### Assigning Gates (Recommended: labels on the work issue)
 
-After determining which gates apply, create them as blockers:
+After determining which gates apply, add labels to the work issue:
 
 **Using CLI:**
 ```bash
-# Create gate issue that blocks the work issue
-bd create "codex-review for ISSUE-ID" --type gate --deps "blocks:ISSUE-ID" --labels codex-review
+# Add one gate
+bd label add ISSUE-ID gate:codex-review
 
-# Multiple gates
-bd create "test-runner for ISSUE-ID" --type gate --deps "blocks:ISSUE-ID" --labels test-runner
-bd create "visual-qa for ISSUE-ID" --type gate --deps "blocks:ISSUE-ID" --labels visual-qa
+# Add multiple gates
+bd label add ISSUE-ID gate:codex-review,gate:test-runner,gate:visual-qa,gate:docs-check
 ```
 
 **Using MCP:**
 ```python
-# Create gate that blocks the issue
-mcp__beads__create(
-  title="codex-review for ISSUE-ID",
-  issue_type="gate",
-  deps=["blocks:ISSUE-ID"],
-  labels=["codex-review"]
-)
+mcp__beads__update(issue_id="ISSUE-ID", labels=["gate:codex-review", "gate:test-runner"])
+```
+
+**Docs-check bypass label (explicit, searchable):**
+```bash
+bd label add ISSUE-ID no-changelog
 ```
 
 #### Presenting Gate Suggestions

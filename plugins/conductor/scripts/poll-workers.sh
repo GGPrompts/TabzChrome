@@ -55,8 +55,11 @@ while true; do
   fi
   PREV_CLOSED="$CLOSED"
 
-  # Extract worker names that match issue IDs
-  WORKER_ISSUES=$(echo "$WORKERS" | jq -c '[.[] | select(.name | test("^[A-Z0-9]+-[a-z0-9]+$")) | {id: .id, name: .name, state: .state}]')
+  # Extract worker sessions that correspond to in-progress beads issues.
+  # Avoid brittle regexes (beads IDs are often lowercase like bd-xxxx).
+  IN_PROGRESS_IDS=$(echo "$IN_PROGRESS" | jq -c '[.[].id]' 2>/dev/null || echo '[]')
+  WORKER_ISSUES=$(echo "$WORKERS" | jq -c --argjson ids "$IN_PROGRESS_IDS" \
+    '[.[] | select(.name as $n | $ids | index($n)) | {id: .id, name: .name, state: .state}]' 2>/dev/null || echo '[]')
 
   # Build status JSON
   jq -n \

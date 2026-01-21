@@ -1,30 +1,41 @@
-#!/bin/bash
-# Gate Runner - Process pending gates and resolve/reopen
+#!/usr/bin/env bash
+# gate-runner.sh - Run quality checkpoints for a beads issue
 #
 # Usage:
-#   ./gate-runner.sh          # Poll continuously
-#   ./gate-runner.sh --once   # Run once then exit
+#   ./gate-runner.sh --issue ISSUE_ID [--worktree PATH] [--timeout 300]
 #
-# Spawns checkpoint workers for pending gates, reads results,
-# resolves gates on pass or reopens issues on failure.
+# Notes:
+# - This is NOT `bd gate` (async wisp gates for external waits).
+# - Here "gate" means "quality checkpoint" (codex review, tests, docs, visual QA).
+# - Required checkpoints come from issue labels:
+#     - Preferred: `gate:<type>` (e.g. `gate:codex-review`)
+#     - Legacy: `<type>` (e.g. `codex-review`)
+#
+# Output:
+# - Writes `.checkpoints/*.json` in the issue worktree (via checkpoint workers).
+# - Exits non-zero if any required checkpoint fails or is missing.
 
-set -e
+set -euo pipefail
 
 TABZ_API="${TABZ_API:-http://localhost:8129}"
-TOKEN="${TABZ_TOKEN:-$(cat /tmp/tabz-auth-token 2>/dev/null)}"
-POLL_INTERVAL="${POLL_INTERVAL:-15}"
+TOKEN="${TABZ_TOKEN:-$(cat /tmp/tabz-auth-token 2>/dev/null || true)}"
 TIMEOUT="${TIMEOUT:-300}"
 
-# Find safe-send-keys.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAFE_SEND_KEYS="$SCRIPT_DIR/safe-send-keys.sh"
 
-# Gate type to checkpoint skill mapping
 declare -A GATE_SKILLS=(
-  ["codex-review"]="codex-review"
-  ["test-runner"]="test-runner"
-  ["visual-qa"]="visual-qa"
-  ["docs-check"]="docs-check"
+  ["codex-review"]="conductor:reviewing-code"
+  ["test-runner"]="conductor:running-tests"
+  ["visual-qa"]="conductor:visual-qa"
+  ["docs-check"]="conductor:docs-check"
+)
+
+declare -A CHECKPOINT_FILES=(
+  ["codex-review"]="codex-review.json"
+  ["test-runner"]="test-runner.json"
+  ["visual-qa"]="visual-qa.json"
+  ["docs-check"]="docs-check.json"
 )
 
 # Colors
@@ -38,7 +49,22 @@ log_ok() { echo -e "${GREEN}[$(date +%H:%M:%S)] ✓ $*${NC}"; }
 log_err() { echo -e "${RED}[$(date +%H:%M:%S)] ✗ $*${NC}"; }
 log_warn() { echo -e "${YELLOW}[$(date +%H:%M:%S)] ⚠ $*${NC}"; }
 
-# Pre-flight check
+usage() {
+  cat <<EOF
+Usage: $0 --issue ISSUE_ID [--worktree PATH] [--timeout SECONDS]
+
+Required gates come from issue labels:
+  - gate:codex-review
+  - gate:test-runner
+  - gate:docs-check
+  - gate:visual-qa
+
+Legacy (still supported):
+  - codex-review, test-runner, docs-check, visual-qa
+EOF
+  exit 2
+}
+
 check_health() {
   if ! curl -sf "$TABZ_API/api/health" >/dev/null 2>&1; then
     log_err "TabzChrome not running at $TABZ_API"
@@ -48,133 +74,139 @@ check_health() {
     log_err "No auth token found. Check /tmp/tabz-auth-token"
     exit 1
   fi
+  if [ ! -x "$SAFE_SEND_KEYS" ]; then
+    log_err "safe-send-keys.sh not found or not executable: $SAFE_SEND_KEYS"
+    exit 1
+  fi
   log_ok "TabzChrome healthy"
 }
 
-# Get pending gates as JSON lines
-get_pending_gates() {
-  bd gate list --json 2>/dev/null | jq -c '.[] | select(.status == "pending" or .status == "open")' 2>/dev/null || true
-}
-
-# Get worktree path for an issue
 get_worktree_path() {
-  local ISSUE_ID="$1"
-  local WORKDIR=$(pwd)
+  local issue_id="$1"
+  local workdir
+  workdir="$(pwd)"
 
-  # Look in .worktrees/
-  if [ -d "$WORKDIR/.worktrees/$ISSUE_ID" ]; then
-    echo "$WORKDIR/.worktrees/$ISSUE_ID"
+  if [ -d "$workdir/.worktrees/$issue_id" ]; then
+    echo "$workdir/.worktrees/$issue_id"
     return 0
   fi
 
-  # Look in parent's .worktrees/ (if we're in a worktree)
-  local PARENT=$(git worktree list --porcelain 2>/dev/null | grep "^worktree " | head -1 | cut -d' ' -f2)
-  if [ -n "$PARENT" ] && [ -d "$PARENT/.worktrees/$ISSUE_ID" ]; then
-    echo "$PARENT/.worktrees/$ISSUE_ID"
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+  if [ -n "$repo_root" ] && [ -d "$repo_root/.worktrees/$issue_id" ]; then
+    echo "$repo_root/.worktrees/$issue_id"
     return 0
   fi
 
   return 1
 }
 
-# Spawn checkpoint worker
-spawn_checkpoint() {
-  local GATE_ID="$1"
-  local GATE_TYPE="$2"
-  local ISSUE_ID="$3"
-  local WORKTREE="$4"
+get_required_gates() {
+  local issue_id="$1"
 
-  local SKILL="${GATE_SKILLS[$GATE_TYPE]}"
-  if [ -z "$SKILL" ]; then
-    log_err "Unknown gate type: $GATE_TYPE"
+  bd show "$issue_id" --json 2>/dev/null | jq -r '
+    (.[0].labels // [])[]
+    | if startswith("gate:") then sub("^gate:";"") else . end
+  ' 2>/dev/null | while read -r label; do
+    case "$label" in
+      codex-review|test-runner|visual-qa|docs-check)
+        echo "$label"
+        ;;
+    esac
+  done | sort -u
+}
+
+spawn_checkpoint() {
+  local issue_id="$1"
+  local gate_type="$2"
+  local worktree="$3"
+
+  local skill="${GATE_SKILLS[$gate_type]:-}"
+  local file="${CHECKPOINT_FILES[$gate_type]:-}"
+  if [ -z "$skill" ] || [ -z "$file" ]; then
+    log_err "Unsupported gate type: $gate_type"
     return 1
   fi
 
-  # Terminal name: gate-{issue}-{type}
-  local TERM_NAME="gate-${ISSUE_ID}-${GATE_TYPE}"
+  local term_name="chk-${issue_id}-${gate_type}"
 
-  # Plugin directories
-  local PLUGIN_DIRS="--plugin-dir $HOME/.claude/plugins/marketplaces"
-  [ -d "$HOME/plugins/my-plugins" ] && PLUGIN_DIRS="$PLUGIN_DIRS --plugin-dir $HOME/plugins/my-plugins"
+  local plugin_dirs="--plugin-dir $HOME/.claude/plugins/marketplaces"
+  [ -d "$HOME/plugins/my-plugins" ] && plugin_dirs="$plugin_dirs --plugin-dir $HOME/plugins/my-plugins"
 
-  log "Spawning checkpoint $TERM_NAME..."
+  log "Spawning checkpoint $term_name..."
 
-  # Spawn checkpoint worker
-  local RESP=$(curl -s -X POST "$TABZ_API/api/spawn" \
+  local resp
+  resp="$(curl -s -X POST "$TABZ_API/api/spawn" \
     -H "Content-Type: application/json" \
     -H "X-Auth-Token: $TOKEN" \
     -d "{
-      \"name\": \"$TERM_NAME\",
-      \"workingDir\": \"$WORKTREE\",
-      \"command\": \"BEADS_NO_DAEMON=1 claude $PLUGIN_DIRS\"
-    }")
+      \"name\": \"$term_name\",
+      \"workingDir\": \"$worktree\",
+      \"command\": \"BEADS_NO_DAEMON=1 claude $plugin_dirs\"
+    }")"
 
-  local ERROR=$(echo "$RESP" | jq -r '.error // empty')
-  if [ -n "$ERROR" ]; then
-    log_err "Spawn failed: $ERROR"
+  local err
+  err="$(echo "$resp" | jq -r '.error // empty' 2>/dev/null || true)"
+  if [ -n "$err" ]; then
+    log_err "Spawn failed: $err"
     return 1
   fi
 
-  # Wait for Claude to initialize
   log "Waiting for Claude to initialize..."
   sleep 8
 
-  # Get session ID
-  local SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$TERM_NAME" '.data[] | select(.name == $n) | .id')
-
-  if [ -z "$SESSION" ] || [ "$SESSION" = "null" ]; then
-    log_err "Failed to get session for $TERM_NAME"
+  local session
+  session="$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$term_name" '.data[] | select(.name == $n) | .id' 2>/dev/null || true)"
+  if [ -z "$session" ] || [ "$session" = "null" ]; then
+    log_err "Failed to get session for $term_name"
     return 1
   fi
 
-  # Send the checkpoint skill invocation
-  local PROMPT="Run the /$SKILL checkpoint for gate $GATE_ID on issue $ISSUE_ID. Write result to .checkpoints/$SKILL.json and exit when done."
-  "$SAFE_SEND_KEYS" "$SESSION" "$PROMPT"
+  local prompt
+  prompt=$'Run /'"$skill"$' for issue '"$issue_id"$'.\n\nWhen finished, write the result JSON to .checkpoints/'"$file"$' and exit.\n\nInclude: {checkpoint, timestamp, passed, summary}.'
+  "$SAFE_SEND_KEYS" "$session" "$prompt"
 
-  log_ok "Spawned $TERM_NAME (session: $SESSION)"
-  echo "$SESSION"
+  echo "$session"
 }
 
-# Wait for checkpoint to complete
-wait_for_checkpoint() {
-  local TERM_NAME="$1"
-  local WORKTREE="$2"
-  local SKILL="$3"
+kill_checkpoint() {
+  local term_name="$1"
+  local session
+  session="$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$term_name" '.data[] | select(.name == $n) | .id' 2>/dev/null || true)"
+  if [ -n "$session" ] && [ "$session" != "null" ]; then
+    curl -s -X DELETE "$TABZ_API/api/agents/$session" -H "X-Auth-Token: $TOKEN" >/dev/null
+  fi
+}
 
-  local CHECKPOINT_FILE="$WORKTREE/.checkpoints/${SKILL}.json"
-  local START=$(date +%s)
+wait_for_checkpoint_file() {
+  local term_name="$1"
+  local checkpoint_path="$2"
+  local start
+  start="$(date +%s)"
 
-  log "Waiting for checkpoint result at $CHECKPOINT_FILE..."
+  log "Waiting for checkpoint: $checkpoint_path"
 
   while true; do
-    # Check if result file exists and is valid JSON
-    if [ -f "$CHECKPOINT_FILE" ]; then
-      if jq -e '.passed' "$CHECKPOINT_FILE" >/dev/null 2>&1; then
-        log_ok "Checkpoint file found"
-        return 0
-      fi
+    if [ -f "$checkpoint_path" ] && jq -e '.passed' "$checkpoint_path" >/dev/null 2>&1; then
+      return 0
     fi
 
-    # Check if terminal still exists
-    local EXISTS=$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$TERM_NAME" '.data[] | select(.name == $n) | .id')
-    if [ -z "$EXISTS" ] || [ "$EXISTS" = "null" ]; then
-      # Terminal exited - give it a moment to write file
+    local exists
+    exists="$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$term_name" '.data[] | select(.name == $n) | .id' 2>/dev/null || true)"
+    if [ -z "$exists" ] || [ "$exists" = "null" ]; then
       sleep 2
-      if [ -f "$CHECKPOINT_FILE" ] && jq -e '.passed' "$CHECKPOINT_FILE" >/dev/null 2>&1; then
-        log_ok "Checkpoint file found (after terminal exit)"
+      if [ -f "$checkpoint_path" ] && jq -e '.passed' "$checkpoint_path" >/dev/null 2>&1; then
         return 0
       fi
-      log_warn "Terminal exited without writing checkpoint"
       return 1
     fi
 
-    # Check timeout
-    local NOW=$(date +%s)
-    local ELAPSED=$((NOW - START))
-    if [ "$ELAPSED" -gt "$TIMEOUT" ]; then
+    local now elapsed
+    now="$(date +%s)"
+    elapsed=$((now - start))
+    if [ "$elapsed" -gt "$TIMEOUT" ]; then
       log_err "Checkpoint timed out after ${TIMEOUT}s"
-      # Kill the terminal
-      curl -s -X DELETE "$TABZ_API/api/agents/$EXISTS" -H "X-Auth-Token: $TOKEN" >/dev/null
+      curl -s -X DELETE "$TABZ_API/api/agents/$exists" -H "X-Auth-Token: $TOKEN" >/dev/null
       return 1
     fi
 
@@ -182,186 +214,98 @@ wait_for_checkpoint() {
   done
 }
 
-# Kill checkpoint terminal
-kill_checkpoint() {
-  local TERM_NAME="$1"
+run_gate() {
+  local issue_id="$1"
+  local gate_type="$2"
+  local worktree="$3"
 
-  local SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg n "$TERM_NAME" '.data[] | select(.name == $n) | .id')
-  if [ -n "$SESSION" ] && [ "$SESSION" != "null" ]; then
-    curl -s -X DELETE "$TABZ_API/api/agents/$SESSION" -H "X-Auth-Token: $TOKEN" >/dev/null
-    log "Killed terminal $TERM_NAME"
-  fi
-}
+  local term_name="chk-${issue_id}-${gate_type}"
+  local file="${CHECKPOINT_FILES[$gate_type]}"
+  local checkpoint_path="$worktree/.checkpoints/$file"
 
-# Read checkpoint result
-read_checkpoint_result() {
-  local WORKTREE="$1"
-  local SKILL="$2"
+  mkdir -p "$worktree/.checkpoints"
 
-  local FILE="$WORKTREE/.checkpoints/${SKILL}.json"
-  if [ -f "$FILE" ]; then
-    cat "$FILE"
-  else
-    echo '{"passed": false, "error": "Checkpoint file not found"}'
-  fi
-}
-
-# Process a single gate
-process_gate() {
-  local GATE_JSON="$1"
-
-  # Parse gate fields - handle various field names
-  local GATE_ID=$(echo "$GATE_JSON" | jq -r '.id // .gate_id // ""')
-  local GATE_TYPE=$(echo "$GATE_JSON" | jq -r '.type // .gate_type // "unknown"')
-  local ISSUE_ID=$(echo "$GATE_JSON" | jq -r '.issue_id // .parent_id // .blocked_issue // ""')
-
-  # Try to extract issue ID from gate ID if not present
-  if [ -z "$ISSUE_ID" ] || [ "$ISSUE_ID" = "null" ]; then
-    # Gates might be named like "codex-review-for-ISSUE"
-    ISSUE_ID=$(echo "$GATE_ID" | grep -oP '(?<=for-)\S+' || true)
-  fi
-
-  log "Processing gate: $GATE_ID"
-  log "  Type: $GATE_TYPE"
-  log "  Issue: $ISSUE_ID"
-
-  # Skip human gates
-  if [ "$GATE_TYPE" = "human" ]; then
-    log_warn "Skipping human gate (requires manual approval)"
-    return 0
-  fi
-
-  # Check gate type is supported
-  local SKILL="${GATE_SKILLS[$GATE_TYPE]}"
-  if [ -z "$SKILL" ]; then
-    log_warn "Unknown gate type: $GATE_TYPE (supported: ${!GATE_SKILLS[*]})"
-    return 0
-  fi
-
-  # Get worktree
-  local WORKTREE
-  WORKTREE=$(get_worktree_path "$ISSUE_ID")
-  if [ -z "$WORKTREE" ]; then
-    log_warn "No worktree found for $ISSUE_ID - skipping"
-    return 0
-  fi
-
-  log "  Worktree: $WORKTREE"
-
-  # Create .checkpoints directory
-  mkdir -p "$WORKTREE/.checkpoints"
-
-  # Spawn checkpoint
-  local SESSION
-  SESSION=$(spawn_checkpoint "$GATE_ID" "$GATE_TYPE" "$ISSUE_ID" "$WORKTREE")
-  if [ $? -ne 0 ] || [ -z "$SESSION" ]; then
-    log_err "Failed to spawn checkpoint for $GATE_ID"
+  if ! spawn_checkpoint "$issue_id" "$gate_type" "$worktree" >/dev/null; then
+    log_err "$issue_id: failed to spawn $gate_type"
     return 1
   fi
 
-  local TERM_NAME="gate-${ISSUE_ID}-${GATE_TYPE}"
-
-  # Wait for completion
-  if ! wait_for_checkpoint "$TERM_NAME" "$WORKTREE" "$SKILL"; then
-    kill_checkpoint "$TERM_NAME"
-    log_err "Gate $GATE_ID failed (no result)"
-    bd reopen "$ISSUE_ID" --reason "Gate failed: $GATE_TYPE - checkpoint did not complete" 2>/dev/null || true
+  if ! wait_for_checkpoint_file "$term_name" "$checkpoint_path"; then
+    log_err "$issue_id: $gate_type did not produce a valid checkpoint"
+    kill_checkpoint "$term_name"
     return 1
   fi
 
-  # Kill terminal (cleanup)
-  kill_checkpoint "$TERM_NAME"
+  kill_checkpoint "$term_name"
 
-  # Read result
-  local RESULT=$(read_checkpoint_result "$WORKTREE" "$SKILL")
-  local PASSED=$(echo "$RESULT" | jq -r '.passed')
-  local SUMMARY=$(echo "$RESULT" | jq -r '.summary // .error // "No summary"')
+  local passed summary
+  passed="$(jq -r '.passed' "$checkpoint_path" 2>/dev/null || echo "false")"
+  summary="$(jq -r '.summary // .error // "No summary"' "$checkpoint_path" 2>/dev/null || echo "No summary")"
 
-  if [ "$PASSED" = "true" ]; then
-    log_ok "Gate $GATE_ID PASSED: $SUMMARY"
-    bd gate resolve "$GATE_ID" 2>/dev/null || log_warn "Could not resolve gate (may need manual resolve)"
-
-    # Check if all gates for this issue are now resolved
-    check_all_gates_passed "$ISSUE_ID"
-  else
-    log_err "Gate $GATE_ID FAILED: $SUMMARY"
-    bd reopen "$ISSUE_ID" --reason "Gate failed: $GATE_TYPE - $SUMMARY" 2>/dev/null || true
+  if [ "$passed" = "true" ]; then
+    log_ok "$issue_id: $gate_type PASS - $summary"
+    return 0
   fi
+
+  log_err "$issue_id: $gate_type FAIL - $summary"
+  return 1
 }
 
-# Check if all gates passed and optionally merge
-check_all_gates_passed() {
-  local ISSUE_ID="$1"
+ISSUE_ID=""
+WORKTREE_OVERRIDE=""
 
-  # Check for remaining gates on this issue
-  local REMAINING=$(bd gate list --json 2>/dev/null | jq --arg id "$ISSUE_ID" '[.[] | select((.issue_id == $id or .parent_id == $id) and (.status == "pending" or .status == "open"))] | length')
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --issue)
+      ISSUE_ID="${2:-}"
+      shift 2
+      ;;
+    --worktree)
+      WORKTREE_OVERRIDE="${2:-}"
+      shift 2
+      ;;
+    --timeout)
+      TIMEOUT="${2:-300}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      log_err "Unknown arg: $1"
+      usage
+      ;;
+  esac
+done
 
-  if [ "$REMAINING" = "0" ] || [ "$REMAINING" = "null" ]; then
-    log_ok "All gates passed for $ISSUE_ID"
+[ -z "$ISSUE_ID" ] && usage
 
-    # Check if issue should be merged
-    local WORKDIR=$(pwd)
-    local BRANCH="feature/$ISSUE_ID"
+check_health
 
-    if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
-      log "Merging $BRANCH..."
-      cd "$WORKDIR"
+WORKTREE="${WORKTREE_OVERRIDE:-$(get_worktree_path "$ISSUE_ID" || true)}"
+if [ -z "$WORKTREE" ] || [ ! -d "$WORKTREE" ]; then
+  log_err "Worktree not found for $ISSUE_ID"
+  exit 1
+fi
 
-      if git merge "$BRANCH" --no-edit 2>/dev/null; then
-        log_ok "Merged $BRANCH"
+REQUIRED="$(get_required_gates "$ISSUE_ID" || true)"
+if [ -z "$REQUIRED" ]; then
+  log_warn "No required checkpoints for $ISSUE_ID (no gate:* labels)"
+  exit 0
+fi
 
-        # Remove worktree
-        git worktree remove ".worktrees/$ISSUE_ID" --force 2>/dev/null || true
-        git branch -d "$BRANCH" 2>/dev/null || true
+log "Required checkpoints for $ISSUE_ID:"
+echo "$REQUIRED" | sed 's/^/  - /'
 
-        log_ok "Cleaned up $ISSUE_ID"
-      else
-        log_warn "Merge conflict for $ISSUE_ID - needs manual resolution"
-      fi
-    fi
-  else
-    log "Issue $ISSUE_ID has $REMAINING remaining gates"
-  fi
-}
+FAILED=0
+while read -r gate; do
+  [ -z "$gate" ] && continue
+  run_gate "$ISSUE_ID" "$gate" "$WORKTREE" || FAILED=$((FAILED + 1))
+done <<< "$REQUIRED"
 
-# Main loop
-main() {
-  local RUN_ONCE=false
-  [ "$1" = "--once" ] && RUN_ONCE=true
+if [ "$FAILED" -gt 0 ]; then
+  log_err "$ISSUE_ID: $FAILED checkpoint(s) failed"
+  exit 1
+fi
 
-  check_health
-
-  log "Gate Runner started"
-  log "Supported gate types: ${!GATE_SKILLS[*]}"
-  log "Poll interval: ${POLL_INTERVAL}s, Timeout: ${TIMEOUT}s"
-  echo
-
-  while true; do
-    # Get all pending gates
-    local GATES
-    GATES=$(get_pending_gates)
-    local COUNT=0
-    [ -n "$GATES" ] && COUNT=$(echo "$GATES" | grep -c . 2>/dev/null || echo 0)
-
-    if [ "$COUNT" -eq 0 ]; then
-      log "No pending gates"
-      $RUN_ONCE && { log "Exiting (--once mode)"; exit 0; }
-    else
-      log "Found $COUNT pending gate(s)"
-
-      # Process each gate (sequential for safety)
-      echo "$GATES" | while IFS= read -r GATE; do
-        [ -n "$GATE" ] && process_gate "$GATE"
-        echo
-      done
-    fi
-
-    $RUN_ONCE && { log "Exiting (--once mode)"; exit 0; }
-
-    log "Sleeping ${POLL_INTERVAL}s..."
-    sleep "$POLL_INTERVAL"
-    echo
-  done
-}
-
-main "$@"
+log_ok "$ISSUE_ID: all checkpoints passed"

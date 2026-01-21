@@ -18,10 +18,10 @@ skills:
 
 Lightweight pre-commit quality gate that checks gate status and previous checkpoint results.
 
-> **Note**: This agent does NOT run checkpoints - that's gate-runner's job post-close.
+> **Note**: This agent does NOT run checkpoints - that's gate-runner's job after the issue is closed.
 > This agent only verifies gates are assigned and checks for any existing failed checkpoints.
 >
-> For post-work cleanup (merge, worktree removal), use `/cleanup:done` instead.
+> For post-work cleanup (checkpoints → merge → cleanup → push), use `/cleanup:done` (runs `finalize-issue.sh`).
 
 ## Context
 

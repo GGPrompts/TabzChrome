@@ -26,6 +26,7 @@ if [ -z "$ISSUES" ]; then
   echo ""
   echo "Environment variables:"
   echo "  SKIP_CAPTURE=1  - Skip session capture"
+  echo "  SKIP_CHECKPOINTS=1 - Skip checkpoint verification"
   echo "  SKIP_MERGE=1    - Skip branch merging"
   echo "  SKIP_CLEANUP=1  - Skip worktree cleanup"
   echo "  AUDIO=1         - Enable audio notification"
@@ -36,6 +37,35 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$PROJECT_DIR"
+
+# Helper: Verify required checkpoints (if verify-checkpoints.sh exists)
+verify_checkpoints() {
+  local issue="$1"
+  local verifier="$SCRIPT_DIR/verify-checkpoints.sh"
+
+  if [ -n "${SKIP_CHECKPOINTS:-}" ]; then
+    return 0
+  fi
+
+  if [ ! -x "$verifier" ]; then
+    return 0
+  fi
+
+  # Worktrees are usually at .worktrees/<issue>
+  if [ -d "$PROJECT_DIR/.worktrees/$issue" ]; then
+    "$verifier" --issue "$issue" --worktree "$PROJECT_DIR/.worktrees/$issue"
+    return $?
+  fi
+
+  # Fallback to legacy sibling worktree layout (../<issue>)
+  if [ -d "$WORKTREE_BASE/$issue" ]; then
+    "$verifier" --issue "$issue" --worktree "$WORKTREE_BASE/$issue"
+    return $?
+  fi
+
+  echo "WARNING: No worktree found for $issue (checkpoint verify skipped)"
+  return 0
+}
 
 # Helper: Check if changes are docs-only (markdown files)
 is_docs_only() {
@@ -157,6 +187,14 @@ if [ -z "$SKIP_MERGE" ]; then
       continue
     fi
 
+    # Verify checkpoints before merging (prevents merging incomplete work)
+    echo "  Verifying checkpoints for $ISSUE..."
+    if ! verify_checkpoints "$ISSUE"; then
+      echo "    BLOCKED: Checkpoints not satisfied for $ISSUE (skipping merge)"
+      MERGE_FAILED=$((MERGE_FAILED + 1))
+      continue
+    fi
+
     echo "  Merging $BRANCH..."
     MERGE_OUTPUT=$(git merge --no-edit "$BRANCH" 2>&1)
     MERGE_STATUS=$?
@@ -190,10 +228,14 @@ if [ -z "$SKIP_CLEANUP" ]; then
   for ISSUE in $ISSUES; do
     [[ "$ISSUE" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
 
-    # Worktrees are sibling directories (../$ISSUE)
-    if [ -d "${WORKTREE_BASE}/${ISSUE}" ]; then
+    # Prefer the modern layout: .worktrees/<ISSUE>
+    if [ -d "${PROJECT_DIR}/.worktrees/${ISSUE}" ]; then
+      git worktree remove --force "${PROJECT_DIR}/.worktrees/${ISSUE}" 2>/dev/null || true
+      echo "  Removed worktree: .worktrees/${ISSUE}"
+    elif [ -d "${WORKTREE_BASE}/${ISSUE}" ]; then
+      # Legacy layout: sibling directory (../<ISSUE>)
       git worktree remove --force "${WORKTREE_BASE}/${ISSUE}" 2>/dev/null || true
-      echo "  Removed worktree: ${ISSUE}"
+      echo "  Removed worktree: ${WORKTREE_BASE}/${ISSUE}"
     fi
 
     # Delete the feature branch

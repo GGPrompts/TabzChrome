@@ -37,7 +37,7 @@ Add these to your to-dos:
 | Plugin | Command | Purpose |
 |--------|---------|---------|
 | spawner | `/spawner:spawn` | Spawn workers for ready issues |
-| cleanup | `/cleanup:done` | Merge and cleanup completed work |
+| cleanup | `/cleanup:done` | Finalize a closed issue (checkpoints → merge → cleanup → push) |
 
 **Max 3 workers** - workers spawn subagents, more causes resource contention.
 
@@ -120,6 +120,7 @@ Task(
 ```
 
 The cleanup captures session stats (tokens, cost) before killing the terminal, then merges.
+It also runs any required quality checkpoints (from labels like `gate:codex-review`) before merging.
 
 ## Step 5: Wave Stats (Every 3 Completions)
 

@@ -198,7 +198,27 @@ fi
 # Pre-commit hook for cleanup
 #######################################
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOOK_SOURCE="$SCRIPT_DIR/pre-commit-cleanup.sh"
+
+# Locate pre-commit hook source.
+# - In conductor plugin, it's in this directory.
+# - In spawner plugin (copied script), it lives under conductor/.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+find_precommit_hook() {
+  local found=""
+
+  if [ -f "$SCRIPT_DIR/pre-commit-cleanup.sh" ]; then
+    found="$SCRIPT_DIR/pre-commit-cleanup.sh"
+  elif [ -f "$REPO_ROOT/plugins/conductor/scripts/pre-commit-cleanup.sh" ]; then
+    found="$REPO_ROOT/plugins/conductor/scripts/pre-commit-cleanup.sh"
+  else
+    # Last resort: look in Claude plugin cache (running from an installed plugin).
+    found="$(find "$HOME/.claude/plugins/cache" -maxdepth 8 -type f -path "*/conductor/*/scripts/pre-commit-cleanup.sh" 2>/dev/null | head -1)"
+  fi
+
+  echo "$found"
+}
+
+HOOK_SOURCE="$(find_precommit_hook)"
 
 # Worktrees have .git as a file pointing to the real git dir
 if [ -f ".git" ]; then
@@ -208,7 +228,7 @@ else
   HOOK_TARGET=".git/hooks/pre-commit"
 fi
 
-if [ -f "$HOOK_SOURCE" ]; then
+if [ -n "$HOOK_SOURCE" ] && [ -f "$HOOK_SOURCE" ]; then
   mkdir -p "$(dirname "$HOOK_TARGET")"
   cp "$HOOK_SOURCE" "$HOOK_TARGET"
   chmod +x "$HOOK_TARGET"

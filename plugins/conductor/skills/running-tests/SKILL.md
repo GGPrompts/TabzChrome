@@ -6,7 +6,7 @@ user-invocable: true
 
 # Test Runner Checkpoint
 
-Auto-detects test framework and runs tests, writing results to `.checkpoints/running-tests.json`.
+Auto-detects test framework and runs tests, writing results to `.checkpoints/test-runner.json`.
 
 ## Workflow
 
@@ -21,7 +21,7 @@ Progress:
 
 | Indicator | Command |
 |-----------|---------|
-| `package.json` with test script | `npm test` |
+| `package.json` with test script | `npm test -- --run` (preferred), fallback `npm test` |
 | `pytest.ini` or `conftest.py` | `pytest --tb=short` |
 | `Cargo.toml` | `cargo test` |
 | `go.mod` | `go test ./...` |
@@ -38,13 +38,13 @@ TEST_EXIT_CODE=${PIPESTATUS[0]}
 
 ```bash
 mkdir -p .checkpoints
-cat > .checkpoints/running-tests.json << 'EOF'
+cat > .checkpoints/test-runner.json << 'EOF'
 {
-  "checkpoint": "running-tests",
+  "checkpoint": "test-runner",
   "timestamp": "...",
   "passed": true,
-  "framework": "jest",
-  "command": "npm test",
+  "framework": "vitest",
+  "command": "npm test -- --run",
   "exit_code": 0,
   "stats": {"total": 17, "passed": 17, "failed": 0},
   "failed_tests": [],

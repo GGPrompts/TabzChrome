@@ -6,12 +6,16 @@ user-invocable: true
 
 # Codex Review Checkpoint
 
-Code review checkpoint that runs Codex CLI review on the current worktree.
+Code review checkpoint that runs a Codex review on the current worktree.
+
+Supports two backends:
+1. **Codex MCP** (`mcp-cli call codex/review ...`) if available
+2. **Codex CLI** (`codex review ...`) as a reliable fallback
 
 ## What This Skill Does
 
 1. Determines what to review (uncommitted changes vs branch diff)
-2. Calls `codex/review` MCP tool
+2. Runs Codex review (MCP preferred, CLI fallback)
 3. Parses results into structured format
 4. Writes result to checkpoint file
 
@@ -31,7 +35,14 @@ git rev-parse --abbrev-ref HEAD
 
 ### Step 2: Run Codex Review
 
-Use the MCP tool based on scope:
+Prefer Codex MCP (structured). Fall back to Codex CLI if MCP isn't configured.
+
+**Detect MCP availability:**
+```bash
+mcp-cli info codex/review >/dev/null 2>&1 && echo "codex MCP available" || echo "codex MCP not available"
+```
+
+#### Option A: Codex MCP (preferred)
 
 ```bash
 # For uncommitted changes
@@ -39,6 +50,16 @@ mcp-cli call codex/review '{"uncommitted": true, "title": "Checkpoint Review"}'
 
 # For branch diff against main
 mcp-cli call codex/review '{"base": "main", "title": "Checkpoint Review"}'
+```
+
+#### Option B: Codex CLI (fallback)
+
+```bash
+# For uncommitted changes
+codex review --uncommitted --title "Checkpoint Review"
+
+# For branch diff against main
+codex review --base main --title "Checkpoint Review"
 ```
 
 ### Step 3: Parse and Write Result

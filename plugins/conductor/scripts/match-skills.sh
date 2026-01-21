@@ -131,6 +131,9 @@ SKILL_MAPPINGS=(
   # Documentation discovery
   "docs|documentation|llms.txt|repomix|docs-seeker|documentation, llms.txt, repomix context generation|documentation discovery"
 
+  # Docs hygiene (changelog / lessons learned)
+  "changelog|release.*notes|lessons.*learned|docs.*check|docs-check|CHANGELOG.md updates, docs hygiene, lessons-learned patterns|documentation hygiene and changelog checks"
+
   # Code review
   "review|pr|pull.*request|lint|code-review|code review, pull request analysis, linting, quality checks|code review and quality checks"
 

@@ -13,10 +13,7 @@ Clean up after a worker finishes their issue.
 Add these to your to-dos:
 
 1. **Verify issue is closed** - Worker must complete first
-2. **Kill terminal** - Stop worker via TabzChrome API
-3. **Merge branch** - Use `/cleanup:merge` skill (Haiku)
-4. **Remove worktree and branch** - Clean up git state
-5. **Sync beads and push** - Persist changes
+2. **Run checkpoints + finalize** - One command does the rest (recommended)
 
 ---
 
@@ -32,7 +29,33 @@ STATUS=$(bd show "$ISSUE_ID" --json | jq -r '.[0].status')
 [ "$STATUS" != "closed" ] && echo "Issue not closed!" && exit 1
 ```
 
-## Step 2: Kill Terminal via TabzChrome API
+## Step 2 (Recommended): Run Finalize Script
+
+This runs:
+- required checkpoints (from issue labels like `gate:codex-review`)
+- checkpoint verification
+- capture transcript/stats (best-effort)
+- kill worker terminal
+- merge to main
+- worktree + branch cleanup
+- `bd sync` + `git push`
+
+```bash
+./plugins/conductor/scripts/finalize-issue.sh "$ISSUE_ID"
+```
+
+### Optional Skip Flags (env)
+
+```bash
+# Example: verify existing checkpoints, but don't re-run them
+SKIP_CHECKPOINTS=1 ./plugins/conductor/scripts/finalize-issue.sh "$ISSUE_ID"
+```
+
+---
+
+## Manual Fallback (if needed)
+
+### Kill Terminal via TabzChrome API
 
 ```bash
 TABZ_API="http://localhost:8129"
@@ -144,23 +167,12 @@ for ISSUE_ID in $WORKERS; do
   STATUS=$(bd show "$ISSUE_ID" --json 2>/dev/null | jq -r '.[0].status // "unknown"')
 
   if [ "$STATUS" = "closed" ]; then
-    echo "Cleaning up $ISSUE_ID..."
-
-    # Kill terminal
-    SESSION=$(curl -s "$TABZ_API/api/agents" | jq -r --arg id "$ISSUE_ID" \
-      '.data[] | select(.name == $id) | .id')
-    [ -n "$SESSION" ] && curl -s -X DELETE "$TABZ_API/api/agents/$SESSION" \
-      -H "X-Auth-Token: $TOKEN"
-
-    # Merge and cleanup
-    git merge "feature/$ISSUE_ID" --no-edit 2>/dev/null || true
-    git worktree remove ".worktrees/$ISSUE_ID" --force 2>/dev/null || true
-    git branch -d "feature/$ISSUE_ID" 2>/dev/null || true
+    echo "Finalizing $ISSUE_ID..."
+    ./plugins/conductor/scripts/finalize-issue.sh "$ISSUE_ID" || true
   fi
 done
 
-bd sync
-git push
+git status
 ```
 
 ## Error Handling
