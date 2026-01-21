@@ -19,9 +19,6 @@ Add these to your to-dos:
 5. **Prepare issue prompts** - Use `/prompt-writer:write` for each backlog issue (Haiku)
 6. **Output sprint plan** - Present waves of parallelizable work
 
----
-user-invocable: false
-
 ## Step 1: Analyze Current State
 
 **Using MCP (preferred):**
