@@ -38,15 +38,18 @@ curl -X POST http://localhost:8129/api/spawn \
 ## Parallel Workers with Worktrees
 
 ```bash
-# Create isolated worktree
-git worktree add ../TabzChrome-feature feature-branch
+# Create isolated worktree (bd handles beads redirect automatically)
+bd worktree create feature-branch
 
-# Spawn worker there
+# Spawn worker there with BEADS_WORKING_DIR for MCP tools
+PROJECT_DIR=$(pwd)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Feature Worker", "workingDir": "../TabzChrome-feature", "command": "claude"}'
+  -d "{\"name\": \"Feature Worker\", \"workingDir\": \"../feature-branch\", \"command\": \"BEADS_WORKING_DIR=$PROJECT_DIR claude\"}"
 ```
+
+**Key:** `BEADS_WORKING_DIR` tells the beads MCP server where to find the database. Point it to the main repo, not the worktree.
 
 ## Worker Prompts
 

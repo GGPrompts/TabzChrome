@@ -35,7 +35,7 @@ Spawn a terminal programmatically.
 {
   "name": "My Terminal",
   "workingDir": "/home/user/projects",
-  "command": "claude --dangerously-skip-permissions"
+  "command": "claude"
 }
 ```
 

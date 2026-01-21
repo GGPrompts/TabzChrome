@@ -78,7 +78,6 @@ tabz_spawn_profile(
 **Using REST API:**
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
-PLUGIN_DIRS="--plugin-dir $HOME/.claude/plugins/marketplaces --plugin-dir $HOME/plugins/my-plugins"
 
 curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
@@ -86,14 +85,13 @@ curl -s -X POST http://localhost:8129/api/spawn \
   -d "{
     \"name\": \"$ISSUE_ID\",
     \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BD_SOCKET=/tmp/bd-worker-\${ISSUE_ID}.sock claude $PLUGIN_DIRS\"
+    \"command\": \"BEADS_WORKING_DIR=$WORKDIR claude\"
   }"
 ```
 
 **Key settings:**
 - `name`: Use issue ID for easy lookup
-- `BD_SOCKET`: Isolates beads daemon per worker, enabling MCP tools (mcp__beads__show, etc.) to work in parallel workers
-- `--plugin-dir`: Workers need access to plugins
+- `BEADS_WORKING_DIR`: Points to main repo so beads MCP tools work in worktrees
 
 ## Step 4a: Wait for Claude Initialization
 
@@ -170,9 +168,6 @@ git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
 INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1)
 [ -n "$INIT_SCRIPT" ] && $INIT_SCRIPT ".worktrees/$ISSUE_ID"
 
-# Plugin directories
-PLUGIN_DIRS="--plugin-dir $HOME/.claude/plugins/marketplaces --plugin-dir $HOME/plugins/my-plugins"
-
 # Spawn terminal
 curl -s -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
@@ -180,7 +175,7 @@ curl -s -X POST http://localhost:8129/api/spawn \
   -d "{
     \"name\": \"$ISSUE_ID\",
     \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BD_SOCKET=/tmp/bd-worker-\${ISSUE_ID}.sock claude $PLUGIN_DIRS\"
+    \"command\": \"BEADS_WORKING_DIR=$WORKDIR claude\"
   }"
 
 # Wait and get session
@@ -233,5 +228,4 @@ curl -s -X POST http://localhost:8129/api/spawn \
 - Initialize deps SYNCHRONOUSLY before spawning
 - Wait 8+ seconds for Claude to boot before sending prompt
 - Workers follow PRIME.md - they'll read the issue and work autonomously
-- Use `BD_SOCKET=/tmp/bd-worker-${ISSUE_ID}.sock` to give each worker its own beads daemon for MCP tool support
-- Pass `--plugin-dir` flags so workers have access to plugins
+- Use `BEADS_WORKING_DIR=$WORKDIR` so beads MCP tools work in worktrees

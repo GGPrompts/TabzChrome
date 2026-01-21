@@ -35,14 +35,15 @@ tabz_spawn_profile(
 
 ```bash
 TOKEN=$(cat /tmp/tabz-auth-token)
+PROJECT_DIR="/home/user/projects/myapp"  # Main repo path
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d '{
-    "name": "ISSUE-ID",
-    "workingDir": "/path/to/worktree",
-    "command": "BEADS_NO_DAEMON=1 claude --plugin-dir ~/.claude/plugins/marketplaces"
-  }'
+  -d "{
+    \"name\": \"ISSUE-ID\",
+    \"workingDir\": \"$PROJECT_DIR/.worktrees/ISSUE-ID\",
+    \"command\": \"BEADS_WORKING_DIR=$PROJECT_DIR claude\"
+  }"
 ```
 
 ### Find Worker
@@ -122,8 +123,7 @@ tmux send-keys -t "$SESSION" C-m
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| `BEADS_NO_DAEMON=1` | In command | Worktrees share DB |
-| `--plugin-dir` | Passed flags | Workers need plugins |
+| `BEADS_WORKING_DIR` | Main repo path | Beads MCP finds database |
 | Wait time | 8+ seconds | Claude boot time |
 
 ## Dashboard

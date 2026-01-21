@@ -183,18 +183,21 @@ The 77 tabz_* MCP tools are only available in this project (configured in `.mcp.
 For parallel work, spawn vanilla Claude workers on worktrees:
 
 ```bash
-# Create worktree
-git worktree add ../TabzChrome-feature branch-name
+# Create worktree (bd handles beads redirect automatically)
+bd worktree create feature-branch
 
-# Spawn worker via TabzChrome API
+# Spawn worker with BEADS_WORKING_DIR for MCP tools
 TOKEN=$(cat /tmp/tabz-auth-token)
+PROJECT_DIR=$(pwd)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
-  -d '{"name": "Feature Worker", "workingDir": "~/projects/TabzChrome-feature", "command": "claude"}'
+  -d "{\"name\": \"Feature Worker\", \"workingDir\": \"../feature-branch\", \"command\": \"BEADS_WORKING_DIR=$PROJECT_DIR claude\"}"
 ```
 
-Workers receive plain prompts and use beads naturally (`bd show`, `bd close`).
+**Key:** `BEADS_WORKING_DIR` tells the beads MCP server where to find the database. Point it to the main repo, not the worktree.
+
+Workers receive plain prompts and use beads naturally (`bd show`, `bd close`, or MCP tools).
 
 ### Beads Integration
 

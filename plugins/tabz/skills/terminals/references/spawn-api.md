@@ -40,9 +40,26 @@ curl -X POST http://localhost:8129/api/spawn \
   -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "Claude Worker",
-    "workingDir": "~/projects",
-    "command": "claude --dangerously-skip-permissions"
+    "workingDir": "~/projects/myapp",
+    "command": "claude"
   }'
+```
+
+## Spawn Worker in Worktree (with beads MCP)
+
+When spawning workers in worktrees, set `BEADS_WORKING_DIR` so the beads MCP server knows where to find the database:
+
+```bash
+TOKEN=$(cat /tmp/tabz-auth-token)
+PROJECT_DIR="/home/user/projects/myapp"  # Main repo path
+curl -X POST http://localhost:8129/api/spawn \
+  -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
+  -d "{
+    \"name\": \"Feature Worker\",
+    \"workingDir\": \"$PROJECT_DIR-worktrees/feature-abc\",
+    \"command\": \"BEADS_WORKING_DIR=$PROJECT_DIR claude\"
+  }"
 ```
 
 ## Parameters

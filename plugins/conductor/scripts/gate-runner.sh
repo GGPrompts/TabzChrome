@@ -185,9 +185,9 @@ EOF
     return 1
   fi
 
-  local plugin_dirs="--plugin-dir $HOME/.claude/plugins/marketplaces"
-  [ -d "$HOME/plugins/my-plugins" ] && plugin_dirs="$plugin_dirs --plugin-dir $HOME/plugins/my-plugins"
-  local command="BEADS_NO_DAEMON=1 claude $plugin_dirs"
+  local main_repo
+  main_repo="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  local command="BEADS_WORKING_DIR=$main_repo claude"
   local prompt="Run /$skill for issue $issue_id.
 
 When finished, write the result JSON to .checkpoints/$file and exit.
