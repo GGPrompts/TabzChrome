@@ -38,7 +38,41 @@ You are a [role] working on [context].
 
 [Natural language guidance with skill triggers woven in]
 
-When you're done, close the issue: `bd close ISSUE-ID --reason="done"`
+## When Done
+
+1. Verify work - build passes, tests pass (if applicable)
+2. Commit with issue ID - `git commit -m "Fix X (ISSUE-ID)"`
+3. Add retro notes (required) - see below
+4. Close the issue - `bd close ISSUE-ID --reason="done"`
+5. Sync and push YOUR branch:
+   ```bash
+   bd sync
+   git push -u origin HEAD  # Push feature branch, not main
+   ```
+```
+
+## Retro Notes (Required)
+
+Before closing, workers MUST add retro notes to help future workers:
+
+```markdown
+## Retro
+- What was unclear: [anything confusing in the prompt/context]
+- Missing context: [files or info you had to discover]
+- Discovered work: [follow-up issues created]
+- What would help: [suggestions for similar tasks]
+```
+
+Even brief notes are valuable:
+```markdown
+## Retro
+Straightforward fix, no issues.
+```
+
+Include in prompts:
+```markdown
+Before closing, add retro notes with `bd update ISSUE-ID --notes "## Retro\n..."`
+covering what was unclear, missing context, and suggestions for similar tasks.
 ```
 
 ## Skill Activation: Natural Triggers
@@ -147,6 +181,8 @@ Claude 4.x overtriggers on aggressive phrasing:
 | "Don't do X" | Negative framing harder to follow | "Do Y instead" |
 | No role definition | Claude doesn't know the context | Start with "You are a..." |
 | Vague adjectives | "Good", "proper" are undefined | Specific criteria or examples |
+| No retro requirement | Loses learnings for future prompts | Include retro notes section |
+| "Wait for instruction" | Workers should close out autonomously | Include full close-out steps |
 
 ## Complete Example
 
@@ -177,5 +213,11 @@ Store the preference in localStorage for persistence.
 If you need to explore how theming works across the app, use subagents
 in parallel to find all theme-related files first.
 
-When you're done, close the issue: `bd close TabzBeads-123 --reason="done"`
+## When Done
+
+1. Verify build passes
+2. Commit: `git commit -m "Add dark mode toggle (TabzBeads-123)"`
+3. Add retro notes: `bd update TabzBeads-123 --notes "## Retro\n..."`
+4. Close: `bd close TabzBeads-123 --reason="done"`
+5. Sync and push: `bd sync && git push -u origin HEAD`
 ```
