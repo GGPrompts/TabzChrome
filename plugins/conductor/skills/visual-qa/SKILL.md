@@ -32,7 +32,30 @@ else
 fi
 ```
 
-### Step 2: Run Smoke Test (if needed)
+### Step 2: Tab Group Isolation (MANDATORY)
+
+BEFORE any browser work, create YOUR OWN tab group with a random 3-digit suffix.
+
+This is mandatory because:
+- User can switch tabs at any time - active tab is unreliable
+- Multiple Claude workers may run simultaneously
+- Your operations target YOUR tabs, not the user's browsing
+
+```bash
+# 1. Generate random ID
+SESSION_ID="Claude-$(shuf -i 100-999 -n 1)"
+
+# 2. Create group
+mcp-cli call tabz/tabz_create_group '{"title": "'$SESSION_ID'", "color": "cyan"}'
+# Returns: {"groupId": 123, ...}
+
+# 3. Open URLs into YOUR group (use returned groupId)
+mcp-cli call tabz/tabz_open_url '{"url": "https://example.com", "groupId": 123}'
+
+# 4. Always use explicit tabId from your group - NEVER rely on active tab
+```
+
+### Step 3: Run Smoke Test (if needed)
 
 If `NEEDS_VISUAL=1`, do the quickest relevant check:
 - Open the extension side panel and ensure it loads
@@ -45,9 +68,16 @@ If you have Tabz MCP available, you can use it (preferred):
 - `tabz_screenshot` (capture)
 - `tabz_enable_network_capture` + `tabz_get_network_requests` (API failures)
 
-If Tabz MCP isn’t available, do a manual check and note it.
+**Always pass explicit `tabId`** - never rely on "active tab":
+```bash
+# Get your tab's ID from your group
+mcp-cli call tabz/tabz_screenshot '{"tabId": YOUR_TAB_ID}'
+mcp-cli call tabz/tabz_get_console_logs '{"tabId": YOUR_TAB_ID}'
+```
 
-### Step 3: Write Checkpoint File
+If Tabz MCP isn't available, do a manual check and note it.
+
+### Step 4: Write Checkpoint File
 
 ```bash
 mkdir -p .checkpoints

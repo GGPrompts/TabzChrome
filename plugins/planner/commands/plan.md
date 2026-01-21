@@ -8,9 +8,21 @@ argument-hint: "[FEATURE_DESCRIPTION] [--epic EPIC-ID]"
 
 Smart routing based on your situation.
 
-## Step 0: Assess Current State
+## Step 0: Load Beads Context (REQUIRED)
 
-First, check the backlog:
+**Invoke `/conductor:brainstorming` first** to load critical beads knowledge:
+
+- Dependency patterns (fan-out, fan-in, diamond) → `references/dependencies.md`
+- Epic structures (when and how) → `references/epics.md`
+- Molecules (reusable workflow templates) → `references/molecules.md`
+- Gates, agents, defer → `references/advanced.md`
+- Full command reference (MCP + CLI) → `references/commands.md`
+
+This ensures you have full beads context regardless of which route you take.
+
+## Step 1: Assess Current State
+
+Check the backlog:
 
 ```python
 stats = mcp__beads__stats()
@@ -25,14 +37,13 @@ Then route based on what you find:
 ## Route A: Brainstorm Mode
 **When:** No arguments given AND (empty backlog OR user says "help me think", "not sure what to build", "brainstorm")
 
-Use the `/conductor:brainstorming` skill - it has comprehensive beads references for:
-- Dependencies (fan-out, fan-in, diamond patterns)
-- Epics (when and how to structure)
-- Molecules (reusable workflow templates)
-- Full command reference (MCP + CLI)
-- Advanced features (gates, agents, defer)
+The brainstorming context is already loaded from Step 0. Now be a thinking partner:
 
-The brainstorming skill is a thinking partner - help the user figure out WHAT to build through questions and progressive disclosure of beads features.
+1. **Listen** - understand the user's rough idea
+2. **Ask clarifying questions** - goal, constraints, scope
+3. **Suggest structure** - "This sounds like an epic with 3 subtasks..."
+4. **Reveal features progressively** - don't dump the full API
+5. **Use Explore agents** - search codebase when context helps
 
 When concrete tasks are identified, create them in beads, then continue to Route C.
 
