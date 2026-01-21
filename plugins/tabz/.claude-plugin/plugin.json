@@ -1,0 +1,5 @@
+{
+  "name": "tabz",
+  "version": "1.0.0",
+  "description": "TabzChrome integration: spawn terminals, browser automation, and project integration via HTML/WebSocket/JS API"
+}
