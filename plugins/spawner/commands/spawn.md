@@ -43,7 +43,11 @@ issue = mcp__beads__show(issue_id="ISSUE-ID")
 ISSUE_ID="ISSUE-ID"
 WORKDIR=$(pwd)
 
-git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
+# Preferred: bd handles beads redirect for MCP tools
+bd worktree create ".worktrees/$ISSUE_ID" --branch "feature/$ISSUE_ID"
+
+# Fallback if beads not available
+# git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
 ```
 
 ## Step 3: Initialize Dependencies (SYNCHRONOUS)
@@ -161,8 +165,8 @@ ISSUE_ID="ISSUE-ID"
 WORKDIR=$(pwd)
 TOKEN=$(cat /tmp/tabz-auth-token)
 
-# Create worktree
-git worktree add ".worktrees/$ISSUE_ID" -b "feature/$ISSUE_ID"
+# Create worktree (bd handles beads redirect)
+bd worktree create ".worktrees/$ISSUE_ID" --branch "feature/$ISSUE_ID"
 
 # Initialize deps
 INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1)
