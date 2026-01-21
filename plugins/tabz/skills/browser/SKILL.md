@@ -108,8 +108,18 @@ mcp-cli call tabz/tabz_get_dom_tree '{"maxDepth": 3}'
 
 ## References
 
-See `references/` for detailed workflows:
-- `screenshot-workflows.md` - Viewport vs full page
+See `references/` for detailed workflows and full tool documentation:
+
+### Quick Guides
+- `screenshot-workflows.md` - Viewport vs full page screenshots
 - `network-debugging.md` - API request inspection
 - `form-automation.md` - Clicks, fills, selectors
 - `tts-notifications.md` - Audio feedback patterns
+
+### Full MCP Tool Documentation
+- `core-tools.md` - Tabs, screenshots, clicks, fills, DOM inspection
+- `windows-groups.md` - Windows, tab groups, multi-window workflows
+- `network-downloads.md` - Network capture, downloads, file operations
+- `browser-data.md` - History, sessions, cookies, bookmarks
+- `profiles-and-plugins.md` - Terminal profiles, Claude Code plugin management
+- `advanced-tools.md` - Emulation, performance profiling, notifications
