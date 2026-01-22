@@ -15,4 +15,11 @@
 # }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Auto-install dependencies if node_modules missing
+if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+  echo "[tabz-mcp] Installing dependencies..." >&2
+  (cd "$SCRIPT_DIR" && npm install --silent) >&2
+fi
+
 exec node "$SCRIPT_DIR/dist/index.js"
