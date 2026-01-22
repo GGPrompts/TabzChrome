@@ -5,6 +5,9 @@ node_modules/
 # Build outputs
 dist/
 dist-extension/
+# But include MCP server dist (needed for plugin)
+!tabz-mcp-server/dist/
+!plugins/tabz/tabz-mcp-server/dist/
 *.local
 *.crx
 terminal-tabs-extension.zip
