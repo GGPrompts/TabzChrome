@@ -104,8 +104,8 @@ PROJECT_DIR=$(pwd)
 # Create worktree with beads redirect
 bd worktree create ".worktrees/$ISSUE_ID" --branch "feature/$ISSUE_ID"
 
-# Init deps (optional - can overlap with Claude boot)
-INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1)
+# REQUIRED: Init deps (node_modules, .venv, etc.) - run in background to overlap with Claude boot
+INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1)
 [ -n "$INIT_SCRIPT" ] && $INIT_SCRIPT ".worktrees/$ISSUE_ID" &
 ```
 
@@ -122,12 +122,15 @@ for issue in ready_issues[:3]:
     issue_id = issue['id']
     title = issue.get('title', 'the task')
 
-    # 1. Spawn terminal directly
+    # 1. Spawn terminal with isolated beads socket
     tabz_spawn_profile(
         profileId="claudula",  # Vanilla Claude profile
         workingDir=f"{PROJECT_DIR}/.worktrees/{issue_id}",
         name=issue_id,
-        env={"BEADS_WORKING_DIR": PROJECT_DIR}
+        env={
+            "BEADS_WORKING_DIR": PROJECT_DIR,
+            "BD_SOCKET": f"/tmp/bd-worker-{issue_id}.sock"  # Isolate beads daemon per worker
+        }
     )
 
     # 2. Wait for Claude boot
@@ -163,13 +166,39 @@ When the background watcher returns, it will report one of:
 
 | Event Type | Action |
 |------------|--------|
-| `completed` | Run cleanup: `/cleanup:done ISSUE-ID` |
+| `completed` | Clean up the completed worker (see below) |
 | `critical` | Notify user - worker at high context |
 | `asking` | Notify user - worker needs input |
 | `stale` | Check if worker is stuck |
 | `timeout` | Just a check-in, spawn new watcher |
 
-After handling:
+### Cleanup Completed Worker
+
+When an issue closes, clean up immediately:
+
+```bash
+ISSUE_ID="bd-abc"  # The completed issue
+PROJECT_DIR="/path/to/project"
+
+# 1. Kill worker terminal (terminal ID = tmux session name)
+#    Get the terminal ID from tabz_list_terminals, then kill via tmux
+TERMINAL_ID="ctt-${ISSUE_ID}-xxxxxxxx"  # From tabz_list_terminals response
+tmux kill-session -t "$TERMINAL_ID" 2>/dev/null || true
+
+# 2. Remove worktree
+cd "$PROJECT_DIR"
+git worktree remove ".worktrees/$ISSUE_ID" --force 2>/dev/null || true
+
+# 3. Delete branch
+git branch -d "feature/$ISSUE_ID" 2>/dev/null || true
+```
+
+```python
+# 4. Announce
+tabz_speak(text=f"{ISSUE_ID} cleaned up")
+```
+
+After cleanup:
 1. Check if more ready issues exist
 2. Spawn workers to fill slots
 3. Spawn a new watcher
@@ -177,15 +206,28 @@ After handling:
 
 ## Step 8: Wave Complete
 
-When watcher reports no workers and no ready issues:
+When all workers are done (no in_progress issues, no active worker terminals):
 
 ```bash
+PROJECT_DIR="/path/to/project"
+cd "$PROJECT_DIR"
+
+# Sync beads state
 bd sync
+
+# Push all changes
 git push
 ```
 
 ```python
 tabz_speak(text="Wave complete!")
+
+# Check for more work
+ready = mcp__beads__ready()
+if ready:
+    print(f"{len(ready)} more issues ready - spawn another wave?")
+else:
+    print("All done!")
 ```
 
 ---
@@ -254,6 +296,10 @@ for w in workers['terminals']:
 | Launch tmuxplexer | `monitor-workers.sh --spawn` |
 | Worker summary | `monitor-workers.sh --summary` |
 | Check your context | `monitor-workers.sh --self` |
+| **Kill worker** | `tmux kill-session -t "$TERMINAL_ID"` |
+| **Remove worktree** | `git worktree remove ".worktrees/$ISSUE_ID" --force` |
+| **Delete branch** | `git branch -d "feature/$ISSUE_ID"` |
+| **Sync beads** | `bd sync` |
 
 ## Self-Monitoring
 
