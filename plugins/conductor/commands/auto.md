@@ -1,133 +1,139 @@
 ---
 name: gg-auto
 description: "Event-driven worker orchestration - spawns workers, delegates monitoring to background agent, handles events as they come"
-context:
-  skills:
-    - tabz:terminals              # tmux send-keys, TabzChrome API patterns
-    - spawner:terminals           # Worktree setup, init scripts
 ---
 
 # Auto Mode - Event-Driven Orchestration
 
-Orchestrate parallel workers using background monitoring. You stay free to work with the user while a haiku watcher monitors in the background.
+Orchestrate parallel workers using MCP tools for direct control. You spawn terminals, send prompts, and monitor - staying free to help the user between events.
 
-## How It Works
+## Philosophy
 
 ```
-1. Activate /tabz:terminals skill (for tmux patterns)
-2. Use haiku to initialize worktrees (parallel)
-3. YOU spawn terminals and send prompts (reliable)
-4. Kick off background watcher (haiku)
-5. You're FREE - help user plan, groom backlog, answer questions
-6. When watcher returns with event → handle it → spawn new watcher
-7. Repeat until all work done
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONDUCTOR (You)                               │
+│  Direct control: spawn, prompt, monitor, announce               │
+│  → MCP calls are instant (~100ms)                               │
+│  → If spawning fails, retry immediately                         │
+└─────────────────────────────────────────────────────────────────┘
+         │                                    │
+         ▼                                    ▼
+┌─────────────────────┐           ┌─────────────────────┐
+│   HAIKU SUBAGENTS   │           │      WORKERS        │
+│  (context only)     │           │  (spawned Claudes)  │
+├─────────────────────┤           ├─────────────────────┤
+│ • Find relevant files│          │ • Work on issues    │
+│ • Analyze codebase  │           │ • Run tests         │
+│ • Gather context    │           │ • Commit & close    │
+└─────────────────────┘           └─────────────────────┘
 ```
 
-**Key insight**: Haiku is good for parallel init work, but YOU (conductor) should spawn terminals and send prompts - you can recover if something fails.
+**You spawn directly** - haiku is only for context gathering.
 
 ---
 
-## Step 1: Pre-flight & Load Skills
+## Step 1: Pre-flight Checks
 
-**First, activate the terminals skill:**
 ```python
-Skill(skill="tabz:terminals")  # Loads tmux send-keys patterns
+# Verify TabzChrome is running
+terminals = tabz_list_terminals(state="all")
 ```
 
-**Then run pre-flight checks:**
 ```bash
-# Check TabzChrome
-curl -sf http://localhost:8129/api/health >/dev/null || { echo "TabzChrome not running"; exit 1; }
-
 # Start beads daemon
 bd daemon status >/dev/null 2>&1 || bd daemon start
-
-# Clear old events
-rm -f /tmp/worker-events.jsonl /tmp/worker-status.json
-
-# Ensure tmuxplexer monitor is running
-MONITOR_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "monitor-workers.sh" 2>/dev/null | head -1)
-[ -n "$MONITOR_SCRIPT" ] && "$MONITOR_SCRIPT" --spawn
 ```
 
-## Step 2: Check Current State
-
-```bash
-# Current workers
-curl -sf http://localhost:8129/api/agents | jq '[.data[] | {name, id}]'
-
-# Ready issues
-bd ready --json | jq -r '.[] | "\(.id): \(.title)"'
-
-# In progress
-bd list --status in_progress --json | jq -r '.[] | "\(.id): \(.title)"'
-```
-
-## Step 3: Initialize Worktrees (Haiku, Parallel)
-
-Use haiku agents to create worktrees and install deps in parallel:
+## Step 2: Get Current State
 
 ```python
-# For each ready issue (up to 3), run in parallel:
-Task(
-    subagent_type="general-purpose",
-    model="haiku",
-    prompt="""Initialize worktree for ISSUE-ID:
-1. bd worktree create ".worktrees/ISSUE-ID" --branch "feature/ISSUE-ID"
-2. Run init script: INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1); [ -n "$INIT_SCRIPT" ] && $INIT_SCRIPT ".worktrees/ISSUE-ID"
-3. Report success or failure""",
-    description="Init ISSUE-ID worktree"
-)
+# Get ready issues via MCP
+ready_issues = mcp__beads__ready()
+
+# Get in-progress to check for existing workers
+in_progress = mcp__beads__list(status="in_progress")
+
+# List current workers
+workers = tabz_list_terminals(state="active", response_format="json")
 ```
-
-**Run these in parallel** - multiple Task calls in one message.
-
-## Step 4: Spawn Terminals & Send Prompts (YOU do this)
-
-After haiku finishes init, YOU spawn the terminals and send prompts.
-This ensures reliability - if a prompt fails, you can retry.
 
 ```bash
-ISSUE_ID="ISSUE-ID"
-WORKDIR=$(pwd)
-TOKEN=$(cat /tmp/tabz-auth-token)
-
-# Spawn terminal
-curl -s -X POST http://localhost:8129/api/spawn \
-  -H "Content-Type: application/json" \
-  -H "X-Auth-Token: $TOKEN" \
-  -d "{
-    \"name\": \"$ISSUE_ID\",
-    \"workingDir\": \"$WORKDIR/.worktrees/$ISSUE_ID\",
-    \"command\": \"BEADS_WORKING_DIR=$WORKDIR claude\"
-  }"
-
-# Wait for Claude to boot
-sleep 8
-
-# Get session ID
-SESSION=$(curl -s http://localhost:8129/api/agents | jq -r --arg id "$ISSUE_ID" '.data[] | select(.name == $id) | .id')
-
-# Build pep-talk prompt
-TITLE=$(bd show "$ISSUE_ID" --json | jq -r '.[0].title // "the task"')
-PROMPT="You've got $ISSUE_ID - $TITLE.
-
-Check \`bd show $ISSUE_ID\` for details and notes, then make it happen!
-
-When done: commit, bd close $ISSUE_ID --reason 'summary', push your branch."
-
-# Send prompt via tmux (from /tabz:terminals skill)
-tmux send-keys -t "$SESSION" -l "$PROMPT"
-sleep 0.5
-tmux send-keys -t "$SESSION" Enter
-
-# Mark in progress
-bd update "$ISSUE_ID" --status in_progress
+# Show ready work
+bd ready --json | jq -r '.[] | "\(.id): \(.title)"'
 ```
 
-**Spawn terminals sequentially** - wait for each to boot before sending prompt.
+## Step 3: Gather Context (Haiku, Parallel) - Optional
 
-## Step 5: Start Background Watcher
+For complex issues, use haiku to gather context before spawning:
+
+```python
+# For each issue, gather context in parallel
+for issue in ready_issues[:3]:
+    Task(
+        subagent_type="general-purpose",
+        model="haiku",
+        prompt=f"""Analyze issue {issue['id']} and gather context:
+
+1. Read the issue: bd show {issue['id']}
+2. Find relevant files that will need changes
+3. Check for related tests
+4. Note any dependencies or gotchas
+
+Output a brief context summary (FILES, TESTS, NOTES).""",
+        description=f"Context for {issue['id']}"
+    )
+```
+
+## Step 4: Create Worktrees
+
+Create worktrees for each issue (you do this directly - it's fast):
+
+```bash
+ISSUE_ID="bd-abc"
+PROJECT_DIR=$(pwd)
+
+# Create worktree with beads redirect
+bd worktree create ".worktrees/$ISSUE_ID" --branch "feature/$ISSUE_ID"
+
+# Init deps (optional - can overlap with Claude boot)
+INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*spawner*" 2>/dev/null | head -1)
+[ -n "$INIT_SCRIPT" ] && $INIT_SCRIPT ".worktrees/$ISSUE_ID" &
+```
+
+**Note:** `bd worktree create` (not `git worktree add`) creates the `.beads/redirect` file that MCP tools need.
+
+## Step 5: Spawn Workers (You Do This - Direct MCP)
+
+```python
+import time
+
+PROJECT_DIR = "/path/to/project"  # Set to actual project path
+
+for issue in ready_issues[:3]:
+    issue_id = issue['id']
+    title = issue.get('title', 'the task')
+
+    # 1. Spawn terminal directly
+    tabz_spawn_profile(
+        profileId="claudula",  # Vanilla Claude profile
+        workingDir=f"{PROJECT_DIR}/.worktrees/{issue_id}",
+        name=issue_id,
+        env={"BEADS_WORKING_DIR": PROJECT_DIR}
+    )
+
+    # 2. Wait for Claude boot
+    time.sleep(8)
+
+    # 3. Send prompt
+    prompt = f"bd show {issue_id}"
+    tabz_send_keys(terminal=issue_id, text=prompt)
+
+    # 4. Claim issue and announce
+    mcp__beads__update(issue_id=issue_id, status="in_progress")
+    tabz_speak(text=f"{issue_id} spawned")
+```
+
+## Step 6: Start Background Watcher
 
 After spawning, kick off the watcher:
 
@@ -142,90 +148,84 @@ Task(
 
 **Now you're free.** Help the user with planning, grooming, or other tasks.
 
-## Step 6: Handle Watcher Events
+## Step 7: Handle Watcher Events
 
 When the background watcher returns, it will report one of:
 
 | Event Type | Action |
 |------------|--------|
-| `completed` | Run cleanup: `Task(prompt="/cleanup:done ISSUE-ID")` |
+| `completed` | Run cleanup: `/cleanup:done ISSUE-ID` |
 | `critical` | Notify user - worker at high context |
 | `asking` | Notify user - worker needs input |
 | `stale` | Check if worker is stuck |
 | `timeout` | Just a check-in, spawn new watcher |
 
-After handling the event:
+After handling:
 1. Check if more ready issues exist
 2. Spawn workers to fill slots
 3. Spawn a new watcher
 4. Return to being available
 
-## Step 7: Wave Complete
+## Step 8: Wave Complete
 
 When watcher reports no workers and no ready issues:
 
 ```bash
-# Final sync
 bd sync
 git push
+```
 
-echo "Wave complete!"
+```python
+tabz_speak(text="Wave complete!")
 ```
 
 ---
 
-## Example Flow
+## Monitoring Workers
 
-```
-User: "Let's run gg-auto"
-Conductor: [Activates /tabz:terminals skill]
-Conductor: [Pre-flight checks pass]
-Conductor: [Spawns 3 haiku agents to init worktrees in parallel]
-Conductor: [Waits for inits to complete]
-Conductor: [Spawns terminals and sends prompts directly]
-Conductor: [Kicks off background watcher]
-Conductor: "Workers spawned and watcher running. What would you like to work on?"
+Check on workers directly:
 
-User: "Let's plan the next feature - dark mode"
-Conductor: [Helps plan dark mode, creates issues, etc.]
+```python
+workers = tabz_list_terminals(state="active", response_format="json")
 
-[Background watcher returns]: "completed: bd-001 closed"
-Conductor: "bd-001 finished! Running cleanup..."
-Conductor: [Spawns cleanup task]
-Conductor: [Checks for more ready work, inits bd-004 worktree, spawns terminal]
-Conductor: [Spawns new watcher]
-Conductor: "Cleaned up bd-001, spawned bd-004. Back to dark mode planning?"
+for w in workers['terminals']:
+    if w['name'].startswith(('bd-', 'BD-', 'TabzChrome-')):
+        output = tabz_capture_terminal(terminal=w['name'], lines=30)
 
-User: "Yes, what about the toggle component?"
-[Conversation continues naturally...]
+        if "bd close" in output or "Issue closed" in output:
+            print(f"✓ {w['name']} appears complete")
+        elif "error" in output.lower():
+            print(f"⚠ {w['name']} may have issues")
+            tabz_send_keys(terminal=w['name'], text="Status check - need any help?")
 ```
 
 ---
 
-## Quick Commands
+## Quick Reference
 
 | Action | How |
 |--------|-----|
-| Load terminal patterns | `Skill(skill="tabz:terminals")` |
-| Init worktree (haiku) | `Task(model="haiku", prompt="bd worktree create .worktrees/ID ...")` |
-| Spawn terminal (YOU) | `curl -X POST http://localhost:8129/api/spawn ...` |
-| Send prompt (YOU) | `tmux send-keys -t "$SESSION" -l "$PROMPT"; tmux send-keys -t "$SESSION" Enter` |
-| Cleanup | `Task(subagent_type="general-purpose", model="haiku", prompt="/cleanup:done ID")` |
-| Start watcher | `Task(subagent_type="conductor:worker-watcher", ..., run_in_background=True)` |
-| Manual status | `jq . /tmp/worker-status.json` |
+| Get ready work | `mcp__beads__ready()` |
+| List workers | `tabz_list_terminals(state="active")` |
+| Spawn worker | `tabz_spawn_profile(profileId, workingDir, name, env)` |
+| Send prompt | `tabz_send_keys(terminal, text)` - 600ms delay built-in |
+| Check output | `tabz_capture_terminal(terminal, lines)` |
+| Announce | `tabz_speak(text)` |
+| Claim issue | `mcp__beads__update(issue_id, status="in_progress")` |
+| Start watcher | `Task(subagent_type="conductor:worker-watcher", run_in_background=True)` |
 
 ## Self-Monitoring
 
-If your own context gets high (≥70%), you can safely:
+If your own context gets high (≥70%):
 1. Tell the user "I need to restart to free up context"
 2. Run `/wipe:wipe`
 3. Resume with `/conductor:auto`
 
-All state lives in beads and the watcher - nothing is lost.
+All state lives in beads - nothing is lost.
 
 ## Notes
 
-- Watcher is cheap (haiku) and disposable
-- You stay present for the user instead of busy-looping
-- Events come to you - you don't poll for them
-- Multiple watchers can run if needed (they're independent)
+- **You spawn directly** - don't delegate terminal spawning to haiku
+- **Haiku gathers context** - use for file analysis, not actions
+- **Watcher runs in background** - you stay free for the user
+- **600ms delay in send_keys** - handles Claude prompt processing
