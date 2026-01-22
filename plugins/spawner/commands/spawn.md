@@ -34,19 +34,32 @@ INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins -name "init-worktree.sh" -path "*
 ```
 
 ```python
-# 4. Spawn terminal
+# 4. Spawn terminal with isolated beads socket
 tabz_spawn_profile(
     profileId="claudula",  # Vanilla Claude profile
     workingDir=f"{PROJECT_DIR}/.worktrees/{ISSUE_ID}",
     name=ISSUE_ID,
-    env={"BEADS_WORKING_DIR": PROJECT_DIR}
+    env={
+        "BEADS_WORKING_DIR": PROJECT_DIR,
+        "BD_SOCKET": f"/tmp/bd-worker-{ISSUE_ID}.sock"  # Isolate beads daemon per worker
+    }
 )
 
 # 5. Wait for Claude boot
 time.sleep(8)
 
-# 6. Send prompt
-prompt = f"bd show {ISSUE_ID}"
+# 6. Extract prepared.prompt from issue notes (or use default)
+issue = mcp__beads__show(issue_id=ISSUE_ID)
+notes = issue[0].get('notes', '') if issue else ''
+
+if '## prepared.prompt' in notes:
+    # Extract content between ## prepared.prompt and next ## or end
+    import re
+    match = re.search(r'## prepared\.prompt\s*\n(.*?)(?=\n## |\Z)', notes, re.DOTALL)
+    prompt = match.group(1).strip() if match else f"bd show {ISSUE_ID}"
+else:
+    prompt = f"bd show {ISSUE_ID}"
+
 tabz_send_keys(terminal=ISSUE_ID, text=prompt)
 
 # 7. Claim issue and announce
@@ -108,7 +121,10 @@ tabz_spawn_profile(
     profileId="claudula",  # Vanilla Claude profile
     workingDir=f"{PROJECT_DIR}/.worktrees/{ISSUE_ID}",
     name=ISSUE_ID,
-    env={"BEADS_WORKING_DIR": PROJECT_DIR}
+    env={
+        "BEADS_WORKING_DIR": PROJECT_DIR,
+        "BD_SOCKET": f"/tmp/bd-worker-{ISSUE_ID}.sock"
+    }
 )
 ```
 
@@ -116,6 +132,7 @@ tabz_spawn_profile(
 - `profileId`: Use a Claude profile (e.g., "claudula" for vanilla Claude)
 - `name`: Use issue ID for easy lookup
 - `env.BEADS_WORKING_DIR`: Points to main repo so beads MCP works in worktree
+- `env.BD_SOCKET`: Isolates beads daemon per worker - **critical for parallel workers**
 
 ### Step 5: Wait for Claude Boot
 
@@ -128,9 +145,30 @@ Claude needs ~8 seconds to fully initialize before receiving prompts.
 
 ### Step 6: Send Prompt
 
+**Check for prepared.prompt in issue notes first:**
+
 ```python
-prompt = f"bd show {ISSUE_ID}"
+issue = mcp__beads__show(issue_id=ISSUE_ID)
+notes = issue[0].get('notes', '') if issue else ''
+
+if '## prepared.prompt' in notes:
+    # Extract content between ## prepared.prompt and next ## or end
+    import re
+    match = re.search(r'## prepared\.prompt\s*\n(.*?)(?=\n## |\Z)', notes, re.DOTALL)
+    prompt = match.group(1).strip() if match else f"bd show {ISSUE_ID}"
+else:
+    prompt = f"bd show {ISSUE_ID}"
+
 tabz_send_keys(terminal=ISSUE_ID, text=prompt)
+```
+
+**Or via bash:**
+```bash
+NOTES=$(bd show "$ISSUE_ID" --json | jq -r '.[0].notes // empty')
+if echo "$NOTES" | grep -q '## prepared.prompt'; then
+  PROMPT=$(echo "$NOTES" | sed -n '/## prepared\.prompt/,/^## /p' | tail -n +2 | sed '/^## /,$d')
+fi
+[ -z "$PROMPT" ] && PROMPT="bd show $ISSUE_ID"
 ```
 
 The `tabz_send_keys` tool has a built-in 600ms delay before pressing Enter, ensuring Claude processes the full prompt.
@@ -195,6 +233,7 @@ git branch -d "feature/$ISSUE_ID"
 | Setting | Value | Why |
 |---------|-------|-----|
 | `BEADS_WORKING_DIR` | Main repo path | Beads MCP finds database |
+| `BD_SOCKET` | `/tmp/bd-worker-{ID}.sock` | Isolates beads daemon per worker for parallel execution |
 | Wait time | 8 seconds | Claude boot time |
 | `delay` | 600ms (default) | Prompt fully sent before Enter |
 
@@ -207,6 +246,8 @@ git branch -d "feature/$ISSUE_ID"
 ## Notes
 
 - **Use `bd worktree create`** (not `git worktree add`) - creates beads redirect file
+- **Use `BD_SOCKET`** - each worker gets its own beads daemon socket for parallel MCP tool access
 - **Wait 8+ seconds** for Claude to boot before sending prompt
 - **Workers have their own CLAUDE.md** - they'll read the issue and work autonomously
 - **Init deps can overlap** with Claude boot time for faster spawns
+- **Check for prepared.prompt** - `/prompt-writer:write-all` stores crafted prompts in issue notes
