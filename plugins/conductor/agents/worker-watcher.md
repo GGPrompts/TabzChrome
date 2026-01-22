@@ -13,52 +13,118 @@ Monitor worker status in the background. Return immediately when something needs
 
 ## Your Job
 
-Check worker status every 30 seconds by reading the status file. Return when ANY of these occur:
+Check worker status every 15-20 seconds by capturing the tmuxplexer monitor pane. Return when ANY of these occur:
 
-1. **Issue closed** - A worker completed their task (events array has "closed" type)
-2. **Critical alert** - Worker context >= 75% (alerts array)
-3. **Worker asking** - Worker waiting for user input (alerts with "attention" type)
-4. **Stale worker** - No activity for 60s+ (alerts with "stale" type)
-5. **Max iterations** - After 20 checks (~10 min) with no events, return for check-in
+1. **Issue closed** - A worker completed their task (check beads status)
+2. **Critical alert** - Any worker context >= 75%
+3. **Worker asking** - Worker shows "AskUserQuestion" in status
+4. **Stale worker** - Worker shows "Stale" status
+5. **Max iterations** - After 30 checks (~8 min) with no events, return for check-in
 
-## Setup
+## Monitoring via Tmuxplexer
 
-First, ensure the background poller is running (it runs continuously):
+The conductor spawns a tmuxplexer monitor window in `--watcher` mode. Capture it to see all workers at once:
 
 ```bash
-# Check if poller is already running
-if ! pgrep -f "poll-workers.sh" >/dev/null; then
-  # Start it in background - it polls every 30s and updates the status file
-  nohup /home/marci/projects/TabzChrome/plugins/conductor/scripts/poll-workers.sh 30 /tmp/worker-status.json >/dev/null 2>&1 &
-  sleep 2  # Give it time to write first status
-fi
+# Capture the monitor pane - shows all Claude sessions with status and context %
+tmux capture-pane -t ":monitor" -p 2>/dev/null
 ```
+
+Example output:
+```
+│  ◆ 🤖 ctt-v4v-8qyl-f7c67f48    🔧 Bash: npm test                    [33%]    │
+│  ◆ 🤖 ctt-v4v-4t2c-94c2624b    🟡 Processing                        [45%]    │
+│  ◆ 🤖 ctt-vanilla-claude-xxx   ⏸️ Awaiting input                    [52%]    │
+```
+
+Parse this to get:
+- **Session names** - `ctt-v4v-8qyl-*` → issue ID is `V4V-8qyl`
+- **Status** - 🔧 = tool use, 🟡 = processing, ⏸️ = awaiting input
+- **Context %** - `[33%]` at end of line
+
+## Quick Status Check
+
+Use the monitor script for parsed output:
+
+```bash
+MONITOR_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -name "monitor-workers.sh" 2>/dev/null | head -1)
+$MONITOR_SCRIPT --status
+# Output: ctt-v4v-8qyl-xxx|tool_use|33
+#         ctt-v4v-4t2c-xxx|processing|45
+```
+
+Or get summary counts:
+
+```bash
+$MONITOR_SCRIPT --summary
+# Output: WORKERS:3 WORKING:2 IDLE:0 AWAITING:1 ASKING:0 STALE:0
+```
+
+## Check Beads Status
+
+Workers commit and close issues when done. Check beads directly - it's the source of truth:
+
+```bash
+# Get in-progress count (workers should match this)
+cd /path/to/project && bd list --status in_progress --json | jq length
+
+# Check specific issue
+bd show ISSUE-ID --json | jq -r '.[0].status'
+
+# Quick stats
+bd stats
+```
+
+**Key insight:** If beads shows fewer in_progress issues than active workers, something completed. If a worker terminal is gone but issue still in_progress, it may have crashed.
 
 ## Monitoring Loop
 
-Read the status file each iteration (do NOT run/kill the poller):
+Each iteration:
+1. Capture tmuxplexer monitor pane (all workers at once)
+2. Check beads for closed issues
+3. Look for alerts (high context, asking, stale)
 
 ```bash
-# Read current status
-cat /tmp/worker-status.json 2>/dev/null | jq '{
-  events: .events,
-  alerts: .alerts,
-  in_progress: (.in_progress | length),
-  ready: (.ready | length),
-  timestamp: .timestamp
-}'
-```
+ITERATION=0
+MAX_ITERATIONS=30
+WORKSPACE="/path/to/project"  # Set from prompt
+LAST_IN_PROGRESS=0
 
-Check for actionable events:
-- `events` array non-empty → issues closed, return immediately
-- `alerts` array has "critical" or "attention" → return immediately
-- Otherwise, sleep 30 seconds and check again
+while [ $ITERATION -lt $MAX_ITERATIONS ]; do
+  ITERATION=$((ITERATION + 1))
+  echo "Poll $ITERATION..."
 
-Also check the events log for any closures you might have missed:
+  # 1. Capture tmuxplexer monitor pane
+  MONITOR=$(tmux capture-pane -t ":monitor" -p 2>/dev/null)
 
-```bash
-# Check events log (appended by poller when issues close)
-tail -5 /tmp/worker-events.jsonl 2>/dev/null
+  # 2. Check beads for completions
+  IN_PROGRESS=$(cd "$WORKSPACE" && bd list --status in_progress --json 2>/dev/null | jq length)
+  if [ "$LAST_IN_PROGRESS" -gt 0 ] && [ "$IN_PROGRESS" -lt "$LAST_IN_PROGRESS" ]; then
+    echo "COMPLETION DETECTED: in_progress dropped from $LAST_IN_PROGRESS to $IN_PROGRESS"
+    # Return with details
+  fi
+  LAST_IN_PROGRESS=$IN_PROGRESS
+
+  # 3. Check for critical context (>=75%)
+  if echo "$MONITOR" | grep -qE '\[7[5-9]%\]|\[8[0-9]%\]|\[9[0-9]%\]'; then
+    echo "CRITICAL: Worker at high context"
+    # Return with details
+  fi
+
+  # 4. Check for AskUserQuestion
+  if echo "$MONITOR" | grep -qi "AskUserQuestion"; then
+    echo "ASKING: Worker needs user input"
+    # Return with details
+  fi
+
+  # 5. Check for stale workers
+  if echo "$MONITOR" | grep -qi "stale"; then
+    echo "STALE: Worker inactive"
+    # Return with details
+  fi
+
+  sleep 15
+done
 ```
 
 ## Return Format
@@ -66,17 +132,20 @@ tail -5 /tmp/worker-events.jsonl 2>/dev/null
 When returning, provide a structured summary:
 
 ```
-ACTION NEEDED:
-- type: [completed|critical|asking|stale|timeout]
-- details: [what happened]
-- workers: [current in_progress count]
-- ready: [count of ready issues]
+ACTION NEEDED: [COMPLETION|CRITICAL|ASKING|STALE|TIMEOUT]
+
+**Event:** [what happened]
+**Workers:** [list active workers with context %]
+**Issues:** [in_progress count] in progress, [ready count] ready
+
+Details:
+- [specific worker/issue info]
 ```
 
 ## Rules
 
-- Do NOT run poll-workers.sh yourself - just read /tmp/worker-status.json
-- Do not take action yourself - just observe and report
-- Return immediately on first actionable event
+- Poll every 15-20 seconds (not 30 - workers move fast)
+- Capture tmuxplexer pane for efficient multi-worker status
+- Return IMMEDIATELY on first actionable event
 - Keep responses brief - conductor will handle details
-- If status file is missing or stale (>2 min old), report and return
+- If monitor pane not available, fall back to tabz_capture_terminal per worker
