@@ -86,6 +86,24 @@ ensure_beads_redirect() {
 
 ensure_beads_redirect
 
+#######################################
+# Copy env files (secrets needed for build/tests)
+#######################################
+copy_env_files() {
+  local main_repo="$MAIN_REPO"
+
+  # Copy .env files from main repo (not tracked in git, contain secrets)
+  for envfile in .env .env.local .env.development .env.development.local; do
+    if [ -f "$main_repo/$envfile" ] && [ ! -f "$envfile" ]; then
+      cp "$main_repo/$envfile" "$envfile"
+      log "  -> Copied $envfile from main repo"
+      INSTALLED="$INSTALLED $envfile"
+    fi
+  done
+}
+
+copy_env_files
+
 # Lockfile for dependency installation (prevents npm cache corruption with parallel workers)
 PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || echo "$WORKTREE")")
 DEP_LOCK="/tmp/init-worktree-${PROJECT_NAME}.lock"
@@ -158,18 +176,11 @@ run_nextjs_build() {
     # Skip if .next already exists
     [ -e "$dir/.next" ] && return
 
-    # Fast mode: symlink .next from main repo (for LSP types)
-    if [ -n "$SYMLINK" ]; then
-      local main_next="$MAIN_REPO/$dir/.next"
-      [ "$dir" = "." ] && main_next="$MAIN_REPO/.next"
-
-      if [ -d "$main_next" ]; then
-        ln -s "$main_next" "$dir/.next"
-        log "  -> Symlinked .next ($dir)"
-        INSTALLED="$INSTALLED next-symlink($dir)"
-        return
-      fi
-    fi
+    # NOTE: We intentionally do NOT symlink .next even in SYMLINK mode
+    # Symlinking .next causes path conflicts and cache corruption because:
+    # 1. .next/cache contains absolute paths to the main repo
+    # 2. Two processes writing to the same .next causes race conditions
+    # Instead, we run a fresh build (or skip and let worker build when needed)
 
     if [ -f "$dir/package.json" ] && grep -q '"build"' "$dir/package.json"; then
       log "  -> Building Next.js types ($dir)"

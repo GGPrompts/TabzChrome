@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Initialize a worktree with dependencies for a beads issue
-# Usage: init-worktree.sh <WORKTREE_PATH> [--quiet]
+# Usage: init-worktree.sh <WORKTREE_PATH> [--quiet] [--symlink]
+#
+# Options:
+#   --quiet    Suppress output
+#   --symlink  Symlink node_modules from main repo (fast, for workers)
 #
 # Combines:
 # - bd worktree integration (beads DB redirect)
@@ -13,7 +17,17 @@
 # set -e
 
 WORKTREE="${1:-.}"
-QUIET="${2:-}"
+QUIET=""
+SYMLINK=""
+
+# Parse optional flags
+shift || true
+for arg in "$@"; do
+  case "$arg" in
+    --quiet) QUIET=1 ;;
+    --symlink) SYMLINK=1 ;;
+  esac
+done
 
 log() {
   [ -z "$QUIET" ] && echo "$@"
@@ -34,19 +48,28 @@ INSTALLED=""
 #######################################
 # Beads redirect (for MCP tools to work in worktrees)
 #######################################
-ensure_beads_redirect() {
-  # Only if this is a beads project (main repo has .beads/)
+# Find main repo (works in worktrees)
+find_main_repo() {
   local main_repo
   main_repo=$(git rev-parse --show-toplevel 2>/dev/null)
 
-  # If we're in a worktree, find the main repo
+  # If we're in a worktree, find the actual main repo
   if [ -f ".git" ]; then
     # .git is a file in worktrees, pointing to the real git dir
+    # e.g., gitdir: /path/to/main/.git/worktrees/worktree-name
     local git_dir
     git_dir=$(cat .git | sed 's/gitdir: //')
-    # Go up from .git/worktrees/<name> to find main repo
-    main_repo=$(cd "$git_dir/../.." && pwd)
+    # Go up from .git/worktrees/<name> → .git → main repo
+    main_repo=$(cd "$git_dir/../../.." && pwd)
   fi
+  echo "$main_repo"
+}
+
+MAIN_REPO=$(find_main_repo)
+
+ensure_beads_redirect() {
+  # Only if this is a beads project (main repo has .beads/)
+  local main_repo="$MAIN_REPO"
 
   # Check if main repo has beads
   if [ -d "$main_repo/.beads" ] && [ ! -d ".beads" ]; then
@@ -63,6 +86,24 @@ ensure_beads_redirect() {
 
 ensure_beads_redirect
 
+#######################################
+# Copy env files (secrets needed for build/tests)
+#######################################
+copy_env_files() {
+  local main_repo="$MAIN_REPO"
+
+  # Copy .env files from main repo (not tracked in git, contain secrets)
+  for envfile in .env .env.local .env.development .env.development.local; do
+    if [ -f "$main_repo/$envfile" ] && [ ! -f "$envfile" ]; then
+      cp "$main_repo/$envfile" "$envfile"
+      log "  -> Copied $envfile from main repo"
+      INSTALLED="$INSTALLED $envfile"
+    fi
+  done
+}
+
+copy_env_files
+
 # Lockfile for dependency installation (prevents npm cache corruption with parallel workers)
 PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || echo "$WORKTREE")")
 DEP_LOCK="/tmp/init-worktree-${PROJECT_NAME}.lock"
@@ -74,8 +115,21 @@ install_node() {
   local dir="$1"
   [ ! -f "$dir/package.json" ] && return
 
-  # Skip if node_modules already exists
-  [ -d "$dir/node_modules" ] && return
+  # Skip if node_modules already exists (file or symlink)
+  [ -e "$dir/node_modules" ] && return
+
+  # Fast mode: symlink from main repo
+  if [ -n "$SYMLINK" ]; then
+    local main_node_modules="$MAIN_REPO/$dir/node_modules"
+    [ "$dir" = "." ] && main_node_modules="$MAIN_REPO/node_modules"
+
+    if [ -d "$main_node_modules" ]; then
+      ln -s "$main_node_modules" "$dir/node_modules"
+      log "  -> Symlinked node_modules ($dir)"
+      INSTALLED="$INSTALLED node-symlink($dir)"
+      return
+    fi
+  fi
 
   (
     cd "$dir"
@@ -119,8 +173,14 @@ run_nextjs_build() {
 
   # Detect Next.js
   if [ -f "$dir/next.config.ts" ] || [ -f "$dir/next.config.js" ] || [ -f "$dir/next.config.mjs" ]; then
-    # Skip if .next/types already exists
-    [ -d "$dir/.next/types" ] && return
+    # Skip if .next already exists
+    [ -e "$dir/.next" ] && return
+
+    # NOTE: We intentionally do NOT symlink .next even in SYMLINK mode
+    # Symlinking .next causes path conflicts and cache corruption because:
+    # 1. .next/cache contains absolute paths to the main repo
+    # 2. Two processes writing to the same .next causes race conditions
+    # Instead, we run a fresh build (or skip and let worker build when needed)
 
     if [ -f "$dir/package.json" ] && grep -q '"build"' "$dir/package.json"; then
       log "  -> Building Next.js types ($dir)"
