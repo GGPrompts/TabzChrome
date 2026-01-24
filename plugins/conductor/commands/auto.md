@@ -122,15 +122,12 @@ for issue in ready_issues[:3]:
     issue_id = issue['id']
     title = issue.get('title', 'the task')
 
-    # 1. Spawn terminal with isolated beads socket
+    # 1. Spawn terminal
     tabz_spawn_profile(
         profileId="claudula",  # Vanilla Claude profile
         workingDir=f"{PROJECT_DIR}/.worktrees/{issue_id}",
         name=issue_id,
-        env={
-            "BEADS_WORKING_DIR": PROJECT_DIR,
-            "BD_SOCKET": f"/tmp/bd-worker-{issue_id}.sock"  # Isolate beads daemon per worker
-        }
+        env={"BEADS_WORKING_DIR": PROJECT_DIR}  # Points MCP to main repo's beads database
     )
 
     # 2. Wait for Claude boot (4s on fast machines, 8s on laptops)

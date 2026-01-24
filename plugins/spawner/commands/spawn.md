@@ -34,15 +34,12 @@ INIT_SCRIPT=$(find ~/plugins ~/.claude/plugins ~/projects/TabzChrome/plugins -na
 ```
 
 ```python
-# 4. Spawn terminal with isolated beads socket
+# 4. Spawn terminal
 tabz_spawn_profile(
     profileId="claudula",  # Vanilla Claude profile
     workingDir=f"{PROJECT_DIR}/.worktrees/{ISSUE_ID}",
     name=ISSUE_ID,
-    env={
-        "BEADS_WORKING_DIR": PROJECT_DIR,
-        "BD_SOCKET": f"/tmp/bd-worker-{ISSUE_ID}.sock"  # Isolate beads daemon per worker
-    }
+    env={"BEADS_WORKING_DIR": PROJECT_DIR}  # Points MCP to main repo's beads database
 )
 
 # 5. Wait for Claude boot
@@ -121,10 +118,7 @@ tabz_spawn_profile(
     profileId="claudula",  # Vanilla Claude profile
     workingDir=f"{PROJECT_DIR}/.worktrees/{ISSUE_ID}",
     name=ISSUE_ID,
-    env={
-        "BEADS_WORKING_DIR": PROJECT_DIR,
-        "BD_SOCKET": f"/tmp/bd-worker-{ISSUE_ID}.sock"
-    }
+    env={"BEADS_WORKING_DIR": PROJECT_DIR}
 )
 ```
 
@@ -132,7 +126,6 @@ tabz_spawn_profile(
 - `profileId`: Use a Claude profile (e.g., "claudula" for vanilla Claude)
 - `name`: Use issue ID for easy lookup
 - `env.BEADS_WORKING_DIR`: Points to main repo so beads MCP works in worktree
-- `env.BD_SOCKET`: Isolates beads daemon per worker - **critical for parallel workers**
 
 ### Step 5: Wait for Claude Boot
 
@@ -232,8 +225,7 @@ git branch -d "feature/$ISSUE_ID"
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| `BEADS_WORKING_DIR` | Main repo path | Beads MCP finds database |
-| `BD_SOCKET` | `/tmp/bd-worker-{ID}.sock` | Isolates beads daemon per worker for parallel execution |
+| `BEADS_WORKING_DIR` | Main repo path | Beads MCP finds database via redirect |
 | Wait time | 4 seconds (8 on laptops) | Claude boot time |
 | `delay` | 600ms (default) | Prompt fully sent before Enter |
 
@@ -245,8 +237,8 @@ git branch -d "feature/$ISSUE_ID"
 
 ## Notes
 
-- **Use `bd worktree create`** (not `git worktree add`) - creates beads redirect file
-- **Use `BD_SOCKET`** - each worker gets its own beads daemon socket for parallel MCP tool access
+- **Use `bd worktree create`** (not `git worktree add`) - creates `.beads/redirect` file
+- **Set `BEADS_WORKING_DIR`** - points MCP to main repo (workers share one daemon)
 - **Wait 4+ seconds** for Claude to boot before sending prompt (8 on slower machines)
 - **Workers have their own CLAUDE.md** - they'll read the issue and work autonomously
 - **Init deps can overlap** with Claude boot time for faster spawns
