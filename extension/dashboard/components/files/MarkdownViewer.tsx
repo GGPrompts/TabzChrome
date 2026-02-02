@@ -208,6 +208,38 @@ export function MarkdownViewer({ file, viewerSettings, onOpenFile }: MarkdownVie
               </a>
             )
           },
+          // Detect box-drawing characters and render with monospace
+          p({ children, ...props }: any) {
+            // Recursively extract text from React children
+            const extractText = (node: any): string => {
+              if (typeof node === 'string') return node
+              if (typeof node === 'number') return String(node)
+              if (!node) return ''
+              if (Array.isArray(node)) return node.map(extractText).join('')
+              if (node.props?.children) return extractText(node.props.children)
+              return ''
+            }
+            // Check if content contains box-drawing characters (U+2500 to U+257F)
+            const textContent = extractText(children)
+            const hasBoxDrawing = /[\u2500-\u257F]/.test(textContent)
+
+            if (hasBoxDrawing) {
+              return (
+                <pre
+                  className="box-art"
+                  style={{
+                    fontFamily: `${viewerSettings.fontFamily}, 'JetBrains Mono', monospace`,
+                    fontSize: `${viewerSettings.fontSize}px`,
+                  }}
+                  {...props}
+                >
+                  {children}
+                </pre>
+              )
+            }
+
+            return <p {...props}>{children}</p>
+          },
           code({ className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '')
             const codeString = String(children).replace(/\n$/, '')
@@ -216,6 +248,9 @@ export function MarkdownViewer({ file, viewerSettings, onOpenFile }: MarkdownVie
             if (!match && !className) {
               return <code className={className} {...props}>{children}</code>
             }
+
+            // Detect box-drawing characters for tighter line-height
+            const hasBoxDrawing = /[\u2500-\u257F]/.test(codeString)
 
             // Code block with syntax highlighting
             return (
@@ -229,11 +264,15 @@ export function MarkdownViewer({ file, viewerSettings, onOpenFile }: MarkdownVie
                   borderRadius: '8px',
                   fontSize: `${viewerSettings.fontSize}px`,
                   fontFamily: `${viewerSettings.fontFamily}, monospace`,
+                  // Tighter line-height for box art so lines connect
+                  ...(hasBoxDrawing && { lineHeight: 1.15 }),
                 }}
                 codeTagProps={{
                   style: {
                     fontSize: `${viewerSettings.fontSize}px`,
                     fontFamily: `${viewerSettings.fontFamily}, monospace`,
+                    // Tighter line-height for box art
+                    ...(hasBoxDrawing && { lineHeight: 1.15 }),
                   }
                 }}
               >

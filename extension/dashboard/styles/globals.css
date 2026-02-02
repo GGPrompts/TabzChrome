@@ -261,6 +261,17 @@ code, pre, .font-mono {
   color: #fff;
 }
 
+/* Box art / ASCII art with box-drawing characters */
+.file-viewer-markdown .box-art {
+  background: transparent;
+  padding: 0;
+  margin: 1em 0;
+  line-height: 1.2;
+  letter-spacing: 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+
 .file-viewer-markdown em {
   font-style: italic;
 }
