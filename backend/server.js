@@ -1554,6 +1554,30 @@ wss.on('connection', (ws, req) => {
           break;
 
         // ============================================
+        // WORKSPACE WATCHER - Watch entire directories for streaming files
+        // ============================================
+        case 'workspace-watch':
+          // Subscribe to workspace-wide file changes (for "Follow AI Edits" feature)
+          if (data.path) {
+            log.info(`[WorkspaceWatcher] Client subscribing to workspace: ${data.path}`);
+            await fileWatcher.subscribeWorkspace(ws, data.path);
+          } else {
+            ws.send(JSON.stringify({
+              type: 'workspace-watch-error',
+              error: 'Missing path parameter'
+            }));
+          }
+          break;
+
+        case 'workspace-unwatch':
+          // Unsubscribe from workspace watching
+          if (data.path) {
+            log.debug(`[WorkspaceWatcher] Client unsubscribing from workspace: ${data.path}`);
+            fileWatcher.unsubscribeWorkspace(ws, data.path);
+          }
+          break;
+
+        // ============================================
         // PASTE_COMMAND - Forward to Chrome extension
         // ============================================
         case 'PASTE_COMMAND':
