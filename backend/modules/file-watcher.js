@@ -502,6 +502,10 @@ class FileWatcher {
       this.handleWorkspaceFileChange(workspacePath, filePath);
     });
 
+    watcher.on('add', (filePath) => {
+      this.handleWorkspaceFileChange(workspacePath, filePath);
+    });
+
     watcher.on('error', (err) => {
       log.error(`Workspace watcher error for ${workspacePath}: ${err.message}`);
     });
@@ -531,7 +535,7 @@ class FileWatcher {
   }
 
   /**
-   * Handle file change in a workspace - only broadcast if it looks like streaming
+   * Handle file change in a workspace - broadcast on first change and streaming
    * @param {string} workspacePath - The workspace being watched
    * @param {string} filePath - Path of the changed file
    */
@@ -543,10 +547,11 @@ class FileWatcher {
     this.workspaceLastChangeTimestamps.set(key, now);
 
     const timeSinceLastChange = now - lastChange;
+    const isFirstChange = lastChange === 0;
+    const isStreaming = timeSinceLastChange < 1500;
 
-    // Only broadcast if this looks like streaming (rapid changes < 1500ms apart)
-    // This prevents flooding the client with every single file save
-    if (timeSinceLastChange < 1500) {
+    // Broadcast on first change (so client opens file immediately) or if streaming
+    if (isFirstChange || isStreaming) {
       // Clear existing debounce timer for this file
       const timerKey = `${workspacePath}:${filePath}`;
       const existingTimer = this.workspaceDebounceTimers.get(timerKey);
@@ -557,7 +562,7 @@ class FileWatcher {
       // Debounce to batch rapid changes (50ms)
       this.workspaceDebounceTimers.set(timerKey, setTimeout(() => {
         this.workspaceDebounceTimers.delete(timerKey);
-        this.broadcastWorkspaceFileChange(workspacePath, filePath, timeSinceLastChange);
+        this.broadcastWorkspaceFileChange(workspacePath, filePath, timeSinceLastChange, isStreaming);
       }, 50));
     }
 
@@ -575,8 +580,9 @@ class FileWatcher {
    * @param {string} workspacePath - The workspace being watched
    * @param {string} filePath - Path of the changed file
    * @param {number} timeSinceLastChange - Time since last change in ms
+   * @param {boolean} isStreaming - Whether this looks like AI streaming (rapid changes)
    */
-  broadcastWorkspaceFileChange(workspacePath, filePath, timeSinceLastChange) {
+  broadcastWorkspaceFileChange(workspacePath, filePath, timeSinceLastChange, isStreaming = false) {
     const subscribers = this.workspaceSubscribers.get(workspacePath);
     if (!subscribers || subscribers.size === 0) {
       return;
@@ -586,7 +592,8 @@ class FileWatcher {
       type: 'workspace-file-change',
       workspace: workspacePath,
       path: filePath,
-      timeSinceLastChange
+      timeSinceLastChange,
+      isStreaming
     });
 
     // Send to all subscribers
