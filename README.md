@@ -53,7 +53,7 @@ TabzChrome is designed to work seamlessly with Claude Code:
 
 ![MCP settings](docs/screenshots/mcp-settings.png)
 
-Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 82 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
+Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 85 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
 
 **🎭 Power Features (Claude Code Integration):**
 
@@ -61,11 +61,11 @@ TabzChrome includes a [Claude Code plugin marketplace](.claude-plugin/marketplac
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 82 browser control tools (screenshots, clicks, bookmarks, network, tab groups, windows, history, cookies, emulation, profiles, plugins) |
+| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 85 browser control tools (screenshots, clicks, bookmarks, network, tab groups, windows, history, cookies, emulation, profiles, plugins) |
 | [**tabz-browser**](.claude/skills/tabz-browser/) | skill | Browser automation patterns (screenshots, forms, network debugging) |
 | [**tabz-terminals**](.claude/skills/tabz-terminals/) | skill | Terminal spawning and worker management via REST API |
 | [**tabz-development**](.claude/skills/tabz-development/) | skill | Terminal.tsx, xterm.js, WebSocket patterns |
-| [**tabz-expert**](.claude/agents/tabz-expert.md) | agent | Browser automation specialist with 82 MCP tools |
+| [**tabz-expert**](.claude/agents/tabz-expert.md) | agent | Browser automation specialist with 85 MCP tools |
 
 **Quick setup:** Skills auto-load when you run Claude Code in the TabzChrome directory.
 

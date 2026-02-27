@@ -448,6 +448,25 @@ echo ""
 echo -e "${GREEN}✓ Configuration saved${NC}"
 echo ""
 
+# Generate .mcp.json for Claude Code MCP integration (if not present)
+MCP_JSON="$SCRIPT_DIR/../.mcp.json"
+if [ ! -f "$MCP_JSON" ]; then
+  MCP_RUN_SCRIPT="$SCRIPT_DIR/../tabz-mcp-server/run-auto.sh"
+  cat > "$MCP_JSON" << EOF
+{
+  "mcpServers": {
+    "browser": {
+      "command": "$MCP_RUN_SCRIPT",
+      "args": [],
+      "env": { "BACKEND_URL": "http://localhost:8129" }
+    }
+  }
+}
+EOF
+  echo -e "${GREEN}✓ Generated .mcp.json for Claude Code MCP tools${NC}"
+  echo ""
+fi
+
 # Tmux config optimized for xterm.js (used by TabzChrome extension)
 TMUX_CONFIG="$SCRIPT_DIR/../.tmux-terminal-tabs.conf"
 
@@ -565,7 +584,7 @@ tmux -f "$TMUX_CONFIG" new-session -d -s $SESSION_NAME -n backend -c "$BACKEND_D
 # (tmux -f only applies on server startup, not when joining existing server)
 tmux source-file "$TMUX_CONFIG"
 
-tmux send-keys -t $SESSION_NAME:backend "npm start" C-m
+tmux send-keys -t "$SESSION_NAME:=backend" "npm start" C-m
 
 # Create logs window if enabled
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
@@ -578,14 +597,14 @@ if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
 
   # Use lnav if available, otherwise fall back to tail -f
   if command -v lnav &> /dev/null; then
-    tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Unified Logs${NC} - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
+    tmux send-keys -t "$SESSION_NAME:=logs" "echo -e '${GREEN}Unified Logs${NC} - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
   else
-    tmux send-keys -t $SESSION_NAME:logs "echo -e '${GREEN}Unified Logs${NC} - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
+    tmux send-keys -t "$SESSION_NAME:=logs" "echo -e '${GREEN}Unified Logs${NC} - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
   fi
 fi
 
 # Select the backend window
-tmux select-window -t $SESSION_NAME:backend
+tmux select-window -t "$SESSION_NAME:=backend"
 
 echo -e "${GREEN}✅ TabzChrome backend started in tmux session!${NC}"
 echo ""
