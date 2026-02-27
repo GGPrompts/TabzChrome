@@ -2,7 +2,7 @@
 
 Lessons related to React hooks, state management, performance optimization, and refactoring.
 
-> **See Also:** The `skills/xterm-js/` skill contains generalized ref/state patterns for terminal applications.
+> **See Also:** The `tabz-development` skill contains patterns for working on the TabzChrome codebase.
 
 ---
 
@@ -35,8 +35,8 @@ updateTerminal(id, { agentId: undefined })  // Clear state
 - When state changes, check if related refs need updating!
 
 **Files:**
-- `src/SimpleTerminalApp.tsx:747-750, 839-842`
-- `src/hooks/useWebSocketManager.ts:515-517`
+- `extension/sidepanel/sidepanel.tsx:747-750, 839-842`
+- `extension/hooks/useTerminalSessions.ts:515-517`
 
 ---
 
@@ -77,8 +77,8 @@ export function useWebSocketManager(
 - [ ] Test with real usage immediately after extraction
 
 **Files:**
-- `src/hooks/useWebSocketManager.ts` - wsRef parameter pattern
-- `src/SimpleTerminalApp.tsx` - Parent passes wsRef to hook
+- `extension/hooks/useTerminalSessions.ts` - wsRef parameter pattern
+- `extension/sidepanel/sidepanel.tsx` - Parent passes wsRef to hook
 
 ---
 
@@ -110,7 +110,7 @@ useEffect(() => {
 - Common pattern: Wait for DOM refs AND library instances (xterm) before setup
 
 **Files:**
-- `src/hooks/useTerminalResize.ts` - ResizeObserver retry pattern
+- `extension/components/Terminal.tsx` - ResizeObserver retry pattern
 
 ---
 
@@ -178,8 +178,8 @@ export const SplitLayout = memo(SplitLayoutComponent, (prevProps, nextProps) => 
 - Check parent render behavior, not just component itself
 
 **Files:**
-- `src/components/SplitLayout.tsx` - React.memo implementation
-- `src/SimpleTerminalApp.tsx` - useMemo for visibleTerminals
+- `extension/components/SplitLayout.tsx` - React.memo implementation
+- `extension/sidepanel/sidepanel.tsx` - useMemo for visibleTerminals
 
 ---
 
@@ -225,7 +225,7 @@ const triggerTerminalRefit = () => {
 - Combine both for smooth UX: throttled live feedback + debounced final action
 
 **Files:**
-- `src/components/SplitLayout.tsx:100-119` - Throttle + debounce implementation
+- `extension/components/SplitLayout.tsx:100-119` - Throttle + debounce implementation
 
 ---
 

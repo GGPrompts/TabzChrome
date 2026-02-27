@@ -2,7 +2,7 @@
 
 Lessons related to multi-window state sync, split terminal architecture, WebSocket routing, and system design patterns.
 
-> **See Also:** The `skills/xterm-js/references/websocket-patterns.md` contains detailed WebSocket routing patterns.
+> **See Also:** The `tabz-development` skill contains patterns for working on the TabzChrome codebase.
 
 ---
 
@@ -95,8 +95,8 @@ updateTerminal(splitContainer.id, {
 - [ ] Am I clearing state vs. deleting entities?
 
 **Files:**
-- `src/SimpleTerminalApp.tsx:1392-1408` - Fixed unsplit logic
-- `src/hooks/useDragDrop.ts:277-283` - How splits are created
+- `extension/sidepanel/sidepanel.tsx:1392-1408` - Fixed unsplit logic
+- `extension/hooks/useDragDrop.ts:277-283` - How splits are created
 
 ---
 
@@ -162,8 +162,8 @@ useEffect(() => {
 - [ ] Do we watch for status changes and clean up local state?
 
 **Files:**
-- `src/hooks/useWebSocketManager.ts:115-140` - Agent cleanup on detach
-- `src/SimpleTerminalApp.tsx:544-581` - BroadcastChannel state sync
+- `extension/hooks/useTerminalSessions.ts:115-140` - Agent cleanup on detach
+- `extension/sidepanel/sidepanel.tsx:544-581` - BroadcastChannel state sync
 
 ---
 
@@ -335,7 +335,7 @@ if (detachedSplitContainer) {
 ```
 
 **Files:**
-- `src/SimpleTerminalApp.tsx:864-878`
+- `extension/sidepanel/sidepanel.tsx:864-878`
 
 ---
 
@@ -374,7 +374,7 @@ if (detachedSplitContainer) {
 - Use `isolation: isolate` to prevent stacking context bleed
 
 **Files:**
-- `src/components/SplitLayout.css` - Z-index hierarchy
+- `extension/components/SplitLayout.css` - Z-index hierarchy
 
 ---
 

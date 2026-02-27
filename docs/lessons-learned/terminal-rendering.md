@@ -2,7 +2,7 @@
 
 Lessons related to xterm.js, tmux, resize handling, and terminal display issues.
 
-> **See Also:** The `skills/xterm-js/` skill contains generalized patterns extracted from these lessons.
+> **See Also:** The `tabz-development` skill contains patterns for working on Terminal.tsx and xterm.js.
 
 ---
 
@@ -296,8 +296,8 @@ const xtermOptions = {
 - [ ] Is `windowsMode: false` for tmux sessions?
 
 **Files:**
-- `src/components/Terminal.tsx:240-245` - Conditional EOL conversion
-- `src/hooks/useTmuxSessionDimensions.ts` - Dimension tracking (prevents font mismatches)
+- `extension/components/Terminal.tsx:240-245` - Conditional EOL conversion
+- `extension/components/Terminal.tsx` - Dimension tracking (prevents font mismatches)
 
 ---
 
@@ -357,9 +357,9 @@ if (shouldSendInitialResize) {
 - Tmux manages its own panes → only tell it the viewport size, then hands off
 
 **Files:**
-- `src/hooks/useTerminalResize.ts:129-131` - Skip ResizeObserver
-- `src/components/Terminal.tsx:393-424` - Skip focus resize
-- `src/components/Terminal.tsx:499-533` - Initial resize once
+- `extension/components/Terminal.tsx:129-131` - Skip ResizeObserver
+- `extension/components/Terminal.tsx:393-424` - Skip focus resize
+- `extension/components/Terminal.tsx:499-533` - Initial resize once
 
 ---
 
@@ -681,7 +681,7 @@ this.resizeTimers.set(terminalId, setTimeout(() => {
 - Test with `htop` or other TUI tools that use full terminal height
 
 **Files:**
-- `src/SimpleTerminalApp.css:1001-1018` - Header padding
+- `extension/sidepanel/sidepanel.css:1001-1018` - Header padding
 
 ---
 

@@ -45,9 +45,9 @@ Browse the web with your terminals always visible - no window juggling, no Alt+T
 TabzChrome is designed to work seamlessly with Claude Code:
 
 **🚀 Quick Setup - `/discover-profiles` command**
-- Scans your system for installed CLI tools (claude, lazygit, htop, nvim, etc.)
-- Opens curated lists ([awesome-tuis](https://github.com/rothgar/awesome-tuis), [modern-unix](https://github.com/ibraheemdev/modern-unix)) to discover new tools
-- Generates ready-to-import profiles with sensible defaults
+- Manage TabzChrome profiles via the REST API (view, create, update, bulk-import)
+- Browse curated lists ([awesome-tuis](https://github.com/rothgar/awesome-tuis), [modern-unix](https://github.com/ibraheemdev/modern-unix)) to discover new CLI tools
+- Import ready-made profile configurations with sensible defaults
 
 **⚡ 0 Token Cost Up Front** - MCP tools with no context overhead!
 
@@ -391,8 +391,8 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 |------|-----|----------|
 | **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector, quick spawn |
 | **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
-| **Files** | `/files` | File browser, syntax highlighting, image/video preview, favorites, **Claude Code plugin management** |
-| **Audio** | `/#/audio` | Voice settings, per-event customization, sound effects, phrase templates |
+| **Files** | `#/files` | File browser, syntax highlighting, image/video preview, favorites, **Claude Code plugin management** |
+| **Audio** | `#/audio` | Voice settings, per-event customization, sound effects, phrase templates |
 
 **Features:**
 - **Working directory sync** - Changes in dashboard sync to extension sidebar and vice versa
@@ -481,7 +481,7 @@ The URL opens in a new tab and the sidebar activates automatically.
 
 ## Tabz MCP Integration
 
-Tabz includes an **MCP server** with 82 tools that let Claude Code control your browser:
+Tabz includes an **MCP server** with 85 tools that let Claude Code control your browser:
 
 ![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/screenshots/mcp-dalle-demo.png)
 
@@ -525,15 +525,9 @@ Click ⚙️ → **MCP Tools** tab to configure which tools Claude can use:
 
 > **Tip:** Set `ENABLE_EXPERIMENTAL_MCP_CLI=true` in your shell to load tool schemas on-demand (0 tokens up front). See [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c).
 
-### Claude Skill: `tabz-mcp`
-
-Install the `tabz-mcp` skill for guided browser automation. The skill dynamically discovers available tools and provides workflow patterns - never goes stale when tools are added.
-
-**Location:** `~/.claude/skills/tabz-mcp/`
-
 ### No Remote Debugging Required
 
-**All 82 MCP tools work using Chrome Extension APIs only!** No `--remote-debugging-port=9222` flag needed.
+**All 85 MCP tools work using Chrome Extension APIs only!** No `--remote-debugging-port=9222` flag needed.
 
 | Feature | Works Out of the Box |
 |---------|---------------------|
@@ -606,7 +600,6 @@ TabzChrome/
 │   ├── routes/             # API routes (spawn, browser, files)
 │   └── public/             # Dashboard web UI
 ├── tabz-mcp-server/        # MCP server for Claude Code browser control
-├── claude-hooks/           # Claude Code status detection hooks
 └── dist-extension/         # Built extension (load this in Chrome)
 ```
 
@@ -661,14 +654,14 @@ The backend server supports optional environment variables in `backend/.env`:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `8129` | HTTP/WebSocket server port |
-| `LOG_LEVEL` | `4` | Logging verbosity: 0=silent, 1=fatal, 2=error, 3=warn, 4=info, 5=debug |
+| `LOG_LEVEL` | `3` | Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace |
 | `LOG_FILE` | *(none)* | Optional file path to write logs (e.g., `logs/backend.log`) |
 | `CLEANUP_ON_START` | `false` | Kill orphaned tmux sessions on backend start |
 
 **Example `backend/.env`:**
 ```bash
 PORT=8129
-LOG_LEVEL=5        # Enable debug logging
+LOG_LEVEL=4        # Enable debug logging
 # LOG_FILE=logs/backend.log
 ```
 
@@ -762,8 +755,10 @@ npm test
 ### Spawn Terminal via API
 
 ```bash
+TOKEN=$(cat /tmp/tabz-auth-token)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: $TOKEN" \
   -d '{
     "name": "My Terminal",
     "workingDir": "~/projects",

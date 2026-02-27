@@ -32,7 +32,7 @@ if (!existingTerminal) {
 3. Helps users self-diagnose issues
 4. Can be left in for production debugging
 
-**Files:** `src/hooks/useWebSocketManager.ts:118-157`
+**Files:** `extension/hooks/useTerminalSessions.ts:118-157`
 
 ---
 
@@ -92,7 +92,7 @@ const config = {
 
 **Key Insight:** Tmux sessions have stable names. Use them as the source of truth for reconnection.
 
-**Files:** `src/hooks/useTerminalSpawning.ts:246-247`
+**Files:** `extension/hooks/useTerminalSessions.ts:246-247`
 
 ---
 
