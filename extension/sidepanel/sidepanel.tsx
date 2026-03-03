@@ -471,6 +471,13 @@ function SidePanelTerminal() {
         setSessions(prev => prev.map(s =>
           s.id === message.terminalId ? { ...s, poppedOut: true, popoutWindowId: message.windowId } : s
         ))
+        // If the popped-out terminal was focused, switch back to another terminal
+        if (currentSessionRef.current === message.terminalId) {
+          const other = sessionsRef.current?.find(s => s.id !== message.terminalId && !s.poppedOut)
+          if (other) {
+            setCurrentSession(other.id)
+          }
+        }
       } else if (message.type === 'TERMINAL_RETURNED_FROM_POPOUT') {
         // Popout window closed - return terminal to sidebar
         setSessions(prev => prev.map(s =>
