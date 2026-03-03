@@ -1,7 +1,7 @@
 {
   "conductor": {
     "name": "Conductor",
-    "description": "27 tools",
+    "description": "38 tools",
     "tools": [
       "tabz_list_tabs",
       "tabz_switch_tab",
@@ -29,8 +29,19 @@
       "tabz_get_element",
       "tabz_capture_terminal",
       "tabz_list_terminals",
-      "tabz_send_keys"
+      "tabz_send_keys",
+      "tabz_enable_network_capture",
+      "tabz_get_network_requests",
+      "tabz_get_dom_tree",
+      "tabz_profile_performance",
+      "tabz_emulate_device",
+      "tabz_emulate_clear",
+      "tabz_execute_script",
+      "tabz_create_group",
+      "tabz_claude_group_remove",
+      "tabz_claude_group_status",
+      "tabz_list_groups"
     ],
-    "updatedAt": "2026-01-22T04:26:22.473Z"
+    "updatedAt": "2026-01-22T20:34:19.529Z"
   }
 }

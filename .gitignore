@@ -65,3 +65,10 @@ mcp-config.json
 test-beads-mcp/
 # bd worktree
 test-env-var/
+mcp-presets.json
+# bd worktree
+.worktrees/TabzChrome-layd/
+# bd worktree
+.worktrees/plugin-scope-test/
+# bd worktree
+.worktrees/test-redirect-check/
