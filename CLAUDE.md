@@ -182,8 +182,8 @@ The 85 tabz_* MCP tools are only available in this project (configured in `.mcp.
 For parallel work, spawn vanilla Claude workers on worktrees:
 
 ```bash
-# Create worktree (bd handles beads redirect automatically)
-bd worktree create feature-branch
+# Create worktree (ggbd handles beads redirect automatically)
+ggbd worktree create feature-branch
 
 # Spawn worker with BEADS_WORKING_DIR for MCP tools
 TOKEN=$(cat /tmp/tabz-auth-token)
@@ -196,15 +196,15 @@ curl -X POST http://localhost:8129/api/spawn \
 
 **Key:** `BEADS_WORKING_DIR` tells the beads MCP server where to find the database. Point it to the main repo, not the worktree.
 
-Workers receive plain prompts and use beads naturally (`bd show`, `bd close`, or MCP tools).
+Workers receive plain prompts and use beads naturally (`ggbd show`, `ggbd close`, or MCP tools).
 
 ### Beads Integration
 
 Track work across sessions with beads:
 ```bash
-bd ready                    # Find available work
-bd show <id>                # View issue details
-bd close <id> --reason="done"  # Complete work
+ggbd ready                    # Find available work
+ggbd show <id>                # View issue details
+ggbd close <id> --reason="done"  # Complete work
 ```
 
 ### Autonomous Debugging
