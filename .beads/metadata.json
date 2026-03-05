@@ -1,7 +1,6 @@
 {
-  "database": "dolt",
-  "jsonl_export": "issues.jsonl",
+  "database": "postgres",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_database": "beads_TabzChrome"
+  "dolt_database": "tc"
 }

@@ -77,3 +77,7 @@ mcp-presets.json
 .worktrees/plugin-scope-test/
 # bd worktree
 .worktrees/test-redirect-check/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
