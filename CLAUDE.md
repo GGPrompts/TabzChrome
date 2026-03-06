@@ -200,7 +200,7 @@ Workers receive plain prompts and use beads naturally (`ggbd show`, `ggbd close`
 
 ### Beads Integration
 
-- At session start, call beads MCP `context(workspace_root='/home/marci/projects/TabzChrome')` to scope issues to this project's `tc` prefix
+- At session start, call beads MCP `context(workspace_root='<project_root>')` to scope issues to this project's `tc` prefix
 
 Track work across sessions with beads:
 ```bash
