@@ -1,6 +1,1 @@
-{
-  "database": "postgres",
-  "backend": "dolt",
-  "dolt_mode": "server",
-  "dolt_database": "tc"
-}
+{"database":"postgres","backend":"postgres","postgres_url_env":"BD_POSTGRES_URL","postgres_schema":"beads"}
