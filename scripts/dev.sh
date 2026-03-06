@@ -596,10 +596,12 @@ if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
   tmux new-window -t $SESSION_NAME -n logs -c "$SCRIPT_DIR"
 
   # Use lnav if available, otherwise fall back to tail -f
+  # NOTE: Don't send escape sequences (color codes) via tmux send-keys.
+  # With escape-time 0, tmux interprets raw ESC bytes as commands instead of passing them through.
   if command -v lnav &> /dev/null; then
-    tmux send-keys -t "$SESSION_NAME:=logs" "echo -e '${GREEN}Unified Logs${NC} - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
+    tmux send-keys -t "$SESSION_NAME:=logs" "echo 'Unified Logs - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
   else
-    tmux send-keys -t "$SESSION_NAME:=logs" "echo -e '${GREEN}Unified Logs${NC} - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
+    tmux send-keys -t "$SESSION_NAME:=logs" "echo 'Unified Logs - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
   fi
 fi
 
@@ -613,9 +615,9 @@ echo -e "${BLUE}Tmux Commands:${NC}"
 echo -e "  Attach:  ${YELLOW}tmux attach -t $SESSION_NAME${NC}"
 echo -e "  Detach:  ${YELLOW}Ctrl+B, then D${NC}"
 if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
-  echo -e "  Windows: ${YELLOW}Ctrl+B, then 0/1${NC} (backend/logs)"
+  echo -e "  Windows: ${YELLOW}Ctrl+B, then 1/2${NC} (backend/logs)"
 else
-  echo -e "  Windows: ${YELLOW}Ctrl+B, then 0${NC} (backend)"
+  echo -e "  Windows: ${YELLOW}Ctrl+B, then 1${NC} (backend)"
 fi
 echo -e "  Kill:    ${YELLOW}tmux kill-session -t $SESSION_NAME${NC}"
 echo ""

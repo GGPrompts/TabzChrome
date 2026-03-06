@@ -570,7 +570,7 @@ Session 1: tt-script-abc     Session 2: tt-script-xyz
 | **Best for** | TUI tools (full-screen) | Monitoring/logs (split) | Multi-column layouts |
 | **Sessions created** | 1 | 1 | 2+ |
 | **Layout in Tabz** | 1 tab, switch windows | 1 tab, vertical panes | 1 tab, React split |
-| **Navigation** | Ctrl+B 0/1/2/3 | Scroll, all visible | Click columns |
+| **Navigation** | Ctrl+B 1/2/3/4 | Scroll, all visible | Click columns |
 | **Recommended for** | 3-4 terminals (Claude, TFE, Git) | 4+ logs/monitors | Frontend + Backend |
 | **Example** | `4x1` = 4 windows | `1x4` = 4 panes | `2x2` = 2 cols × 2 rows |
 
