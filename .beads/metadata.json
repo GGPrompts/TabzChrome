@@ -1,1 +1,6 @@
-{"database":"postgres","backend":"postgres","postgres_url_env":"BD_POSTGRES_URL","postgres_schema":"beads"}
+{
+  "database": "postgres",
+  "backend": "postgres",
+  "postgres_url_env": "BD_POSTGRES_URL",
+  "postgres_schema": "beads"
+}
