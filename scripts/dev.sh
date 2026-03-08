@@ -593,15 +593,12 @@ if [[ "$ENABLE_LOGS" =~ ^[Yy]$ ]]; then
   mkdir -p "$(dirname "$UNIFIED_LOG")"
   touch "$UNIFIED_LOG"
 
-  tmux new-window -t $SESSION_NAME -n logs -c "$SCRIPT_DIR"
-
-  # Use lnav if available, otherwise fall back to tail -f
-  # NOTE: Don't send escape sequences (color codes) via tmux send-keys.
-  # With escape-time 0, tmux interprets raw ESC bytes as commands instead of passing them through.
+  # Pass command directly to new-window to avoid send-keys timing issues
+  # (shell may not be ready when send-keys arrives, causing raw text dump)
   if command -v lnav &> /dev/null; then
-    tmux send-keys -t "$SESSION_NAME:=logs" "echo 'Unified Logs - lnav $UNIFIED_LOG'; echo '(Filter: :filter-in pattern | Quit: q)'; echo ''; sleep 1 && lnav $UNIFIED_LOG" C-m
+    tmux new-window -t $SESSION_NAME -n logs "sleep 1 && lnav $UNIFIED_LOG"
   else
-    tmux send-keys -t "$SESSION_NAME:=logs" "echo 'Unified Logs - tail -f $UNIFIED_LOG'; echo '(Install lnav for filtering: sudo apt install lnav)'; echo ''; tail -f $UNIFIED_LOG" C-m
+    tmux new-window -t $SESSION_NAME -n logs "tail -f $UNIFIED_LOG"
   fi
 fi
 
