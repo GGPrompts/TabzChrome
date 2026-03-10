@@ -306,18 +306,12 @@ export function setupContextMenuListener(): void {
           return
         }
 
-        // Capture the page as MHTML
-        const mhtmlBlob = await new Promise<Blob>((resolve, reject) => {
-          chrome.pageCapture.saveAsMHTML({ tabId: tab.id! }, (blob) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message))
-            } else if (!blob) {
-              reject(new Error('Failed to capture page'))
-            } else {
-              resolve(blob)
-            }
-          })
-        })
+        // Capture the page as MHTML using Promise-based API (MV3)
+        const mhtmlBlob = await chrome.pageCapture.saveAsMHTML({ tabId: tab.id! })
+        if (!mhtmlBlob || mhtmlBlob.size === 0) {
+          console.error('MHTML capture returned empty data')
+          return
+        }
 
         // Generate filename from page title
         const pageTitle = tab.title || 'page'
@@ -325,22 +319,38 @@ export function setupContextMenuListener(): void {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
         const filename = `${sanitizedTitle}-${timestamp}.mhtml`
 
-        // Convert blob to data URL (service workers don't support URL.createObjectURL)
-        const arrayBuffer = await mhtmlBlob.arrayBuffer()
-        const uint8Array = new Uint8Array(arrayBuffer)
-        let binary = ''
-        for (let i = 0; i < uint8Array.length; i++) {
-          binary += String.fromCharCode(uint8Array[i])
+        // Convert blob to downloadable URL
+        let downloadUrl: string
+        let cleanup = () => {}
+        try {
+          if (typeof URL.createObjectURL === 'function') {
+            downloadUrl = URL.createObjectURL(mhtmlBlob)
+            cleanup = () => URL.revokeObjectURL(downloadUrl)
+          } else {
+            throw new Error('createObjectURL not available')
+          }
+        } catch {
+          // Fallback: chunked base64 data URL
+          const arrayBuffer = await mhtmlBlob.arrayBuffer()
+          const uint8Array = new Uint8Array(arrayBuffer)
+          const chunkSize = 8192
+          const chunks: string[] = []
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, i + chunkSize)
+            chunks.push(String.fromCharCode(...chunk))
+          }
+          const base64 = btoa(chunks.join(''))
+          downloadUrl = `data:multipart/related;base64,${base64}`
         }
-        const base64 = btoa(binary)
-        const dataUrl = `data:multipart/related;base64,${base64}`
 
         // Download the file
         chrome.downloads.download({
-          url: dataUrl,
+          url: downloadUrl,
           filename: filename,
           conflictAction: 'uniquify'
         }, (downloadId) => {
+          // Clean up blob URL after download starts
+          setTimeout(cleanup, 5000)
           if (chrome.runtime.lastError) {
             console.error('Download failed:', chrome.runtime.lastError.message)
           } else {

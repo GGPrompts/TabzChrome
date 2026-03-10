@@ -457,6 +457,38 @@ export async function handleBrowserCaptureImage(message: {
 }
 
 /**
+ * Convert a Blob to a download URL.
+ * Tries URL.createObjectURL first (supported in Chrome 116+ service workers),
+ * falls back to base64 data URL for older versions.
+ * Returns { url, cleanup } where cleanup revokes the object URL if used.
+ */
+async function blobToDownloadUrl(blob: Blob, mimeType: string): Promise<{ url: string; cleanup: () => void }> {
+  // Try URL.createObjectURL (works in Chrome 116+ service workers, no size limits)
+  try {
+    if (typeof URL.createObjectURL === 'function') {
+      const url = URL.createObjectURL(blob)
+      return { url, cleanup: () => URL.revokeObjectURL(url) }
+    }
+  } catch {
+    // Fall through to data URL approach
+  }
+
+  // Fallback: convert to base64 data URL using chunked approach
+  // (avoids O(n^2) string concatenation and stack overflow for large files)
+  const arrayBuffer = await blob.arrayBuffer()
+  const uint8Array = new Uint8Array(arrayBuffer)
+  const chunkSize = 8192
+  const chunks: string[] = []
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.subarray(i, i + chunkSize)
+    chunks.push(String.fromCharCode(...chunk))
+  }
+  const base64 = btoa(chunks.join(''))
+  const url = `data:${mimeType};base64,${base64}`
+  return { url, cleanup: () => {} }
+}
+
+/**
  * Handle save page request from backend (MCP server)
  * Uses pageCapture API to save page as MHTML
  */
@@ -476,24 +508,46 @@ export async function handleBrowserSavePage(message: {
       throw new Error('No active tab found')
     }
 
-    // Check if tab URL is capturable (not chrome://, chrome-extension://, etc.)
+    // Get full tab info for URL and status checks
     const tabInfo = await chrome.tabs.get(targetTab.id)
+
+    // Check if tab URL is capturable (not chrome://, chrome-extension://, etc.)
     if (tabInfo.url?.startsWith('chrome://') || tabInfo.url?.startsWith('chrome-extension://')) {
       throw new Error('Cannot capture chrome:// or extension pages. Navigate to a regular webpage first.')
     }
 
-    // Capture the page as MHTML
-    const mhtmlBlob = await new Promise<Blob>((resolve, reject) => {
-      chrome.pageCapture.saveAsMHTML({ tabId: targetTab.id! }, (blob) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message))
-        } else if (!blob) {
-          reject(new Error('Failed to capture page - no data returned'))
-        } else {
-          resolve(blob)
+    // Wait for tab to finish loading (saveAsMHTML fails on loading tabs)
+    if (tabInfo.status !== 'complete') {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          chrome.tabs.onUpdated.removeListener(listener)
+          reject(new Error('Tab did not finish loading within 15 seconds'))
+        }, 15000)
+
+        const listener = (updatedTabId: number, changeInfo: { status?: string }) => {
+          if (updatedTabId === targetTab.id && changeInfo.status === 'complete') {
+            clearTimeout(timeout)
+            chrome.tabs.onUpdated.removeListener(listener)
+            resolve()
+          }
         }
+        chrome.tabs.onUpdated.addListener(listener)
       })
-    })
+    }
+
+    // Capture the page as MHTML using Promise-based API (MV3)
+    let mhtmlBlob: Blob | undefined
+    try {
+      mhtmlBlob = await chrome.pageCapture.saveAsMHTML({ tabId: targetTab.id })
+    } catch (captureErr) {
+      // Provide a more descriptive error than the raw Chrome error
+      const msg = (captureErr as Error).message || 'Unknown error'
+      throw new Error(`MHTML capture failed for tab ${targetTab.id} (${tabInfo.url}): ${msg}`)
+    }
+
+    if (!mhtmlBlob || mhtmlBlob.size === 0) {
+      throw new Error('MHTML capture returned empty data. The tab may have navigated or been closed during capture.')
+    }
 
     // Generate filename from page title or custom name
     const pageTitle = tabInfo.title || 'page'
@@ -504,77 +558,40 @@ export async function handleBrowserSavePage(message: {
       : `${sanitizedTitle}-${timestamp}`
     const filename = `${baseFilename}.mhtml`
 
-    // Convert blob to data URL (service workers don't support URL.createObjectURL)
-    const arrayBuffer = await mhtmlBlob.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < uint8Array.length; i++) {
-      binary += String.fromCharCode(uint8Array[i])
-    }
-    const base64 = btoa(binary)
-    const dataUrl = `data:multipart/related;base64,${base64}`
+    // Convert blob to a downloadable URL
+    const { url: downloadUrl, cleanup } = await blobToDownloadUrl(mhtmlBlob, 'multipart/related')
 
     // Download the MHTML file
-    const downloadId = await new Promise<number>((resolve, reject) => {
-      chrome.downloads.download({
-        url: dataUrl,
-        filename: filename,
-        conflictAction: 'uniquify'
-      }, (id) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message))
-        } else if (id === undefined) {
-          reject(new Error('Download failed to start'))
-        } else {
-          resolve(id)
-        }
-      })
-    })
-
-    // Wait for download to complete
-    const downloadResult = await new Promise<{
-      success: boolean
-      filename?: string
-      windowsPath?: string
-      wslPath?: string
-      fileSize?: number
-      mimeType?: string
-      error?: string
-    }>((resolve) => {
-      const timeout = setTimeout(() => {
-        resolve({ success: false, error: 'Download timed out' })
-      }, 30000) // 30s timeout for MHTML (can be large)
-
-      const checkDownload = () => {
-        chrome.downloads.search({ id: downloadId }, (results) => {
-          if (results.length === 0) {
-            clearTimeout(timeout)
-            resolve({ success: false, error: 'Download not found' })
-            return
-          }
-
-          const download = results[0]
-          if (download.state === 'complete') {
-            clearTimeout(timeout)
-            const winPath = download.filename
-            resolve({
-              success: true,
-              filename: winPath.split(/[/\\]/).pop() || filename,
-              windowsPath: winPath,
-              wslPath: windowsToWslPath(winPath),
-              fileSize: download.fileSize,
-              mimeType: 'multipart/related'
-            })
-          } else if (download.state === 'interrupted') {
-            clearTimeout(timeout)
-            resolve({ success: false, error: download.error || 'Download interrupted' })
+    let downloadId: number
+    try {
+      downloadId = await new Promise<number>((resolve, reject) => {
+        chrome.downloads.download({
+          url: downloadUrl,
+          filename: filename,
+          conflictAction: 'uniquify'
+        }, (id) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message))
+          } else if (id === undefined) {
+            reject(new Error('Download failed to start'))
           } else {
-            setTimeout(checkDownload, 200)
+            resolve(id)
           }
         })
-      }
-      setTimeout(checkDownload, 100)
-    })
+      })
+    } finally {
+      // Clean up blob URL after download starts (Chrome holds a reference)
+      // Use a small delay to ensure Chrome has read the blob
+      setTimeout(cleanup, 5000)
+    }
+
+    // Wait for download to complete (reuse shared utility)
+    const result = await waitForDownload(downloadId, 30000)
+
+    const downloadResult = {
+      ...result,
+      mimeType: 'multipart/related' as const
+    }
 
     // Announce download completion via TTS (if enabled)
     if (downloadResult.success && downloadResult.filename) {
