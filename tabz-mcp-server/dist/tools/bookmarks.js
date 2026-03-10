@@ -12,7 +12,7 @@ import { ResponseFormat } from "../types.js";
  */
 async function getBookmarkTree(options) {
     try {
-        const response = await axios.get(`${BACKEND_URL}/api/browser/bookmarks`, {
+        const response = await axios.get(`${BACKEND_URL}/api/browser/bookmarks/tree`, {
             params: {
                 folderId: options.folderId,
                 maxDepth: options.maxDepth
@@ -30,7 +30,10 @@ async function getBookmarkTree(options) {
  */
 async function searchBookmarks(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/bookmarks/search`, { query: options.query, limit: options.limit }, { timeout: 10000 });
+        const response = await axios.get(`${BACKEND_URL}/api/browser/bookmarks/search`, {
+            params: { query: options.query, limit: options.limit },
+            timeout: 10000
+        });
         return response.data;
     }
     catch (error) {
