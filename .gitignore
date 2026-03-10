@@ -55,29 +55,26 @@ backend/.settings.json
 mcp-config.json
 .mcp.json
 
-# Beads runtime artifacts
-.beads/transcripts/
-.beads/*.lock
-.beads/dolt/
+# Beads issue tracker (personal/dev-only)
+.beads/
+
+# Perles config (personal dev tool)
+.perles/
 .worktrees/
 
 # Plugin audit logs
 .audit-logs/
-# bd worktree
+
+# Old worktree directories (now covered by .worktrees/ above)
 test-beads-mcp/
-# bd worktree
 test-env-var/
+
+# MCP presets (user-specific)
 mcp-presets.json
-# bd worktree
 
 # System artifacts
 *.deb
-.worktrees/TabzChrome-layd/
-# bd worktree
-.worktrees/plugin-scope-test/
-# bd worktree
-.worktrees/test-redirect-check/
 
-# Dolt database files (added by bd init)
+# Dolt database files
 .dolt/
 *.db

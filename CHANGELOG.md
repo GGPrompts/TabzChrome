@@ -19,6 +19,37 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.4.3] - 2026-03-10
+
+### Added
+
+- **Terminal MCP Tools** - `tabz_send_keys`, `tabz_capture_terminal`, `tabz_list_terminals` for programmatic terminal control
+- **Profile CRUD via MCP/API** - Create, update, delete, and spawn profiles through MCP tools and REST API
+- **Plugin Management MCP Tools** - List, inspect, toggle, and health-check Claude Code plugins
+- **Workspace File Watcher** - "Follow AI Edits" feature broadcasts file changes in real-time
+- **Audio File Playback** - `/api/files/audio` endpoint for playing audio files
+- **Git Graph API** - Graph visualization endpoints for repository history
+- **Claude Session API** - `/api/claude/session` endpoint for conversation path lookup
+- **Claude Code Plugin** - Tabz plugin with browser automation skills, terminal spawning, and integration patterns
+
+### Changed
+
+- **Comprehensive API Documentation** - Full rewrite of `docs/API.md` with all endpoints
+- **dev.sh Improvements** - Auto-generates `.mcp.json`, fixed logs window, correct tmux window indices
+- **Settings Moved to Dashboard** - All settings (profiles, MCP tools, audio, notifications) now in the web dashboard at `localhost:8129`
+- **Security Hardening** - Removed hardcoded paths and usernames for cross-user compatibility
+- **Plugins Cleaned Up** - Orchestration plugins (conductor, planner, spawner, cleanup) moved to [GGPrompts/my-plugins](https://github.com/GGPrompts/my-plugins)
+- **Unified Logging** - All backend logs routed through single logger module
+
+### Fixed
+
+- Sidebar stays focused on current terminal when popping out
+- Heap crash when traversing `/proc` and virtual filesystems
+- Multiline commit bodies in git diff parsing
+- tmux clipboard and mouse improvements
+
+---
+
 ## [1.4.2] - 2026-01-07
 
 ### Added

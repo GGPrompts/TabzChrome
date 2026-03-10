@@ -78,18 +78,16 @@ Quick reference for the 85 browser MCP tools available to Claude Code.
 
 ---
 
-## Detailed Documentation
+## Tool Categories
 
-For full tool documentation with parameters, examples, and error handling:
-
-| Category | Tools | Documentation |
-|----------|-------|---------------|
-| **Core & Interaction** | Tabs, clicks, forms, screenshots, console | [docs/core-and-interaction.md](docs/core-and-interaction.md) |
-| **Browser Data** | Bookmarks, history, sessions, cookies | [docs/browser-data.md](docs/browser-data.md) |
-| **Windows & Groups** | Tab groups, windows, displays, tiling | [docs/windows-and-groups.md](docs/windows-and-groups.md) |
-| **Network & Downloads** | Network capture, file downloads, page save | [docs/network-and-downloads.md](docs/network-and-downloads.md) |
-| **Advanced** | DOM inspection, emulation, notifications, audio | [docs/advanced.md](docs/advanced.md) |
-| **Claude Integration** | Profiles, plugins, skills | [docs/claude-integration.md](docs/claude-integration.md) |
+| Category | Tools |
+|----------|-------|
+| **Core & Interaction** | Tabs, clicks, forms, screenshots, console |
+| **Browser Data** | Bookmarks, history, sessions, cookies |
+| **Windows & Groups** | Tab groups, windows, displays, tiling |
+| **Network & Downloads** | Network capture, file downloads, page save |
+| **Advanced** | DOM inspection, emulation, notifications, audio |
+| **Claude Integration** | Profiles, plugins, skills, terminals |
 
 ---
 

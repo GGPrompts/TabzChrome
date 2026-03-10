@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-1.4.2-blue)
+![Version](https://img.shields.io/badge/version-1.4.3-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -26,7 +26,7 @@ Browse the web with your terminals always visible - no window juggling, no Alt+T
 
 **Give your AI full control:** Through MCP tools and REST API, Claude Code can control your browser (screenshots, clicks, form filling, network inspection) and spawn/kill terminal sessions programmatically. Your AI assistant becomes a true automation partner.
 
-> ⚠️ **Security Note:** By default, MCP tools only allow access to safe domains (GitHub, GitLab, Vercel, localhost, AI image generators). "YOLO mode" can be enabled in settings to allow all URLs, but we recommend using a **separate Chrome profile** without personal accounts or saved passwords if you do.
+> ⚠️ **Security Note:** By default, MCP tools only allow access to safe domains (GitHub, GitLab, Vercel, localhost, AI image generators). "YOLO mode" can be enabled in the Dashboard MCP settings (`localhost:8129/#/mcp`) to allow all URLs, but we recommend using a **separate Chrome profile** without personal accounts or saved passwords if you do.
 
 ### Key Features
 
@@ -57,7 +57,7 @@ Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand
 
 **🎭 Power Features (Claude Code Integration):**
 
-TabzChrome includes a [Claude Code plugin marketplace](.claude-plugin/marketplace.json) with agents, skills, hooks, and MCP tools:
+TabzChrome includes a [Claude Code plugin](.claude-plugin/marketplace.json) with agents, skills, and MCP tools:
 
 | Component | Type | Description |
 |-----------|------|-------------|
@@ -68,6 +68,8 @@ TabzChrome includes a [Claude Code plugin marketplace](.claude-plugin/marketplac
 | [**tabz-expert**](.claude/agents/tabz-expert.md) | agent | Browser automation specialist with 85 MCP tools |
 
 **Quick setup:** Skills auto-load when you run Claude Code in the TabzChrome directory.
+
+> **Looking for orchestration plugins?** The conductor, planner, spawner, and cleanup plugins (for multi-agent worker pipelines) are available in [GGPrompts/my-plugins](https://github.com/GGPrompts/my-plugins). These require [beads](https://github.com/GGPrompts/beads) for issue tracking.
 
 ---
 
@@ -140,7 +142,7 @@ The default terminal font is **monospace** (works everywhere). For better icons 
 | **macOS** | Double-click each `.ttf` in `fonts/` → Click "Install Font" |
 | **Linux** | `cp fonts/*.ttf ~/.local/share/fonts/ && fc-cache -fv` |
 
-After installing, **restart Chrome** and select the font in Settings (⚙️) → Edit profile → Font Family.
+After installing, **restart Chrome** and select the font in the Dashboard (`localhost:8129/#/profiles`) → Edit profile → Font Family.
 
 See [`fonts/README.md`](fonts/README.md) for details.
 
@@ -390,9 +392,14 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 | Page | URL | Features |
 |------|-----|----------|
 | **Dashboard** | `/` | Quick stats (active terminals, uptime, memory), working directory selector, quick spawn |
-| **Terminals** | `/terminals.html` | Full terminal list, kill/reattach, orphan management |
+| **Terminals** | `#/terminals` | Full terminal list, kill/reattach, orphan management |
+| **Profiles** | `#/profiles` | Profile creation, editing, and management |
 | **Files** | `#/files` | File browser, syntax highlighting, image/video preview, favorites, **Claude Code plugin management** |
+| **Source Control** | `#/git` | Git repository info and graph visualization |
+| **API Playground** | `#/api` | Interactive REST API testing |
+| **MCP Settings** | `#/mcp` | Toggle MCP tools, manage allowed domains, token estimates |
 | **Audio** | `#/audio` | Voice settings, per-event customization, sound effects, phrase templates |
+| **Notifications** | `#/notifications` | Notification preferences and settings |
 
 **Features:**
 - **Working directory sync** - Changes in dashboard sync to extension sidebar and vice versa
@@ -512,11 +519,11 @@ Tabz includes an **MCP server** with 85 tools that let Claude Code control your 
 - 🟢 **Green** - `tabz_click` (action completed)
 - 🔵 **Blue** - `tabz_fill` (input focused)
 
-### Configure in Settings
+### Configure MCP Tools
 
-Click ⚙️ → **MCP Tools** tab to configure which tools Claude can use:
+Open the Dashboard (`localhost:8129/#/mcp`) to configure which tools Claude can use:
 
-![MCP Tools settings tab with tool toggles and token estimates](docs/screenshots/mcp-settings.png)
+![MCP Tools settings with tool toggles and token estimates](docs/screenshots/mcp-settings.png)
 
 - Toggle individual tools on/off
 - See token usage estimates per tool
@@ -696,7 +703,7 @@ tmux kill-server        # Reset if corrupted
 
 **Terminal text has gaps/spacing between characters**
 - This can happen with custom fonts that aren't installed
-- **Fix:** Settings (⚙️) → Edit profile → Change Font Family to "Monospace (Default)" or "Consolas"
+- **Fix:** Dashboard (`localhost:8129/#/profiles`) → Edit profile → Change Font Family to "Monospace (Default)" or "Consolas"
 - If using Nerd Fonts, make sure they're properly installed and restart Chrome
 
 **Terminal display looks corrupted (text wrapping wrong, duplicated lines)**

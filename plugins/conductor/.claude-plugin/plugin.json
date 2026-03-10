@@ -1,5 +1,0 @@
-{
-  "name": "conductor",
-  "version": "3.0.0",
-  "description": "Lightweight orchestrator - coordinates planner, prompt-writer, spawner, and cleanup plugins"
-}

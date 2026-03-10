@@ -1,5 +1,0 @@
-{
-  "name": "spawner",
-  "version": "1.0.0",
-  "description": "Spawn Claude workers in isolated git worktrees via TabzChrome API"
-}
