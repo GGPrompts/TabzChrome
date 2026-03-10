@@ -1558,6 +1558,244 @@ wss.on('connection', (ws, req) => {
           break;
 
         // ============================================
+        // HISTORY RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-history-search-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              items: data.items,
+              total: data.total,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-history-visits-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              url: data.url,
+              visits: data.visits,
+              total: data.total,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-history-recent-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              items: data.items,
+              total: data.total,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-history-delete-url-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              url: data.url,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-history-delete-range-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
+        // SESSIONS RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-sessions-recent-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              sessions: data.sessions,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-sessions-restore-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              session: data.session,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-sessions-devices-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              devices: data.devices,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
+        // COOKIES RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-cookies-get-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              cookie: data.cookie,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-cookies-list-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              cookies: data.cookies,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-cookies-set-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              cookie: data.cookie,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-cookies-delete-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              removed: data.removed,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-cookies-audit-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              url: data.url,
+              domain: data.domain,
+              cookies: data.cookies,
+              firstParty: data.firstParty,
+              thirdParty: data.thirdParty,
+              sessionCookies: data.sessionCookies,
+              persistentCookies: data.persistentCookies,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
+        // CATEGORIES RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-categories-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              categories: data.categories,
+              total: data.total,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
+        // EMULATION RESPONSES - From Chrome extension
+        // ============================================
+        case 'browser-emulate-device-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              device: data.device,
+              metrics: data.metrics,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-emulate-clear-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              cleared: data.cleared,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-emulate-geolocation-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              latitude: data.latitude,
+              longitude: data.longitude,
+              accuracy: data.accuracy,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-emulate-network-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              preset: data.preset,
+              conditions: data.conditions,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-emulate-media-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              media: data.media,
+              features: data.features,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-emulate-vision-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              visionType: data.visionType,
+              message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        // ============================================
         // QUEUE_COMMAND - Forward to Chrome extension
         // ============================================
         case 'QUEUE_COMMAND':
