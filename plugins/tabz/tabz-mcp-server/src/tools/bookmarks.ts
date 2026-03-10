@@ -28,7 +28,7 @@ async function getBookmarkTree(options: {
 }): Promise<BookmarkTreeResult> {
   try {
     const response = await axios.get<BookmarkTreeResult>(
-      `${BACKEND_URL}/api/browser/bookmarks`,
+      `${BACKEND_URL}/api/browser/bookmarks/tree`,
       {
         params: {
           folderId: options.folderId,
@@ -51,10 +51,12 @@ async function searchBookmarks(options: {
   limit?: number;
 }): Promise<BookmarkSearchResult> {
   try {
-    const response = await axios.post<BookmarkSearchResult>(
+    const response = await axios.get<BookmarkSearchResult>(
       `${BACKEND_URL}/api/browser/bookmarks/search`,
-      { query: options.query, limit: options.limit },
-      { timeout: 10000 }
+      {
+        params: { query: options.query, limit: options.limit },
+        timeout: 10000
+      }
     );
     return response.data;
   } catch (error) {
