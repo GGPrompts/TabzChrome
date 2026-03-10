@@ -160,24 +160,22 @@ function isAllowedUrl(url: string, settings?: UrlSettings): { allowed: boolean; 
 
   // Add https:// if no protocol specified
   if (!normalized.match(/^https?:\/\//i)) {
-    // Local dev servers default to http:// (not https://) - check BEFORE allowAllUrls
-    const localDomains = /^(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i;
-    if (localDomains.test(normalized)) {
-      normalized = `http://${normalized}`;
-      if (settings?.allowAllUrls) {
-        return { allowed: true, normalizedUrl: normalized };
-      }
-      // Check if allowed
-      for (const pattern of ALLOWED_URL_PATTERNS) {
-        if (pattern.test(normalized)) {
-          return { allowed: true, normalizedUrl: normalized };
-        }
-      }
-      return { allowed: false };
-    } else if (settings?.allowAllUrls) {
-      // For YOLO mode, non-local URLs get https://
+    // For YOLO mode, always add https://
+    if (settings?.allowAllUrls) {
       normalized = `https://${normalized}`;
     } else {
+      // Local dev servers default to http:// (not https://)
+      const localDomains = /^(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i;
+      if (localDomains.test(normalized)) {
+        normalized = `http://${normalized}`;
+        // Check if allowed
+        for (const pattern of ALLOWED_URL_PATTERNS) {
+          if (pattern.test(normalized)) {
+            return { allowed: true, normalizedUrl: normalized };
+          }
+        }
+        return { allowed: false };
+      }
 
       // Known domains that can have https:// auto-added
       const knownDomains = [

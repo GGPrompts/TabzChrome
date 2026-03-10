@@ -95,7 +95,7 @@ async function emulateDevice(options: {
 }): Promise<EmulateDeviceResult> {
   try {
     const response = await axios.post<EmulateDeviceResult>(
-      `${BACKEND_URL}/api/browser/emulate/device`,
+      `${BACKEND_URL}/api/browser/emulation/device`,
       options,
       { timeout: 15000 }
     );
@@ -115,7 +115,7 @@ interface EmulateClearResult {
 async function emulateClear(options: { tabId?: number }): Promise<EmulateClearResult> {
   try {
     const response = await axios.post<EmulateClearResult>(
-      `${BACKEND_URL}/api/browser/emulate/clear`,
+      `${BACKEND_URL}/api/browser/emulation/clear`,
       options,
       { timeout: 15000 }
     );
@@ -143,7 +143,7 @@ async function emulateGeolocation(options: {
 }): Promise<EmulateGeolocationResult> {
   try {
     const response = await axios.post<EmulateGeolocationResult>(
-      `${BACKEND_URL}/api/browser/emulate/geolocation`,
+      `${BACKEND_URL}/api/browser/emulation/geolocation`,
       options,
       { timeout: 15000 }
     );
@@ -171,7 +171,7 @@ async function emulateNetwork(options: {
 }): Promise<EmulateNetworkResult> {
   try {
     const response = await axios.post<EmulateNetworkResult>(
-      `${BACKEND_URL}/api/browser/emulate/network`,
+      `${BACKEND_URL}/api/browser/emulation/network`,
       options,
       { timeout: 15000 }
     );
@@ -198,7 +198,7 @@ async function emulateMedia(options: {
 }): Promise<EmulateMediaResult> {
   try {
     const response = await axios.post<EmulateMediaResult>(
-      `${BACKEND_URL}/api/browser/emulate/media`,
+      `${BACKEND_URL}/api/browser/emulation/media`,
       options,
       { timeout: 15000 }
     );
@@ -221,7 +221,7 @@ async function emulateVision(options: {
 }): Promise<EmulateVisionResult> {
   try {
     const response = await axios.post<EmulateVisionResult>(
-      `${BACKEND_URL}/api/browser/emulate/vision`,
+      `${BACKEND_URL}/api/browser/emulation/vision`,
       options,
       { timeout: 15000 }
     );
