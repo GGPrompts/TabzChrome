@@ -12,6 +12,39 @@ type TabGroupColor = 'grey' | 'blue' | 'red' | 'yellow' | 'green' | 'pink' | 'pu
 let claudeActiveGroupId: number | null = null
 
 /**
+ * Get the actual current groupId for a tab by querying Chrome directly.
+ * Chrome can recycle group IDs between chrome.tabs.group() and subsequent
+ * chrome.tabGroups.update() calls, so we verify the ID is still valid.
+ */
+async function getFreshGroupId(tabId: number, expectedGroupId: number): Promise<number> {
+  const tab = await chrome.tabs.get(tabId)
+  return tab.groupId !== undefined && tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE
+    ? tab.groupId
+    : expectedGroupId
+}
+
+/**
+ * Update a tab group with retry logic. If the first attempt fails due to a
+ * stale groupId, re-query the tab to get the current groupId and retry once.
+ */
+async function updateGroupWithRetry(
+  tabId: number,
+  groupId: number,
+  properties: chrome.tabGroups.UpdateProperties
+): Promise<chrome.tabGroups.TabGroup> {
+  const freshId = await getFreshGroupId(tabId, groupId)
+  try {
+    await chrome.tabGroups.update(freshId, properties)
+    return await chrome.tabGroups.get(freshId)
+  } catch {
+    // Retry once with another fresh lookup
+    const retryId = await getFreshGroupId(tabId, freshId)
+    await chrome.tabGroups.update(retryId, properties)
+    return await chrome.tabGroups.get(retryId)
+  }
+}
+
+/**
  * List all tab groups in the current window
  */
 export async function handleBrowserListTabGroups(message: { requestId: string }): Promise<void> {
@@ -96,17 +129,19 @@ export async function handleBrowserCreateTabGroup(message: {
     const groupId = await chrome.tabs.group({ tabIds: tabIds as [number, ...number[]] })
 
     // Update the group with title and color if provided
+    // Use fresh groupId lookup to avoid stale ID race condition
     const updateProperties: chrome.tabGroups.UpdateProperties = {}
     if (title !== undefined) updateProperties.title = title
     if (color !== undefined) updateProperties.color = color
     if (collapsed !== undefined) updateProperties.collapsed = collapsed
 
+    let group: chrome.tabGroups.TabGroup
     if (Object.keys(updateProperties).length > 0) {
-      await chrome.tabGroups.update(groupId, updateProperties)
+      group = await updateGroupWithRetry(tabIds[0], groupId, updateProperties)
+    } else {
+      const freshId = await getFreshGroupId(tabIds[0], groupId)
+      group = await chrome.tabGroups.get(freshId)
     }
-
-    // Get the updated group info
-    const group = await chrome.tabGroups.get(groupId)
 
     sendToWebSocket({
       type: 'browser-create-tab-group-result',
@@ -209,10 +244,13 @@ export async function handleBrowserAddToTabGroup(message: {
     // Cast to tuple type required by Chrome API
     await chrome.tabs.group({ tabIds: tabIds as [number, ...number[]], groupId })
 
+    // Re-query the tab to get the actual current groupId (may differ due to recycling)
+    const freshId = await getFreshGroupId(tabIds[0], groupId)
+
     // Get updated group info
-    const group = await chrome.tabGroups.get(groupId)
+    const group = await chrome.tabGroups.get(freshId)
     const allTabs = await chrome.tabs.query({ lastFocusedWindow: true })
-    const tabsInGroup = allTabs.filter(tab => tab.groupId === groupId)
+    const tabsInGroup = allTabs.filter(tab => tab.groupId === freshId)
 
     sendToWebSocket({
       type: 'browser-add-to-tab-group-result',
@@ -298,14 +336,21 @@ export async function handleBrowserAddToClaudeGroup(message: {
 
     // Create the Claude Active group if it doesn't exist
     if (claudeActiveGroupId === null) {
-      claudeActiveGroupId = await chrome.tabs.group({ tabIds: [tabId] })
-      await chrome.tabGroups.update(claudeActiveGroupId, {
+      const returnedGroupId = await chrome.tabs.group({ tabIds: [tabId] })
+      // Use fresh lookup + retry to handle stale group ID race condition
+      const group = await updateGroupWithRetry(tabId, returnedGroupId, {
         title: 'Claude',
         color: 'purple'
       })
+      claudeActiveGroupId = group.id
     } else {
       // Add to existing group
       await chrome.tabs.group({ tabIds: [tabId], groupId: claudeActiveGroupId })
+      // Verify the groupId is still valid after the operation
+      const freshId = await getFreshGroupId(tabId, claudeActiveGroupId)
+      if (freshId !== claudeActiveGroupId) {
+        claudeActiveGroupId = freshId
+      }
     }
 
     const group = await chrome.tabGroups.get(claudeActiveGroupId)
