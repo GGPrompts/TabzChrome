@@ -213,49 +213,9 @@ export function registerDownloadTools(server: McpServer): void {
   // Download file tool
   server.tool(
     "tabz_download_file",
-    `Download a file from any URL using Chrome's download manager.
+    `Download a file via Chrome's download manager. Returns both Windows and WSL paths.
 
-This tool downloads files via Chrome's built-in download API, which:
-- Handles authentication (uses browser cookies/session)
-- Shows in Chrome's download manager
-- Saves to Chrome's configured Downloads folder
-
-IMPORTANT for WSL2 users: Returns BOTH paths for cross-platform compatibility:
-- windowsPath: Original Windows path (e.g., "C:\\Users\\matt\\Downloads\\file.png")
-- wslPath: Converted WSL path (e.g., "/mnt/c/Users/matt/Downloads/file.png")
-
-Use the wslPath with Claude's Read tool to view downloaded images.
-
-Args:
-  - url (required): URL of the file to download
-  - filename (optional): Custom filename (relative to Downloads folder)
-  - conflictAction: 'uniquify' (add number suffix), 'overwrite', or 'prompt' (default: uniquify)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  For JSON format:
-  {
-    "success": boolean,
-    "filename": string,         // Just the filename
-    "windowsPath": string,      // Full Windows path
-    "wslPath": string,          // Full WSL path (use with Read tool)
-    "fileSize": number,         // Size in bytes
-    "error": string             // If failed
-  }
-
-Examples:
-  - Download image: url="https://example.com/image.png"
-  - Custom name: url="https://example.com/data.json", filename="my-data.json"
-  - Overwrite existing: url="...", conflictAction="overwrite"
-
-Workflow for images:
-  1. tabz_download_file with image URL
-  2. Use Read tool with returned wslPath to view the image
-
-Error Handling:
-  - "Download failed to start": Invalid URL or network error
-  - "Download interrupted": Connection lost or cancelled
-  - "Download timed out": File too large or slow connection (may still complete)`,
+Args: url (required), filename (optional), conflictAction (optional: uniquify/overwrite/prompt)`,
     DownloadFileSchema.shape,
     async (params: DownloadFileInput) => {
       try {
@@ -320,42 +280,9 @@ To view the downloaded file, use the Read tool with the WSL path above.`;
   // Get downloads list tool
   server.tool(
     "tabz_get_downloads",
-    `List recent downloads from Chrome's download manager.
+    `List recent Chrome downloads with status, size, and file paths.
 
-Returns information about recent downloads including their status, size, and file paths.
-Useful for checking download progress or finding previously downloaded files.
-
-Args:
-  - limit: Maximum downloads to return (1-100, default: 20)
-  - state: Filter by state - 'in_progress', 'complete', 'interrupted', or 'all' (default)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  For JSON format:
-  {
-    "downloads": [{
-      "id": number,              // Use with tabz_cancel_download
-      "url": string,
-      "filename": string,
-      "state": "in_progress" | "complete" | "interrupted",
-      "bytesReceived": number,
-      "totalBytes": number,
-      "startTime": string,
-      "endTime": string,
-      "error": string,
-      "mime": string,
-      "windowsPath": string,
-      "wslPath": string          // Use with Read tool
-    }],
-    "total": number
-  }
-
-Examples:
-  - All recent: (no args)
-  - Only completed: state="complete"
-  - Check progress: state="in_progress"
-
-Use tabz_cancel_download with the download ID to cancel in-progress downloads.`,
+Args: limit (optional, default 20), state (optional: in_progress/complete/interrupted/all)`,
     GetDownloadsSchema.shape,
     async (params: GetDownloadsInput) => {
       try {
@@ -408,22 +335,9 @@ Use tabz_cancel_download with the download ID to cancel in-progress downloads.`,
   // Cancel download tool
   server.tool(
     "tabz_cancel_download",
-    `Cancel an in-progress download.
+    `Cancel an in-progress download. Get IDs from tabz_get_downloads.
 
-Use the download ID from tabz_get_downloads to cancel a download.
-Only works for downloads that are still in progress.
-
-Args:
-  - downloadId (required): The download ID to cancel (from tabz_get_downloads)
-
-Returns:
-  - success: Whether the download was cancelled
-  - error: Error message if failed
-
-Examples:
-  - Cancel download: downloadId=123
-
-Note: Cancelled downloads cannot be resumed. You'll need to start a new download.`,
+Args: downloadId (required)`,
     CancelDownloadSchema.shape,
     async (params: CancelDownloadInput) => {
       try {
@@ -476,55 +390,9 @@ The download may have already completed or been cancelled.`;
 
   server.tool(
     "tabz_save_page",
-    `Save the current browser tab as an MHTML file for offline analysis.
+    `Save current tab as MHTML file (complete page archive with CSS/images/JS). Returns both Windows and WSL paths.
 
-MHTML (MIME HTML) bundles the complete webpage into a single file:
-- Full HTML content
-- CSS stylesheets
-- Images (embedded as base64)
-- JavaScript files
-- Fonts and other resources
-
-This is useful for:
-- Archiving documentation pages for offline reference
-- Capturing dynamic/JS-rendered content that WebFetch can't fully get
-- Preserving page state before it changes
-- Saving pages that require authentication
-
-IMPORTANT for WSL2 users: Returns BOTH paths for cross-platform compatibility:
-- windowsPath: Original Windows path (e.g., "C:\\Users\\matt\\Downloads\\page.mhtml")
-- wslPath: Converted WSL path (e.g., "/mnt/c/Users/matt/Downloads/page.mhtml")
-
-Use the wslPath with Claude's Read tool to analyze the saved page.
-
-Args:
-  - tabId (optional): Tab ID to save. Defaults to active tab.
-  - filename (optional): Custom filename without extension. Defaults to page title + timestamp.
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  For JSON format:
-  {
-    "success": boolean,
-    "filename": string,
-    "windowsPath": string,
-    "wslPath": string,
-    "fileSize": number,
-    "mimeType": "multipart/related",
-    "error": string
-  }
-
-Examples:
-  - Save current tab: (no args)
-  - Save specific tab: tabId=123456789
-  - Custom name: filename="react-docs-2024"
-
-Workflow:
-  1. tabz_save_page to save the page
-  2. Use Read tool with returned wslPath to analyze the content
-
-Note: MHTML files can only be opened in a browser from the local filesystem.
-For security, browsers won't load MHTML files from web origins.`,
+Args: tabId (optional), filename (optional, no extension), response_format (optional)`,
     SavePageSchema.shape,
     async (params: SavePageInput) => {
       try {

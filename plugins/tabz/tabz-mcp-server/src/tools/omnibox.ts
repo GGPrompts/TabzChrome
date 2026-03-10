@@ -280,47 +280,7 @@ export function registerOmniboxTools(server: McpServer): void {
   // Open URL tool
   server.tool(
     "tabz_open_url",
-    `Open a URL in the browser.
-
-Opens URLs in a new or current browser tab. Useful for opening any website, dev servers, documentation, or web apps.
-
-**SMART TAB REUSE:** By default, if the URL is already open in a tab, this tool
-switches to that existing tab instead of opening a duplicate. This prevents
-tab accumulation over time. Use reuseExisting=false to force a new tab.
-
-**URL Policy:** Configure in TabzChrome Dashboard > Settings > MCP Tools:
-- "Allow All URLs" enabled: Any URL can be opened
-- "Allow All URLs" disabled: Only whitelisted domains (dev-focused sites)
-
-**Protocol handling:**
-- localhost/127.0.0.1: Defaults to http:// (local dev servers)
-- Other domains: Defaults to https://
-- Explicit protocol always honored: http://example.com or https://example.com
-
-Args:
-  - url (required): URL to open (protocol optional, see above)
-  - newTab: Open in new tab (default: true) or replace current tab
-  - background: Open in background (default: false, opens in foreground)
-  - reuseExisting: If URL is already open, switch to it instead of new tab (default: true)
-
-Returns:
-  - success: Whether the URL was opened
-  - url: The normalized URL that was opened
-  - tabId: The tab ID (for use with other tools)
-  - error: Error message if failed
-
-Examples:
-  - Open any site: url="https://example.com"
-  - Open GitHub repo: url="github.com/user/repo" → https://github.com/user/repo
-  - Open localhost: url="localhost:3000" → http://localhost:3000
-  - Open localhost: url="localhost:8129" → http://localhost:8129
-  - Current tab: url="github.com/user/repo", newTab=false
-  - Background: url="example.com", background=true
-  - Force new tab: url="github.com/user/repo", reuseExisting=false
-
-Error Handling:
-  - "URL not allowed": Domain not permitted (check Settings > MCP Tools)
-  - "Extension not available": Backend not running or extension not connected`,
+    `Open a URL in the browser. Auto-adds protocol (http for localhost, https otherwise). Reuses existing tab by default. URL whitelist configurable in Dashboard settings. Use tabz_get_skill for detailed docs.`,
     OpenUrlSchema.shape,
     async (params: OpenUrlInput) => {
       try {

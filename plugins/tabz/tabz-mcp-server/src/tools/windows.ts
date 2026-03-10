@@ -333,38 +333,9 @@ export function registerWindowTools(server: McpServer): void {
   // List windows tool
   server.tool(
     "tabz_list_windows",
-    `List all Chrome windows with their properties.
+    `List all Chrome windows with dimensions, state, and tab counts.
 
-Returns information about all open browser windows including dimensions, state,
-and tab counts. Useful for window management and multi-monitor layouts.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "windows": [
-      {
-        "windowId": 123,
-        "focused": true,
-        "state": "normal",
-        "type": "normal",
-        "width": 1920,
-        "height": 1080,
-        "left": 0,
-        "top": 0,
-        "incognito": false,
-        "tabCount": 5
-      }
-    ]
-  }
-
-Use tabz_create_window to create new windows.
-Use tabz_update_window to resize, move, or change state.
-Use tabz_tile_windows to auto-arrange windows.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running`,
+Args: response_format (optional)`,
     ListWindowsSchema.shape,
     async (params: ListWindowsInput) => {
       try {
@@ -424,36 +395,9 @@ Error Handling:
   // Create window tool
   server.tool(
     "tabz_create_window",
-    `Create a new Chrome browser window.
+    `Create a new Chrome window. Use type="popup" for minimal UI. Use url="/sidepanel/sidepanel.html" for terminal popout.
 
-Opens a new window with optional URL(s), position, and size. Use type="popup"
-for minimal UI (no address bar/toolbar) - ideal for terminal popouts.
-
-IMPORTANT: Use '/sidepanel/sidepanel.html' as url to open the terminal sidebar
-in a standalone popup window - this avoids duplicate extension issues!
-
-Args:
-  - url (optional): URL or array of URLs to open. Use '/sidepanel/sidepanel.html' for terminals.
-  - type (optional): 'normal' (full UI) or 'popup' (minimal UI). Default: 'normal'.
-  - state (optional): 'normal', 'minimized', 'maximized', 'fullscreen'. Default: 'normal'.
-  - focused (optional): Focus window on creation. Default: true.
-  - width, height (optional): Window dimensions in pixels.
-  - left, top (optional): Window position (use tabz_get_displays for multi-monitor).
-  - incognito (optional): Create incognito window.
-  - tabId (optional): Move existing tab to new window instead of opening URLs.
-
-Examples:
-  - Popup terminal: url="/sidepanel/sidepanel.html", type="popup", width=500, height=700
-  - Normal window: url="https://github.com", width=1200, height=800
-  - On second monitor: left=1920, top=0, width=800, height=600
-
-Returns:
-  - windowId: New window ID for subsequent operations
-  - Window properties (type, state, dimensions)
-
-Error Handling:
-  - Invalid URL: Check URL format
-  - "Cannot create": Check browser permissions`,
+Args: url (optional), type (optional), state/focused/width/height/left/top/incognito/tabId (optional)`,
     CreateWindowSchema.shape,
     async (params: CreateWindowInput) => {
       try {
@@ -506,28 +450,9 @@ Use this windowId with \`tabz_update_window\` to modify, or \`tabz_close_window\
   // Update window tool
   server.tool(
     "tabz_update_window",
-    `Update a Chrome window's properties.
+    `Resize, move, focus, or change state of a Chrome window. Get IDs from tabz_list_windows.
 
-Resize, move, change state (minimize/maximize), or focus a window.
-Get window IDs from tabz_list_windows.
-
-Args:
-  - windowId (required): Window ID to update
-  - state (optional): 'normal', 'minimized', 'maximized', 'fullscreen'
-  - focused (optional): true to bring window to front
-  - width, height (optional): New dimensions (ignored if maximized/fullscreen)
-  - left, top (optional): New position for multi-monitor placement
-  - drawAttention (optional): Flash/highlight the window
-
-Examples:
-  - Focus window: windowId=123, focused=true
-  - Maximize: windowId=123, state="maximized"
-  - Resize & move: windowId=123, width=800, height=600, left=100, top=100
-  - Minimize: windowId=123, state="minimized"
-
-Error Handling:
-  - Invalid window ID: Use tabz_list_windows to get valid IDs
-  - "No update properties": Provide at least one property to change`,
+Args: windowId (required), state/focused/width/height/left/top/drawAttention (optional)`,
     UpdateWindowSchema.shape,
     async (params: UpdateWindowInput) => {
       try {
@@ -577,17 +502,9 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   // Close window tool
   server.tool(
     "tabz_close_window",
-    `Close a Chrome window.
+    `Close a Chrome window and ALL its tabs. Get IDs from tabz_list_windows.
 
-WARNING: This closes the entire window including ALL tabs in it!
-Use with caution. Get window IDs from tabz_list_windows.
-
-Args:
-  - windowId (required): Window ID to close
-
-Error Handling:
-  - Invalid window ID: Use tabz_list_windows to get valid IDs
-  - Cannot close last window: Chrome requires at least one window`,
+Args: windowId (required)`,
     CloseWindowSchema.shape,
     async (params: CloseWindowInput) => {
       try {
@@ -625,33 +542,9 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   // Get displays tool
   server.tool(
     "tabz_get_displays",
-    `Get information about connected monitors/displays.
+    `Get connected monitor/display info -- dimensions, positions, work areas. Use for multi-monitor window placement.
 
-Returns detailed information about all displays including dimensions, positions,
-and work areas (excluding taskbar). Essential for multi-monitor window placement.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "displays": [
-      {
-        "id": "0",
-        "name": "Built-in Retina Display",
-        "isPrimary": true,
-        "bounds": { "left": 0, "top": 0, "width": 1920, "height": 1080 },
-        "workArea": { "left": 0, "top": 0, "width": 1920, "height": 1040 }
-      }
-    ]
-  }
-
-Key concepts:
-  - bounds: Full display area
-  - workArea: Usable area excluding taskbar/dock
-  - left/top: Position for multi-monitor setups (e.g., left=1920 for second monitor)
-
-Use with tabz_create_window or tabz_tile_windows for multi-monitor layouts.`,
+Args: response_format (optional)`,
     GetDisplaysSchema.shape,
     async (params: GetDisplaysInput) => {
       try {
@@ -710,35 +603,9 @@ Use with tabz_create_window or tabz_tile_windows for multi-monitor layouts.`,
   // Tile windows tool
   server.tool(
     "tabz_tile_windows",
-    `Auto-arrange windows in a tiled layout.
+    `Auto-arrange windows in horizontal, vertical, or grid layout on a display.
 
-Positions multiple windows side-by-side, stacked, or in a grid within a display's
-work area. Perfect for setting up development layouts.
-
-Args:
-  - windowIds (required): Array of window IDs to tile (1-20 windows)
-  - layout (optional): 'horizontal' (side by side), 'vertical' (stacked), 'grid' (auto). Default: 'horizontal'.
-  - displayId (optional): Target display ID from tabz_get_displays. Default: primary.
-  - gap (optional): Pixels between windows. Default: 0.
-
-Layout examples:
-  - horizontal (2 windows): [Left Half] [Right Half]
-  - vertical (2 windows): [Top Half] / [Bottom Half]
-  - grid (4 windows): [1][2] / [3][4]
-
-Examples:
-  - Side by side: windowIds=[123, 456], layout="horizontal"
-  - Three-way split: windowIds=[123, 456, 789], layout="horizontal"
-  - Grid with gap: windowIds=[1,2,3,4], layout="grid", gap=10
-  - On second monitor: windowIds=[123, 456], displayId="1"
-
-Returns:
-  - Per-window success/error results
-  - Applied layout and display info
-
-Error Handling:
-  - Invalid window IDs: Use tabz_list_windows to get valid IDs
-  - Window minimized: Will be restored to normal state before tiling`,
+Args: windowIds (required array), layout (optional: horizontal/vertical/grid), displayId (optional), gap (optional)`,
     TileWindowsSchema.shape,
     async (params: TileWindowsInput) => {
       try {
@@ -796,37 +663,9 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   // Popout terminal tool
   server.tool(
     "tabz_popout_terminal",
-    `Pop out the terminal sidebar to a standalone popup window.
+    `Pop terminal sidebar into a standalone popup window. Shares extension instance -- no conflicts.
 
-Creates a new popup window containing the TabzChrome terminal UI. This allows
-running terminals in multiple windows WITHOUT duplicate extension issues - all
-windows share the same extension instance.
-
-ADVANTAGES over duplicate extensions:
-- Single WebSocket connection to backend
-- No terminal session conflicts
-- Shared state and settings
-- Multiple terminal views in different windows
-
-Args:
-  - terminalId (optional): Focus specific terminal in new window
-  - width (optional): Window width. Default: 500.
-  - height (optional): Window height. Default: 700.
-  - left, top (optional): Window position
-
-Examples:
-  - New terminal window: {} (no args)
-  - Specific terminal: terminalId="ctt-default-abc123"
-  - Positioned: width=600, height=800, left=100, top=100
-
-Use Cases:
-  - Multiple terminal views on different monitors
-  - Keep terminals visible while browsing
-  - Parallel terminal sessions without conflicts
-
-Returns:
-  - windowId: New window ID for management
-  - terminalId: Which terminal is focused (if specified)`,
+Args: terminalId (optional), width/height/left/top (optional)`,
     PopoutTerminalSchema.shape,
     async (params: PopoutTerminalInput) => {
       try {

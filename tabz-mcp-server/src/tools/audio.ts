@@ -159,42 +159,9 @@ export function registerAudioTools(server: McpServer): void {
   // Speak tool
   server.tool(
     "tabz_speak",
-    `Speak text aloud through the browser using neural text-to-speech.
+    `Speak text aloud via neural TTS. User's configured voice/rate/pitch apply unless overridden.
 
-Uses Microsoft Edge neural TTS voices for high-quality, natural speech.
-The extension automatically applies the user's configured audio settings
-(voice, rate, pitch, volume) unless you explicitly override them.
-
-IMPORTANT: Audio settings from the TabzChrome dashboard are respected:
-- If user has disabled audio, this tool will still work (direct invocation)
-- User's preferred voice/rate/pitch are used by default
-- Override parameters only when you need a specific effect
-
-Args:
-  - text (required): The text to speak. Markdown is stripped automatically. Max 3000 chars.
-  - voice (optional): Override voice. See tabz_list_voices for options.
-  - rate (optional): Override speech rate (e.g., '+30%' faster, '-20%' slower)
-  - pitch (optional): Override pitch (e.g., '+50Hz' higher, '-100Hz' lower)
-  - priority (optional): 'high' interrupts current audio, 'low' (default) may be skipped
-
-Returns:
-  - success: Whether the speech was initiated
-  - error: Error message if failed
-
-Examples:
-  - Simple announcement: text="Task complete. Ready for next request."
-  - Urgent alert: text="Build failed with 3 errors", priority="high"
-  - Custom voice: text="Hello!", voice="en-GB-SoniaNeural"
-  - Fast reading: text="Summary of changes...", rate="+40%"
-
-Best Practices:
-  - Keep text concise for status updates
-  - Use priority='high' sparingly (for errors, completion of long tasks)
-  - Let user settings control voice unless you have a specific reason to override
-
-Error Handling:
-  - "Cannot connect": Backend not running at localhost:8129
-  - "TTS generation failed": edge-tts service issue (network/timeout)`,
+Args: text (required, max 3000 chars), voice/rate/pitch (optional overrides), priority (optional: high/low)`,
     SpeakSchema.shape,
     async (params: SpeakInput) => {
       try {
@@ -244,15 +211,7 @@ Possible causes:
   // List voices tool
   server.tool(
     "tabz_list_voices",
-    `List available text-to-speech voices.
-
-Returns the neural TTS voices available for use with tabz_speak.
-All voices are high-quality Microsoft Edge neural voices.
-
-Returns:
-  - List of voice codes with descriptions
-
-Use the voice code (e.g., 'en-US-AriaNeural') with tabz_speak's voice parameter.`,
+    `List available TTS voices for use with tabz_speak.`,
     ListVoicesSchema.shape,
     async () => {
       const result = listVoices();
@@ -288,37 +247,9 @@ Use the voice code (e.g., 'en-US-AriaNeural') with tabz_speak's voice parameter.
   // Play audio file tool
   server.tool(
     "tabz_play_audio",
-    `Play an audio file through the browser.
+    `Play an audio file (MP3/WAV/OGG) through the browser.
 
-Plays MP3, WAV, OGG, or other browser-supported audio formats.
-Useful for soundboards, notifications, alerts, or any audio feedback.
-
-The backend can serve static audio files from its public directory,
-or you can play any accessible URL.
-
-Args:
-  - url (required): URL of the audio file to play
-    - Local: http://localhost:8129/sounds/ding.mp3
-    - Remote: https://example.com/sound.mp3
-  - volume (optional): 0.0 to 1.0 (uses user's setting if not specified)
-  - priority (optional): 'high' interrupts, 'low' (default) may be skipped
-
-Returns:
-  - success: Whether playback was initiated
-  - error: Error message if failed
-
-Examples:
-  - Play notification: url="http://localhost:8129/sounds/notify.mp3"
-  - Play at half volume: url="...", volume=0.5
-  - Urgent sound: url="...", priority="high"
-
-Serving Audio Files:
-  Place audio files in backend/public/sounds/ to serve them at:
-  http://localhost:8129/sounds/<filename>
-
-Error Handling:
-  - "Cannot connect": Backend not running
-  - Audio may not play if browser tab is not focused (browser limitation)`,
+Args: url (required), volume (optional 0.0-1.0), priority (optional: high/low)`,
     PlayAudioSchema.shape,
     async (params: PlayAudioInput) => {
       try {

@@ -306,33 +306,7 @@ export function registerBookmarkTools(server: McpServer): void {
   // Get bookmark tree
   server.tool(
     "tabz_get_bookmark_tree",
-    `Get the Chrome bookmarks hierarchy.
-
-Returns the bookmark tree structure showing folders and bookmarks.
-Use this to explore your bookmarks and find folder IDs for organizing.
-
-**Special Folder IDs:**
-- "1" = Bookmarks Bar (visible in browser toolbar)
-- "2" = Other Bookmarks
-
-Args:
-  - folderId (optional): Get children of specific folder. Omit for full tree.
-  - maxDepth: How deep to traverse (1-10, default: 3)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  Tree structure with:
-  - id: Bookmark/folder ID (use with other bookmark tools)
-  - title: Display name
-  - url: URL (only for bookmarks, not folders)
-  - children: Nested items (for folders)
-
-Examples:
-  - Full tree: (no args)
-  - Bookmarks Bar only: folderId="1"
-  - Shallow view: maxDepth=1
-
-Use the returned IDs with tabz_save_bookmark, tabz_move_bookmark, etc.`,
+    `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_get_skill for detailed docs.`,
     GetBookmarkTreeSchema.shape,
     async (params: GetBookmarkTreeInput) => {
       try {
@@ -396,28 +370,7 @@ Use the returned IDs with tabz_save_bookmark, tabz_move_bookmark, etc.`,
   // Search bookmarks
   server.tool(
     "tabz_search_bookmarks",
-    `Search Chrome bookmarks by title or URL.
-
-Finds bookmarks matching your query. Searches both titles and URLs.
-
-Args:
-  - query (required): Search text - matches titles and URLs
-  - limit: Max results (1-100, default: 20)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  List of matching bookmarks with:
-  - id: Bookmark ID (use with move/delete tools)
-  - title: Bookmark title
-  - url: Bookmark URL
-  - parentId: Parent folder ID
-
-Examples:
-  - Find React docs: query="react"
-  - Find GitHub repos: query="github.com"
-  - Find by domain: query="stackoverflow.com"
-
-Use the returned IDs with tabz_move_bookmark or tabz_delete_bookmark.`,
+    `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_get_skill for detailed docs.`,
     SearchBookmarksSchema.shape,
     async (params: SearchBookmarksInput) => {
       try {
@@ -475,30 +428,7 @@ Use the returned IDs with tabz_move_bookmark or tabz_delete_bookmark.`,
   // Save bookmark
   server.tool(
     "tabz_save_bookmark",
-    `Save a URL as a Chrome bookmark.
-
-Creates a new bookmark in the specified folder.
-
-Args:
-  - url (required): URL to bookmark
-  - title (required): Bookmark title
-  - parentId (optional): Folder ID. Default: "1" (Bookmarks Bar)
-    - "1" = Bookmarks Bar (visible in toolbar)
-    - "2" = Other Bookmarks
-    - Or use a folder ID from tabz_get_bookmark_tree
-  - index (optional): Position in folder (0 = first). Omit for end.
-
-Returns:
-  - success: Whether bookmark was created
-  - bookmark: The created bookmark with its ID
-  - error: Error message if failed
-
-Examples:
-  - Save to Bookmarks Bar: url="https://github.com", title="GitHub"
-  - Save to Other Bookmarks: url="...", title="...", parentId="2"
-  - Save to custom folder: url="...", title="...", parentId="123"
-
-The bookmark ID can be used with tabz_move_bookmark or tabz_delete_bookmark.`,
+    `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_get_skill for detailed docs.`,
     SaveBookmarkSchema.shape,
     async (params: SaveBookmarkInput) => {
       try {
@@ -551,29 +481,7 @@ Use this ID with \`tabz_move_bookmark\` or \`tabz_delete_bookmark\` if needed.`
   // Create folder
   server.tool(
     "tabz_create_folder",
-    `Create a new bookmark folder.
-
-Creates a folder to organize bookmarks.
-
-Args:
-  - title (required): Folder name
-  - parentId (optional): Parent folder ID. Default: "1" (Bookmarks Bar)
-    - "1" = Bookmarks Bar
-    - "2" = Other Bookmarks
-    - Or a folder ID for nesting
-  - index (optional): Position in parent (0 = first). Omit for end.
-
-Returns:
-  - success: Whether folder was created
-  - folder: The created folder with its ID
-  - error: Error message if failed
-
-Examples:
-  - New folder in Bookmarks Bar: title="Work Projects"
-  - Nested folder: title="React", parentId="456"
-  - In Other Bookmarks: title="Archive", parentId="2"
-
-Use the returned folder ID with tabz_save_bookmark to add bookmarks to it.`,
+    `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_get_skill for detailed docs.`,
     CreateFolderSchema.shape,
     async (params: CreateFolderInput) => {
       try {
@@ -624,28 +532,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
   // Move bookmark
   server.tool(
     "tabz_move_bookmark",
-    `Move a bookmark or folder to a different location.
-
-Reorganize your bookmarks by moving them between folders.
-
-Args:
-  - id (required): Bookmark or folder ID to move
-  - parentId (required): Destination folder ID
-    - "1" = Bookmarks Bar
-    - "2" = Other Bookmarks
-    - Or any folder ID
-  - index (optional): Position in destination (0 = first). Omit for end.
-
-Returns:
-  - success: Whether move succeeded
-  - error: Error message if failed
-
-Examples:
-  - Move to Bookmarks Bar: id="123", parentId="1"
-  - Move to folder: id="123", parentId="456"
-  - Move to first position: id="123", parentId="1", index=0
-
-Note: Cannot move the Bookmarks Bar or Other Bookmarks folders themselves.`,
+    `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_get_skill for detailed docs.`,
     MoveBookmarkSchema.shape,
     async (params: MoveBookmarkInput) => {
       try {
@@ -693,25 +580,7 @@ Note: Cannot move the Bookmarks Bar or Other Bookmarks folders themselves.`,
   // Delete bookmark
   server.tool(
     "tabz_delete_bookmark",
-    `Delete a bookmark or folder.
-
-Permanently removes a bookmark or folder from Chrome.
-
-**WARNING:** Deleting a folder will also delete ALL bookmarks inside it!
-
-Args:
-  - id (required): Bookmark or folder ID to delete
-
-Returns:
-  - success: Whether deletion succeeded
-  - error: Error message if failed
-
-Examples:
-  - Delete bookmark: id="123"
-  - Delete folder (and contents): id="456"
-
-Note: Cannot delete the Bookmarks Bar or Other Bookmarks folders.
-This action cannot be undone through this tool.`,
+    `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_get_skill for detailed docs.`,
     DeleteBookmarkSchema.shape,
     async (params: DeleteBookmarkInput) => {
       try {

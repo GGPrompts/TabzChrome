@@ -158,32 +158,7 @@ function formatCoverageFiles(files, type) {
  */
 export function registerDebuggerTools(server) {
     // Get DOM Tree
-    server.tool("tabz_get_dom_tree", `Get the DOM tree structure of the current page using Chrome DevTools Protocol.
-
-Uses chrome.debugger to attach to the page and extract the full DOM hierarchy.
-This provides more detail than the scripting API, including shadow DOM.
-
-**Note:** The user will see a "debugging" banner in Chrome while this runs.
-The debugger automatically detaches after the operation completes.
-
-Args:
-  - tabId (optional): Chrome tab ID. Omit for active tab.
-  - maxDepth: How deep to traverse (1-10, default: 4)
-  - selector (optional): CSS selector to focus on a specific element
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - Simplified DOM tree with tag names, IDs, and classes
-  - Node count for the returned tree
-  - Child counts for truncated branches
-
-Examples:
-  - Full document (shallow): maxDepth=2
-  - Navigation only: selector="nav"
-  - Deep inspection: maxDepth=8, selector="main"
-
-Use this tool when you need to understand the page structure deeply,
-identify element hierarchies, or debug rendering issues.`, GetDomTreeSchema.shape, async (params) => {
+    server.tool("tabz_get_dom_tree", `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_get_skill for detailed docs.`, GetDomTreeSchema.shape, async (params) => {
         try {
             const result = await getDomTree({
                 tabId: params.tabId,
@@ -244,33 +219,7 @@ identify element hierarchies, or debug rendering issues.`, GetDomTreeSchema.shap
         }
     });
     // Profile Performance
-    server.tool("tabz_profile_performance", `Profile the current page's performance metrics using Chrome DevTools Protocol.
-
-Uses chrome.debugger to collect detailed performance data including:
-- **Timing:** Task duration, script duration, layout time, etc.
-- **Memory:** JS heap size, DOM size in memory
-- **DOM:** Node counts, document counts, frame counts
-- **Other:** Process-level metrics
-
-**Note:** The user will see a "debugging" banner in Chrome while this runs.
-The debugger automatically detaches after metrics are collected.
-
-Args:
-  - tabId (optional): Chrome tab ID. Omit for active tab.
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - Categorized performance metrics
-  - Timing values in milliseconds
-  - Memory values in megabytes
-  - Raw metric names and values
-
-Examples:
-  - Check memory usage after interaction
-  - Identify slow pages (high TaskDuration)
-  - Count DOM nodes (Nodes metric)
-
-Use this tool to diagnose performance issues, memory leaks, or DOM bloat.`, ProfilePerformanceSchema.shape, async (params) => {
+    server.tool("tabz_profile_performance", `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_get_skill for detailed docs.`, ProfilePerformanceSchema.shape, async (params) => {
         try {
             const result = await profilePerformance({
                 tabId: params.tabId
@@ -353,33 +302,7 @@ Use this tool to diagnose performance issues, memory leaks, or DOM bloat.`, Prof
         }
     });
     // Get Coverage
-    server.tool("tabz_get_coverage", `Analyze JavaScript and/or CSS code coverage on the current page.
-
-Uses chrome.debugger to track which code has been executed or which CSS rules have been applied.
-This helps identify unused code that could be removed to improve performance.
-
-**Note:** The user will see a "debugging" banner in Chrome while this runs.
-Coverage data reflects code used since page load - interact with the page for fuller coverage.
-
-Args:
-  - tabId (optional): Chrome tab ID. Omit for active tab.
-  - type: 'js' (JavaScript only), 'css' (CSS only), or 'both' (default)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - Per-file coverage data with used/total bytes and percentage
-  - Summary with overall usage across all files
-  - Files sorted by total size (largest first)
-
-Examples:
-  - Find unused JavaScript: type='js'
-  - Audit CSS bundle: type='css'
-  - Full audit: type='both'
-
-Use this tool to:
-- Identify opportunities for code splitting
-- Find dead CSS rules
-- Measure actual code usage vs bundle size`, GetCoverageSchema.shape, async (params) => {
+    server.tool("tabz_get_coverage", `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_get_skill for detailed docs.`, GetCoverageSchema.shape, async (params) => {
         try {
             const result = await getCoverage({
                 tabId: params.tabId,

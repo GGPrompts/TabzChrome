@@ -193,40 +193,9 @@ async function downloadImage(options) {
  */
 export function registerScreenshotTools(server) {
     // Screenshot viewport tool - captures what's currently visible
-    server.tool("tabz_screenshot", `Capture a screenshot of the current browser viewport (what's visible on screen).
+    server.tool("tabz_screenshot", `Screenshot the visible viewport. Use tabz_screenshot_full for entire scrollable page. Returns filePath for Read tool.
 
-Use this tool when you need to see "what I see", "my current view", or "the visible area".
-For capturing an entire scrollable page, use tabz_screenshot_full instead.
-
-This tool captures screenshots via Chrome Extension API (chrome.tabs.captureVisibleTab).
-Screenshots are saved to Chrome's Downloads folder and the file path is returned so
-Claude can view it with the Read tool.
-
-Args:
-  - selector (optional): CSS selector to screenshot a specific element instead of the viewport
-  - outputPath (optional): Custom save path (default: Downloads/screenshot-{timestamp}.png)
-
-Returns:
-  - success: Whether the screenshot was captured
-  - filePath: Path to the saved screenshot file (use Read tool to view)
-  - error: Error message if failed
-
-Examples:
-  - "Screenshot my view" → tabz_screenshot (no args)
-  - "Screenshot that button" → tabz_screenshot with selector="button.submit"
-  - "What do I see right now" → tabz_screenshot (no args)
-
-When to use tabz_screenshot_full instead:
-  - "Screenshot this page" → use tabz_screenshot_full
-  - "Capture the entire page" → use tabz_screenshot_full
-  - "I want to see the whole page" → use tabz_screenshot_full
-
-Error Handling:
-  - "No active tab": No browser tab is open
-  - "Element not found": Selector doesn't match any element
-  - "Cannot capture chrome://": Cannot screenshot internal Chrome pages
-
-After capturing, use the Read tool with the returned filePath to view the screenshot.`, ScreenshotViewportSchema.shape, async (params) => {
+Args: selector (optional, for element screenshot), outputPath (optional), tabId (optional)`, ScreenshotViewportSchema.shape, async (params) => {
         try {
             const result = await takeScreenshot({
                 selector: params.selector,
@@ -271,43 +240,9 @@ Troubleshooting:
         }
     });
     // Screenshot full page tool - captures entire scrollable page
-    server.tool("tabz_screenshot_full", `Capture a screenshot of the entire scrollable page in one image.
+    server.tool("tabz_screenshot_full", `Screenshot the entire scrollable page (top to bottom). Recommended for first-time page exploration.
 
-Use this tool when you need to see "the whole page", "entire page", "full page", or "this page".
-This captures everything from top to bottom, even content below the fold.
-For capturing only what's currently visible, use tabz_screenshot instead.
-
-This is the recommended tool when exploring a webpage for the first time, as it shows all content
-without needing to scroll and take multiple screenshots.
-
-This tool captures screenshots via Chrome Extension API by scrolling through the page and
-stitching viewport captures together. Screenshots are saved to Chrome's Downloads folder
-and the file path is returned so Claude can view it with the Read tool.
-
-Args:
-  - outputPath (optional): Custom save path (default: Downloads/screenshot-full-{timestamp}.png)
-
-Returns:
-  - success: Whether the screenshot was captured
-  - filePath: Path to the saved screenshot file (use Read tool to view)
-  - error: Error message if failed
-
-Examples:
-  - "Screenshot this page" → tabz_screenshot_full
-  - "Capture the entire page" → tabz_screenshot_full
-  - "Show me the whole page" → tabz_screenshot_full
-  - "Take a full page screenshot" → tabz_screenshot_full
-
-When to use tabz_screenshot instead:
-  - "Screenshot my view" → use tabz_screenshot
-  - "What's visible right now" → use tabz_screenshot
-  - "Screenshot that button" → use tabz_screenshot with selector
-
-Error Handling:
-  - "No active tab": No browser tab is open
-  - "Cannot capture chrome://": Cannot screenshot internal Chrome pages
-
-After capturing, use the Read tool with the returned filePath to view the screenshot.`, ScreenshotFullSchema.shape, async (params) => {
+Args: outputPath (optional), tabId (optional)`, ScreenshotFullSchema.shape, async (params) => {
         try {
             const result = await takeScreenshot({
                 fullPage: true,
@@ -350,33 +285,9 @@ Troubleshooting:
         }
     });
     // Download image tool
-    server.tool("tabz_download_image", `Download an image from the browser page and save to local disk.
+    server.tool("tabz_download_image", `Download an image from the page by CSS selector or direct URL. Returns filePath for Read tool.
 
-This tool extracts and downloads images via Chrome Extension API. It can download
-images by CSS selector (from <img> tags or background-image) or by direct URL.
-
-Args:
-  - selector (optional): CSS selector for <img> element or element with background-image
-  - url (optional): Direct URL of image to download (use selector OR url, not both)
-  - outputPath (optional): Custom save path (default: ~/ai-images/image-{timestamp}.{ext})
-
-Returns:
-  - success: Whether the image was downloaded
-  - filePath: Path to the saved image file (use Read tool to view)
-  - error: Error message if failed
-
-Examples:
-  - Download by selector: selector="img.hero-image"
-  - Download by URL: url="https://example.com/image.png"
-  - First image on page: selector="img"
-  - Custom path: outputPath="/tmp/downloaded.jpg"
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129
-  - "Could not find image URL": Selector doesn't point to an image element
-  - "Either selector or url required": Must provide one parameter
-
-After downloading, use the Read tool with the returned filePath to view the image.`, DownloadImageSchema.shape, async (params) => {
+Args: selector (optional) OR url (optional), outputPath (optional)`, DownloadImageSchema.shape, async (params) => {
         try {
             const result = await downloadImage({
                 selector: params.selector,

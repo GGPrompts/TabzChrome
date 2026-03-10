@@ -224,26 +224,9 @@ export function registerCookieTools(server) {
     // Get specific cookie
     server.tool("tabz_cookies_get", `Get a specific browser cookie by name and URL.
 
-Uses Chrome's cookies.get() API to retrieve a single cookie that matches
-the given URL and name.
+Args: url (required), name (required)
 
-Args:
-  - url (required): URL to get cookie for (determines domain/path matching)
-  - name (required): Name of the cookie to retrieve
-
-Returns:
-  - Cookie object with name, value, domain, path, flags, expiration
-  - null if cookie not found
-
-Examples:
-  - Get session cookie: url="https://github.com", name="user_session"
-  - Get auth token: url="https://api.example.com", name="auth_token"
-
-Security note: Cookie values are shown in full. Be careful with auth tokens.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running at localhost:8129
-  - null result: Cookie doesn't exist or URL doesn't match cookie's domain`, GetCookieSchema.shape, async (params) => {
+Use tabz_get_skill for detailed docs.`, GetCookieSchema.shape, async (params) => {
         try {
             const result = await getCookie(params.url, params.name);
             if (result.error) {
@@ -283,37 +266,11 @@ Error Handling:
         }
     });
     // List cookies
-    server.tool("tabz_cookies_list", `List browser cookies with optional filtering.
+    server.tool("tabz_cookies_list", `List browser cookies with optional filtering. Provide at least domain or url for targeted results.
 
-Uses Chrome's cookies.getAll() API to retrieve cookies matching the given criteria.
-At least one filter (domain or url) should be provided for targeted results.
+Args: domain (optional), url (optional), name (optional), secure (optional), session (optional)
 
-Args:
-  - domain (optional): Filter by domain (e.g., 'github.com')
-  - url (optional): Filter by URL (includes path matching)
-  - name (optional): Filter by cookie name
-  - secure (optional): Filter by secure flag
-  - session (optional): Filter session cookies only
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "cookies": [
-      { "name": "...", "value": "...", "domain": "...", ... }
-    ],
-    "total": 5
-  }
-
-Examples:
-  - List GitHub cookies: domain="github.com"
-  - List secure cookies: domain="example.com", secure=true
-  - List session cookies: domain="example.com", session=true
-
-Security note: Cookie values are truncated in markdown output.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running
-  - Empty list: No cookies match the filter criteria`, ListCookiesSchema.shape, async (params) => {
+Use tabz_get_skill for detailed docs.`, ListCookiesSchema.shape, async (params) => {
         try {
             const result = await listCookies({
                 domain: params.domain,
@@ -391,39 +348,11 @@ Error Handling:
         }
     });
     // Set cookie
-    server.tool("tabz_cookies_set", `Create or update a browser cookie.
+    server.tool("tabz_cookies_set", `Create or update a browser cookie. Modifying cookies can break auth -- use carefully.
 
-Uses Chrome's cookies.set() API to create a new cookie or update an existing one.
-The URL determines the default domain if not explicitly provided.
+Args: url (required), name (required), value (required), domain/path/secure/httpOnly/sameSite/expirationDate (optional)
 
-SECURITY WARNING: Modifying cookies can break authentication or cause unexpected
-behavior. Use with caution, especially for auth-related cookies.
-
-Args:
-  - url (required): URL to associate cookie with
-  - name (required): Cookie name
-  - value (required): Cookie value
-  - domain (optional): Cookie domain (defaults to URL host)
-  - path (optional): Cookie path (defaults to '/')
-  - secure (optional): Secure flag (HTTPS only)
-  - httpOnly (optional): HttpOnly flag (not accessible to JS)
-  - sameSite (optional): 'no_restriction', 'lax', or 'strict'
-  - expirationDate (optional): Seconds since epoch (omit for session cookie)
-
-Returns:
-  - The created/updated cookie object
-  - Error if the operation fails
-
-Examples:
-  - Set session cookie: url="https://example.com", name="test", value="123"
-  - Set persistent cookie: url="https://example.com", name="pref", value="dark",
-                          expirationDate=1735689600
-  - Set secure cookie: url="https://example.com", name="token", value="abc",
-                       secure=true, httpOnly=true, sameSite="strict"
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running
-  - Failed set: Domain mismatch, invalid URL, or permission denied`, SetCookieSchema.shape, async (params) => {
+Use tabz_get_skill for detailed docs.`, SetCookieSchema.shape, async (params) => {
         try {
             const result = await setCookie(params);
             if (result.error) {
@@ -466,29 +395,9 @@ Error Handling:
         }
     });
     // Delete cookie
-    server.tool("tabz_cookies_delete", `Delete a specific browser cookie.
+    server.tool("tabz_cookies_delete", `Delete a specific browser cookie. Deleting auth cookies will log user out.
 
-Uses Chrome's cookies.remove() API to delete a cookie matching the given
-URL and name.
-
-SECURITY WARNING: Deleting auth cookies will log the user out of websites.
-Use with caution.
-
-Args:
-  - url (required): URL the cookie is associated with
-  - name (required): Name of the cookie to delete
-
-Returns:
-  - Confirmation of deletion with URL and name
-  - Error if cookie not found or deletion fails
-
-Examples:
-  - Delete tracking cookie: url="https://example.com", name="_ga"
-  - Clear session: url="https://github.com", name="user_session"
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running
-  - null result: Cookie doesn't exist or URL mismatch`, DeleteCookieSchema.shape, async (params) => {
+Args: url (required), name (required)`, DeleteCookieSchema.shape, async (params) => {
         try {
             const result = await deleteCookie(params.url, params.name);
             if (result.error) {
@@ -525,38 +434,9 @@ The cookie has been successfully removed.`
         }
     });
     // Audit cookies
-    server.tool("tabz_cookies_audit", `Audit cookies for the current page, categorizing them by type.
+    server.tool("tabz_cookies_audit", `Audit cookies for the current page -- categorizes first/third-party, session/persistent, flags known trackers.
 
-Analyzes all cookies associated with the current page and categorizes them:
-- First-party vs third-party
-- Session vs persistent
-- Known trackers flagged
-
-This is useful for:
-- Debugging authentication issues
-- Identifying tracking cookies
-- Understanding cookie usage on a page
-- Privacy audits
-
-Args:
-  - tabId (optional): Tab ID to audit (defaults to active tab)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - Page URL and domain
-  - List of all cookies categorized
-  - First-party cookies (same domain as page)
-  - Third-party cookies (different domain)
-  - Known trackers highlighted
-  - Session vs persistent breakdown
-
-Examples:
-  - Audit current page: (no args needed)
-  - Audit specific tab: tabId=123456
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running
-  - "No active tab": No tab found or tab has no URL`, AuditCookiesSchema.shape, async (params) => {
+Args: tabId (optional, defaults to active tab)`, AuditCookiesSchema.shape, async (params) => {
         try {
             const result = await auditCookies(params.tabId);
             if (result.error) {

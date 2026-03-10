@@ -205,50 +205,7 @@ Sign in to Chrome and enable Sync in Settings > You and Google > Sync.`;
  */
 export function registerSessionTools(server) {
     // Recently closed tabs/windows
-    server.tool("tabz_sessions_recently_closed", `List recently closed browser tabs and windows.
-
-Retrieves up to 25 most recently closed tabs and windows that can be restored.
-Each item includes a sessionId that can be used with tabz_sessions_restore.
-
-Args:
-  - maxResults: Maximum number of sessions to return (1-25, default: 25)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "success": true,
-    "sessions": [
-      {
-        "lastModified": 1703894400,
-        "tab": {
-          "sessionId": "session_abc123",
-          "url": "https://example.com",
-          "title": "Example Page"
-        }
-      },
-      {
-        "lastModified": 1703894300,
-        "window": {
-          "sessionId": "session_xyz789",
-          "tabCount": 3,
-          "tabs": [...]
-        }
-      }
-    ]
-  }
-
-Session types:
-  - tab: A single closed tab with url, title, and sessionId
-  - window: A closed window with multiple tabs
-
-Use cases:
-  - User accidentally closed a tab: List recent closures and restore
-  - Find a tab closed earlier: Search through the list by title/URL
-  - Recover a window with multiple tabs: Restore the entire window
-
-Error Handling:
-  - "Cannot connect": Backend not running at localhost:8129
-  - Empty list: No recently closed sessions (cleared by Chrome restart)`, RecentlyClosedSchema.shape, async (params) => {
+    server.tool("tabz_sessions_recently_closed", `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_get_skill for detailed docs.`, RecentlyClosedSchema.shape, async (params) => {
         try {
             const result = await getRecentlyClosed(params.maxResults);
             if (!result.success || result.error) {
@@ -283,38 +240,7 @@ Error Handling:
         }
     });
     // Restore closed session
-    server.tool("tabz_sessions_restore", `Restore a recently closed tab or window.
-
-Reopens a closed tab or window. If no sessionId is provided, restores the most
-recently closed session.
-
-Args:
-  - sessionId (optional): Session ID from tabz_sessions_recently_closed.
-    If omitted, restores the most recently closed session.
-
-Returns:
-  {
-    "success": true,
-    "session": {
-      "lastModified": 1703894400,
-      "tab": { "sessionId": "...", "url": "...", "title": "..." }
-    }
-  }
-
-Behavior:
-  - Restoring a tab: Opens the tab in the current window
-  - Restoring a window: Opens a new window with all its tabs
-  - Already restored: Returns error (session no longer available)
-
-Examples:
-  - Restore most recent: (no args)
-  - Restore specific: sessionId="session_abc123"
-
-Use with tabz_sessions_recently_closed to get available sessionIds.
-
-Error Handling:
-  - "Invalid session ID": Session not found or already restored
-  - "Cannot connect": Backend not running at localhost:8129`, RestoreSessionSchema.shape, async (params) => {
+    server.tool("tabz_sessions_restore", `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_get_skill for detailed docs.`, RestoreSessionSchema.shape, async (params) => {
         try {
             const result = await restoreSession(params.sessionId);
             if (!result.success || result.error) {
@@ -353,47 +279,7 @@ The tab/window is now open and active.`;
         }
     });
     // Synced devices
-    server.tool("tabz_sessions_devices", `List tabs open on other synced Chrome devices.
-
-Shows tabs from the user's other Chrome instances (phone, laptop, work computer, etc.)
-that are signed into the same Google account with Chrome Sync enabled.
-
-Args:
-  - maxResults: Maximum number of devices to return (1-10, default: 10)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "success": true,
-    "devices": [
-      {
-        "deviceName": "Matt's Pixel",
-        "lastModifiedTime": 1703894400,
-        "sessions": [
-          {
-            "tab": { "url": "...", "title": "..." }
-          }
-        ]
-      }
-    ]
-  }
-
-Requirements:
-  - User must be signed into Chrome
-  - Chrome Sync must be enabled
-  - Other devices must also have Sync enabled
-
-Use cases:
-  - Continue reading on desktop what was open on phone
-  - Find that article you were reading on another computer
-  - See what tabs are open on work machine from home
-
-Note: This shows what's currently open on other devices, not browsing history.
-Tabs shown here can be opened locally with tabz_open_url.
-
-Error Handling:
-  - Empty list: Chrome Sync not enabled or no other signed-in devices
-  - "Cannot connect": Backend not running at localhost:8129`, DevicesSchema.shape, async (params) => {
+    server.tool("tabz_sessions_devices", `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_get_skill for detailed docs.`, DevicesSchema.shape, async (params) => {
         try {
             const result = await getDevices(params.maxResults);
             if (!result.success || result.error) {

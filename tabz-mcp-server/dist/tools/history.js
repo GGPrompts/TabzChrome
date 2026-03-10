@@ -171,50 +171,9 @@ async function deleteHistoryRange(startTime, endTime) {
 // =====================================
 export function registerHistoryTools(server) {
     // Search history tool
-    server.tool("tabz_history_search", `Search browsing history by keyword and date range.
+    server.tool("tabz_history_search", `Search browsing history by keyword. Searches URLs and page titles.
 
-Finds pages the user has visited that match the search query. Searches both
-URLs and page titles.
-
-Args:
-  - query (required): Search text to match. Use empty string "" to match all.
-  - startTime (optional): Start of date range in ms since epoch. Default: 24 hours ago.
-  - endTime (optional): End of date range in ms since epoch. Default: now.
-  - maxResults (optional): Max results to return (1-1000). Default: 100.
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "success": true,
-    "total": 25,
-    "items": [
-      {
-        "id": "123",
-        "url": "https://example.com/page",
-        "title": "Example Page",
-        "lastVisitTime": 1703894400000,
-        "visitCount": 5,
-        "typedCount": 2
-      }
-    ]
-  }
-
-Key fields:
-  - lastVisitTime: When the page was last visited (ms since epoch)
-  - visitCount: Total number of times this URL was visited
-  - typedCount: Times the URL was typed directly in the address bar
-
-Examples:
-  - Find GitHub pages from today: query="github"
-  - Find all pages from last week: query="", startTime=<week_ago_ms>
-  - Find specific site: query="stackoverflow.com"
-
-Use tabz_history_visits to get detailed visit information for a specific URL.
-Use tabz_history_recent for a quick view of recent browsing.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome backend is running at localhost:8129
-  - Empty results: No matching history in the specified time range`, HistorySearchSchema.shape, async (params) => {
+Args: query (required, "" for all), startTime/endTime (optional ms since epoch), maxResults (optional)`, HistorySearchSchema.shape, async (params) => {
         try {
             const result = await searchHistory(params.query, params.startTime, params.endTime, params.maxResults);
             if (!result.success) {
@@ -277,52 +236,9 @@ Try:
         }
     });
     // Get visits for URL tool
-    server.tool("tabz_history_visits", `Get detailed visit information for a specific URL.
+    server.tool("tabz_history_visits", `Get detailed visit history for a specific URL -- timestamps and navigation transitions.
 
-Returns all recorded visits to a particular URL, including when each visit
-occurred and how the user navigated to the page.
-
-Args:
-  - url (required): The exact URL to look up (must be a valid URL)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "success": true,
-    "url": "https://example.com/page",
-    "total": 5,
-    "visits": [
-      {
-        "id": "456",
-        "visitId": "789",
-        "visitTime": 1703894400000,
-        "referringVisitId": "123",
-        "transition": "link"
-      }
-    ]
-  }
-
-Transition types:
-  - "link": Clicked a link on another page
-  - "typed": Typed the URL directly
-  - "auto_bookmark": Clicked a bookmark
-  - "auto_subframe": Loaded in a subframe
-  - "manual_subframe": User clicked in a subframe
-  - "generated": Generated (e.g., form submission)
-  - "start_page": Start page
-  - "form_submit": Form submission
-  - "reload": Page reload
-  - "keyword": Omnibox keyword search
-  - "keyword_generated": Generated from keyword
-
-Examples:
-  - Get visits: url="https://github.com/anthropics/claude-code"
-
-Use tabz_history_search first to find URLs if you don't have the exact URL.
-
-Error Handling:
-  - "No visits found": URL not in history or never visited
-  - Invalid URL format: Ensure the URL is complete with protocol`, HistoryVisitsSchema.shape, async (params) => {
+Args: url (required, exact URL), response_format (optional)`, HistoryVisitsSchema.shape, async (params) => {
         try {
             const result = await getHistoryVisits(params.url);
             if (!result.success) {
@@ -384,40 +300,9 @@ This could mean:
         }
     });
     // Get recent history tool
-    server.tool("tabz_history_recent", `Get the most recently visited pages.
+    server.tool("tabz_history_recent", `Get most recently visited pages sorted by visit time.
 
-Returns browsing history sorted by most recent visit time. This is a quick
-way to see what the user has been browsing without specifying search terms.
-
-Args:
-  - maxResults (optional): Max results to return (1-1000). Default: 50.
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "success": true,
-    "total": 50,
-    "items": [
-      {
-        "id": "123",
-        "url": "https://example.com/page",
-        "title": "Example Page",
-        "lastVisitTime": 1703894400000,
-        "visitCount": 5,
-        "typedCount": 2
-      }
-    ]
-  }
-
-Examples:
-  - Get last 10 pages: maxResults=10
-  - Get last 100 pages: maxResults=100
-
-Use tabz_history_search for keyword-based searching.
-
-Error Handling:
-  - Empty results: No browsing history (new profile or cleared)
-  - "Cannot connect": Ensure TabzChrome backend is running`, HistoryRecentSchema.shape, async (params) => {
+Args: maxResults (optional, default 50), response_format (optional)`, HistoryRecentSchema.shape, async (params) => {
         try {
             const result = await getRecentHistory(params.maxResults);
             if (!result.success) {
@@ -479,30 +364,9 @@ This could mean:
         }
     });
     // Delete URL from history tool
-    server.tool("tabz_history_delete_url", `Remove a specific URL from browsing history.
+    server.tool("tabz_history_delete_url", `Permanently delete a URL and all its visits from browsing history. Cannot be undone.
 
-Permanently deletes all visits to the specified URL from the browser's
-history. This cannot be undone.
-
-Args:
-  - url (required): The exact URL to delete from history
-
-Returns:
-  - success: Whether the deletion was successful
-  - url: The URL that was deleted
-  - error: Error message if failed
-
-Examples:
-  - Delete a page: url="https://example.com/sensitive-page"
-
-CAUTION: This action cannot be undone. The URL and all its visit records
-will be permanently removed from history.
-
-Use tabz_history_search first to find the exact URL if needed.
-
-Error Handling:
-  - Invalid URL format: Ensure URL is complete with protocol
-  - "Cannot connect": Ensure TabzChrome backend is running`, HistoryDeleteUrlSchema.shape, async (params) => {
+Args: url (required, exact URL)`, HistoryDeleteUrlSchema.shape, async (params) => {
         try {
             const result = await deleteHistoryUrl(params.url);
             let resultText;
@@ -537,38 +401,9 @@ URL: ${params.url}`;
         }
     });
     // Delete history range tool
-    server.tool("tabz_history_delete_range", `Remove all browsing history within a date range.
+    server.tool("tabz_history_delete_range", `Delete all browsing history within a time range. Cannot be undone.
 
-Permanently deletes all history entries between the specified start and end
-times. This cannot be undone.
-
-Args:
-  - startTime (required): Start of range (milliseconds since epoch)
-  - endTime (required): End of range (milliseconds since epoch)
-
-Returns:
-  - success: Whether the deletion was successful
-  - startTime: Start of deleted range
-  - endTime: End of deleted range
-  - error: Error message if failed
-
-Time helpers (JavaScript):
-  - Now: Date.now()
-  - 1 hour ago: Date.now() - 3600000
-  - 24 hours ago: Date.now() - 86400000
-  - 7 days ago: Date.now() - 604800000
-  - Specific date: new Date('2024-01-15').getTime()
-
-Examples:
-  - Delete last hour: startTime=<hour_ago_ms>, endTime=<now_ms>
-  - Delete today: startTime=<today_start_ms>, endTime=<now_ms>
-
-CAUTION: This action cannot be undone. All history in the specified time
-range will be permanently deleted.
-
-Error Handling:
-  - "startTime must be less than endTime": Check time values
-  - "Cannot connect": Ensure TabzChrome backend is running`, HistoryDeleteRangeSchema.shape, async (params) => {
+Args: startTime (required, ms since epoch), endTime (required, ms since epoch)`, HistoryDeleteRangeSchema.shape, async (params) => {
         try {
             const result = await deleteHistoryRange(params.startTime, params.endTime);
             let resultText;

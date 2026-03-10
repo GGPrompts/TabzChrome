@@ -218,40 +218,7 @@ async function togglePlugin(pluginId, enabled) {
  */
 export function registerPluginTools(server) {
     // List plugins tool
-    server.tool("tabz_list_plugins", `List installed Claude Code plugins with their status.
-
-Returns plugins grouped by marketplace with enabled/disabled state,
-version info, and component types (skills, agents, commands, hooks, mcp).
-
-Args:
-  - marketplace (optional): Filter by marketplace name (e.g., "my-plugins")
-  - enabled (optional): Filter by enabled status (true/false)
-
-Returns:
-  {
-    "marketplaces": {
-      "my-plugins": [
-        {
-          "id": "conductor@my-plugins",
-          "name": "conductor",
-          "enabled": true,
-          "version": "1.0.0",
-          "components": ["skill", "agent", "command"]
-        }
-      ]
-    },
-    "totalPlugins": 5,
-    "enabledCount": 4,
-    "disabledCount": 1
-  }
-
-Examples:
-  - List all plugins: (no args)
-  - Filter by marketplace: marketplace="my-plugins"
-  - List disabled only: enabled=false
-
-Use tabz_list_skills to see skills from enabled plugins.
-Use tabz_toggle_plugin to enable/disable plugins.`, ListPluginsSchema.shape, async (params) => {
+    server.tool("tabz_list_plugins", `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_get_skill for detailed docs.`, ListPluginsSchema.shape, async (params) => {
         try {
             const result = await listPlugins(params.marketplace, params.enabled);
             if (!result.success || !result.data) {
@@ -272,36 +239,7 @@ Use tabz_toggle_plugin to enable/disable plugins.`, ListPluginsSchema.shape, asy
         }
     });
     // List skills tool
-    server.tool("tabz_list_skills", `List available skills from enabled plugins.
-
-Returns skills with their ID, name, description, and source plugin.
-Skills can be invoked in Claude Code using /<plugin>:<skill> syntax.
-
-Args:
-  - plugin (optional): Filter by plugin name (e.g., "conductor")
-  - search (optional): Search skills by name/description (case-insensitive)
-
-Returns:
-  {
-    "skills": [
-      {
-        "id": "/conductor:brainstorm",
-        "name": "Brainstorm",
-        "desc": "Brainstorm ideas and design workflows with a beads expert",
-        "pluginName": "conductor",
-        "marketplace": "my-plugins"
-      }
-    ],
-    "count": 15
-  }
-
-Examples:
-  - List all skills: (no args)
-  - Filter by plugin: plugin="conductor"
-  - Search for skills: search="browser"
-  - Combined: plugin="tabz", search="screenshot"
-
-Use tabz_get_skill to read the full SKILL.md content.`, ListSkillsSchema.shape, async (params) => {
+    server.tool("tabz_list_skills", `List available skills from enabled plugins. Filter by plugin name or search by keyword. Use tabz_get_skill to read full SKILL.md content.`, ListSkillsSchema.shape, async (params) => {
         try {
             const result = await listSkills(params.plugin, params.search);
             if (!result.success || !result.skills) {
@@ -367,39 +305,7 @@ Use tabz_list_skills first to find available skill IDs.`, GetSkillSchema.shape, 
         }
     });
     // Plugins health check tool
-    server.tool("tabz_plugins_health", `Check plugin health: outdated versions, cache size, marketplace status.
-
-Compares installed plugin versions against their source repositories
-to identify plugins that may need updates.
-
-Args: none
-
-Returns:
-  {
-    "outdatedPlugins": [
-      {
-        "pluginId": "conductor@my-plugins",
-        "name": "conductor",
-        "installedCommit": "abc123",
-        "latestCommit": "def456",
-        "hasChanges": true
-      }
-    ],
-    "cacheSize": {
-      "bytes": 1048576,
-      "formatted": "1.00 MB"
-    },
-    "marketplaceStatus": {
-      "my-plugins": {
-        "head": "def456",
-        "path": "/home/user/.claude/plugins/cache/my-plugins",
-        "reachable": true
-      }
-    }
-  }
-
-Use this to check if plugins need updates.
-Run /restart after updating plugins to apply changes.`, PluginsHealthSchema.shape, async () => {
+    server.tool("tabz_plugins_health", `Check plugin health: outdated versions, cache size, marketplace reachability. Run /restart after updating plugins.`, PluginsHealthSchema.shape, async () => {
         try {
             const result = await pluginsHealth();
             if (!result.success || !result.data) {
@@ -420,30 +326,7 @@ Run /restart after updating plugins to apply changes.`, PluginsHealthSchema.shap
         }
     });
     // Toggle plugin tool
-    server.tool("tabz_toggle_plugin", `Enable or disable a Claude Code plugin.
-
-Toggles a plugin's enabled status in Claude settings.
-Requires running /restart for changes to take effect.
-
-Args:
-  - pluginId (required): Plugin ID in format "pluginName@marketplace"
-                         (e.g., "conductor@my-plugins", "beads@anthropic")
-  - enabled (required): true to enable, false to disable
-
-Returns:
-  {
-    "success": true,
-    "pluginId": "conductor@my-plugins",
-    "enabled": false,
-    "message": "Plugin conductor@my-plugins disabled. Run /restart to apply changes."
-  }
-
-Examples:
-  - Disable plugin: pluginId="conductor@my-plugins", enabled=false
-  - Enable plugin: pluginId="beads@my-plugins", enabled=true
-
-Use tabz_list_plugins to see available plugin IDs.
-Run /restart after toggling to apply changes.`, TogglePluginSchema.shape, async (params) => {
+    server.tool("tabz_toggle_plugin", `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_get_skill for detailed docs.`, TogglePluginSchema.shape, async (params) => {
         try {
             const result = await togglePlugin(params.pluginId, params.enabled);
             if (!result.success) {

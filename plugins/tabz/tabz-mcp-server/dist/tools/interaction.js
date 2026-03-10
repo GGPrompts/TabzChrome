@@ -57,39 +57,9 @@ async function fillInput(selector, value, tabId) {
  */
 export function registerInteractionTools(server) {
     // Click tool
-    server.tool("tabz_click", `Click an element on the page.
+    server.tool("tabz_click", `Click an element on the page. Waits up to 5 seconds for element to appear.
 
-Waits for the element to appear (up to 5 seconds) then clicks it.
-Works with buttons, links, checkboxes, and any clickable element.
-
-WARNING: This tool can trigger actions. Use carefully.
-
-Args:
-  - selector (required): CSS selector for the element to click
-
-Returns:
-  - success: Whether the click was performed
-  - error: Error message if failed
-
-Common Selectors:
-  - By ID: "#submit-button"
-  - By class: ".btn-primary"
-  - By tag: "button"
-  - By attribute: "button[type='submit']"
-  - By text (partial): "button:contains('Login')" (Note: may need JS)
-  - Nested: ".modal .close-btn"
-
-Examples:
-  - Click submit: selector="button[type='submit']"
-  - Click link: selector="a.nav-link"
-  - Click checkbox: selector="input[type='checkbox']#agree"
-
-Error Handling:
-  - "Element not found": Selector doesn't match any element within 5 seconds
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129
-
-After clicking, use tabz_get_page_info to check if page changed,
-or tabz_execute_script to verify the result.`, ClickSchema.shape, async (params) => {
+Args: selector (required CSS selector), tabId (optional)`, ClickSchema.shape, async (params) => {
         try {
             const result = await clickElement(params.selector, params.tabId);
             let resultText;
@@ -131,40 +101,9 @@ Troubleshooting:
         }
     });
     // Fill tool
-    server.tool("tabz_fill", `Fill an input field with text.
+    server.tool("tabz_fill", `Fill an input field with text. Clears existing value first. Works with inputs, textareas, contenteditable.
 
-Waits for the element to appear (up to 5 seconds), clears any existing value,
-then types the new value. Works with text inputs, textareas, and other form fields.
-
-WARNING: This tool modifies form state. Use carefully.
-
-Args:
-  - selector (required): CSS selector for the input field
-  - value (required): Text to type into the field
-
-Returns:
-  - success: Whether the fill was performed
-  - error: Error message if failed
-
-Common Selectors:
-  - By ID: "#email"
-  - By name: "input[name='username']"
-  - By type: "input[type='password']"
-  - By placeholder: "input[placeholder='Enter email']"
-  - Textarea: "textarea#message"
-
-Examples:
-  - Fill email: selector="input[type='email']", value="user@example.com"
-  - Fill password: selector="#password", value="secret123"
-  - Fill search: selector="input[name='q']", value="search query"
-
-Error Handling:
-  - "Element not found": Selector doesn't match any input within 5 seconds
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129
-
-After filling, you may want to:
-- Click a submit button: tabz_click with selector="button[type='submit']"
-- Verify the value: tabz_execute_script with code="document.querySelector('${"{selector}"}').value"`, FillSchema.shape, async (params) => {
+Args: selector (required CSS selector), value (required text), tabId (optional)`, FillSchema.shape, async (params) => {
         try {
             const result = await fillInput(params.selector, params.value, params.tabId);
             let resultText;

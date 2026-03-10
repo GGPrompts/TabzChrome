@@ -136,34 +136,9 @@ function truncateMessage(msg, maxLen) {
  * Register console tools with the MCP server
  */
 export function registerConsoleTools(server, backendUrl) {
-    server.tool("tabz_get_console_logs", `Get console logs from the browser (log, warn, error, info, debug).
+    server.tool("tabz_get_console_logs", `Get browser console logs (errors, warnings, info, debug). Captured from all open tabs.
 
-This tool retrieves console output from web pages open in Chrome. Useful for:
-- Debugging JavaScript errors
-- Seeing application logs
-- Monitoring API responses logged to console
-- Finding React/Vue/Angular warnings
-
-The logs are captured from ALL open tabs. Use tabId filter to focus on specific tab.
-
-Args:
-  - level: Filter by log level ('all', 'log', 'info', 'warn', 'error', 'debug')
-  - limit: Max entries to return (1-1000, default: 100)
-  - since: Only logs after this timestamp (ms since epoch)
-  - tabId: Filter by browser tab ID
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  Console log entries with timestamp, level, message, source URL, and stack traces for errors.
-
-Examples:
-  - Get all errors: level="error"
-  - Get recent logs: since=Date.now()-60000 (last minute)
-  - Get specific tab: tabId=123
-
-Error Handling:
-  - "Cannot connect to backend": Start TabzChrome backend (cd backend && npm start)
-  - "No logs captured": Open Chrome tabs and interact with pages`, GetConsoleLogsSchema.shape, async (params) => {
+Args: level (optional: all/log/info/warn/error/debug), limit (optional), since (optional), tabId (optional)`, GetConsoleLogsSchema.shape, async (params) => {
         try {
             const response = await getConsoleLogs({
                 level: params.level === 'all' ? undefined : params.level,

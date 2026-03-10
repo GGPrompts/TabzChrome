@@ -157,52 +157,9 @@ document.querySelectorAll('${selector}').length
 export function registerInspectionTools(server: McpServer): void {
   server.tool(
     "tabz_get_element",
-    `Get detailed information about a DOM element for CSS debugging or recreation.
+    `Inspect a DOM element -- returns HTML, computed styles, bounds, and attributes. Ideal for CSS debugging.
 
-Returns the element's HTML, computed styles, bounding box, and attributes.
-Perfect for understanding how an element is styled or recreating it in another project.
-
-Args:
-  - selector (required): CSS selector for the element
-  - includeStyles (optional): Include computed CSS styles (default: true)
-  - styleProperties (optional): Specific CSS properties to extract
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - tagName: Element tag (div, button, etc.)
-  - attributes: All HTML attributes (class, id, data-*, etc.)
-  - bounds: Position and dimensions (x, y, width, height)
-  - styles: Computed CSS styles (layout, typography, colors, etc.)
-  - outerHTML: Complete HTML including the element
-  - html: Inner HTML content
-  - innerText: Text content (first 500 chars)
-  - parentSelector: Selector hint for parent element
-  - childCount: Number of child elements
-
-Default Style Categories Extracted:
-  - Layout: display, position, width, height, overflow
-  - Spacing: margin, padding
-  - Flexbox: flex-direction, justify-content, align-items, gap
-  - Grid: grid-template-columns, grid-template-rows
-  - Typography: font-family, font-size, font-weight, color, line-height
-  - Background: background-color, background-image
-  - Border: border, border-radius
-  - Effects: box-shadow, opacity, transform, transition
-
-Examples:
-  - Inspect a card: selector=".card"
-  - Get button styles: selector="button.primary"
-  - Check header layout: selector="#main-header"
-  - Just HTML, no styles: selector=".modal", includeStyles=false
-
-Use Cases:
-  - Debug CSS issues: Compare expected vs actual styles
-  - Recreate elements: Get all styles needed to rebuild in another project
-  - Understand layout: See flexbox/grid properties and dimensions
-
-Error Handling:
-  - "Element not found": Selector doesn't match any element
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129`,
+Args: selector (required), includeStyles (optional, default true), styleProperties (optional array), response_format (optional)`,
     GetElementSchema.shape,
     async (params: GetElementInput) => {
       try {

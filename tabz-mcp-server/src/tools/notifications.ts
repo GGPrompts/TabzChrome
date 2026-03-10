@@ -199,41 +199,9 @@ export function registerNotificationTools(server: McpServer): void {
   // Show notification tool
   server.tool(
     "tabz_notification_show",
-    `Display a Chrome desktop notification.
+    `Show a Chrome desktop notification. Types: basic, image, list, progress. Returns notificationId for updates.
 
-Shows a notification in the system tray/notification center. Useful for:
-- Alerting when long-running tasks complete
-- Displaying actionable information
-- Progress updates for multi-step operations
-
-Args:
-  - title (required): Notification title (max 100 chars)
-  - message (required): Body text (max 500 chars)
-  - type: 'basic' (default), 'image', 'list', or 'progress'
-  - iconUrl: Custom icon URL (uses extension icon if omitted)
-  - imageUrl: Image for 'image' type notifications
-  - items: List items for 'list' type [{title, message}, ...]
-  - progress: 0-100 for 'progress' type
-  - buttons: Up to 2 action buttons [{title, iconUrl?}, ...]
-  - priority: -2 (lowest) to 2 (highest), default 0
-  - notificationId: Custom ID for updates (auto-generated if omitted)
-  - requireInteraction: Keep visible until dismissed (default false)
-
-Returns:
-  - success: Whether notification was shown
-  - notificationId: ID for updating/clearing this notification
-
-Examples:
-  Basic alert: { title: "Build Complete", message: "Your project built successfully" }
-  Progress: { type: "progress", title: "Downloading", message: "file.zip", progress: 45 }
-  With buttons: { title: "Deploy?", message: "Ready to deploy", buttons: [{title: "Deploy"}, {title: "Cancel"}] }
-
-Note: Button clicks display but are not yet connected to actions.
-
-Platform differences:
-  - Windows: Full support
-  - macOS: Some styles may differ
-  - Linux: Depends on notification daemon`,
+Args: title (required), message (required), type/iconUrl/progress/buttons/priority/notificationId/requireInteraction (optional)`,
     ShowNotificationSchema.shape,
     async (params: ShowNotificationInput) => {
       try {
@@ -271,28 +239,9 @@ Use this ID with \`tabz_notification_update\` or \`tabz_notification_clear\`.`;
   // Update notification tool
   server.tool(
     "tabz_notification_update",
-    `Update an existing notification.
+    `Update an existing notification (title, message, progress, or type).
 
-Modifies a previously shown notification. Useful for:
-- Updating progress percentage
-- Changing message as task progresses
-- Converting progress notification to basic when complete
-
-Args:
-  - notificationId (required): ID from tabz_notification_show
-  - title: New title
-  - message: New message
-  - progress: New progress (0-100)
-  - type: Change type (e.g., 'basic' to remove progress bar when done)
-
-Returns:
-  - success: Whether update succeeded
-  - wasUpdated: Whether notification existed and was updated
-
-Example workflow:
-  1. Show: { type: "progress", title: "Processing", message: "Step 1", progress: 0 }
-  2. Update: { notificationId: "...", progress: 50, message: "Step 2" }
-  3. Complete: { notificationId: "...", type: "basic", title: "Done!", message: "Processing complete" }`,
+Args: notificationId (required), title/message/progress/type (optional)`,
     UpdateNotificationSchema.shape,
     async (params: UpdateNotificationInput) => {
       try {
@@ -334,16 +283,9 @@ Notification \`${params.notificationId}\` does not exist or was already dismisse
   // Clear notification tool
   server.tool(
     "tabz_notification_clear",
-    `Dismiss a notification.
+    `Dismiss a notification by ID.
 
-Removes a notification from the system tray/notification center.
-
-Args:
-  - notificationId (required): ID from tabz_notification_show
-
-Returns:
-  - success: Whether clear succeeded
-  - wasCleared: Whether notification existed and was cleared`,
+Args: notificationId (required)`,
     ClearNotificationSchema.shape,
     async (params: ClearNotificationInput) => {
       try {
@@ -385,14 +327,7 @@ Notification \`${params.notificationId}\` does not exist or was already dismisse
   // List notifications tool
   server.tool(
     "tabz_notification_list",
-    `List all active notifications.
-
-Returns all notifications that haven't been dismissed by the user or cleared programmatically.
-
-Returns:
-  - success: Whether list succeeded
-  - count: Number of active notifications
-  - notifications: Object with notificationId keys and {type, title, message} values`,
+    `List all active (undismissed) notifications.`,
     ListNotificationsSchema.shape,
     async () => {
       try {

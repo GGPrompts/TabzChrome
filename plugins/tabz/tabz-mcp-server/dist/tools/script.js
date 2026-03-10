@@ -40,52 +40,7 @@ async function executeScript(options) {
  * Register script tools with the MCP server
  */
 export function registerScriptTools(server, backendUrl) {
-    server.tool("tabz_execute_script", `Execute JavaScript code in the browser tab.
-
-WARNING: This tool can modify page state. Use carefully.
-
-The code runs in the page's JavaScript context with access to:
-- document, window, localStorage, sessionStorage
-- All page JavaScript (React state, Vue data, etc.)
-- DOM manipulation
-
-The return value of the last expression is captured and returned.
-
-Args:
-  - code (required): JavaScript code to execute
-  - tabId: Specific tab to target (default: active tab)
-  - allFrames: Run in all iframes too (default: false)
-
-Returns:
-  JSON with: success (boolean), result (any), error (string if failed)
-
-Common Use Cases:
-  - Get page data: "document.title"
-  - Get form values: "document.querySelector('input').value"
-  - Get React state: "document.querySelector('[data-reactroot]')?.__reactFiber$"
-  - Click elements: "document.querySelector('button').click()"
-  - Read localStorage: "JSON.stringify(localStorage)"
-  - Get page HTML: "document.documentElement.outerHTML.slice(0, 5000)"
-
-Examples:
-  - Get page title: code="document.title"
-  - Get all links: code="[...document.links].map(a => a.href)"
-  - Check if logged in: code="!!document.querySelector('.user-avatar')"
-
-Error Handling:
-  - Syntax errors in code will be returned in the error field
-  - Permission errors occur on chrome:// pages
-  - Timeout errors if script takes too long
-
-CLI Quoting (mcp-cli):
-  When using mcp-cli with complex JS code containing quotes, use heredoc to avoid escaping issues:
-
-  mcp-cli call tabz/tabz_execute_script - <<'EOF'
-  {"code": "document.querySelector('button').click()"}
-  EOF
-
-  The <<'EOF' syntax passes JSON literally without bash interpretation.
-  Use single quotes inside JS, double quotes for JSON wrapper.`, ExecuteScriptSchema.shape, async (params) => {
+    server.tool("tabz_execute_script", `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_get_skill for detailed docs.`, ExecuteScriptSchema.shape, async (params) => {
         try {
             const response = await executeScript({
                 code: params.code,

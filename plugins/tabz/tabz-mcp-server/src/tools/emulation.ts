@@ -388,31 +388,9 @@ export function registerEmulationTools(server: McpServer): void {
   // Emulate Device
   server.tool(
     "tabz_emulate_device",
-    `Emulate mobile or tablet device viewport using Chrome DevTools Protocol.
+    `Emulate mobile/tablet viewport via CDP. Use tabz_emulate_clear to reset. Presets: ${DEVICE_NAMES.join(', ')}.
 
-Changes the page viewport to match the selected device dimensions, pixel ratio, and mobile mode.
-The debugger will remain attached while emulation is active.
-
-**Available Presets:**
-${DEVICE_NAMES.map(name => {
-  const d = DEVICE_PRESETS[name];
-  return `- ${name}: ${d.width}x${d.height} @${d.deviceScaleFactor}x`;
-}).join('\n')}
-
-**Note:** Chrome will show a "debugging" banner while emulation is active.
-Use tabz_emulate_clear to reset viewport and detach debugger.
-
-Args:
-  - device: Preset name or 'custom' for manual dimensions
-  - width/height: Required if device='custom'
-  - deviceScaleFactor: Pixel ratio (default: from preset or 1)
-  - mobile: Enable mobile mode (default: true)
-  - tabId: Target tab (default: active tab)
-
-Examples:
-  - iPhone 14: device="iPhone_14"
-  - iPad Pro: device="iPad_Pro"
-  - Custom: device="custom", width=400, height=800, deviceScaleFactor=2`,
+Args: device (preset name or 'custom'), width/height (if custom), deviceScaleFactor, mobile, tabId (optional)`,
     EmulateDeviceSchema.shape,
     async (params: EmulateDeviceInput) => {
       try {
@@ -470,15 +448,9 @@ Examples:
   // Clear Emulation
   server.tool(
     "tabz_emulate_clear",
-    `Clear all emulation overrides and detach the Chrome debugger.
+    `Clear all emulation overrides and detach debugger. Resets viewport, geolocation, network, media, vision.
 
-Resets device viewport, geolocation, network conditions, media features, and vision deficiency simulation.
-Also detaches the debugger, removing the yellow debugging banner.
-
-Use this tool after testing responsive designs or accessibility features.
-
-Args:
-  - tabId: Target tab (default: active tab)`,
+Args: tabId (optional)`,
     EmulateClearSchema.shape,
     async (params: EmulateClearInput) => {
       try {
@@ -525,30 +497,9 @@ Args:
   // Emulate Geolocation
   server.tool(
     "tabz_emulate_geolocation",
-    `Override browser geolocation using Chrome DevTools Protocol.
+    `Spoof browser geolocation coordinates via CDP. Set clear=true to reset.
 
-Spoofs the GPS coordinates returned by the Geolocation API.
-Useful for testing location-based features.
-
-**Common Locations:**
-- San Francisco: 37.7749, -122.4194
-- New York: 40.7128, -74.0060
-- London: 51.5074, -0.1278
-- Tokyo: 35.6762, 139.6503
-- Sydney: -33.8688, 151.2093
-
-**Note:** Chrome will show a "debugging" banner while override is active.
-
-Args:
-  - latitude: Latitude in degrees (-90 to 90)
-  - longitude: Longitude in degrees (-180 to 180)
-  - accuracy: Accuracy in meters (default: 100)
-  - clear: Set to true to clear the override
-  - tabId: Target tab (default: active tab)
-
-Examples:
-  - San Francisco: latitude=37.7749, longitude=-122.4194
-  - Clear override: clear=true`,
+Args: latitude, longitude (required unless clear=true), accuracy (optional), clear (optional), tabId (optional)`,
     EmulateGeolocationSchema.shape,
     async (params: EmulateGeolocationInput) => {
       try {
@@ -608,26 +559,9 @@ Examples:
   // Emulate Network
   server.tool(
     "tabz_emulate_network",
-    `Throttle network speed using Chrome DevTools Protocol.
+    `Throttle network speed via CDP. Presets: ${NETWORK_PRESET_NAMES.join(', ')}.
 
-Simulates slow network conditions like 3G or offline mode.
-Useful for testing loading states and offline behavior.
-
-**Available Presets:**
-${NETWORK_PRESET_NAMES.map(name => `- ${name}: ${NETWORK_PRESETS[name].description}`).join('\n')}
-
-**Note:** Chrome will show a "debugging" banner while throttling is active.
-Network throttling affects all requests from the tab.
-
-Args:
-  - preset: Network preset name
-  - Or custom values: offline, downloadThroughput, uploadThroughput, latency
-  - tabId: Target tab (default: active tab)
-
-Examples:
-  - Slow 3G: preset="slow_3g"
-  - Offline: preset="offline"
-  - Remove throttling: preset="no_throttle"`,
+Args: preset (optional), or custom offline/downloadThroughput/uploadThroughput/latency, tabId (optional)`,
     EmulateNetworkSchema.shape,
     async (params: EmulateNetworkInput) => {
       try {
@@ -690,32 +624,9 @@ Examples:
   // Emulate Media
   server.tool(
     "tabz_emulate_media",
-    `Emulate CSS media type and features using Chrome DevTools Protocol.
+    `Emulate CSS media type and features (color-scheme, reduced-motion, forced-colors, print mode).
 
-Override media queries for testing responsive designs and accessibility preferences.
-
-**Media Types:**
-- screen: Normal display
-- print: Print preview mode
-
-**Media Features:**
-- colorScheme: prefers-color-scheme (light/dark)
-- reducedMotion: prefers-reduced-motion (reduce/no-preference)
-- forcedColors: forced-colors (active/none for high contrast)
-
-**Note:** Chrome will show a "debugging" banner while emulation is active.
-
-Args:
-  - media: CSS media type ('screen', 'print', or '' to clear)
-  - colorScheme: 'light', 'dark', or 'no-preference'
-  - reducedMotion: 'reduce' or 'no-preference'
-  - forcedColors: 'active' or 'none'
-  - tabId: Target tab (default: active tab)
-
-Examples:
-  - Dark mode: colorScheme="dark"
-  - Print preview: media="print"
-  - Reduced motion: reducedMotion="reduce"`,
+Args: media (optional), colorScheme (optional), reducedMotion (optional), forcedColors (optional), tabId (optional)`,
     EmulateMediaSchema.shape,
     async (params: EmulateMediaInput) => {
       try {
@@ -779,24 +690,9 @@ Examples:
   // Emulate Vision Deficiency
   server.tool(
     "tabz_emulate_vision",
-    `Simulate vision deficiency using Chrome DevTools Protocol.
+    `Simulate vision deficiency for accessibility testing. Types: ${VISION_TYPES.join(', ')}.
 
-Applies color filters to simulate how the page appears to users with various vision conditions.
-Useful for accessibility testing.
-
-**Vision Types:**
-${VISION_TYPES.map(t => `- ${t}: ${VISION_DESCRIPTIONS[t]}`).join('\n')}
-
-**Note:** Chrome will show a "debugging" banner while simulation is active.
-This affects the visual rendering only, not the underlying content.
-
-Args:
-  - type: Vision deficiency type to simulate
-  - tabId: Target tab (default: active tab)
-
-Examples:
-  - Red-green colorblindness: type="deuteranopia"
-  - Clear simulation: type="none"`,
+Args: type (required), tabId (optional)`,
     EmulateVisionSchema.shape,
     async (params: EmulateVisionInput) => {
       try {

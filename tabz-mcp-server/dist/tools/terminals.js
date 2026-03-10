@@ -205,39 +205,7 @@ async function captureTerminal(terminal, lines) {
  */
 export function registerTerminalTools(server) {
     // List terminals tool
-    server.tool("tabz_list_terminals", `List running terminals in TabzChrome.
-
-Shows all terminal sessions managed by TabzChrome, including Claude workers,
-bash terminals, and other processes spawned via profiles.
-
-Args:
-  - state: Filter by state - 'active', 'disconnected', or 'all' (default)
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "total": 5,
-    "terminals": [
-      {
-        "id": "ctt-vanilla-claude-abc123",
-        "name": "BD-xyz",
-        "terminalType": "claude-code",
-        "state": "active",
-        "workingDir": "~/projects/.worktrees/BD-xyz",
-        "createdAt": "2024-01-15T10:30:00Z"
-      }
-    ]
-  }
-
-Examples:
-  - List all terminals: (no args needed)
-  - Active only: state="active"
-  - JSON output: response_format="json"
-
-Use this to find terminal IDs/names for tabz_send_keys or tabz_capture_terminal.
-
-Error Handling:
-  - "Cannot connect": Backend not running at localhost:8129 (run ./scripts/dev.sh)`, ListTerminalsSchema.shape, async (params) => {
+    server.tool("tabz_list_terminals", `List running terminals in TabzChrome. Filter by state: 'active', 'disconnected', or 'all'. Returns IDs for tabz_send_keys and tabz_capture_terminal. Use tabz_get_skill for detailed docs.`, ListTerminalsSchema.shape, async (params) => {
         try {
             const result = await listTerminals(params.state);
             if (result.error) {
@@ -313,38 +281,7 @@ Use \`tabz_spawn_profile\` to create a terminal.`;
         }
     });
     // Send keys tool
-    server.tool("tabz_send_keys", `Send text/keys to a terminal.
-
-Sends keystrokes to a running terminal, like typing in the terminal.
-Uses tmux send-keys with configurable delay for Claude terminals.
-
-Args:
-  - terminal: Required. Terminal name or ID (use tabz_list_terminals to find).
-  - text: Required. Text to send to the terminal.
-  - execute: Whether to press Enter after text (default: true).
-  - delay: Milliseconds to wait before Enter (default: 600ms).
-
-Returns:
-  {
-    "success": true,
-    "terminal": "BD-xyz",
-    "textLength": 150,
-    "executed": true
-  }
-
-Examples:
-  - Send prompt to Claude: terminal="BD-xyz", text="Fix the bug in auth.ts"
-  - Paste without Enter: terminal="dev-server", text="npm install", execute=false
-  - Long prompt: terminal="worker-1", text="...", delay=500
-
-The delay parameter is important for Claude terminals - it prevents the Enter
-from being processed before the full text is received. Default 600ms works for
-most prompts; use 800-1000ms for very long prompts.
-
-Error Handling:
-  - "Terminal not found": Invalid name/ID (use tabz_list_terminals)
-  - "Auth token not found": Backend not running
-  - "Terminal not active": Terminal is disconnected`, SendKeysSchema.shape, async (params) => {
+    server.tool("tabz_send_keys", `Send text/keys to a terminal via tmux. Default 600ms delay before Enter suits Claude terminals; increase for long prompts. Use tabz_get_skill for detailed docs.`, SendKeysSchema.shape, async (params) => {
         try {
             // Find terminal by name or ID
             const findResult = await findTerminal(params.terminal);
@@ -396,29 +333,7 @@ Keys have been sent to the terminal.`;
         }
     });
     // Capture terminal output tool
-    server.tool("tabz_capture_terminal", `Capture recent output from a terminal.
-
-Gets the last N lines of output from a terminal's scrollback buffer.
-Useful for checking what a Claude worker is doing or debugging issues.
-
-Args:
-  - terminal: Required. Terminal name or ID (use tabz_list_terminals to find).
-  - lines: Number of lines to capture (default: 50, max: 1000).
-
-Returns:
-  Terminal output as plain text (scrollback content).
-
-Examples:
-  - Check worker progress: terminal="BD-xyz"
-  - Get more context: terminal="dev-server", lines=200
-  - Recent activity: terminal="worker-1", lines=20
-
-Note: This uses tmux capture-pane under the hood. Only works for
-terminals backed by tmux sessions (all TabzChrome terminals are).
-
-Error Handling:
-  - "Terminal not found": Invalid name/ID
-  - "Capture failed": tmux session may have been killed externally`, CaptureTerminalSchema.shape, async (params) => {
+    server.tool("tabz_capture_terminal", `Capture recent output from a terminal's scrollback buffer. Returns last N lines (default 50, max 1000). Use tabz_get_skill for detailed docs.`, CaptureTerminalSchema.shape, async (params) => {
         try {
             // Find terminal by name or ID
             const findResult = await findTerminal(params.terminal);

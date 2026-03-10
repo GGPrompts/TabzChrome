@@ -124,42 +124,9 @@ export function registerTabTools(server: McpServer): void {
   // List tabs tool
   server.tool(
     "tabz_list_tabs",
-    `List all open browser tabs with ACCURATE active tab detection.
+    `List all open browser tabs with accurate active tab detection. Syncs Claude's target to user's focused tab.
 
-Returns information about all non-chrome:// tabs currently open in the browser.
-Uses Chrome Extension API to detect which tab the user actually has focused.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "total": 3,
-    "claudeCurrentTabId": 1762556601,
-    "tabs": [
-      { "tabId": 1762556600, "url": "...", "title": "...", "active": false },
-      { "tabId": 1762556601, "url": "...", "title": "...", "active": true }
-    ]
-  }
-
-Key fields:
-  - tabId: Chrome's internal tab ID (large number like 1762556601)
-  - active: TRUE on whichever tab the USER has focused in Chrome right now
-  - claudeCurrentTabId: Which tab Claude will target for operations
-
-The "active" field shows the user's ACTUAL focused tab. After calling this tool,
-Claude's target is synced to match the user's active tab.
-
-Examples:
-  - List all tabs: (no args needed)
-  - Get JSON format: response_format="json"
-
-Use tabz_switch_tab with the tabId to switch to a specific tab.
-Use tabz_rename_tab to assign stable custom names for easier identification.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129
-  - Empty list: No web pages open (only chrome:// pages)`,
+Args: response_format (optional)`,
     ListTabsSchema.shape,
     async (params: ListTabsInput) => {
       try {
@@ -236,32 +203,7 @@ Only chrome:// or extension pages are present.`;
   // Switch tab tool
   server.tool(
     "tabz_switch_tab",
-    `Switch to a specific browser tab.
-
-Brings the specified tab to the front/focus and sets it as Claude's current target
-for subsequent operations (screenshots, clicks, fills, etc.).
-
-Use tabz_list_tabs first to get available tab IDs.
-
-Args:
-  - tabId (required): Chrome tab ID from tabz_list_tabs (e.g., 1762556601)
-
-Returns:
-  - success: Whether the switch was successful
-  - error: Error message if failed
-
-Examples:
-  - Switch to tab: tabId=1762556601 (use actual ID from tabz_list_tabs)
-
-After switching, use tabz_get_page_info to confirm the current page.
-
-BEST PRACTICE: Before switching between multiple tabs, use tabz_rename_tab to
-assign custom names (e.g., "GitHub PR", "Dev Server", "Docs"). Custom names are
-stored by URL and persist even if tab IDs change.
-
-Error Handling:
-  - "Invalid tab ID": tabId doesn't exist (use tabz_list_tabs to see valid IDs)
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129`,
+    `Switch to a browser tab by ID, making it Claude's target for screenshots/clicks/fills. Get IDs from tabz_list_tabs. Use tabz_get_skill for detailed docs.`,
     SwitchTabSchema.shape,
     async (params: SwitchTabInput) => {
       try {
@@ -303,34 +245,7 @@ Use \`tabz_list_tabs\` to see available tab IDs and which one is currently targe
   // Rename tab tool
   server.tool(
     "tabz_rename_tab",
-    `Assign a custom name to a browser tab.
-
-Custom names make it easier to identify tabs when working with multiple pages.
-Names are stored by URL, so they persist even if tab order changes.
-Names are session-based and reset when the MCP server restarts.
-
-RECOMMENDED: When working with multiple tabs, rename them first! This provides:
-1. Stable identification even if tabs are opened/closed (names stay with URLs)
-2. Clear visual feedback about which tab you're targeting
-3. Better communication with the user about which tab you're working on
-
-Args:
-  - tabId (required): Chrome tab ID from tabz_list_tabs (e.g., 1762556601)
-  - name (required): Custom name for the tab. Empty string clears the custom name.
-
-Returns:
-  - success: Whether the rename was successful
-  - error: Error message if failed
-
-Examples:
-  - Name a tab: tabId=1762556601, name="GitHub PR"
-  - Name dev server: tabId=1762556602, name="Dev Server (localhost:3000)"
-  - Clear custom name: tabId=1762556601, name=""
-
-After renaming, use tabz_list_tabs to see the updated names.
-
-Error Handling:
-  - "Invalid tab ID": tabId doesn't exist (use tabz_list_tabs to see valid IDs)`,
+    `Assign a custom name to a tab (stored by URL, survives tab reordering). Empty string clears. Session-scoped. Use tabz_get_skill for detailed docs.`,
     RenameTabSchema.shape,
     async (params: RenameTabInput) => {
       try {

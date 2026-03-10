@@ -252,39 +252,9 @@ function formatNetworkRequestsMarkdown(response, params) {
  */
 export function registerNetworkTools(server) {
     // Enable network capture tool
-    server.tool("tabz_enable_network_capture", `Enable network request monitoring for the current browser tab.
+    server.tool("tabz_enable_network_capture", `Enable network request monitoring. Call BEFORE browsing, then use tabz_get_network_requests to inspect.
 
-IMPORTANT: You must call this tool BEFORE browsing to capture requests.
-Network capture intercepts XHR, fetch, and other network requests in real-time.
-
-Once enabled, all network requests from the page will be captured and stored
-for inspection with tabz_get_network_requests.
-
-Args:
-  - tabId (optional): Specific tab ID to enable capture for
-
-Returns:
-  - success: Whether capture was enabled
-  - error: Error message if failed
-
-Examples:
-  - Enable for current tab: (no args needed)
-  - Enable for specific tab: tabId=2
-
-Workflow:
-  1. Call tabz_enable_network_capture
-  2. Navigate or interact with the page to generate requests
-  3. Call tabz_get_network_requests to see captured requests
-
-Notes:
-  - Uses Chrome Extension API (no special Chrome flags needed)
-  - Capture persists until MCP server restarts
-  - Requests older than 5 minutes are automatically cleaned up
-  - Maximum 500 requests stored (oldest removed first)
-
-Error Handling:
-  - "Extension API failed": Chrome extension may not be connected
-  - "No active page": No browser tab is open`, EnableNetworkCaptureSchema.shape, async (params) => {
+Args: tabId (optional)`, EnableNetworkCaptureSchema.shape, async (params) => {
         try {
             const result = await enableNetworkCapture(params.tabId);
             if (result.success) {
@@ -331,57 +301,9 @@ Make sure the Chrome extension is installed and connected.`
         }
     });
     // Get network requests tool
-    server.tool("tabz_get_network_requests", `List captured network requests (XHR, fetch, etc.) from browser pages.
+    server.tool("tabz_get_network_requests", `List captured network requests. Call tabz_enable_network_capture first.
 
-Returns information about network requests captured after calling tabz_enable_network_capture.
-Requests are sorted by time (newest first).
-
-Args:
-  - urlPattern (optional): Filter by URL pattern (regex or substring, e.g., "api/", "\\.json$")
-  - method: Filter by HTTP method ("all", "GET", "POST", "PUT", "DELETE", etc.)
-  - statusMin (optional): Minimum status code (e.g., 400 for errors only)
-  - statusMax (optional): Maximum status code (e.g., 299 for successful only)
-  - resourceType: Filter by type ("all", "XHR", "Fetch", "Document", "Script", etc.)
-  - limit: Max requests to return (1-200, default: 50)
-  - offset: Skip N requests for pagination (default: 0)
-  - tabId (optional): Filter by specific browser tab ID
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  For JSON format:
-  {
-    "total": number,           // Total matching requests
-    "captureActive": boolean,  // Whether capture is enabled
-    "hasMore": boolean,        // More requests available
-    "nextOffset": number,      // Offset for next page
-    "requests": [{
-      "requestId": string,     // Unique identifier for this request
-      "url": string,
-      "method": string,
-      "status": number,
-      "statusText": string,
-      "resourceType": string,
-      "mimeType": string,
-      "responseTime": number,  // Duration in ms
-      "encodedDataLength": number,
-      "timestamp": number
-    }]
-  }
-
-Examples:
-  - All requests: (no args needed)
-  - API calls only: urlPattern="api/"
-  - Find errors: statusMin=400
-  - POST requests: method="POST"
-  - GraphQL: urlPattern="graphql", method="POST"
-  - Successful only: statusMin=200, statusMax=299
-
-Notes:
-  - Uses Chrome Extension API (no special Chrome flags needed)
-  - Captures URL, headers, status, timing via chrome.webRequest
-
-Error Handling:
-  - "Capture not active": Call tabz_enable_network_capture first`, GetNetworkRequestsSchema.shape, async (params) => {
+Args: urlPattern (optional), method (optional), statusMin/statusMax (optional), resourceType/limit/offset/tabId (optional)`, GetNetworkRequestsSchema.shape, async (params) => {
         try {
             // Check if capture is active
             if (!isNetworkCaptureActive()) {
@@ -432,19 +354,7 @@ No network requests have been captured yet.
         }
     });
     // Clear network requests tool
-    server.tool("tabz_clear_network_requests", `Clear all captured network requests.
-
-Removes all stored network requests from memory. Useful when you want to
-start fresh or reduce memory usage.
-
-Args:
-  (none)
-
-Returns:
-  Confirmation that requests were cleared.
-
-Note: Network capture remains active after clearing. New requests will continue
-to be captured.`, ClearNetworkRequestsSchema.shape, async () => {
+    server.tool("tabz_clear_network_requests", `Clear all captured network requests. Capture remains active after clearing.`, ClearNetworkRequestsSchema.shape, async () => {
         try {
             clearNetworkRequests();
             return {

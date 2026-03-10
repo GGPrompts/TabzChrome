@@ -276,35 +276,9 @@ export function registerTabGroupTools(server: McpServer): void {
   // List tab groups tool
   server.tool(
     "tabz_list_groups",
-    `List all tab groups in the current browser window.
+    `List all tab groups with title, color, collapsed state, and member tab IDs.
 
-Returns information about all tab groups including their title, color, collapsed state,
-and which tabs belong to each group.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "groups": [
-      {
-        "groupId": 12345,
-        "title": "Research",
-        "color": "blue",
-        "collapsed": false,
-        "tabCount": 3,
-        "tabIds": [123, 456, 789]
-      }
-    ],
-    "claudeActiveGroupId": 67890  // ID of the Claude Active group, or null
-  }
-
-Use tabz_create_group to create new groups.
-Use tabz_update_group to change a group's title, color, or collapsed state.
-
-Error Handling:
-  - Returns empty list if no groups exist
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running`,
+Args: response_format (optional)`,
     ListGroupsSchema.shape,
     async (params: ListGroupsInput) => {
       try {
@@ -371,28 +345,9 @@ Use \`tabz_create_group\` to create a group from existing tabs.`;
   // Create tab group tool
   server.tool(
     "tabz_create_group",
-    `Create a new tab group from specified tabs.
+    `Create a tab group from specified tabs with optional title and color.
 
-Groups tabs together with an optional title and color. Grouped tabs are visually
-connected in Chrome's tab bar and can be collapsed to save space.
-
-Args:
-  - tabIds (required): Array of Chrome tab IDs to group together
-  - title (optional): Title displayed on the group (max 50 chars)
-  - color (optional): grey, blue, red, yellow, green, pink, purple, or cyan
-  - collapsed (optional): Whether to collapse the group initially
-
-Returns:
-  - groupId: The new group's ID (use with tabz_update_group, tabz_add_to_group)
-  - title, color, tabCount
-
-Examples:
-  - Create a "Research" group: tabIds=[123, 456], title="Research", color="blue"
-  - Quick group without title: tabIds=[123, 456]
-
-Error Handling:
-  - "At least one tabId is required": Provide at least one tab ID
-  - Invalid tab ID: Ensure tabs exist (use tabz_list_tabs to verify)`,
+Args: tabIds (required array), title (optional), color (optional), collapsed (optional)`,
     CreateGroupSchema.shape,
     async (params: CreateGroupInput) => {
       try {
@@ -440,23 +395,9 @@ Use \`tabz_list_tabs\` to get valid tab IDs.`;
   // Update tab group tool
   server.tool(
     "tabz_update_group",
-    `Update an existing tab group's properties.
+    `Update a tab group's title, color, or collapsed state. Get IDs from tabz_list_groups.
 
-Change a group's title, color, or collapsed state. Get group IDs from tabz_list_groups.
-
-Args:
-  - groupId (required): The tab group ID to update
-  - title (optional): New title for the group
-  - color (optional): New color: grey, blue, red, yellow, green, pink, purple, or cyan
-  - collapsed (optional): true to collapse, false to expand
-
-Examples:
-  - Change color: groupId=12345, color="purple"
-  - Rename and collapse: groupId=12345, title="Done", collapsed=true
-
-Error Handling:
-  - "No update properties provided": Must provide at least title, color, or collapsed
-  - Invalid group ID: Use tabz_list_groups to get valid IDs`,
+Args: groupId (required), title/color/collapsed (optional)`,
     UpdateGroupSchema.shape,
     async (params: UpdateGroupInput) => {
       try {
@@ -504,20 +445,7 @@ Use \`tabz_list_groups\` to get valid group IDs.`;
     "tabz_add_to_group",
     `Add tabs to an existing tab group.
 
-Moves specified tabs into an existing group. Get group IDs from tabz_list_groups
-and tab IDs from tabz_list_tabs.
-
-Args:
-  - groupId (required): The tab group ID to add tabs to
-  - tabIds (required): Array of Chrome tab IDs to add to the group
-
-Examples:
-  - Add one tab: groupId=12345, tabIds=[789]
-  - Add multiple tabs: groupId=12345, tabIds=[789, 101112]
-
-Error Handling:
-  - Invalid group ID: Use tabz_list_groups to get valid IDs
-  - Invalid tab IDs: Use tabz_list_tabs to get valid tab IDs`,
+Args: groupId (required), tabIds (required array)`,
     AddToGroupSchema.shape,
     async (params: AddToGroupInput) => {
       try {
@@ -560,21 +488,9 @@ Use \`tabz_list_groups\` to verify the group exists.`;
   // Ungroup tabs tool
   server.tool(
     "tabz_ungroup_tabs",
-    `Remove tabs from their groups (ungroup them).
+    `Remove tabs from their groups. Empty groups are auto-deleted by Chrome.
 
-Specified tabs are removed from whatever groups they're in. Empty groups are
-automatically deleted by Chrome.
-
-Args:
-  - tabIds (required): Array of Chrome tab IDs to remove from their groups
-
-Examples:
-  - Ungroup one tab: tabIds=[123]
-  - Ungroup multiple tabs: tabIds=[123, 456, 789]
-
-Error Handling:
-  - Invalid tab IDs: Use tabz_list_tabs to get valid tab IDs
-  - Tabs not in groups: No error, operation just has no effect`,
+Args: tabIds (required array)`,
     UngroupTabsSchema.shape,
     async (params: UngroupTabsInput) => {
       try {
@@ -612,22 +528,9 @@ Note: Empty groups are automatically deleted by Chrome.`;
   // Claude group add tool
   server.tool(
     "tabz_claude_group_add",
-    `Add a tab to the "Claude Active" group.
+    `Add a tab to the purple "Claude Active" group. Auto-creates group if needed.
 
-Automatically creates a purple "Claude" group if it doesn't exist, then adds
-the specified tab to it. Use this to visually highlight tabs you're working with.
-
-Args:
-  - tabId (required): Chrome tab ID to add to the Claude group
-
-The Claude Active group has a distinctive purple color and "Claude" title,
-making it easy to see which tabs are being worked on.
-
-Examples:
-  - Mark a tab as active: tabId=123456789
-
-Use tabz_claude_group_remove when done with a tab.
-Use tabz_claude_group_status to see all tabs in the Claude group.`,
+Args: tabId (required)`,
     ClaudeGroupAddSchema.shape,
     async (params: ClaudeGroupAddInput) => {
       try {
@@ -670,14 +573,7 @@ The tab is now visually highlighted in Chrome's tab bar.`;
     "tabz_claude_group_remove",
     `Remove a tab from the "Claude Active" group.
 
-Ungroups the specified tab from the Claude group. If this was the last tab
-in the group, the group is automatically deleted.
-
-Args:
-  - tabId (required): Chrome tab ID to remove from the Claude group
-
-Examples:
-  - Unmark a tab: tabId=123456789`,
+Args: tabId (required)`,
     ClaudeGroupRemoveSchema.shape,
     async (params: ClaudeGroupRemoveInput) => {
       try {
@@ -715,18 +611,9 @@ ${result.message || ""}`;
   // Claude group status tool
   server.tool(
     "tabz_claude_group_status",
-    `Get the status of the "Claude Active" group.
+    `Get status of the "Claude Active" group -- exists, groupId, tabCount, tabIds.
 
-Shows whether the Claude group exists and which tabs are in it.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns:
-  - exists: Whether the Claude group exists
-  - groupId: The group ID (if exists)
-  - tabCount: Number of tabs in the group
-  - tabIds: Array of tab IDs in the group`,
+Args: response_format (optional)`,
     ClaudeGroupStatusSchema.shape,
     async (params: ClaudeGroupStatusInput) => {
       try {

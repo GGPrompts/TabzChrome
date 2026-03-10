@@ -398,42 +398,9 @@ export function registerProfileTools(server: McpServer): void {
   // List profiles tool
   server.tool(
     "tabz_list_profiles",
-    `List terminal profiles configured in TabzChrome.
+    `List terminal profiles (theme, command, working dir). Use to discover profiles before spawning.
 
-Profiles define terminal appearance and behavior (theme, command, working directory).
-Use this to discover available profiles before spawning terminals.
-
-Args:
-  - category: Optional filter by category name (e.g., 'AI Assistants', 'Checkpoints')
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "total": 62,            // Total profiles in system
-    "filtered": 5,          // Profiles returned after filter
-    "defaultProfileId": "claude",
-    "globalWorkingDir": "~/projects",
-    "profiles": [
-      {
-        "id": "claude",
-        "name": "Claude",
-        "category": "AI Assistants",
-        "command": "claude",
-        "themeName": "matrix"
-      }
-    ]
-  }
-
-Examples:
-  - List all profiles: (no args needed)
-  - Filter by category: category="AI Assistants"
-  - Filter checkpoints: category="Checkpoints"
-  - Get JSON: response_format="json"
-
-Use tabz_list_categories first to see available category names.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129`,
+Args: category (optional filter), response_format (optional)`,
     ListProfilesSchema.shape,
     async (params: ListProfilesInput) => {
       try {
@@ -546,33 +513,9 @@ Add profiles in the TabzChrome settings.`;
   // List categories tool
   server.tool(
     "tabz_list_categories",
-    `List all profile categories in TabzChrome.
+    `List all profile categories. Use to discover categories before filtering with tabz_list_profiles.
 
-Categories help organize profiles (e.g., 'AI Assistants', 'Dev Tools', 'TUI Apps').
-Use this to discover available categories before filtering with tabz_list_profiles.
-
-Args:
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "total": 62,           // Total profiles in system
-    "categories": [
-      "AI Assistants",
-      "Checkpoints",
-      "Dev Tools",
-      "TUI Apps"
-    ]
-  }
-
-Examples:
-  - List categories: (no args needed)
-  - Get JSON: response_format="json"
-
-After getting categories, use tabz_list_profiles with category filter.
-
-Error Handling:
-  - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129`,
+Args: response_format (optional)`,
     ListCategoriesSchema.shape,
     async (params: ListCategoriesInput) => {
       try {
@@ -639,44 +582,9 @@ Total profiles: ${result.total}`;
   // Spawn terminal by profile
   server.tool(
     "tabz_spawn_profile",
-    `Spawn a terminal using a saved profile.
+    `Spawn a terminal using a saved profile. Use tabz_list_profiles to discover available profiles.
 
-Profiles define terminal settings (command, theme, working directory, etc.).
-Use tabz_list_profiles to discover available profiles first.
-
-Args:
-  - profileId: Required. Profile ID or name to spawn.
-  - workingDir: Optional. Override the profile's default working directory.
-  - name: Optional. Custom name for this terminal instance.
-  - env: Optional. Additional environment variables (key-value object).
-
-Returns:
-  {
-    "success": true,
-    "terminal": {
-      "id": "ctt-claude-abc123",
-      "name": "Claude Worker",
-      "terminalType": "claude-code",
-      "platform": "local",
-      "state": "running",
-      "createdAt": "2024-01-15T10:30:00Z",
-      "profileId": "claude",
-      "profileName": "Claude"
-    }
-  }
-
-Examples:
-  - Spawn Claude: profileId="claude"
-  - Spawn with override: profileId="claude", workingDir="~/projects/myapp"
-  - Named instance: profileId="codex-reviewer", name="PR Review #123"
-
-The profile's command, theme, and other settings are automatically applied.
-Use this for conductor workflows or spawning specialized AI assistants.
-
-Error Handling:
-  - "Auth token not found": Backend not running or token file missing
-  - "Profile not found": Invalid profileId (use tabz_list_profiles to discover)
-  - "Rate limit exceeded": Too many spawn requests (max 10/minute)`,
+Args: profileId (required), workingDir (optional override), name (optional), env (optional)`,
     SpawnProfileSchema.shape,
     async (params: SpawnProfileInput) => {
       try {
@@ -730,35 +638,9 @@ Terminal is now running. Connect via TabzChrome sidebar to interact.`;
   // Get single profile
   server.tool(
     "tabz_get_profile",
-    `Get details of a specific terminal profile.
+    `Get all settings for a specific terminal profile (theme, command, working dir, etc.).
 
-Retrieves all settings for a single profile including theme, command, working directory, etc.
-Use this to inspect a profile before spawning or to check its configuration.
-
-Args:
-  - profileId: Required. Profile ID or name to retrieve.
-  - response_format: 'markdown' (default) or 'json'
-
-Returns (JSON format):
-  {
-    "id": "claude",
-    "name": "Claude",
-    "category": "AI Assistants",
-    "command": "claude",
-    "workingDir": "~/projects",
-    "themeName": "matrix",
-    "fontSize": 14,
-    "fontFamily": "JetBrains Mono"
-  }
-
-Examples:
-  - Get by ID: profileId="claude"
-  - Get by name: profileId="Codex Reviewer"
-  - JSON output: profileId="claude", response_format="json"
-
-Error Handling:
-  - "Profile not found": Invalid profileId (use tabz_list_profiles to discover)
-  - "Cannot connect": Backend not running at localhost:8129`,
+Args: profileId (required), response_format (optional)`,
     GetProfileSchema.shape,
     async (params: GetProfileInput) => {
       try {
@@ -812,40 +694,9 @@ Error Handling:
   // Create profile
   server.tool(
     "tabz_create_profile",
-    `Create a new terminal profile.
+    `Create a new terminal profile for reuse when spawning terminals.
 
-Profiles define terminal settings that can be reused when spawning terminals.
-Use this to create custom profiles for different workflows.
-
-Args:
-  - name: Required. Display name for the profile (max 50 chars).
-  - command: Optional. Command to run on terminal start (e.g., 'claude', 'npm start').
-  - workingDir: Optional. Default working directory for terminals using this profile.
-  - category: Optional. Category for organization (e.g., 'AI Assistants', 'Checkpoints').
-  - themeName: Optional. Color theme (e.g., 'matrix', 'dracula', 'amber', 'ocean').
-  - fontSize: Optional. Font size in pixels (8-32).
-  - fontFamily: Optional. Font family (e.g., 'JetBrains Mono', 'Fira Code').
-
-Returns:
-  {
-    "success": true,
-    "profile": {
-      "id": "my-profile-abc123",
-      "name": "My Profile",
-      ...
-    }
-  }
-
-Examples:
-  - Basic: name="My Claude"
-  - With command: name="Codex Review", command="claude /codex-review", category="Checkpoints"
-  - Styled: name="Matrix Terminal", themeName="matrix", fontSize=16
-
-The profile ID is auto-generated from the name. Use tabz_spawn_profile to use it.
-
-Error Handling:
-  - "name is required": Missing required name field
-  - "Cannot connect": Backend not running at localhost:8129`,
+Args: name (required), command/workingDir/category/themeName/fontSize/fontFamily (optional)`,
     CreateProfileSchema.shape,
     async (params: CreateProfileInput) => {
       try {
@@ -895,36 +746,9 @@ Use \`tabz_spawn_profile(profileId="${profile.id}")\` to spawn a terminal.`;
   // Update profile
   server.tool(
     "tabz_update_profile",
-    `Update an existing terminal profile.
+    `Update an existing terminal profile. Only specified fields are changed.
 
-Modifies settings of a saved profile. Only specified fields are updated.
-Use this to change profile configuration without recreating it.
-
-Args:
-  - profileId: Required. ID of the profile to update.
-  - updates: Object with fields to update:
-    - name: New display name (max 50 chars)
-    - command: New startup command
-    - workingDir: New default working directory
-    - category: New category
-    - themeName: New color theme
-    - fontSize: New font size (8-32)
-    - fontFamily: New font family
-
-Returns:
-  {
-    "success": true,
-    "profile": { ...updated profile... }
-  }
-
-Examples:
-  - Change theme: profileId="claude", updates={themeName: "dracula"}
-  - Change command: profileId="my-worker", updates={command: "claude --agent codex-reviewer"}
-  - Multiple: profileId="dev", updates={category: "Checkpoints", themeName: "amber"}
-
-Error Handling:
-  - "Profile not found": Invalid profileId
-  - "Cannot connect": Backend not running at localhost:8129`,
+Args: profileId (required), updates (object with name/command/workingDir/category/themeName/fontSize/fontFamily)`,
     UpdateProfileSchema.shape,
     async (params: UpdateProfileInput) => {
       try {
@@ -966,29 +790,9 @@ Changes are saved and will apply to new terminals using this profile.`;
   // Delete profile
   server.tool(
     "tabz_delete_profile",
-    `Delete a terminal profile.
+    `Permanently delete a terminal profile. Running terminals are unaffected.
 
-Permanently removes a profile from TabzChrome. This cannot be undone.
-Running terminals using this profile will continue to work, but the profile
-will no longer be available for new terminals.
-
-Args:
-  - profileId: Required. ID of the profile to delete.
-
-Returns:
-  {
-    "success": true
-  }
-
-Examples:
-  - Delete by ID: profileId="my-old-profile"
-
-Warning: Deletion is permanent. Consider using tabz_update_profile to modify instead.
-
-Error Handling:
-  - "Profile not found": Invalid profileId
-  - "Cannot delete default profile": Default profile cannot be deleted
-  - "Cannot connect": Backend not running at localhost:8129`,
+Args: profileId (required)`,
     DeleteProfileSchema.shape,
     async (params: DeleteProfileInput) => {
       try {
