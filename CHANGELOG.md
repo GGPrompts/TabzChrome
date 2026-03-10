@@ -19,6 +19,19 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.4.4] - 2026-03-10
+
+### Fixed
+
+- **20 Browser MCP tools timing out** - Added missing WebSocket result handlers for history, sessions, cookies, categories, and emulation tools in server.js
+- **Bookmark MCP tools broken** - Fixed URL path (`/bookmarks` → `/bookmarks/tree`) and HTTP method (`POST` → `GET`) for `tabz_get_bookmark_tree` and `tabz_search_bookmarks`
+- **Emulation MCP tools 404** - Fixed URL path mismatch (`/emulation/` → `/emulate/`) for all 6 emulation tools
+- **Tab group stale ID race condition** - Added fresh groupId lookup after `chrome.tabs.group()` to prevent Chrome recycling IDs before `tabGroups.update()`
+- **localhost URLs defaulting to https** - Moved local domain detection before the "allow all URLs" branch so `localhost:8129` correctly gets `http://`
+- **MHTML page capture failing** - Switched to Promise-based `saveAsMHTML` API, fixed O(n²) base64 encoding, added `URL.createObjectURL` for large pages, and added tab loading state check
+
+---
+
 ## [1.4.3] - 2026-03-10
 
 ### Added
