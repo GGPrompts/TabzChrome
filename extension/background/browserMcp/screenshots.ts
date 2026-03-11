@@ -307,6 +307,10 @@ async function captureFullPageScreenshot(tabId: number): Promise<string> {
     // Capture visible tab
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
 
+    // Rate-limit: Chrome enforces MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND = 2 (1 per 500ms).
+    // Combined with the 150ms scroll delay above, this 350ms pause keeps us at ~500ms/capture.
+    await new Promise(resolve => setTimeout(resolve, 350))
+
     captures.push({
       dataUrl,
       y: scrollY * devicePixelRatio,
