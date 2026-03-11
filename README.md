@@ -2,7 +2,7 @@
 
 **Full Linux terminals in your Chrome sidebar**
 
-![Version](https://img.shields.io/badge/version-1.4.4-blue)
+![Version](https://img.shields.io/badge/version-1.4.5-blue)
 ![Chrome](https://img.shields.io/badge/chrome-manifest%20v3-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 

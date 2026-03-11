@@ -19,6 +19,15 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [1.4.5] - 2026-03-10
+
+### Fixed
+
+- **Full-page screenshot rate limit** - Added 350ms delay between `captureVisibleTab` calls to stay under Chrome's 2/sec quota on long pages
+- **Notification list showing count but no details** - Added metadata cache so `tabz_notification_list` returns title, message, and type for each notification
+
+---
+
 ## [1.4.4] - 2026-03-10
 
 ### Fixed
