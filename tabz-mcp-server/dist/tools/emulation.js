@@ -63,7 +63,7 @@ const VISION_DESCRIPTIONS = {
 };
 async function emulateDevice(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/device`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/device`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
@@ -72,7 +72,7 @@ async function emulateDevice(options) {
 }
 async function emulateClear(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/clear`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/clear`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
@@ -81,7 +81,7 @@ async function emulateClear(options) {
 }
 async function emulateGeolocation(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/geolocation`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/geolocation`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
@@ -90,7 +90,7 @@ async function emulateGeolocation(options) {
 }
 async function emulateNetwork(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/network`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/network`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
@@ -99,7 +99,7 @@ async function emulateNetwork(options) {
 }
 async function emulateMedia(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/media`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/media`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
@@ -108,7 +108,7 @@ async function emulateMedia(options) {
 }
 async function emulateVision(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/emulation/vision`, options, { timeout: 15000 });
+        const response = await axios.post(`${BACKEND_URL}/api/browser/emulate/vision`, options, { timeout: 15000 });
         return response.data;
     }
     catch (error) {
