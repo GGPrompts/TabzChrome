@@ -318,7 +318,7 @@ export function registerCookieTools(server: McpServer): void {
 
 Args: url (required), name (required)
 
-Use tabz_get_skill for detailed docs.`,
+Use tabz_docs for detailed docs.`,
     GetCookieSchema.shape,
     async (params: GetCookieInput) => {
       try {
@@ -371,7 +371,7 @@ Use tabz_get_skill for detailed docs.`,
 
 Args: domain (optional), url (optional), name (optional), secure (optional), session (optional)
 
-Use tabz_get_skill for detailed docs.`,
+Use tabz_docs for detailed docs.`,
     ListCookiesSchema.shape,
     async (params: ListCookiesInput) => {
       try {
@@ -464,7 +464,7 @@ Use tabz_get_skill for detailed docs.`,
 
 Args: url (required), name (required), value (required), domain/path/secure/httpOnly/sameSite/expirationDate (optional)
 
-Use tabz_get_skill for detailed docs.`,
+Use tabz_docs for detailed docs.`,
     SetCookieSchema.shape,
     async (params: SetCookieInput) => {
       try {

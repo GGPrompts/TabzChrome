@@ -205,7 +205,7 @@ async function captureTerminal(terminal, lines) {
  */
 export function registerTerminalTools(server) {
     // List terminals tool
-    server.tool("tabz_list_terminals", `List running terminals in TabzChrome. Filter by state: 'active', 'disconnected', or 'all'. Returns IDs for tabz_send_keys and tabz_capture_terminal. Use tabz_get_skill for detailed docs.`, ListTerminalsSchema.shape, async (params) => {
+    server.tool("tabz_list_terminals", `List running terminals in TabzChrome. Filter by state: 'active', 'disconnected', or 'all'. Returns IDs for tabz_send_keys and tabz_capture_terminal. Use tabz_docs for detailed docs.`, ListTerminalsSchema.shape, async (params) => {
         try {
             const result = await listTerminals(params.state);
             if (result.error) {
@@ -281,7 +281,7 @@ Use \`tabz_spawn_profile\` to create a terminal.`;
         }
     });
     // Send keys tool
-    server.tool("tabz_send_keys", `Send text/keys to a terminal via tmux. Default 600ms delay before Enter suits Claude terminals; increase for long prompts. Use tabz_get_skill for detailed docs.`, SendKeysSchema.shape, async (params) => {
+    server.tool("tabz_send_keys", `Send text/keys to a terminal via tmux. Default 600ms delay before Enter suits Claude terminals; increase for long prompts. Use tabz_docs for detailed docs.`, SendKeysSchema.shape, async (params) => {
         try {
             // Find terminal by name or ID
             const findResult = await findTerminal(params.terminal);
@@ -333,7 +333,7 @@ Keys have been sent to the terminal.`;
         }
     });
     // Capture terminal output tool
-    server.tool("tabz_capture_terminal", `Capture recent output from a terminal's scrollback buffer. Returns last N lines (default 50, max 1000). Use tabz_get_skill for detailed docs.`, CaptureTerminalSchema.shape, async (params) => {
+    server.tool("tabz_capture_terminal", `Capture recent output from a terminal's scrollback buffer. Returns last N lines (default 50, max 1000). Use tabz_docs for detailed docs.`, CaptureTerminalSchema.shape, async (params) => {
         try {
             // Find terminal by name or ID
             const findResult = await findTerminal(params.terminal);

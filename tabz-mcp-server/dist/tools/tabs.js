@@ -168,7 +168,7 @@ Only chrome:// or extension pages are present.`;
         }
     });
     // Switch tab tool
-    server.tool("tabz_switch_tab", `Switch to a browser tab by ID, making it Claude's target for screenshots/clicks/fills. Get IDs from tabz_list_tabs. Use tabz_get_skill for detailed docs.`, SwitchTabSchema.shape, async (params) => {
+    server.tool("tabz_switch_tab", `Switch to a browser tab by ID, making it Claude's target for screenshots/clicks/fills. Get IDs from tabz_list_tabs. Use tabz_docs for detailed docs.`, SwitchTabSchema.shape, async (params) => {
         try {
             const result = await switchTab(params.tabId);
             let resultText;
@@ -204,7 +204,7 @@ Use \`tabz_list_tabs\` to see available tab IDs and which one is currently targe
         }
     });
     // Rename tab tool
-    server.tool("tabz_rename_tab", `Assign a custom name to a tab (stored by URL, survives tab reordering). Empty string clears. Session-scoped. Use tabz_get_skill for detailed docs.`, RenameTabSchema.shape, async (params) => {
+    server.tool("tabz_rename_tab", `Assign a custom name to a tab (stored by URL, survives tab reordering). Empty string clears. Session-scoped. Use tabz_docs for detailed docs.`, RenameTabSchema.shape, async (params) => {
         try {
             const result = await renameTab(params.tabId, params.name);
             let resultText;

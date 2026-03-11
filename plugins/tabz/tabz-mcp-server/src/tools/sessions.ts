@@ -277,7 +277,7 @@ export function registerSessionTools(server: McpServer): void {
   // Recently closed tabs/windows
   server.tool(
     "tabz_sessions_recently_closed",
-    `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_get_skill for detailed docs.`,
+    `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_docs for detailed docs.`,
     RecentlyClosedSchema.shape,
     async (params: RecentlyClosedInput) => {
       try {
@@ -320,7 +320,7 @@ export function registerSessionTools(server: McpServer): void {
   // Restore closed session
   server.tool(
     "tabz_sessions_restore",
-    `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_get_skill for detailed docs.`,
+    `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_docs for detailed docs.`,
     RestoreSessionSchema.shape,
     async (params: RestoreSessionInput) => {
       try {
@@ -366,7 +366,7 @@ The tab/window is now open and active.`;
   // Synced devices
   server.tool(
     "tabz_sessions_devices",
-    `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_get_skill for detailed docs.`,
+    `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_docs for detailed docs.`,
     DevicesSchema.shape,
     async (params: DevicesInput) => {
       try {

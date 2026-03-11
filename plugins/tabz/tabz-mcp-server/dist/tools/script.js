@@ -40,7 +40,7 @@ async function executeScript(options) {
  * Register script tools with the MCP server
  */
 export function registerScriptTools(server, backendUrl) {
-    server.tool("tabz_execute_script", `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_get_skill for detailed docs.`, ExecuteScriptSchema.shape, async (params) => {
+    server.tool("tabz_execute_script", `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_docs for detailed docs.`, ExecuteScriptSchema.shape, async (params) => {
         try {
             const response = await executeScript({
                 code: params.code,

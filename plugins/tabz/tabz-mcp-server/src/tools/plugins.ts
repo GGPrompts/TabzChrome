@@ -345,7 +345,7 @@ export function registerPluginTools(server: McpServer): void {
   // List plugins tool
   server.tool(
     "tabz_list_plugins",
-    `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_get_skill for detailed docs.`,
+    `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_docs for detailed docs.`,
     ListPluginsSchema.shape,
     async (params: z.infer<typeof ListPluginsSchema>) => {
       try {
@@ -481,7 +481,7 @@ Use tabz_list_skills first to find available skill IDs.`,
   // Toggle plugin tool
   server.tool(
     "tabz_toggle_plugin",
-    `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_get_skill for detailed docs.`,
+    `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_docs for detailed docs.`,
     TogglePluginSchema.shape,
     async (params: z.infer<typeof TogglePluginSchema>) => {
       try {

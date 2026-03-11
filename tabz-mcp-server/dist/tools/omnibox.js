@@ -244,7 +244,7 @@ const OpenUrlSchema = z.object({
  */
 export function registerOmniboxTools(server) {
     // Open URL tool
-    server.tool("tabz_open_url", `Open a URL in the browser. Auto-adds protocol (http for localhost, https otherwise). Reuses existing tab by default. URL whitelist configurable in Dashboard settings. Use tabz_get_skill for detailed docs.`, OpenUrlSchema.shape, async (params) => {
+    server.tool("tabz_open_url", `Open a URL in the browser. Auto-adds protocol (http for localhost, https otherwise). Reuses existing tab by default. URL whitelist configurable in Dashboard settings. Use tabz_docs for detailed docs.`, OpenUrlSchema.shape, async (params) => {
         try {
             // Load URL settings from backend
             const urlSettings = await loadUrlSettings();

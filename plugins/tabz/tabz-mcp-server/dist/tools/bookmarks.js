@@ -223,7 +223,7 @@ function formatSearchResults(bookmarks) {
  */
 export function registerBookmarkTools(server) {
     // Get bookmark tree
-    server.tool("tabz_get_bookmark_tree", `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_get_skill for detailed docs.`, GetBookmarkTreeSchema.shape, async (params) => {
+    server.tool("tabz_get_bookmark_tree", `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_docs for detailed docs.`, GetBookmarkTreeSchema.shape, async (params) => {
         try {
             const result = await getBookmarkTree({
                 folderId: params.folderId,
@@ -276,7 +276,7 @@ export function registerBookmarkTools(server) {
         }
     });
     // Search bookmarks
-    server.tool("tabz_search_bookmarks", `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_get_skill for detailed docs.`, SearchBookmarksSchema.shape, async (params) => {
+    server.tool("tabz_search_bookmarks", `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_docs for detailed docs.`, SearchBookmarksSchema.shape, async (params) => {
         try {
             const result = await searchBookmarks({
                 query: params.query,
@@ -325,7 +325,7 @@ export function registerBookmarkTools(server) {
         }
     });
     // Save bookmark
-    server.tool("tabz_save_bookmark", `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_get_skill for detailed docs.`, SaveBookmarkSchema.shape, async (params) => {
+    server.tool("tabz_save_bookmark", `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_docs for detailed docs.`, SaveBookmarkSchema.shape, async (params) => {
         try {
             const result = await createBookmark({
                 url: params.url,
@@ -370,7 +370,7 @@ Use this ID with \`tabz_move_bookmark\` or \`tabz_delete_bookmark\` if needed.`
         }
     });
     // Create folder
-    server.tool("tabz_create_folder", `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_get_skill for detailed docs.`, CreateFolderSchema.shape, async (params) => {
+    server.tool("tabz_create_folder", `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_docs for detailed docs.`, CreateFolderSchema.shape, async (params) => {
         try {
             const result = await createBookmarkFolder({
                 title: params.title,
@@ -413,7 +413,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
         }
     });
     // Move bookmark
-    server.tool("tabz_move_bookmark", `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_get_skill for detailed docs.`, MoveBookmarkSchema.shape, async (params) => {
+    server.tool("tabz_move_bookmark", `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_docs for detailed docs.`, MoveBookmarkSchema.shape, async (params) => {
         try {
             const result = await moveBookmark({
                 id: params.id,
@@ -453,7 +453,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
         }
     });
     // Delete bookmark
-    server.tool("tabz_delete_bookmark", `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_get_skill for detailed docs.`, DeleteBookmarkSchema.shape, async (params) => {
+    server.tool("tabz_delete_bookmark", `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_docs for detailed docs.`, DeleteBookmarkSchema.shape, async (params) => {
         try {
             const result = await deleteBookmark(params.id);
             if (!result.success) {

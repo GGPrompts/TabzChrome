@@ -57,7 +57,7 @@ async function executeScript(options: {
 export function registerScriptTools(server: McpServer, backendUrl: string): void {
   server.tool(
     "tabz_execute_script",
-    `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_get_skill for detailed docs.`,
+    `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_docs for detailed docs.`,
     ExecuteScriptSchema.shape,
     async (params: ExecuteScriptInput) => {
       try {

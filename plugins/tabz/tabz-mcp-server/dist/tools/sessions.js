@@ -205,7 +205,7 @@ Sign in to Chrome and enable Sync in Settings > You and Google > Sync.`;
  */
 export function registerSessionTools(server) {
     // Recently closed tabs/windows
-    server.tool("tabz_sessions_recently_closed", `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_get_skill for detailed docs.`, RecentlyClosedSchema.shape, async (params) => {
+    server.tool("tabz_sessions_recently_closed", `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_docs for detailed docs.`, RecentlyClosedSchema.shape, async (params) => {
         try {
             const result = await getRecentlyClosed(params.maxResults);
             if (!result.success || result.error) {
@@ -240,7 +240,7 @@ export function registerSessionTools(server) {
         }
     });
     // Restore closed session
-    server.tool("tabz_sessions_restore", `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_get_skill for detailed docs.`, RestoreSessionSchema.shape, async (params) => {
+    server.tool("tabz_sessions_restore", `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_docs for detailed docs.`, RestoreSessionSchema.shape, async (params) => {
         try {
             const result = await restoreSession(params.sessionId);
             if (!result.success || result.error) {
@@ -279,7 +279,7 @@ The tab/window is now open and active.`;
         }
     });
     // Synced devices
-    server.tool("tabz_sessions_devices", `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_get_skill for detailed docs.`, DevicesSchema.shape, async (params) => {
+    server.tool("tabz_sessions_devices", `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_docs for detailed docs.`, DevicesSchema.shape, async (params) => {
         try {
             const result = await getDevices(params.maxResults);
             if (!result.success || result.error) {

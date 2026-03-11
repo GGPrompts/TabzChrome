@@ -216,7 +216,7 @@ export function registerDebuggerTools(server: McpServer): void {
   // Get DOM Tree
   server.tool(
     "tabz_get_dom_tree",
-    `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_get_skill for detailed docs.`,
+    `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_docs for detailed docs.`,
     GetDomTreeSchema.shape,
     async (params: GetDomTreeInput) => {
       try {
@@ -288,7 +288,7 @@ export function registerDebuggerTools(server: McpServer): void {
   // Profile Performance
   server.tool(
     "tabz_profile_performance",
-    `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_get_skill for detailed docs.`,
+    `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_docs for detailed docs.`,
     ProfilePerformanceSchema.shape,
     async (params: ProfilePerformanceInput) => {
       try {
@@ -385,7 +385,7 @@ export function registerDebuggerTools(server: McpServer): void {
   // Get Coverage
   server.tool(
     "tabz_get_coverage",
-    `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_get_skill for detailed docs.`,
+    `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_docs for detailed docs.`,
     GetCoverageSchema.shape,
     async (params: GetCoverageInput) => {
       try {

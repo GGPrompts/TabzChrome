@@ -218,7 +218,7 @@ async function togglePlugin(pluginId, enabled) {
  */
 export function registerPluginTools(server) {
     // List plugins tool
-    server.tool("tabz_list_plugins", `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_get_skill for detailed docs.`, ListPluginsSchema.shape, async (params) => {
+    server.tool("tabz_list_plugins", `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_docs for detailed docs.`, ListPluginsSchema.shape, async (params) => {
         try {
             const result = await listPlugins(params.marketplace, params.enabled);
             if (!result.success || !result.data) {
@@ -326,7 +326,7 @@ Use tabz_list_skills first to find available skill IDs.`, GetSkillSchema.shape, 
         }
     });
     // Toggle plugin tool
-    server.tool("tabz_toggle_plugin", `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_get_skill for detailed docs.`, TogglePluginSchema.shape, async (params) => {
+    server.tool("tabz_toggle_plugin", `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_docs for detailed docs.`, TogglePluginSchema.shape, async (params) => {
         try {
             const result = await togglePlugin(params.pluginId, params.enabled);
             if (!result.success) {

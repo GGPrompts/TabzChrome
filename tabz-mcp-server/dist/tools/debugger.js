@@ -158,7 +158,7 @@ function formatCoverageFiles(files, type) {
  */
 export function registerDebuggerTools(server) {
     // Get DOM Tree
-    server.tool("tabz_get_dom_tree", `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_get_skill for detailed docs.`, GetDomTreeSchema.shape, async (params) => {
+    server.tool("tabz_get_dom_tree", `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_docs for detailed docs.`, GetDomTreeSchema.shape, async (params) => {
         try {
             const result = await getDomTree({
                 tabId: params.tabId,
@@ -219,7 +219,7 @@ export function registerDebuggerTools(server) {
         }
     });
     // Profile Performance
-    server.tool("tabz_profile_performance", `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_get_skill for detailed docs.`, ProfilePerformanceSchema.shape, async (params) => {
+    server.tool("tabz_profile_performance", `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_docs for detailed docs.`, ProfilePerformanceSchema.shape, async (params) => {
         try {
             const result = await profilePerformance({
                 tabId: params.tabId
@@ -302,7 +302,7 @@ export function registerDebuggerTools(server) {
         }
     });
     // Get Coverage
-    server.tool("tabz_get_coverage", `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_get_skill for detailed docs.`, GetCoverageSchema.shape, async (params) => {
+    server.tool("tabz_get_coverage", `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_docs for detailed docs.`, GetCoverageSchema.shape, async (params) => {
         try {
             const result = await getCoverage({
                 tabId: params.tabId,

@@ -226,7 +226,7 @@ export function registerCookieTools(server) {
 
 Args: url (required), name (required)
 
-Use tabz_get_skill for detailed docs.`, GetCookieSchema.shape, async (params) => {
+Use tabz_docs for detailed docs.`, GetCookieSchema.shape, async (params) => {
         try {
             const result = await getCookie(params.url, params.name);
             if (result.error) {
@@ -270,7 +270,7 @@ Use tabz_get_skill for detailed docs.`, GetCookieSchema.shape, async (params) =>
 
 Args: domain (optional), url (optional), name (optional), secure (optional), session (optional)
 
-Use tabz_get_skill for detailed docs.`, ListCookiesSchema.shape, async (params) => {
+Use tabz_docs for detailed docs.`, ListCookiesSchema.shape, async (params) => {
         try {
             const result = await listCookies({
                 domain: params.domain,
@@ -352,7 +352,7 @@ Use tabz_get_skill for detailed docs.`, ListCookiesSchema.shape, async (params) 
 
 Args: url (required), name (required), value (required), domain/path/secure/httpOnly/sameSite/expirationDate (optional)
 
-Use tabz_get_skill for detailed docs.`, SetCookieSchema.shape, async (params) => {
+Use tabz_docs for detailed docs.`, SetCookieSchema.shape, async (params) => {
         try {
             const result = await setCookie(params);
             if (result.error) {

@@ -306,7 +306,7 @@ export function registerBookmarkTools(server: McpServer): void {
   // Get bookmark tree
   server.tool(
     "tabz_get_bookmark_tree",
-    `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_get_skill for detailed docs.`,
+    `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_docs for detailed docs.`,
     GetBookmarkTreeSchema.shape,
     async (params: GetBookmarkTreeInput) => {
       try {
@@ -370,7 +370,7 @@ export function registerBookmarkTools(server: McpServer): void {
   // Search bookmarks
   server.tool(
     "tabz_search_bookmarks",
-    `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_get_skill for detailed docs.`,
+    `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_docs for detailed docs.`,
     SearchBookmarksSchema.shape,
     async (params: SearchBookmarksInput) => {
       try {
@@ -428,7 +428,7 @@ export function registerBookmarkTools(server: McpServer): void {
   // Save bookmark
   server.tool(
     "tabz_save_bookmark",
-    `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_get_skill for detailed docs.`,
+    `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_docs for detailed docs.`,
     SaveBookmarkSchema.shape,
     async (params: SaveBookmarkInput) => {
       try {
@@ -481,7 +481,7 @@ Use this ID with \`tabz_move_bookmark\` or \`tabz_delete_bookmark\` if needed.`
   // Create folder
   server.tool(
     "tabz_create_folder",
-    `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_get_skill for detailed docs.`,
+    `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_docs for detailed docs.`,
     CreateFolderSchema.shape,
     async (params: CreateFolderInput) => {
       try {
@@ -532,7 +532,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
   // Move bookmark
   server.tool(
     "tabz_move_bookmark",
-    `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_get_skill for detailed docs.`,
+    `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_docs for detailed docs.`,
     MoveBookmarkSchema.shape,
     async (params: MoveBookmarkInput) => {
       try {
@@ -580,7 +580,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
   // Delete bookmark
   server.tool(
     "tabz_delete_bookmark",
-    `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_get_skill for detailed docs.`,
+    `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_docs for detailed docs.`,
     DeleteBookmarkSchema.shape,
     async (params: DeleteBookmarkInput) => {
       try {

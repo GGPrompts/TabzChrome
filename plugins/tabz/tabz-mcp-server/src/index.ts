@@ -50,6 +50,8 @@ import { registerNotificationTools } from "./tools/notifications.js";
 import { registerProfileTools } from "./tools/profiles.js";
 import { registerPluginTools } from "./tools/plugins.js";
 import { registerTerminalTools } from "./tools/terminals.js";
+import { TOOL_DOCS } from "./tools/tool-docs.js";
+import { z } from "zod";
 
 // Backend URL (TabzChrome backend running in WSL)
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8129";
@@ -74,7 +76,8 @@ const ALL_TOOL_IDS = [
   'tabz_notification_show', 'tabz_notification_update', 'tabz_notification_clear', 'tabz_notification_list',
   'tabz_list_profiles', 'tabz_list_categories', 'tabz_spawn_profile', 'tabz_get_profile', 'tabz_create_profile', 'tabz_update_profile', 'tabz_delete_profile',
   'tabz_list_plugins', 'tabz_list_skills', 'tabz_get_skill', 'tabz_plugins_health', 'tabz_toggle_plugin',
-  'tabz_list_terminals', 'tabz_send_keys', 'tabz_capture_terminal'
+  'tabz_list_terminals', 'tabz_send_keys', 'tabz_capture_terminal',
+  'tabz_docs'
 ];
 
 // Tool group registration functions
@@ -287,6 +290,21 @@ const server = new McpServer({
 
 // Main function
 async function main() {
+  // Register tabz_docs tool directly (always available, not gated by TOOL_GROUPS)
+  server.tool(
+    'tabz_docs',
+    'Get detailed documentation for any tabz MCP tool including parameters, constraints, examples, and error handling.',
+    { tool_name: z.string().describe('Tool name to look up, e.g. "tabz_screenshot"') },
+    async ({ tool_name }) => {
+      const doc = TOOL_DOCS[tool_name];
+      if (!doc) {
+        const available = Object.keys(TOOL_DOCS).sort().join(', ');
+        return { content: [{ type: 'text' as const, text: `Unknown tool: ${tool_name}.\n\nAvailable tools with docs:\n${available}` }] };
+      }
+      return { content: [{ type: 'text' as const, text: doc }] };
+    }
+  );
+
   // Fetch enabled tools from backend (or use all tools)
   const enabledTools = await getEnabledTools();
 
