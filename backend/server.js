@@ -2034,6 +2034,18 @@ terminalRegistry.on('error-exit', ({ terminalId, name, exitCode, signal }) => {
   });
 });
 
+// Periodic pane sync - update pane data for all terminals every 2 seconds
+const tmuxSessionManager = require('./modules/tmux-session-manager');
+setInterval(() => {
+  terminalRegistry.syncPanes(tmuxSessionManager);
+}, 2000);
+
+// Listen for pane changes and broadcast to clients
+terminalRegistry.removeAllListeners('panes-changed');
+terminalRegistry.on('panes-changed', () => {
+  broadcast({ type: 'terminal-panes-changed', data: {} });
+});
+
 // Periodic memory monitoring and leak prevention - clean up dead connections
 setInterval(() => {
   // Remove dead WebSocket connections

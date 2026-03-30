@@ -14,6 +14,7 @@
 const EventEmitter = require('events');
 const crypto = require('crypto');
 const os = require('os');
+const { execSync } = require('child_process');
 const { createModuleLogger } = require('./logger');
 
 const log = createModuleLogger('TerminalRegistry');
@@ -331,7 +332,9 @@ class TerminalRegistry extends EventEmitter {
       // TUI tool specific fields
       commands: config.commands || [],
       toolName: config.toolName || null,
-      isTUITool: config.isTUITool || false
+      isTUITool: config.isTUITool || false,
+      // Pane tracking (populated by syncPanes)
+      panes: []
     };
 
     // Store terminal first
@@ -379,27 +382,47 @@ class TerminalRegistry extends EventEmitter {
    * Get all terminals
    */
   getAllTerminals() {
-    return Array.from(this.terminals.values()).map(t => ({
-      id: t.id,
-      name: t.name,
-      terminalType: t.terminalType,
-      platform: t.platform,
-      resumable: t.resumable,
-      color: t.color,
-      icon: t.icon,
-      workingDir: t.workingDir,
-      state: t.state,
-      embedded: t.embedded,
-      position: t.position, // Include position in returned data
-      sessionName: t.sessionName, // Tmux session name for persistence
-      profile: t.profile, // Chrome extension profile settings
-      createdAt: t.createdAt,
-      lastActivity: t.lastActivity,
-      // TUI tool fields
-      commands: t.commands,
-      toolName: t.toolName,
-      isTUITool: t.isTUITool
-    }));
+    // Batch fetch pane counts from tmux (single exec for all sessions)
+    const paneCounts = {};
+    try {
+      const output = execSync(
+        'tmux list-panes -a -F "#{session_name}" 2>/dev/null',
+        { encoding: 'utf8' }
+      );
+      output.trim().split('\n').filter(l => l.length > 0).forEach(name => {
+        paneCounts[name] = (paneCounts[name] || 0) + 1;
+      });
+    } catch (error) {
+      // tmux not running - all counts stay 0
+    }
+
+    return Array.from(this.terminals.values()).map(t => {
+      const sessionName = t.sessionName || t.sessionId;
+      return {
+        id: t.id,
+        name: t.name,
+        terminalType: t.terminalType,
+        platform: t.platform,
+        resumable: t.resumable,
+        color: t.color,
+        icon: t.icon,
+        workingDir: t.workingDir,
+        state: t.state,
+        embedded: t.embedded,
+        position: t.position, // Include position in returned data
+        sessionName: t.sessionName, // Tmux session name for persistence
+        profile: t.profile, // Chrome extension profile settings
+        createdAt: t.createdAt,
+        lastActivity: t.lastActivity,
+        // TUI tool fields
+        commands: t.commands,
+        toolName: t.toolName,
+        isTUITool: t.isTUITool,
+        // Pane tracking
+        paneCount: sessionName ? (paneCounts[sessionName] || 1) : 0,
+        panes: t.panes || []
+      };
+    });
   }
 
   /**
@@ -695,6 +718,37 @@ class TerminalRegistry extends EventEmitter {
   getTerminalsByType(terminalType) {
     return Array.from(this.terminals.values())
       .filter(t => t.terminalType === terminalType);
+  }
+
+  /**
+   * Sync pane data for all terminals with tmux sessions
+   * Calls listPanes on each terminal's session and updates the panes array
+   * Emits 'panes-changed' event when pane count changes for any terminal
+   * @param {object} tmuxSessionManager - TmuxSessionManager instance
+   */
+  async syncPanes(tmuxSessionManager) {
+    let changed = false;
+
+    for (const terminal of this.terminals.values()) {
+      const sessionName = terminal.sessionName || terminal.sessionId;
+      if (!sessionName) continue;
+
+      try {
+        const panes = await tmuxSessionManager.listPanes(sessionName);
+        const oldCount = (terminal.panes || []).length;
+        terminal.panes = panes;
+
+        if (panes.length !== oldCount) {
+          changed = true;
+        }
+      } catch (error) {
+        // Session may have been killed - skip
+      }
+    }
+
+    if (changed) {
+      this.emit('panes-changed');
+    }
   }
 
   /**

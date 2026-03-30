@@ -66,6 +66,7 @@ export function useAudioNotifications({
     audioSettings,
     audioGlobalMute: effectiveGlobalMute,
     settingsLoaded,
+    getNextAvailableVoice,
     getAudioSettingsForProfile,
     playAudio,
   })

@@ -30,6 +30,7 @@ export interface UseStatusTransitionsParams {
   audioSettings: AudioSettings
   audioGlobalMute: boolean
   settingsLoaded: boolean
+  getNextAvailableVoice: () => string
   getAudioSettingsForProfile: (profile?: Profile, assignedVoice?: string) => {
     voice: string
     rate: string
@@ -55,6 +56,7 @@ export function useStatusTransitions({
   audioSettings,
   audioGlobalMute,
   settingsLoaded,
+  getNextAvailableVoice,
   getAudioSettingsForProfile,
   playAudio,
 }: UseStatusTransitionsParams): void {
@@ -75,6 +77,9 @@ export function useStatusTransitions({
   const questionDataRef = useRef<Map<string, { displayName: string; questionText: string }>>(new Map())
   // Long-running command tracking (when terminal entered processing state)
   const processingStartTimeRef = useRef<Map<string, number>>(new Map())
+  // Per-pane voice assignments: Map<terminalId, Map<paneId, voiceName>>
+  // Tracks unique voices for each Claude instance in split panes
+  const paneVoicesRef = useRef<Map<string, Map<string, string>>>(new Map())
 
   // Helper to get phrase template for an event type
   const getPhraseTemplate = (eventType: AudioEventType, variant?: string): string => {
@@ -89,6 +94,30 @@ export function useStatusTransitions({
     }
     return DEFAULT_PHRASES[eventType] || '{profile}'
   }
+
+  // Assign a voice to a new pane if not already assigned
+  // Returns the voice for the pane (existing or newly assigned)
+  const ensurePaneVoice = useCallback((terminalId: string, paneId: string, sessionVoice?: string): string => {
+    let terminalPanes = paneVoicesRef.current.get(terminalId)
+    if (!terminalPanes) {
+      terminalPanes = new Map()
+      paneVoicesRef.current.set(terminalId, terminalPanes)
+    }
+
+    const existingVoice = terminalPanes.get(paneId)
+    if (existingVoice) return existingVoice
+
+    // First pane in a terminal inherits the session's assigned voice
+    if (terminalPanes.size === 0 && sessionVoice) {
+      terminalPanes.set(paneId, sessionVoice)
+      return sessionVoice
+    }
+
+    // New pane gets next available voice from pool
+    const newVoice = getNextAvailableVoice()
+    terminalPanes.set(paneId, newVoice)
+    return newVoice
+  }, [getNextAvailableVoice])
 
   // Start question waiting timeout for a terminal
   const startQuestionWaitingTimeout = useCallback((
@@ -147,7 +176,19 @@ export function useStatusTransitions({
 
       const session = sessions.find(s => s.id === terminalId)
 
-      const audioForProfile = getAudioSettingsForProfile(session?.profile, session?.assignedVoice)
+      // Resolve pane-specific voice for split pane layouts
+      // When a terminal has splits, each pane's Claude gets its own voice
+      const paneId = status.tmuxPane
+      let effectiveSession = session
+      if (session && paneId) {
+        const paneVoice = ensurePaneVoice(terminalId, paneId, session.assignedVoice)
+        if (paneVoice !== session.assignedVoice) {
+          // Create a session copy with the pane-specific voice for audio playback
+          effectiveSession = { ...session, assignedVoice: paneVoice }
+        }
+      }
+
+      const audioForProfile = getAudioSettingsForProfile(session?.profile, effectiveSession?.assignedVoice)
       if (!audioForProfile.enabled) {
         prevClaudeStatusesRef.current.set(terminalId, currentStatus)
         prevSubagentCountsRef.current.set(terminalId, currentSubagentCount)
@@ -200,7 +241,7 @@ export function useStatusTransitions({
         lastStatusUpdateRef.current.set(terminalId, currentLastUpdated)
         const template = getPhraseTemplate('ready')
         const phrase = renderTemplate(template, { profile: getDisplayName() })
-        playAudio(phrase, session, false, { eventType: 'ready' })
+        playAudio(phrase, effectiveSession, false, { eventType: 'ready' })
       }
 
       // Long-running command completion notification
@@ -288,7 +329,7 @@ export function useStatusTransitions({
         const template = getPhraseTemplate('tools', hasDetails ? 'toolsWithDetails' : undefined)
         const phrase = renderTemplate(template, context)
 
-        playAudio(phrase, session, true, { eventType: 'tools' })
+        playAudio(phrase, effectiveSession, true, { eventType: 'tools' })
       }
 
       prevToolNamesRef.current.set(terminalId, currentToolKey)
@@ -301,11 +342,11 @@ export function useStatusTransitions({
             profile: getDisplayName(),
             count: currentSubagentCount,
           })
-          playAudio(phrase, session, true, { eventType: 'subagents' })
+          playAudio(phrase, effectiveSession, true, { eventType: 'subagents' })
         } else if (currentSubagentCount === 0 && prevSubagentCount > 0) {
           const template = getPhraseTemplate('subagents', 'subagentsComplete')
           const phrase = renderTemplate(template, { profile: getDisplayName() })
-          playAudio(phrase, session, false, { eventType: 'subagents' })
+          playAudio(phrase, effectiveSession, false, { eventType: 'subagents' })
         }
       }
 
@@ -330,7 +371,7 @@ export function useStatusTransitions({
             })
             playAudio(
               phrase,
-              session,
+              effectiveSession,
               false,
               { pitch: '+15Hz', rate: '+5%', eventType: 'contextWarning' }
             )
@@ -358,7 +399,7 @@ export function useStatusTransitions({
             })
             playAudio(
               phrase,
-              session,
+              effectiveSession,
               false,
               { pitch: '+25Hz', rate: '+10%', eventType: 'contextCritical' }
             )
@@ -409,7 +450,7 @@ export function useStatusTransitions({
                 question: firstQuestion.question,
                 options: optionsText,
               })
-              playAudio(phrase, session, false, { eventType: 'askUserQuestion' })
+              playAudio(phrase, effectiveSession, false, { eventType: 'askUserQuestion' })
             }
 
             // Start question waiting timeout (checks its own notification settings internally)
@@ -444,7 +485,7 @@ export function useStatusTransitions({
             profile: getDisplayName(),
             options: optionsText,
           })
-          playAudio(phrase, session, false, { eventType: 'planApproval' })
+          playAudio(phrase, effectiveSession, false, { eventType: 'planApproval' })
         }
       }
 
@@ -471,10 +512,11 @@ export function useStatusTransitions({
         announcedQuestionsRef.current.delete(id)
         announcedPlanApprovalRef.current.delete(id)
         processingStartTimeRef.current.delete(id)
+        paneVoicesRef.current.delete(id)
         clearQuestionWaitingTimeout(id)
       }
     }
-  }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, playAudio, showNotification, startQuestionWaitingTimeout, clearQuestionWaitingTimeout])
+  }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, getNextAvailableVoice, playAudio, showNotification, startQuestionWaitingTimeout, clearQuestionWaitingTimeout, ensurePaneVoice])
 
   // Cleanup all timeouts on unmount
   useEffect(() => {

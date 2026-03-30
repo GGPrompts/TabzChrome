@@ -1257,6 +1257,16 @@ function SidePanelTerminal() {
                           {claudeStatuses.get(session.id)?.context_pct}%
                         </span>
                       )}
+                      {/* Pane count badge - shown when terminal has tmux splits */}
+                      {(session.paneCount ?? 0) > 1 && (
+                        <span
+                          className="flex-shrink-0 text-[10px] font-medium rounded px-1 py-0 leading-tight"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
+                          title={`${session.paneCount} tmux panes`}
+                        >
+                          {session.paneCount}p
+                        </span>
+                      )}
                     </span>
                     <button
                       onClick={(e) => handleCloseTab(e, session.id)}
@@ -1764,6 +1774,16 @@ function SidePanelTerminal() {
                     title={rawWorkingDir}
                   >
                     {workingDir.length > 40 ? '…' + workingDir.slice(-39) : workingDir}
+                  </span>
+                </div>
+              )}
+
+              {/* Pane count (if splits exist) */}
+              {(session.paneCount ?? 0) > 1 && (
+                <div className="flex items-center gap-2 mb-2 overflow-hidden">
+                  <span className="text-gray-400 text-sm flex-shrink-0">&#8862;</span>
+                  <span className="text-[13px] text-gray-400 font-mono">
+                    {session.paneCount} panes (tmux splits)
                   </span>
                 </div>
               )}

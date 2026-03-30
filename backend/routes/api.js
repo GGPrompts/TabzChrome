@@ -666,6 +666,32 @@ router.get('/terminals/:id/capture', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * GET /api/terminals/:id/panes - List tmux panes for a terminal
+ */
+router.get('/terminals/:id/panes', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const terminal = terminalRegistry.getTerminal(id);
+  if (!terminal) {
+    return res.status(404).json({
+      success: false,
+      error: 'Terminal not found',
+      message: `No terminal found with ID: ${id}`
+    });
+  }
+
+  const sessionName = terminal.sessionName || terminal.sessionId || id;
+  const panes = await tmuxSessionManager.listPanes(sessionName);
+
+  res.json({
+    success: true,
+    data: panes,
+    terminalId: id,
+    sessionName
+  });
+}));
+
 // =============================================================================
 // UTILITY ROUTES
 // =============================================================================
@@ -1397,6 +1423,48 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
       }
     }
 
+    // Fallback: If no primary match and sessionName provided, check split panes
+    // Claude running in a split pane writes state with the split pane's ID, not the primary pane
+    if (!bestMatch && sessionName) {
+      try {
+        const allPanes = await tmuxSessionManager.listPanes(sessionName);
+        if (allPanes.length > 1) {
+          for (const pane of allPanes) {
+            if (bestMatch) break;
+            for (const file of files) {
+              if (!file.endsWith('.json') || file.startsWith('.')) continue;
+              try {
+                const filePath = path.join(stateDir, file);
+                const stateData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+                if (stateData.tmux_pane === pane.paneId) {
+                  const updateTime = stateData.last_updated ? new Date(stateData.last_updated).getTime() : 0;
+                  if (!bestMatch || updateTime > bestMatchTime) {
+                    bestMatch = {
+                      success: true,
+                      status: stateData.status || 'unknown',
+                      current_tool: stateData.current_tool || '',
+                      last_updated: stateData.last_updated || '',
+                      sessionId: stateData.session_id || file.replace('.json', ''),
+                      claude_session_id: stateData.claude_session_id,
+                      tmuxPane: stateData.tmux_pane,
+                      details: stateData.details || null,
+                      subagent_count: stateData.subagent_count || 0,
+                      matchType: 'split-pane'
+                    };
+                    bestMatchTime = updateTime;
+                  }
+                }
+              } catch (err) {
+                continue;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Session may not exist - ignore
+      }
+    }
+
     // Return best match or unknown if no match found
     if (bestMatch) {
       // Try to merge context window data from statusline
@@ -1423,6 +1491,59 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
       if (paneTitle) {
         bestMatch.pane_title = paneTitle;
       }
+
+      // Task 7: Include paneStatuses when session has 2+ panes
+      if (sessionName) {
+        try {
+          const allPanes = await tmuxSessionManager.listPanes(sessionName);
+          if (allPanes.length >= 2) {
+            const paneStatuses = [];
+            for (const pane of allPanes) {
+              const paneStatus = {
+                paneId: pane.paneId,
+                paneIndex: pane.index,
+                active: pane.active,
+                status: 'unknown',
+                current_tool: null,
+                context_pct: null
+              };
+
+              // Find Claude state file matching this pane
+              for (const file of files) {
+                if (!file.endsWith('.json') || file.startsWith('.')) continue;
+                try {
+                  const filePath = path.join(stateDir, file);
+                  const stateData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+                  if (stateData.tmux_pane === pane.paneId) {
+                    paneStatus.status = stateData.status || 'unknown';
+                    paneStatus.current_tool = stateData.current_tool || null;
+                    // Look up context_pct from context file
+                    if (stateData.claude_session_id) {
+                      try {
+                        const ctxFile = path.join(stateDir, `${stateData.claude_session_id}-context.json`);
+                        if (fs.existsSync(ctxFile)) {
+                          const ctxData = JSON.parse(fs.readFileSync(ctxFile, 'utf-8'));
+                          paneStatus.context_pct = ctxData.context_pct != null ? ctxData.context_pct : null;
+                        }
+                      } catch (e) {
+                        // Ignore context file errors
+                      }
+                    }
+                    break;
+                  }
+                } catch (err) {
+                  continue;
+                }
+              }
+              paneStatuses.push(paneStatus);
+            }
+            bestMatch.paneStatuses = paneStatuses;
+          }
+        } catch (err) {
+          // Session may not exist - ignore
+        }
+      }
+
       res.json(bestMatch);
     } else {
       res.json({

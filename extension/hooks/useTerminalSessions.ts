@@ -31,6 +31,7 @@ export interface TerminalSession {
   popoutWindowId?: number // Chrome window ID of the popout
   fontSizeOffset?: number // Per-instance font size offset (-4 to +8), not persisted
   appearanceOverrides?: TerminalAppearanceOverrides  // Temp appearance customization (footer 🎨 button)
+  paneCount?: number // Number of tmux panes (>1 means splits exist)
 }
 
 interface UseTerminalSessionsParams {
@@ -317,6 +318,7 @@ export function useTerminalSessions({
                 sessionName: t.sessionName ?? existingSession.sessionName,
                 workingDir: t.workingDir ?? existingSession.workingDir,
                 active: false,
+                paneCount: t.paneCount ?? existingSession.paneCount,
               })
             } else {
               // Add new terminal from backend
@@ -472,6 +474,16 @@ export function useTerminalSessions({
         // Handle standalone connection count updates
         if (data.count !== undefined) {
           setConnectionCount(data.count)
+        }
+        break
+      case 'terminal-panes-changed':
+        // Backend broadcasts pane count changes (from 2s tmux sync loop)
+        if (data.data?.terminalId && data.data?.paneCount !== undefined) {
+          setSessions(prev => prev.map(s =>
+            s.id === data.data.terminalId
+              ? { ...s, paneCount: data.data.paneCount }
+              : s
+          ))
         }
         break
     }

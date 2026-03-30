@@ -641,6 +641,69 @@ class TmuxSessionManager {
   }
 
   /**
+   * List panes for a session
+   * @param {string} sessionName - tmux session name
+   * @returns {Array} Array of pane objects
+   */
+  async listPanes(sessionName) {
+    try {
+      const output = execSync(
+        `tmux list-panes -t "${sessionName}" -F "#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_title}|#{pane_active}|#{pane_current_path}"`,
+        { encoding: 'utf8' }
+      );
+
+      return output.trim().split('\n').filter(l => l.length > 0).map(line => {
+        const [paneId, index, command, title, active, currentPath] = line.split('|');
+        return {
+          paneId,
+          index: parseInt(index, 10),
+          command,
+          title,
+          active: active === '1',
+          path: currentPath,
+        };
+      });
+    } catch (error) {
+      // Session not found or tmux not running
+      return [];
+    }
+  }
+
+  /**
+   * Find session name by pane ID (e.g. %42)
+   * Caches result for 5 seconds to avoid shelling out every request
+   * @param {string} paneId - tmux pane ID (e.g. %42)
+   * @returns {string|null} Session name or null
+   */
+  findSessionByPaneId(paneId) {
+    const now = Date.now();
+
+    // Refresh cache if stale (>5 seconds)
+    if (!this._paneSessionCache || (now - this._paneSessionCacheTime) > 5000) {
+      try {
+        const output = execSync(
+          'tmux list-panes -a -F "#{session_name}|#{pane_id}"',
+          { encoding: 'utf8' }
+        );
+
+        this._paneSessionCache = new Map();
+        output.trim().split('\n').filter(l => l.length > 0).forEach(line => {
+          const [sessionName, pid] = line.split('|');
+          this._paneSessionCache.set(pid, sessionName);
+        });
+        this._paneSessionCacheTime = now;
+      } catch (error) {
+        // tmux not running
+        this._paneSessionCache = new Map();
+        this._paneSessionCacheTime = now;
+        return null;
+      }
+    }
+
+    return this._paneSessionCache.get(paneId) || null;
+  }
+
+  /**
    * Get session status icon based on state
    * Matches tmuxplexer's status icons
    */
