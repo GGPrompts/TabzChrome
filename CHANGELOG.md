@@ -15,7 +15,7 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
-## [Unreleased]
+## [1.5.0] - 2026-03-30
 
 ### Added
 
