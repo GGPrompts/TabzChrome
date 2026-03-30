@@ -17,6 +17,20 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ## [Unreleased]
 
+### Added
+
+- **Tmux pane awareness** - TabzChrome now detects tmux splits inside terminals
+  - Pane count badge ("2p") in sidebar tabs and dashboard terminal cards
+  - Per-pane Claude status polling with `paneStatuses` array in API response
+  - Per-pane voice assignment for TTS audio announcements (each split pane gets a unique voice)
+  - Pane picker in clean chat — choose which pane to send input to
+  - 2-second background sync keeps pane data fresh via WebSocket broadcast
+  - Split-pane Claude state correlation — detects Claude instances in panes TabzChrome didn't spawn
+- **Dashboard Pages section** - New section cataloging backend-served HTML pages (`localhost:8129`) grouped by category, with open-in-new-tab links. These pages are uniquely automatable by TabzChrome MCP tools (screenshots, DOM, clicks) unlike chrome-extension:// pages
+- **Dashboard table view pane expansion** - Click pane badge in Active Terminals table to expand and see individual pane details (command, path, active indicator)
+- **`GET /api/terminals/:id/panes`** - List tmux panes for a terminal session with metadata
+- **`GET /api/pages`** - Discover backend-served HTML pages with category grouping
+
 ---
 
 ## [1.4.5] - 2026-03-10

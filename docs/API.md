@@ -21,6 +21,8 @@ The backend exposes REST endpoints and a WebSocket server for terminal managemen
 - [Plugins](#plugins)
 - [MCP Configuration](#mcp-configuration)
 - [Settings](#settings)
+- [Terminal Panes](#terminal-panes)
+- [Pages](#pages)
 - [Miscellaneous](#miscellaneous)
 - [WebSocket Protocol](#websocket-protocol)
 
@@ -362,6 +364,90 @@ curl "http://localhost:8129/api/terminals/ctt-Claude-a1b2c3d4/capture?lines=100"
   "terminalId": "ctt-Claude-a1b2c3d4"
 }
 ```
+
+---
+
+## Terminal Panes
+
+### GET /api/terminals/:id/panes
+
+List tmux panes for a terminal session. Returns metadata for each pane including command, path, and active status.
+
+```bash
+curl http://localhost:8129/api/terminals/ctt-Claude-a1b2c3d4/panes \
+  -H "X-Auth-Token: $TOKEN"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "paneId": "%42",
+      "index": 0,
+      "command": "claude",
+      "title": "~/projects/foo",
+      "path": "/home/user/projects/foo",
+      "active": true
+    },
+    {
+      "paneId": "%43",
+      "index": 1,
+      "command": "bash",
+      "title": "~/projects/foo",
+      "path": "/home/user/projects/foo",
+      "active": false
+    }
+  ],
+  "terminalId": "ctt-Claude-a1b2c3d4",
+  "sessionName": "ctt-Claude-a1b2c3d4"
+}
+```
+
+**Notes:**
+- Returns empty array if the terminal has no tmux session or tmux is not running
+- The `active` field indicates which pane has tmux focus
+- Pane IDs (e.g. `%42`) can be used with the `targeted-pane-send` WebSocket message
+- The terminal listing (`GET /api/agents`) also includes `paneCount` and `panes` array for each terminal
+
+---
+
+## Pages
+
+### GET /api/pages
+
+List all backend-served HTML pages. These pages at `localhost:8129` are uniquely automatable by TabzChrome MCP tools (screenshots, DOM reading, clicks) unlike chrome-extension:// pages.
+
+```bash
+curl http://localhost:8129/api/pages
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "Dashboard",
+      "path": "index.html",
+      "url": "http://localhost:8129/index.html",
+      "category": "General"
+    },
+    {
+      "name": "Forms",
+      "path": "templates/mcp-test/forms.html",
+      "url": "http://localhost:8129/templates/mcp-test/forms.html",
+      "category": "Mcp Test"
+    }
+  ]
+}
+```
+
+**Notes:**
+- Scans `backend/public/` recursively for `.html` files
+- Category is derived from the directory path
+- No authentication required
 
 ---
 

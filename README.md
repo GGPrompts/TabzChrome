@@ -36,6 +36,7 @@ Browse the web with your terminals always visible - no window juggling, no Alt+T
 - **Smart directory inheritance** - Set a global working directory, profiles inherit it
 - **3D Focus Mode** - Pop any terminal into an immersive full-tab 3D view (scroll to zoom, mouse to orbit, F2 to lock)
 - **Terminal Popouts** - Right-click tab → "Pop Out" for standalone terminal windows (theme synced, return or detach)
+- **Tmux pane awareness** - Detects splits inside terminals with per-pane status, audio voices, and chat targeting
 - **Local dashboard** - Web UI at `localhost:8129` for terminal management and quick stats
 - **Tabz MCP tools** - Let Claude Code control your browser (screenshots, clicks, form filling)
 - **Keyboard shortcuts** - Quick access to paste text, send to chat, spawn terminals
@@ -399,6 +400,7 @@ Access a web-based dashboard at `http://localhost:8129` for terminal management:
 | **API Playground** | `#/api` | Interactive REST API testing |
 | **MCP Settings** | `#/mcp` | Toggle MCP tools, manage allowed domains, token estimates |
 | **Audio** | `#/audio` | Voice settings, per-event customization, sound effects, phrase templates |
+| **Pages** | `#/pages` | Catalog of backend-served HTML pages (automatable by MCP tools) |
 | **Notifications** | `#/notifications` | Notification preferences and settings |
 
 **Features:**
