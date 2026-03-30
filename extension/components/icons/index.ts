@@ -41,3 +41,6 @@ export { BotMessageSquareIcon } from './BotMessageSquareIcon'
 
 // Notification icon
 export { BellIcon } from './BellIcon'
+
+// Dashboard pages icon
+export { GlobeIcon } from './GlobeIcon'

@@ -20,6 +20,7 @@ import {
   GithubIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  GlobeIcon,
 } from '../components/icons'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 
@@ -34,6 +35,7 @@ import SettingsNotifications from './sections/SettingsNotifications'
 import SettingsProfiles from './sections/SettingsProfiles'
 import FilesSection from './sections/Files'
 import GitSection from './sections/Git'
+import PagesSection from './sections/Pages'
 
 // Components
 import CaptureViewer from './components/CaptureViewer'
@@ -54,7 +56,7 @@ interface CaptureData {
   }
 }
 
-type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'audio' | 'notifications'
+type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'audio' | 'notifications' | 'pages'
 
 interface NavItem {
   id: Section
@@ -138,6 +140,7 @@ const navItems: NavItem[] = [
   { id: 'profiles', label: 'Profiles', icon: GridIcon },
   { id: 'files', label: 'Files', icon: FolderOpenIcon },
   { id: 'git', label: 'Source Control', icon: GitBranchIcon },
+  { id: 'pages', label: 'Pages', icon: GlobeIcon },
   { id: 'api', label: 'API Playground', icon: CodeIcon },
   { id: 'mcp', label: 'MCP Settings', icon: SettingsIcon },
   { id: 'audio', label: 'Audio', icon: VolumeIcon },
@@ -152,7 +155,7 @@ export default function App() {
     if (hash.startsWith('#/')) {
       const hashPath = hash.slice(2) // Remove '#/'
       const [section] = hashPath.split('?')
-      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications']
+      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications', 'pages']
       if (validSections.includes(section as Section)) {
         return section as Section
       }
@@ -220,7 +223,7 @@ export default function App() {
       if (hash.startsWith('#/')) {
         const hashPath = hash.slice(2) // Remove '#/'
         const [section] = hashPath.split('?')
-        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications']
+        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications', 'pages']
         if (validSections.includes(section as Section)) {
           setActiveSection(section as Section)
         }
@@ -314,6 +317,8 @@ export default function App() {
         return <SettingsAudio />
       case 'notifications':
         return <SettingsNotifications />
+      case 'pages':
+        return <PagesSection />
       default:
         return <HomeSection />
     }

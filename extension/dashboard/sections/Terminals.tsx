@@ -49,6 +49,7 @@ interface TmuxSession {
     } | null
   } | null
   paneCommand?: string
+  paneCount?: number
   paneTitle?: string  // Dynamic pane title (Claude todo or app status like PyRadio song)
 }
 
@@ -297,6 +298,7 @@ export default function TerminalsSection() {
         aiTool: s.aiTool,
         displayMode,
         profile,
+        paneCount: s.paneCount,
         paneTitle: s.paneTitle,
       }
     })

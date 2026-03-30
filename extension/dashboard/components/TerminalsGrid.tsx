@@ -380,6 +380,14 @@ export function TerminalsGrid({
                       <span className="text-[11px] font-mono text-white/40 truncate min-w-0 flex-1">
                         {terminal.sessionName}
                       </span>
+                      {terminal.paneCount != null && terminal.paneCount > 1 && (
+                        <span
+                          className="px-1 py-0 text-[10px] font-mono rounded bg-white/10 text-white/50 border border-white/20 flex-shrink-0"
+                          title={`${terminal.paneCount} tmux panes`}
+                        >
+                          {terminal.paneCount}p
+                        </span>
+                      )}
                       <button
                         className="p-0.5 rounded hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
                         onClick={(e) => {

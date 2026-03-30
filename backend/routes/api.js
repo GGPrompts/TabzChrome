@@ -3424,6 +3424,78 @@ router.post('/plugins/cache/prune', asyncHandler(async (req, res) => {
 }));
 
 // =============================================================================
+// PAGES ENDPOINT
+// =============================================================================
+
+/**
+ * GET /api/pages - List all backend-served HTML pages
+ * Recursively scans backend/public/ for .html files and returns metadata
+ */
+router.get('/pages', asyncHandler(async (req, res) => {
+  const path = require('path');
+  const fs = require('fs');
+
+  const publicDir = path.resolve(__dirname, '../public');
+  const pages = [];
+
+  function walkDir(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walkDir(fullPath);
+      } else if (entry.name.endsWith('.html')) {
+        const relativePath = path.relative(publicDir, fullPath);
+        // Derive category from directory path
+        const dirName = path.dirname(relativePath);
+        let category = 'General';
+        if (dirName !== '.') {
+          // Convert path segments to readable category
+          // e.g. "templates/mcp-test" -> "MCP Test"
+          const lastSegment = dirName.split(path.sep).pop();
+          category = lastSegment
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        }
+
+        // Derive display name from filename
+        const baseName = path.basename(entry.name, '.html');
+        const name = baseName === 'index'
+          ? (dirName !== '.' ? category + ' Hub' : 'Dashboard')
+          : baseName
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+
+        pages.push({
+          name,
+          path: relativePath.split(path.sep).join('/'),
+          url: `http://localhost:8129/${relativePath.split(path.sep).join('/')}`,
+          category,
+        });
+      }
+    }
+  }
+
+  walkDir(publicDir);
+
+  // Sort: General first, then by category, then by name
+  pages.sort((a, b) => {
+    if (a.category === 'General' && b.category !== 'General') return -1;
+    if (a.category !== 'General' && b.category === 'General') return 1;
+    if (a.category !== b.category) return a.category.localeCompare(b.category);
+    return a.name.localeCompare(b.name);
+  });
+
+  res.json({
+    success: true,
+    data: pages,
+    count: pages.length,
+  });
+}));
+
+// =============================================================================
 // AUTH TOKEN ENDPOINT
 // =============================================================================
 

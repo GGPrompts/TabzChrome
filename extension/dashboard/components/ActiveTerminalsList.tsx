@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
-import { Terminal, Folder, GripVertical, PanelLeft, Unplug } from 'lucide-react'
+import { Terminal, Folder, GripVertical, PanelLeft, Unplug, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   DeleteIcon,
   EyeIcon,
@@ -46,6 +46,7 @@ export interface TerminalItem {
   aiTool?: string | null
   displayMode?: TerminalDisplayMode
   profile?: Profile  // Full profile for themed rendering
+  paneCount?: number
   paneTitle?: string | null  // Dynamic pane title (Claude todo or app status like PyRadio song)
 }
 
@@ -191,10 +192,21 @@ const DisplayModeIndicator = ({ mode }: { mode?: TerminalDisplayMode }) => {
   return null
 }
 
+// Pane data from the API
+interface PaneInfo {
+  paneId: string
+  index: number
+  command: string
+  title: string
+  active: boolean
+  path: string
+}
+
 // Default column widths (in pixels)
 const DEFAULT_COLUMNS = {
   status: 24,
   name: 180,
+  panes: 50,
   activity: 200,
   context: 60,
   path: 180,
@@ -236,6 +248,43 @@ export function ActiveTerminalsList({
   // Status history tracking (synced from sidebar via Chrome storage)
   const [statusHistory, setStatusHistory] = useState<Map<string, StatusHistoryEntry[]>>(new Map())
   const initialLoadDone = useRef(false)
+
+  // Expanded pane rows
+  const [expandedTerminals, setExpandedTerminals] = useState<Set<string>>(new Set())
+  const [paneData, setPaneData] = useState<Map<string, PaneInfo[]>>(new Map())
+  const [paneLoading, setPaneLoading] = useState<Set<string>>(new Set())
+
+  const toggleExpandPanes = async (terminalId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = new Set(expandedTerminals)
+    if (next.has(terminalId)) {
+      next.delete(terminalId)
+      setExpandedTerminals(next)
+      return
+    }
+    next.add(terminalId)
+    setExpandedTerminals(next)
+
+    // Fetch pane data if not cached
+    if (!paneData.has(terminalId)) {
+      setPaneLoading(prev => new Set(prev).add(terminalId))
+      try {
+        const res = await fetch(`http://localhost:8129/api/terminals/${terminalId}/panes`)
+        const result = await res.json()
+        if (result.success) {
+          setPaneData(prev => new Map(prev).set(terminalId, result.data))
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setPaneLoading(prev => {
+          const s = new Set(prev)
+          s.delete(terminalId)
+          return s
+        })
+      }
+    }
+  }
 
   // Load initial history from Chrome storage (synced from sidebar)
   useEffect(() => {
@@ -464,6 +513,7 @@ export function ActiveTerminalsList({
             )}
             <ResizableHeader column="status" className="w-6"></ResizableHeader>
             <ResizableHeader column="name">Name</ResizableHeader>
+            <ResizableHeader column="panes">Panes</ResizableHeader>
             <ResizableHeader column="activity">Activity</ResizableHeader>
             <ResizableHeader column="context">Context</ResizableHeader>
             <ResizableHeader column="path">Path</ResizableHeader>
@@ -482,9 +532,15 @@ export function ActiveTerminalsList({
               terminal.id.startsWith('ctt-') || terminal.sessionName?.startsWith('ctt-')
             const claudeStatus = getClaudeStatusDisplay(terminal.claudeState, terminal.paneTitle)
 
+            const isExpanded = expandedTerminals.has(terminal.id)
+            const panes = paneData.get(terminal.id)
+            const isPaneLoading = paneLoading.has(terminal.id)
+            // Count total columns for pane sub-row colspan
+            const totalColumns = Object.keys(DEFAULT_COLUMNS).length + (showCheckboxes ? 1 : 0) + ((onViewAsText || onKill) ? 1 : 0)
+
             return (
+              <React.Fragment key={terminal.id}>
               <tr
-                key={terminal.id}
                 className={`
                   hover:bg-muted/30 transition-colors
                   ${isClickable ? 'cursor-pointer' : ''}
@@ -534,6 +590,26 @@ export function ActiveTerminalsList({
                       </span>
                     )}
                   </div>
+                </td>
+
+                {/* Panes */}
+                <td className="px-2 py-3" style={{ width: columnWidths.panes }}>
+                  {terminal.paneCount != null && terminal.paneCount > 1 ? (
+                    <button
+                      onClick={(e) => toggleExpandPanes(terminal.id, e)}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-mono rounded bg-white/10 text-white/60 border border-white/20 hover:bg-white/20 hover:text-white transition-colors"
+                      title={`${terminal.paneCount} tmux panes - click to ${expandedTerminals.has(terminal.id) ? 'collapse' : 'expand'}`}
+                    >
+                      {expandedTerminals.has(terminal.id) ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                      {terminal.paneCount}p
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
 
                 {/* Claude Activity - rich status */}
@@ -686,6 +762,69 @@ export function ActiveTerminalsList({
                   </td>
                 )}
               </tr>
+              {/* Expanded pane sub-rows */}
+              {isExpanded && (
+                isPaneLoading ? (
+                  <tr className="bg-muted/10">
+                    <td colSpan={totalColumns} className="px-6 py-2 text-xs text-muted-foreground">
+                      Loading panes...
+                    </td>
+                  </tr>
+                ) : panes && panes.length > 0 ? (
+                  panes.map((pane) => (
+                    <tr key={`${terminal.id}-pane-${pane.index}`} className="bg-muted/10 hover:bg-muted/20 transition-colors">
+                      {showCheckboxes && <td />}
+                      <td />
+                      {/* Pane name: indented with index */}
+                      <td className="px-2 py-1.5" style={{ width: columnWidths.name }}>
+                        <div className="flex items-center gap-2 pl-4 min-w-0">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            %{pane.index}
+                          </span>
+                          <span className="text-xs text-foreground/80 truncate">
+                            {pane.command}
+                          </span>
+                          {pane.active && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" title="Active pane" />
+                          )}
+                        </div>
+                      </td>
+                      {/* Panes column - empty for sub-rows */}
+                      <td />
+                      {/* Activity - pane title */}
+                      <td className="px-2 py-1.5" style={{ width: columnWidths.activity }}>
+                        {pane.title && pane.title !== pane.command ? (
+                          <span className="text-xs text-muted-foreground truncate">{pane.title}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      {/* Context - empty */}
+                      <td />
+                      {/* Path */}
+                      <td className="px-2 py-1.5" style={{ width: columnWidths.path }}>
+                        {pane.path ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground/70 min-w-0">
+                            <Folder className="w-3 h-3 flex-shrink-0" />
+                            <span className="font-mono truncate" title={pane.path}>
+                              {compactPath(pane.path)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      {/* Git - empty */}
+                      <td />
+                      {/* Created - empty */}
+                      <td />
+                      {/* Actions - empty */}
+                      {(onViewAsText || onKill) && <td />}
+                    </tr>
+                  ))
+                ) : null
+              )}
+              </React.Fragment>
             )
           })}
         </tbody>
@@ -764,6 +903,16 @@ export function ActiveTerminalsList({
               <div className="flex items-center gap-2 mb-2">
                 <GitBranchIcon size={16} className="text-purple-400" />
                 <span className="text-[13px] text-purple-400">{hoveredTerminalData.gitBranch}</span>
+              </div>
+            )}
+
+            {/* Pane Count */}
+            {hoveredTerminalData.paneCount != null && hoveredTerminalData.paneCount > 1 && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm flex-shrink-0">📐</span>
+                <span className="text-[13px] text-gray-300">
+                  {hoveredTerminalData.paneCount} tmux panes
+                </span>
               </div>
             )}
 

@@ -96,6 +96,7 @@ class TmuxSessionManager {
           tabzManaged: false,
           claudeState: null,
           paneCommand: null,
+          paneCount: 1,
         };
 
         // Detect if Opustrator-managed session
@@ -140,10 +141,12 @@ class TmuxSessionManager {
   async enrichSessionMetadata(session) {
     try {
       // Get pane information including pane_title (use session name without window index - works with any base-index)
-      const paneInfo = execSync(
+      const paneLines = execSync(
         `tmux list-panes -t "${session.name}" -F "#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_title}"`,
         { encoding: 'utf8' }
-      ).trim().split('\n')[0]; // Get first pane
+      ).trim().split('\n');
+      session.paneCount = paneLines.length;
+      const paneInfo = paneLines[0]; // Get first pane
 
       if (paneInfo) {
         const [paneId, workingDir, command, rawPaneTitle] = paneInfo.split('|');
