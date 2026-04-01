@@ -20,6 +20,7 @@ import {
   SettingsIcon,
   VolumeIcon,
   BellIcon,
+  GlobeIcon,
 } from '../components/icons'
 import { Badge } from '../components/ui/badge'
 import { Terminal } from '../components/Terminal'
@@ -1058,6 +1059,7 @@ function SidePanelTerminal() {
                   { id: 'profiles', label: 'Profiles', Icon: GridIcon },
                   { id: 'files', label: 'Files', Icon: FolderOpenIcon },
                   { id: 'git', label: 'Source Control', Icon: GitBranchIcon },
+                  { id: 'pages', label: 'Pages', Icon: GlobeIcon },
                   { id: 'api', label: 'API Playground', Icon: CodeIcon },
                   { id: 'mcp', label: 'MCP Settings', Icon: SettingsIcon },
                   { id: 'audio', label: 'Audio', Icon: VolumeIcon },
