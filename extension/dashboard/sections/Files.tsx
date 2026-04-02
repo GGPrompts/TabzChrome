@@ -7,6 +7,7 @@ import { PluginList } from '../components/files/PluginList'
 import { PromptyViewer } from '../components/files/PromptyViewer'
 import { isPromptyFile } from '../utils/promptyUtils'
 import { Send, Square, MoreVertical, Loader2, Music, Image, Video, Folder } from 'lucide-react'
+import { sendMessage } from '../../shared/messaging'
 // Animated icons
 import { XIcon, CopyIcon, FolderOpenIcon, SettingsIcon } from '../../components/icons'
 import { FileActionsMenu } from '../components/files/FileActionsMenu'
@@ -267,11 +268,11 @@ export default function FilesSection({ onQuickOpen }: FilesSectionProps = {}) {
 
   const openInEditor = async (file?: typeof activeFile) => {
     const targetFile = file || activeFile
-    if (!targetFile) return
+    if (!targetFile?.path) return
     const dir = targetFile.path.split('/').slice(0, -1).join('/')
 
-    // Use Chrome messaging to spawn terminal with editor (respects $EDITOR, falls back to nano)
-    chrome.runtime?.sendMessage({
+    // Use sendMessage helper to spawn terminal with editor (respects $EDITOR, falls back to nano)
+    sendMessage({
       type: 'SPAWN_TERMINAL',
       name: `Edit: ${targetFile.name}`,
       command: `\${EDITOR:-nano} "${targetFile.path}"`,
@@ -548,7 +549,7 @@ export default function FilesSection({ onQuickOpen }: FilesSectionProps = {}) {
               isFavorite={isFavorite(activeFile.path)}
               onToggleFavorite={() => toggleFavorite(activeFile.path)}
               onPin={() => pinFile(activeFile.id)}
-              onOpenInEditor={openInEditor}
+              onOpenInEditor={() => openInEditor(activeFile)}
             />
           ) : (() => {
             const { type, language } = getFileTypeAndLanguage(activeFile.path)
