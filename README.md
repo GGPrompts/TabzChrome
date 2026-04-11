@@ -174,6 +174,8 @@ npm run build
 2. Enable **Developer mode** (top-right)
 3. Click **Load unpacked** → select `dist-extension/`
 
+> **⚠️ Load `dist-extension/`, not `extension/`.** The `extension/` folder is TypeScript source — loading it gives errors like `Invalid script mime type: '...content.ts'` and `Service worker registration failed. Status code: 11`. You must run `npm run build` first, then load the generated `dist-extension/` folder.
+
 ### Start Backend
 
 ```bash
