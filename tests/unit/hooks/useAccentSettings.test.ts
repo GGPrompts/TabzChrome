@@ -43,4 +43,13 @@ describe('useAccentSettings', () => {
     await waitFor(() => expect(result.current.loaded).toBe(true))
     expect(document.documentElement.style.getPropertyValue('--color-primary')).toBe('')
   })
+
+  it('toggling glow before any color is picked does not force the fallback CSS var', async () => {
+    document.documentElement.style.removeProperty('--color-primary')
+    const { result } = renderHook(() => useAccentSettings())
+    await waitFor(() => expect(result.current.loaded).toBe(true))
+    act(() => { result.current.setAccent({ glowEnabled: false }) })
+    await waitFor(() => expect(result.current.glowEnabled).toBe(false))
+    expect(document.documentElement.style.getPropertyValue('--color-primary')).toBe('')
+  })
 })

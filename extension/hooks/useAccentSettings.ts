@@ -43,7 +43,9 @@ export function useAccentSettings() {
   const setAccent = useCallback((partial: AccentGlobals) => {
     setGlobals(prev => {
       const next = { ...prev, ...partial }
-      applyAccentToCssVars(next.accentColor ?? DEFAULT_ACCENT)
+      // Only override the stylesheet's native --color-primary once a color is
+      // actually chosen — toggling glow alone must not force the fallback green.
+      if (next.accentColor) applyAccentToCssVars(next.accentColor)
       return next
     })
     void saveAccentSettings(partial)
