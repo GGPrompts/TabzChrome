@@ -228,7 +228,7 @@ export function TerminalCustomizePopover({
               type="text"
               value={currentName ?? ''}
               onChange={(e) => onRename(sessionId, e.target.value)}
-              className={`w-full px-2 py-1.5 border rounded text-sm focus:border-[#00ff88] focus:outline-none ${
+              className={`w-full px-2 py-1.5 border rounded text-sm focus:border-white/40 focus:outline-none ${
                 isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
               }`}
               style={{ color: themeColors?.foreground || '#e0e0e0' }}

@@ -22,7 +22,7 @@ export function useAccentSettings() {
     loadAccentSettings().then(g => {
       if (cancelled) return
       setGlobals(g)
-      applyAccentToCssVars(g.accentColor ?? DEFAULT_ACCENT)
+      if (g.accentColor) applyAccentToCssVars(g.accentColor)
       setLoaded(true)
     })
 
@@ -30,7 +30,7 @@ export function useAccentSettings() {
       if (changes[ACCENT_SETTINGS_KEY]) {
         const next = (changes[ACCENT_SETTINGS_KEY].newValue as AccentGlobals) ?? {}
         setGlobals(next)
-        applyAccentToCssVars(next.accentColor ?? DEFAULT_ACCENT)
+        if (next.accentColor) applyAccentToCssVars(next.accentColor)
       }
     }
     chrome.storage.local.onChanged.addListener(listener)
