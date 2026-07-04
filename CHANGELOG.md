@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
+## [Unreleased]
+
+### Fixed
+
+- **Mouse-wheel escape sequences (`64;22;46M…`) typed into shell prompts after a TUI app dies** (`backend/modules/pty-handler.js`) — when a full-screen app (e.g. a Claude session) is killed without restoring the terminal, tmux keeps the pane's mouse/alt-screen state, re-asserts it to each newly-attached client, and forwards the resulting wheel reports into the pane — where the now-bare shell echoes them as garbage. The backend now sanitizes before attach: panes whose current command is a plain shell but which still advertise mouse or alt-screen modes get DECRST resets written to their tty, which tmux parses as application output and clears its stale pane state.
+
 ---
 
 ## [1.5.0] - 2026-03-30
