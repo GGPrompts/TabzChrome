@@ -83,6 +83,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const canvasAddonRef = useRef<CanvasAddon | null>(null)
+  const fitTerminalRef = useRef<((retryCount?: number, sendToBackend?: boolean) => void) | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)  // Track if xterm has been opened
   const [mediaError, setMediaError] = useState(false)  // Track if background media failed to load
@@ -515,6 +516,9 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         flushWriteQueue()
       }
     }
+    // Expose to the standalone ResizeObserver effect (which outlives this
+    // effect's re-runs — see the observer effect below).
+    fitTerminalRef.current = fitTerminal
 
     // Initial fit sequence after xterm.open()
     const initialFit = () => {
@@ -699,24 +703,30 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
       xterm.focus()
     }, 150)
 
-    // ResizeObserver to fit when container size changes
-    // SIMPLIFIED: Following Tabz pattern - for tmux sessions, only do local fit, don't send resize to backend
-    // Backend resize is only sent on actual window resize events (handled separately)
-    const resizeObserverTimeoutRef = { current: null as ReturnType<typeof setTimeout> | null }
+  }, [terminalId, isInitialized])
 
+  // ResizeObserver to fit when container size changes.
+  // SIMPLIFIED: Following Tabz pattern - for tmux sessions, only do local fit, don't send resize to backend.
+  // Backend resize is only sent on actual window resize events (handled separately).
+  //
+  // Lives in its OWN effect, not the init effect above: the init effect re-runs
+  // when isInitialized flips to true, and React runs the previous cleanup first.
+  // When the observer lived inside it, that cleanup disconnected the observer
+  // while the re-run's early-return guard never re-created it — so container
+  // resizes (orientation toggle, panel layout changes) were silently ignored.
+  useEffect(() => {
+    if (!isInitialized || !terminalRef.current) return
+
+    let debounce: ReturnType<typeof setTimeout> | null = null
     const resizeObserver = new ResizeObserver((entries) => {
-      if (resizeObserverTimeoutRef.current) clearTimeout(resizeObserverTimeoutRef.current)
-
       const entry = entries[0]
       if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0) {
         return
       }
 
-      // Only log occasionally to reduce spam
-      // console.log(`[Terminal] ${terminalId.slice(-8)} RESIZE_OBSERVER fired: ${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}`)
-
       // Debounce the fit operation
-      resizeObserverTimeoutRef.current = setTimeout(() => {
+      if (debounce) clearTimeout(debounce)
+      debounce = setTimeout(() => {
         if (!xtermRef.current || !fitAddonRef.current || !terminalRef.current) return
 
         // For tmux sessions, just fit and trigger resize trick - don't clear
@@ -726,7 +736,7 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
           const beforeCols = xtermRef.current.cols
           const beforeRows = xtermRef.current.rows
 
-          fitTerminal(0, false)
+          fitTerminalRef.current?.(0, false)
 
           const afterCols = xtermRef.current.cols
           const afterRows = xtermRef.current.rows
@@ -752,23 +762,17 @@ export function Terminal({ terminalId, sessionName, terminalType = 'bash', worki
         }
 
         // Non-tmux sessions: just fit
-        fitTerminal(0, false)
+        fitTerminalRef.current?.(0, false)
       }, 150)
     })
 
-    if (terminalRef.current) {
-      resizeObserver.observe(terminalRef.current)
-    }
-
-    // Cleanup
-    const currentResizeObserver = resizeObserver
-    const currentTimeoutRef = resizeObserverTimeoutRef
+    resizeObserver.observe(terminalRef.current)
 
     return () => {
-      currentResizeObserver.disconnect()
-      if (currentTimeoutRef.current) clearTimeout(currentTimeoutRef.current)
+      resizeObserver.disconnect()
+      if (debounce) clearTimeout(debounce)
     }
-  }, [terminalId, isInitialized])
+  }, [terminalId, isInitialized, isTmuxSession])
 
   // Separate cleanup effect - only dispose xterm on true unmount
   useEffect(() => {
