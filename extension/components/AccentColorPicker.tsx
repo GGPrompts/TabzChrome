@@ -56,11 +56,11 @@ export function AccentColorPicker({
           aria-checked={glowEnabled}
           aria-label="Glow"
           onClick={() => onGlowChange(!glowEnabled)}
-          className={`w-9 h-5 rounded-full transition-colors relative ${glowEnabled ? 'bg-white/70' : 'bg-white/20'}`}
+          className={`w-9 h-5 p-0 flex-shrink-0 rounded-full transition-colors relative ${glowEnabled ? 'bg-white/70' : 'bg-white/20'}`}
         >
           <span
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-black transition-transform ${
-              glowEnabled ? 'translate-x-4' : 'translate-x-0.5'
+            className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-black transition-transform ${
+              glowEnabled ? 'translate-x-4' : ''
             }`}
           />
         </button>
