@@ -964,7 +964,7 @@ export default function SettingsProfiles() {
       <div className="mb-6 p-4 rounded-lg bg-card border border-border">
         <h2 className="text-sm font-semibold mb-1">App Accent & Glow</h2>
         <p className="text-xs text-muted-foreground mb-3">
-          The default highlight/glow color for terminals. Individual terminals can override this from their sidebar tab&apos;s customize (⋯) popover.
+          Accent color for dashboard highlights and the active terminal tab in the sidebar. Tabs with a category color keep it — categories take precedence. Individual terminals can override the accent from their sidebar tab&apos;s customize (⋯) popover. Terminal appearance itself (theme, font, background) stays per-profile.
         </p>
         <AccentColorPicker
           color={globalAccent}
