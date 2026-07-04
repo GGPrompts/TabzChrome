@@ -15,25 +15,14 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- **Mouse-wheel escape sequences (`64;22;46M…`) typed into shell prompts after a TUI app dies** (`backend/modules/pty-handler.js`) — when a full-screen app (e.g. a Claude session) is killed without restoring the terminal, tmux keeps the pane's mouse/alt-screen state, re-asserts it to each newly-attached client, and forwards the resulting wheel reports into the pane — where the now-bare shell echoes them as garbage. The backend now sanitizes before attach: panes whose current command is a plain shell but which still advertise mouse or alt-screen modes get DECRST resets written to their tty, which tmux parses as application output and clears its stale pane state.
-
----
-
-## [Unreleased]
+- **Configurable accent/glow color** — global default (dashboard **Settings → Profiles** page, "App Accent & Glow" section) plus per-terminal overrides (tab customize popover). Reusable `AccentColorPicker` (swatches + color wheel + glow toggle) backed by `useAccentSettings()`, which persists the global default to `chrome.storage.local` (`appearanceSettings`) and mirrors it live into CSS vars (`--color-primary`/`--color-accent`/`--color-ring`) across the dashboard and sidebar via `chrome.storage.onChanged`. Per-terminal overrides are session-only (not persisted), matching existing `appearanceOverrides` behavior; resetting a terminal's overrides falls back to the global accent automatically.
 
 ### Fixed
 
 - **Terminals ignored container-only resizes** (`extension/components/Terminal.tsx`) — the ResizeObserver was created inside the xterm init effect. When `isInitialized` flipped to true that effect re-ran: React executed the previous cleanup first (disconnecting the observer) and the re-run's early-return guard never re-created it, so every terminal ran with a dead observer from moments after mount. Window resizes were covered by a separate listener, but container-only changes (banners appearing/disappearing, layout shifts) left xterm at stale dimensions. The observer now lives in its own effect keyed on `isInitialized`, with symmetric setup/cleanup.
-
----
-
-## [Unreleased]
-
-### Added
-
-- **Configurable accent/glow color** — global default (dashboard **Settings → Profiles** page, "App Accent & Glow" section) plus per-terminal overrides (tab customize popover). Reusable `AccentColorPicker` (swatches + color wheel + glow toggle) backed by `useAccentSettings()`, which persists the global default to `chrome.storage.local` (`appearanceSettings`) and mirrors it live into CSS vars (`--color-primary`/`--color-accent`/`--color-ring`) across the dashboard and sidebar via `chrome.storage.onChanged`. Per-terminal overrides are session-only (not persisted), matching existing `appearanceOverrides` behavior; resetting a terminal's overrides falls back to the global accent automatically.
+- **Mouse-wheel escape sequences (`64;22;46M…`) typed into shell prompts after a TUI app dies** (`backend/modules/pty-handler.js`) — when a full-screen app (e.g. a Claude session) is killed without restoring the terminal, tmux keeps the pane's mouse/alt-screen state, re-asserts it to each newly-attached client, and forwards the resulting wheel reports into the pane — where the now-bare shell echoes them as garbage. The backend now sanitizes before attach: panes whose current command is a plain shell but which still advertise mouse or alt-screen modes get DECRST resets written to their tty, which tmux parses as application output and clears its stale pane state.
 
 ---
 
