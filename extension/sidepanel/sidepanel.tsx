@@ -1176,7 +1176,7 @@ function SidePanelTerminal() {
                   const categoryColor = getSessionCategoryColor(session, categorySettings)
                   const isSelected = currentSession === session.id
                   const isExternal = session.poppedOut || session.focusedIn3D
-                  const accent = resolveAccent(session.appearanceOverrides, accentGlobals)
+                  const accent = resolveAccent(undefined, accentGlobals)
 
                   return (
                   <div
@@ -1207,11 +1207,12 @@ function SidePanelTerminal() {
                       const dragBorder = dragOverTabId === session.id
                         ? { borderLeftColor: accent.color } : null
                       if (isSelected && categoryColor) {
-                        // Existing category-color behavior preserved
+                        // Category color wins for the pill; glow tints with it too
                         return {
                           backgroundColor: `${categoryColor}20`,  // 20 = ~12% opacity in hex
                           color: 'white',  // White text works on all category colors
                           borderColor: `${categoryColor}60`,  // 60 = ~37% opacity in hex
+                          ...(accent.glow ? { boxShadow: glowShadow(categoryColor) } : {}),
                           ...dragBorder,
                         }
                       }
@@ -1772,7 +1773,6 @@ function SidePanelTerminal() {
             onClose={() => setCustomizePopover({ isOpen: false, position: { x: 0, y: 0 }, sessionId: null })}
             currentName={session.name}
             onRename={persistRename}
-            accentDefaults={accentGlobals}
           />
         )
       })()}

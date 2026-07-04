@@ -5,8 +5,6 @@ import { themes, themeNames, getBackgroundGradient as getThemeBackgroundGradient
 import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 import { FONT_FAMILIES, getAvailableFonts, type BackgroundMediaType } from './settings/types'
 import type { TerminalAppearanceOverrides } from '../hooks/useTerminalSessions'
-import { AccentColorPicker } from './AccentColorPicker'
-import { DEFAULT_ACCENT, DEFAULT_GLOW_ENABLED } from '../styles/accent'
 
 interface TerminalCustomizePopoverProps {
   sessionId: string
@@ -36,7 +34,6 @@ interface TerminalCustomizePopoverProps {
   onClose: () => void
   currentName?: string
   onRename?: (sessionId: string, name: string) => void
-  accentDefaults?: { accentColor?: string; glowEnabled?: boolean }
 }
 
 const MIN_FONT_OFFSET = -4
@@ -59,7 +56,6 @@ export function TerminalCustomizePopover({
   onClose,
   currentName,
   onRename,
-  accentDefaults,
 }: TerminalCustomizePopoverProps) {
   // Close on click outside (using shared hook)
   useOutsideClick(isOpen, useCallback(() => onClose(), [onClose]))
@@ -88,10 +84,6 @@ export function TerminalCustomizePopover({
   const effectiveBackgroundMedia = currentOverrides?.backgroundMedia ?? profileDefaults.backgroundMedia ?? ''
   const effectiveBackgroundMediaType = currentOverrides?.backgroundMediaType ?? profileDefaults.backgroundMediaType ?? 'none'
   const effectiveBackgroundMediaOpacity = currentOverrides?.backgroundMediaOpacity ?? profileDefaults.backgroundMediaOpacity ?? 50
-  const effectiveAccentColor =
-    currentOverrides?.accentColor ?? accentDefaults?.accentColor ?? DEFAULT_ACCENT
-  const effectiveGlowEnabled =
-    currentOverrides?.glowEnabled ?? accentDefaults?.glowEnabled ?? DEFAULT_GLOW_ENABLED
 
   // Compute gradient CSS same as Terminal.tsx
   const effectiveGradientCSS = effectiveGradient
@@ -235,16 +227,6 @@ export function TerminalCustomizePopover({
             />
           </div>
         )}
-
-        {/* Accent / glow color — applies live */}
-        <div>
-          <AccentColorPicker
-            color={effectiveAccentColor}
-            glowEnabled={effectiveGlowEnabled}
-            onColorChange={(hex) => onUpdate(sessionId, { accentColor: hex })}
-            onGlowChange={(enabled) => onUpdate(sessionId, { glowEnabled: enabled })}
-          />
-        </div>
 
         {/* Font Size */}
         <div>

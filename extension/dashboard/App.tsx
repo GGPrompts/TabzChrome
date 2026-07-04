@@ -21,6 +21,7 @@ import {
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   GlobeIcon,
+  SparklesIcon,
 } from '../components/icons'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 import { useAccentSettings } from '../hooks/useAccentSettings'
@@ -34,6 +35,7 @@ import SettingsMcp from './sections/SettingsMcp'
 import SettingsAudio from './sections/SettingsAudio'
 import SettingsNotifications from './sections/SettingsNotifications'
 import SettingsProfiles from './sections/SettingsProfiles'
+import SettingsAppearance from './sections/SettingsAppearance'
 import FilesSection from './sections/Files'
 import GitSection from './sections/Git'
 import PagesSection from './sections/Pages'
@@ -57,7 +59,7 @@ interface CaptureData {
   }
 }
 
-type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'audio' | 'notifications' | 'pages'
+type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'appearance' | 'audio' | 'notifications' | 'pages'
 
 interface NavItem {
   id: Section
@@ -144,6 +146,7 @@ const navItems: NavItem[] = [
   { id: 'pages', label: 'Pages', icon: GlobeIcon },
   { id: 'api', label: 'API Playground', icon: CodeIcon },
   { id: 'mcp', label: 'MCP Settings', icon: SettingsIcon },
+  { id: 'appearance', label: 'Appearance', icon: SparklesIcon },
   { id: 'audio', label: 'Audio', icon: VolumeIcon },
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
 ]
@@ -161,7 +164,7 @@ export default function App() {
     if (hash.startsWith('#/')) {
       const hashPath = hash.slice(2) // Remove '#/'
       const [section] = hashPath.split('?')
-      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications', 'pages']
+      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'appearance', 'audio', 'notifications', 'pages']
       if (validSections.includes(section as Section)) {
         return section as Section
       }
@@ -229,7 +232,7 @@ export default function App() {
       if (hash.startsWith('#/')) {
         const hashPath = hash.slice(2) // Remove '#/'
         const [section] = hashPath.split('?')
-        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'audio', 'notifications', 'pages']
+        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'appearance', 'audio', 'notifications', 'pages']
         if (validSections.includes(section as Section)) {
           setActiveSection(section as Section)
         }
@@ -319,6 +322,8 @@ export default function App() {
         return <SettingsProfiles />
       case 'mcp':
         return <SettingsMcp />
+      case 'appearance':
+        return <SettingsAppearance />
       case 'audio':
         return <SettingsAudio />
       case 'notifications':

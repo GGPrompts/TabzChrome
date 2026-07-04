@@ -16,7 +16,6 @@ function renderPopover(extra = {}) {
       profileDefaults={{}}
       currentName="My Term"
       onRename={onRename}
-      accentDefaults={{ accentColor: '#00ff88', glowEnabled: true }}
       onUpdate={onUpdate}
       onReset={onReset}
       onIncreaseFontSize={() => {}}
@@ -29,7 +28,7 @@ function renderPopover(extra = {}) {
   return { onUpdate, onReset, onRename }
 }
 
-describe('TerminalCustomizePopover accent additions', () => {
+describe('TerminalCustomizePopover quick rename', () => {
   it('renders the rename field with the current name', () => {
     renderPopover()
     const input = screen.getByLabelText('Terminal name') as HTMLInputElement
@@ -42,15 +41,8 @@ describe('TerminalCustomizePopover accent additions', () => {
     expect(onRename).toHaveBeenCalledWith('ctt-default-abcd1234', 'Renamed')
   })
 
-  it('choosing an accent preset calls onUpdate with accentColor', () => {
-    const { onUpdate } = renderPopover()
-    fireEvent.click(screen.getByTitle('Blue'))
-    expect(onUpdate).toHaveBeenCalledWith('ctt-default-abcd1234', { accentColor: '#3b82f6' })
-  })
-
-  it('toggling glow calls onUpdate with glowEnabled', () => {
-    const { onUpdate } = renderPopover()
-    fireEvent.click(screen.getByRole('switch', { name: /glow/i }))
-    expect(onUpdate).toHaveBeenCalledWith('ctt-default-abcd1234', { glowEnabled: false })
+  it('hides the rename field when onRename is not provided', () => {
+    renderPopover({ onRename: undefined, currentName: undefined })
+    expect(screen.queryByLabelText('Terminal name')).toBeNull()
   })
 })
