@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
+## [1.6.0] - 2026-07-04
+
+First release with community contributions — all three changes below started as PRs from [@gitspoked](https://github.com/gitspoked). Thanks!
+
+### Added
+
+- **Appearance settings section** (dashboard **Settings → Appearance**) — configurable app accent color and active-tab glow. The accent recolors dashboard highlights and the active terminal tab in the sidebar (category colors still win for the tab pill); the glow adds a soft shadow to the active tab, tinted with the tab's category color when it has one, else the accent. Persisted to `chrome.storage.local` (`appearanceSettings`), applied at dashboard/sidebar startup, and live-synced across contexts via `chrome.storage.onChanged`. Based on community PR #3 by @gitspoked, reworked: the accent is an app-level setting (no per-terminal override — the customize popover remains temporary overrides of per-profile terminal appearance).
+- **Quick rename + customize button on terminal tabs** — hovering a sidebar tab shows a ⋯ button that opens the customize popover, which now includes a live rename field (session-scoped, like the other popover options). From community PR #3 by @gitspoked.
+
+### Fixed
+
+- **Terminals ignored container-only resizes** (`extension/components/Terminal.tsx`) — the ResizeObserver was created inside the xterm init effect. When `isInitialized` flipped to true that effect re-ran: React executed the previous cleanup first (disconnecting the observer) and the re-run's early-return guard never re-created it, so every terminal ran with a dead observer from moments after mount. Window resizes were covered by a separate listener, but container-only changes (banners appearing/disappearing, layout shifts) left xterm at stale dimensions. The observer now lives in its own effect keyed on `isInitialized`, with symmetric setup/cleanup.
+- **Mouse-wheel escape sequences (`64;22;46M…`) typed into shell prompts after a TUI app dies** (`backend/modules/pty-handler.js`) — when a full-screen app (e.g. a Claude session) is killed without restoring the terminal, tmux keeps the pane's mouse/alt-screen state, re-asserts it to each newly-attached client, and forwards the resulting wheel reports into the pane — where the now-bare shell echoes them as garbage. The backend now sanitizes before attach: panes whose current command is a plain shell but which still advertise mouse or alt-screen modes get DECRST resets written to their tty, which tmux parses as application output and clears its stale pane state.
+
 ---
 
 ## [1.5.0] - 2026-03-30
