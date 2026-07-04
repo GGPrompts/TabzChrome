@@ -86,6 +86,18 @@ Add these hooks to `~/.claude/settings.json`:
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/state-tracker.sh subagent-start",
+            "timeout": 1
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
         "matcher": "",
@@ -121,6 +133,42 @@ Add these hooks to `~/.claude/settings.json`:
 claude
 ```
 
+## Context Percentage (Optional)
+
+Terminal tabs can also show context window usage (e.g. `50% ctx`). This uses
+Claude Code's statusline feature, which receives context data the hooks don't.
+
+### 1. Install the statusline script
+
+```bash
+# From TabzChrome directory
+cp docs/scripts/statusline-script.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/statusline-script.sh
+```
+
+### 2. Configure it in settings.json
+
+Add to `~/.claude/settings.json` (top level, alongside `"hooks"`):
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/hooks/statusline-script.sh"
+  }
+}
+```
+
+### How it works
+
+On every status update, the script writes
+`/tmp/claude-code-state/<claude-session-id>-context.json` (token counts and
+context %) plus a small linkage file that lets the state tracker join the
+context data to its state file. The tracker then embeds `context_percent`
+into the state JSON that the TabzChrome backend reads. Already have your own
+statusline? Merge the file-writing block from `docs/scripts/statusline-script.sh`
+into it — the printed status line itself can be anything you like.
+
 ## Configuration
 
 The script uses these environment variables:
@@ -128,6 +176,8 @@ The script uses these environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TABZ_BACKEND_URL` | `http://localhost:8129` | TabzChrome backend URL |
+| `CLAUDE_AUDIO` | `0` | Set to `1` to enable spoken announcements |
+| `CLAUDE_SESSION_NAME` | `Claude` | Name used in spoken announcements |
 
 ## How It Works
 

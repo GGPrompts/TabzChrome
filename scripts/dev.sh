@@ -281,7 +281,7 @@ if [ "$STATUSLINE_CONFIGURED" = false ]; then
     echo -e "${YELLOW}│  💡 Context % on tabs not configured                │${NC}"
     echo -e "${YELLOW}╰─────────────────────────────────────────────────────╯${NC}"
     echo -e "   TabzChrome can show context window usage on Claude tabs."
-    echo -e "   Run: ${BLUE}./plugins/state-tracker/setup.sh${NC}"
+    echo -e "   Setup: ${BLUE}docs/state-tracker-setup.md${NC} (Context Percentage section)"
     echo ""
 fi
 

@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
+## [1.6.1] - 2026-07-04
+
+### Added
+
+- **Shipped a minimal statusline script** (`docs/scripts/statusline-script.sh`) for the context-%-on-tabs feature. `scripts/dev.sh` and `docs/TESTING.md` previously pointed users at `./plugins/state-tracker/setup.sh`, which no longer exists — both now point at `docs/state-tracker-setup.md`, which gained a "Context Percentage" section covering statusline install and how the context files link up.
+
+### Changed
+
+- **State-tracker hook script refreshed** (`hooks/scripts/state-tracker.sh`, `docs/scripts/state-tracker.sh`) — ported improvements from the upstream unified tracker while staying TabzChrome-only (audio still goes through the backend's `/api/audio/speak` Chrome TTS endpoint):
+  - State JSON is now built with `jq` instead of a heredoc, so prompts/paths containing quotes or `$` can no longer produce corrupt state files.
+  - Subagent counting moved from `PreToolUse Task` (which fires even when the Task is denied) to dedicated `SubagentStart`/`SubagentStop` hook events; `hooks/hooks.json` and `docs/state-tracker-setup.md` now wire both.
+  - macOS compatibility: `stat -f` fallback, `md5` fallback, and mkdir-based locking instead of Linux-only `flock`.
+  - New `session_title` field (derived from the first user prompt) and context-window data (`context_percent`, token counts) picked up from statusline-written context files when present.
+  - Expanded session-start cleanup: orphaned context files, stale subagent counters, and leftover lock dirs are now removed.
+  - `pid` now records the Claude process (PPID) rather than the short-lived hook process.
+
+---
+
 ## [1.6.0] - 2026-07-04
 
 First release with community contributions — all three changes below started as PRs from [@gitspoked](https://github.com/gitspoked). Thanks!

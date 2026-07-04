@@ -381,7 +381,7 @@ edge-tts --text "Hello" --write-media /tmp/test.mp3
 
 ### Status Detection
 
-Requires hooks from `claude-hooks/` or plugins to be installed.
+Requires the state-tracker hooks to be installed.
 
 - [ ] **Status indicators** - Terminal tabs show Claude status (thinking, tool use)
 - [ ] **Subagent detection** - Multiple robot emojis for parallel agents
@@ -389,10 +389,9 @@ Requires hooks from `claude-hooks/` or plugins to be installed.
 
 ### Hooks Setup
 
-```bash
-# Install status tracking
-./plugins/state-tracker/setup.sh
-```
+Follow [state-tracker-setup.md](state-tracker-setup.md) to install the state-tracker
+hook script (status indicators, subagent detection) and the optional statusline
+script (context percentage).
 
 ---
 
