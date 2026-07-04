@@ -78,6 +78,3 @@ mcp-presets.json
 # Dolt database files
 .dolt/
 *.db
-
-# User data written by the dashboard MCP settings page
-mcp-presets.json
