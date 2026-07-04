@@ -23,6 +23,7 @@ import {
   GlobeIcon,
 } from '../components/icons'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
+import { useAccentSettings } from '../hooks/useAccentSettings'
 
 // Sections
 import HomeSection from './sections/Home'
@@ -148,6 +149,11 @@ const navItems: NavItem[] = [
 ]
 
 export default function App() {
+  // Load the stored accent and mirror it into the dashboard CSS vars on startup.
+  // Without this, the accent only applied while the Settings > Profiles section
+  // was mounted, so a refresh on any other route reverted to the default green.
+  useAccentSettings()
+
   const [activeSection, setActiveSection] = useState<Section>(() => {
     // Check URL hash first (e.g., #/files?path=...) - must be synchronous
     // to prevent race condition with FilesContext clearing the hash
