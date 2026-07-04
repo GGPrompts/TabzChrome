@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
-## [Unreleased]
+## [1.6.0] - 2026-07-04
+
+First release with community contributions — all three changes below started as PRs from [@gitspoked](https://github.com/gitspoked). Thanks!
 
 ### Added
 
