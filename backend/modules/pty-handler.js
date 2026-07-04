@@ -85,6 +85,37 @@ class PTYHandler extends EventEmitter {
   /**
    * Generate a unique tmux session name
    */
+  /**
+   * Heal stale pane modes left behind by abruptly-killed TUI apps (e.g. a dead
+   * Claude session). Tmux keeps the pane's mouse/alt-screen state and re-asserts
+   * it to every newly-attached client, so xterm.js starts sending wheel reports
+   * that tmux forwards into a pane now running a plain shell — which echoes them
+   * as ";64;22;46M" garbage at the prompt. If a pane runs a bare shell but still
+   * advertises mouse/alt-screen modes, write DECRST resets to the pane tty: tmux
+   * parses them as application output and clears its own pane state.
+   */
+  sanitizeStalePaneModes(sessionName) {
+    try {
+      const out = require('child_process').execFileSync(
+        'tmux',
+        ['list-panes', '-t', sessionName, '-F', '#{pane_current_command}|#{mouse_any_flag}|#{alternate_on}|#{pane_tty}'],
+        { encoding: 'utf8' }
+      );
+      const SHELLS = new Set(['bash', 'zsh', 'sh', 'fish', 'dash']);
+      for (const line of out.trim().split('\n')) {
+        const [cmd, mouse, alt, tty] = line.split('|');
+        if (!tty || !SHELLS.has((cmd || '').replace(/^-/, ''))) continue;
+        if (mouse === '1' || alt === '1') {
+          log.info(`Sanitizing stale pane modes on ${sessionName} (${cmd}, mouse=${mouse}, alt=${alt})`);
+          require('fs').writeFileSync(tty, '\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?2004l\x1b[?1049l');
+        }
+      }
+    } catch (e) {
+      // Best-effort: never block an attach on sanitization
+      log.debug(`sanitizeStalePaneModes skipped: ${e.message}`);
+    }
+  }
+
   generateUniqueSessionName(baseName) {
     if (!this.tmuxSessionExists(baseName)) {
       return baseName;
@@ -295,6 +326,11 @@ class PTYHandler extends EventEmitter {
             throw new Error(`Failed to create tmux session: ${tmuxError.message}`);
           }
         }
+
+        // Heal any stale mouse/alt-screen pane state before a client attaches,
+        // so reconnecting to a session whose TUI app died doesn't spray mouse
+        // reports into the shell.
+        this.sanitizeStalePaneModes(sessionName);
 
         // Attach to the tmux session via PTY (works for both new and existing)
         ptyProcess = pty.spawn('tmux', ['attach-session', '-t', sessionName], {
