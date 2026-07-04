@@ -14,6 +14,9 @@ export interface TerminalAppearanceOverrides {
   backgroundMedia?: string
   backgroundMediaType?: BackgroundMediaType
   backgroundMediaOpacity?: number
+  // Accent / glow color (per-terminal override; falls back to global default)
+  accentColor?: string
+  glowEnabled?: boolean
 }
 
 export interface TerminalSession {

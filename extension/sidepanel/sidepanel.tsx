@@ -48,6 +48,8 @@ import { useTabDragDrop } from '../hooks/useTabDragDrop'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import { useDesktopNotifications } from '../hooks/useDesktopNotifications'
+import { useAccentSettings } from '../hooks/useAccentSettings'
+import { resolveAccent, hexWithAlpha, glowShadow } from '../styles/accent'
 import { playWithPriority, type AudioPriority } from '../utils/audioManager'
 import '../styles/globals.css'
 
@@ -184,6 +186,10 @@ function SidePanelTerminal() {
     profiles,
     getNextAvailableVoice: () => getNextAvailableVoiceRef.current(),
   })
+
+  // Accent/glow settings - global defaults for per-terminal accent color resolution.
+  // Also applies the global accent to document.documentElement CSS vars on mount.
+  const { globals: accentGlobals } = useAccentSettings()
 
   // Claude status tracking - polls for Claude Code status in each terminal
   // Only terminals with "claude" in their profile command or API command will be polled
@@ -682,6 +688,16 @@ function SidePanelTerminal() {
     setContextMenu({ show: false, x: 0, y: 0, terminalId: null })
   }
 
+  // Persist a session rename. Used by the live per-keystroke rename field in the
+  // customize popover. Session state persists to chrome.storage automatically via the
+  // `sessions` effect in useTerminalSessions, so setSessions is the full persistence
+  // mechanism here - no separate storage/backend call.
+  const persistRename = (terminalId: string, name: string) => {
+    setSessions(prev => prev.map(s =>
+      s.id === terminalId ? { ...s, name } : s
+    ))
+  }
+
   // Handle "Save to Profile" from customize popover
   // Saves the current appearance overrides (and font size) to the profile
   const handleSaveToProfile = (sessionId: string) => {
@@ -1160,6 +1176,7 @@ function SidePanelTerminal() {
                   const categoryColor = getSessionCategoryColor(session, categorySettings)
                   const isSelected = currentSession === session.id
                   const isExternal = session.poppedOut || session.focusedIn3D
+                  const accent = resolveAccent(session.appearanceOverrides, accentGlobals)
 
                   return (
                   <div
@@ -1178,19 +1195,37 @@ function SidePanelTerminal() {
                           ? 'border'  // Use inline styles for category color
                           : isExternal
                             ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                            : 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/30'
+                            : 'border'
                         : isExternal
                           ? 'bg-white/3 hover:bg-white/8 text-gray-500 hover:text-gray-400 border border-transparent'
                           : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-300 border border-transparent'
                       }
                       ${draggedTabId === session.id ? 'opacity-50' : ''}
-                      ${dragOverTabId === session.id ? 'border-l-2 border-l-[#00ff88]' : ''}
+                      ${dragOverTabId === session.id ? 'border-l-2' : ''}
                     `}
-                    style={isSelected && categoryColor ? {
-                      backgroundColor: `${categoryColor}20`,  // 20 = ~12% opacity in hex
-                      color: 'white',  // White text works on all category colors
-                      borderColor: `${categoryColor}60`,  // 60 = ~37% opacity in hex
-                    } : undefined}
+                    style={(() => {
+                      const dragBorder = dragOverTabId === session.id
+                        ? { borderLeftColor: accent.color } : null
+                      if (isSelected && categoryColor) {
+                        // Existing category-color behavior preserved
+                        return {
+                          backgroundColor: `${categoryColor}20`,  // 20 = ~12% opacity in hex
+                          color: 'white',  // White text works on all category colors
+                          borderColor: `${categoryColor}60`,  // 60 = ~37% opacity in hex
+                          ...dragBorder,
+                        }
+                      }
+                      if (isSelected && !isExternal) {
+                        return {
+                          backgroundColor: hexWithAlpha(accent.color, 0.1),
+                          color: accent.color,
+                          borderColor: hexWithAlpha(accent.color, 0.3),
+                          ...(accent.glow ? { boxShadow: glowShadow(accent.color) } : {}),
+                          ...dragBorder,
+                        }
+                      }
+                      return dragBorder ?? undefined
+                    })()}
                     onClick={() => switchToSession(session.id)}
                     onContextMenu={(e) => handleTabContextMenu(e, session.id)}
                     onMouseEnter={(e) => {
@@ -1270,6 +1305,23 @@ function SidePanelTerminal() {
                         </span>
                       )}
                     </span>
+                    <button
+                      type="button"
+                      aria-label="Customize terminal"
+                      title="Customize appearance"
+                      className="flex-shrink-0 opacity-0 group-hover:opacity-70 hover:!opacity-100 text-xs px-1 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        setCustomizePopover({
+                          isOpen: true,
+                          position: { x: rect.left, y: rect.bottom + 4 },
+                          sessionId: session.id,
+                        })
+                      }}
+                    >
+                      ⋯
+                    </button>
                     <button
                       onClick={(e) => handleCloseTab(e, session.id)}
                       className="flex-shrink-0 ml-1 p-0.5 rounded hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
@@ -1718,6 +1770,9 @@ function SidePanelTerminal() {
             onDecreaseFontSize={() => decreaseFontSize(customizePopover.sessionId!)}
             onResetFontSize={() => resetFontSize(customizePopover.sessionId!)}
             onClose={() => setCustomizePopover({ isOpen: false, position: { x: 0, y: 0 }, sessionId: null })}
+            currentName={session.name}
+            onRename={persistRename}
+            accentDefaults={accentGlobals}
           />
         )
       })()}

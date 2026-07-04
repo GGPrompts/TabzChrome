@@ -29,6 +29,14 @@ For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-arc
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Configurable accent/glow color** — global default (dashboard **Settings → Profiles** page, "App Accent & Glow" section) plus per-terminal overrides (tab customize popover). Reusable `AccentColorPicker` (swatches + color wheel + glow toggle) backed by `useAccentSettings()`, which persists the global default to `chrome.storage.local` (`appearanceSettings`) and mirrors it live into CSS vars (`--color-primary`/`--color-accent`/`--color-ring`) across the dashboard and sidebar via `chrome.storage.onChanged`. Per-terminal overrides are session-only (not persisted), matching existing `appearanceOverrides` behavior; resetting a terminal's overrides falls back to the global accent automatically.
+
+---
+
 ## [1.5.0] - 2026-03-30
 
 ### Added

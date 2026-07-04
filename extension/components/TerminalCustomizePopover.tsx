@@ -5,6 +5,8 @@ import { themes, themeNames, getBackgroundGradient as getThemeBackgroundGradient
 import { backgroundGradients, gradientNames, PANEL_COLORS, getGradientCSS, getPanelColor } from '../styles/terminal-backgrounds'
 import { FONT_FAMILIES, getAvailableFonts, type BackgroundMediaType } from './settings/types'
 import type { TerminalAppearanceOverrides } from '../hooks/useTerminalSessions'
+import { AccentColorPicker } from './AccentColorPicker'
+import { DEFAULT_ACCENT, DEFAULT_GLOW_ENABLED } from '../styles/accent'
 
 interface TerminalCustomizePopoverProps {
   sessionId: string
@@ -32,6 +34,9 @@ interface TerminalCustomizePopoverProps {
   onDecreaseFontSize: () => void
   onResetFontSize: () => void
   onClose: () => void
+  currentName?: string
+  onRename?: (sessionId: string, name: string) => void
+  accentDefaults?: { accentColor?: string; glowEnabled?: boolean }
 }
 
 const MIN_FONT_OFFSET = -4
@@ -52,6 +57,9 @@ export function TerminalCustomizePopover({
   onDecreaseFontSize,
   onResetFontSize,
   onClose,
+  currentName,
+  onRename,
+  accentDefaults,
 }: TerminalCustomizePopoverProps) {
   // Close on click outside (using shared hook)
   useOutsideClick(isOpen, useCallback(() => onClose(), [onClose]))
@@ -80,6 +88,10 @@ export function TerminalCustomizePopover({
   const effectiveBackgroundMedia = currentOverrides?.backgroundMedia ?? profileDefaults.backgroundMedia ?? ''
   const effectiveBackgroundMediaType = currentOverrides?.backgroundMediaType ?? profileDefaults.backgroundMediaType ?? 'none'
   const effectiveBackgroundMediaOpacity = currentOverrides?.backgroundMediaOpacity ?? profileDefaults.backgroundMediaOpacity ?? 50
+  const effectiveAccentColor =
+    currentOverrides?.accentColor ?? accentDefaults?.accentColor ?? DEFAULT_ACCENT
+  const effectiveGlowEnabled =
+    currentOverrides?.glowEnabled ?? accentDefaults?.glowEnabled ?? DEFAULT_GLOW_ENABLED
 
   // Compute gradient CSS same as Terminal.tsx
   const effectiveGradientCSS = effectiveGradient
@@ -204,6 +216,36 @@ export function TerminalCustomizePopover({
       </div>
 
       <div className="relative z-10 px-3 pb-3 space-y-4 max-h-96 overflow-y-auto">
+        {/* Quick rename — applies live, no Save button */}
+        {onRename && (
+          <div>
+            <label htmlFor="tcp-rename" className="block text-xs mb-1.5" style={{ color: themeColors?.brightBlack || '#888' }}>
+              Name
+            </label>
+            <input
+              id="tcp-rename"
+              aria-label="Terminal name"
+              type="text"
+              value={currentName ?? ''}
+              onChange={(e) => onRename(sessionId, e.target.value)}
+              className={`w-full px-2 py-1.5 border rounded text-sm focus:border-white/40 focus:outline-none ${
+                isDark ? 'bg-[#1a1a1a] border-white/20' : 'bg-white border-gray-300'
+              }`}
+              style={{ color: themeColors?.foreground || '#e0e0e0' }}
+            />
+          </div>
+        )}
+
+        {/* Accent / glow color — applies live */}
+        <div>
+          <AccentColorPicker
+            color={effectiveAccentColor}
+            glowEnabled={effectiveGlowEnabled}
+            onColorChange={(hex) => onUpdate(sessionId, { accentColor: hex })}
+            onGlowChange={(enabled) => onUpdate(sessionId, { glowEnabled: enabled })}
+          />
+        </div>
+
         {/* Font Size */}
         <div>
           <label className="block text-xs mb-1.5" style={{ color: themeColors?.brightBlack || '#888' }}>Font Size</label>

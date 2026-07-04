@@ -58,6 +58,8 @@ import {
 import FilePickerModal from '../components/files/FilePickerModal'
 import { useDragDrop } from '../../hooks/useDragDrop'
 import { spawnTerminal, spawnTerminalPopout } from '../hooks/useDashboard'
+import { useAccentSettings } from '../../hooks/useAccentSettings'
+import { AccentColorPicker } from '../../components/AccentColorPicker'
 import { useWorkingDirectory } from '../../hooks/useWorkingDirectory'
 import { getEffectiveWorkingDir } from '../../shared/utils'
 import { getEffectiveProfile } from '../../shared/profiles'
@@ -109,6 +111,9 @@ export default function SettingsProfiles() {
   // Dark mode (for preview)
   // Always use dark mode for dashboard - light mode only affects sidebar terminals
   const isDark = true
+
+  // Global accent/glow default (per-terminal overrides live in the sidebar tab customize popover)
+  const { accentColor: globalAccent, glowEnabled: globalGlow, setAccent } = useAccentSettings()
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -953,6 +958,20 @@ export default function SettingsProfiles() {
             Add Profile
           </button>
         </div>
+      </div>
+
+      {/* Global Accent / Glow */}
+      <div className="mb-6 p-4 rounded-lg bg-card border border-border">
+        <h2 className="text-sm font-semibold mb-1">App Accent & Glow</h2>
+        <p className="text-xs text-muted-foreground mb-3">
+          The default highlight/glow color for terminals. Individual terminals can override this from their sidebar tab&apos;s customize (⋯) popover.
+        </p>
+        <AccentColorPicker
+          color={globalAccent}
+          glowEnabled={globalGlow}
+          onColorChange={(hex) => setAccent({ accentColor: hex })}
+          onGlowChange={(enabled) => setAccent({ glowEnabled: enabled })}
+        />
       </div>
 
       {/* Category Editor Mode */}
