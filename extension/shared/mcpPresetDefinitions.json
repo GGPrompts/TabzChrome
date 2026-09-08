@@ -1,0 +1,55 @@
+{
+  "page-agent": {
+    "name": "Page Agent",
+    "description": "Compact page actions, inspection, navigation, screenshots, logins and console tools. Legacy click and screenshot tools remain available separately.",
+    "categories": [
+      "Core",
+      "Interaction",
+      "Screenshot",
+      "Inspection",
+      "Navigation",
+      "Console"
+    ]
+  },
+  "browser-qa": {
+    "name": "Browser QA",
+    "description": "Browser interaction, inspection, debugging, network capture, and emulation tools.",
+    "categories": [
+      "Core",
+      "Interaction",
+      "Screenshot",
+      "Inspection",
+      "Navigation",
+      "Console",
+      "Network",
+      "Debugger",
+      "Emulation"
+    ]
+  },
+  "chrome-ops": {
+    "name": "Chrome Ops",
+    "description": "Chrome tabs, windows, bookmarks, history, sessions, downloads, cookies, and notifications.",
+    "categories": [
+      "Core",
+      "Tab Groups",
+      "Windows",
+      "Bookmarks",
+      "History",
+      "Sessions",
+      "Downloads",
+      "Cookies",
+      "Notifications"
+    ]
+  },
+  "tabz-ops": {
+    "name": "Tabz Ops",
+    "description": "Tabz terminals, profiles, plugins, skills, audio, and documentation.",
+    "categories": [
+      "Core",
+      "Terminals",
+      "Profiles",
+      "Plugins",
+      "Audio"
+    ]
+  }
+}

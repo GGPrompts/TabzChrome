@@ -5,6 +5,7 @@
  * Uses Chrome's cookies API via the TabzChrome extension.
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+export declare function isAuthPatternCookieName(name: string): boolean;
 /**
  * Register cookie management tools with the MCP server
  */

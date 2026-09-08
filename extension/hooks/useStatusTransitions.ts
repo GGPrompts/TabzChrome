@@ -11,9 +11,6 @@ import {
 import { renderTemplate, type TemplateContext } from '../utils/audioTemplates'
 import { useDesktopNotifications } from './useDesktopNotifications'
 
-// Timeout for question waiting notification (60 seconds)
-const QUESTION_WAITING_TIMEOUT_MS = 60_000
-
 // Threshold for long-running command notification (5 minutes)
 const LONG_RUNNING_THRESHOLD_MS = 300_000
 
@@ -72,9 +69,6 @@ export function useStatusTransitions({
   const lastStatusUpdateRef = useRef<Map<string, string>>(new Map())
   const announcedQuestionsRef = useRef<Map<string, string>>(new Map())  // Track announced questions to avoid repeats
   const announcedPlanApprovalRef = useRef<Map<string, boolean>>(new Map())  // Track plan approval announcements
-  // Question waiting timeout tracking
-  const questionTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-  const questionDataRef = useRef<Map<string, { displayName: string; questionText: string }>>(new Map())
   // Long-running command tracking (when terminal entered processing state)
   const processingStartTimeRef = useRef<Map<string, number>>(new Map())
   // Per-pane voice assignments: Map<terminalId, Map<paneId, voiceName>>
@@ -118,51 +112,6 @@ export function useStatusTransitions({
     terminalPanes.set(paneId, newVoice)
     return newVoice
   }, [getNextAvailableVoice])
-
-  // Start question waiting timeout for a terminal
-  const startQuestionWaitingTimeout = useCallback((
-    terminalId: string,
-    displayName: string,
-    questionText: string
-  ) => {
-    // Clear any existing timeout
-    const existingTimeout = questionTimeoutRef.current.get(terminalId)
-    if (existingTimeout) {
-      clearTimeout(existingTimeout)
-    }
-
-    // Store question data for when timeout fires
-    questionDataRef.current.set(terminalId, { displayName, questionText })
-
-    // Start new timeout
-    const timeoutId = setTimeout(() => {
-      const data = questionDataRef.current.get(terminalId)
-      if (data) {
-        showNotification('questionWaiting', {
-          title: `${data.displayName} waiting for answer`,
-          message: data.questionText.substring(0, 80) + (data.questionText.length > 80 ? '...' : ''),
-          requireInteraction: true,
-          notificationId: `question-waiting-${terminalId}`,
-          priority: 1,
-        })
-      }
-      // Clean up after notification shown
-      questionTimeoutRef.current.delete(terminalId)
-      questionDataRef.current.delete(terminalId)
-    }, QUESTION_WAITING_TIMEOUT_MS)
-
-    questionTimeoutRef.current.set(terminalId, timeoutId)
-  }, [showNotification])
-
-  // Clear question waiting timeout for a terminal
-  const clearQuestionWaitingTimeout = useCallback((terminalId: string) => {
-    const timeout = questionTimeoutRef.current.get(terminalId)
-    if (timeout) {
-      clearTimeout(timeout)
-      questionTimeoutRef.current.delete(terminalId)
-      questionDataRef.current.delete(terminalId)
-    }
-  }, [])
 
   useEffect(() => {
     if (!settingsLoaded) return
@@ -453,17 +402,9 @@ export function useStatusTransitions({
               playAudio(phrase, effectiveSession, false, { eventType: 'askUserQuestion' })
             }
 
-            // Start question waiting timeout (checks its own notification settings internally)
-            startQuestionWaitingTimeout(
-              terminalId,
-              getDisplayName(),
-              firstQuestion.question
-            )
+            // Desktop prompt notifications are owned by the background poller.
           }
         }
-      } else {
-        // Not in AskUserQuestion - clear any pending timeout
-        clearQuestionWaitingTimeout(terminalId)
       }
 
       // Plan approval event - announce when ExitPlanMode is called
@@ -513,19 +454,8 @@ export function useStatusTransitions({
         announcedPlanApprovalRef.current.delete(id)
         processingStartTimeRef.current.delete(id)
         paneVoicesRef.current.delete(id)
-        clearQuestionWaitingTimeout(id)
       }
     }
-  }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, getNextAvailableVoice, playAudio, showNotification, startQuestionWaitingTimeout, clearQuestionWaitingTimeout, ensurePaneVoice])
+  }, [claudeStatuses, audioSettings, audioGlobalMute, settingsLoaded, sessions, getAudioSettingsForProfile, getNextAvailableVoice, playAudio, showNotification, ensurePaneVoice])
 
-  // Cleanup all timeouts on unmount
-  useEffect(() => {
-    return () => {
-      for (const timeout of questionTimeoutRef.current.values()) {
-        clearTimeout(timeout)
-      }
-      questionTimeoutRef.current.clear()
-      questionDataRef.current.clear()
-    }
-  }, [])
 }

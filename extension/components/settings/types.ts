@@ -11,8 +11,9 @@ export interface McpTool {
 
 export const MCP_TOOLS: McpTool[] = [
   // Core tools (always enabled)
-  { id: 'tabz_list_tabs', name: 'List Tabs', desc: 'List all open browser tabs', tokens: 974, locked: true },
+  { id: 'tabz_list_tabs', name: 'List Tabs', desc: 'List tabs in this connection\'s group', tokens: 974, locked: true },
   { id: 'tabz_switch_tab', name: 'Switch Tab', desc: 'Switch to a specific tab by ID', tokens: 940, locked: true },
+  { id: 'tabz_close_tab', name: 'Close Tab', desc: 'Close owned tabs or this connection\'s group', tokens: 139, locked: true },
   { id: 'tabz_rename_tab', name: 'Rename Tab', desc: 'Assign custom names to tabs', tokens: 1000, locked: true },
   { id: 'tabz_get_page_info', name: 'Page Info', desc: 'Get URL and title of current page', tokens: 885, locked: true },
   // Interaction tools

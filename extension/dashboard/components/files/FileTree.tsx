@@ -41,6 +41,7 @@ import {
 // Animated icons
 import { HomeIcon, RefreshCwIcon, EyeIcon, EyeOffIcon, ExpandIcon, ChevronDownIcon } from "../../../components/icons"
 import { useFilesContext } from "../../contexts/FilesContext"
+import { useWorkingDirectory } from "../../../hooks/useWorkingDirectory"
 import { getClaudeFileType, claudeFileColors, ClaudeFileType, getScriptInfo } from "../../utils/claudeFileTypes"
 import { FileTreeContextMenu } from "./FileTreeContextMenu"
 import { sendMessage } from "../../../shared/messaging"
@@ -89,6 +90,7 @@ const isHomePath = (path: string | null | undefined): boolean => {
 export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenProp = false, maxDepth = 5, waitForLoad = false, onQuickOpen }: FileTreeProps) {
   // Use context for caching file tree across tab switches
   const { fileTree, setFileTree, fileTreePath, setFileTreePath, pendingTreeNavigation, clearPendingNavigation, toggleFavorite, isFavorite, openFile, pinFile } = useFilesContext()
+  const { setGlobalWorkingDir, addToRecentDirs, isLoaded: isWorkingDirectoryLoaded } = useWorkingDirectory()
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [focusedPath, setFocusedPath] = useState<string | null>(null)
@@ -159,6 +161,11 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
   }, [basePath, waitForLoad, initializedWithPath, fileTree, fileTreePath, setFileTree, setFileTreePath])
 
+  // Monotonic request ids so a slow in-flight response for a previous
+  // directory can't overwrite the tree after the user switches dirs
+  const treeRequestId = useRef(0)
+  const gitRequestId = useRef(0)
+
   // Fetch file tree (with caching via context)
   const fetchFileTree = useCallback(async (path?: string, forceRefresh = false) => {
     const targetPath = path || currentPath
@@ -186,6 +193,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     setLoading(true)
     setError(null)
 
+    const requestId = ++treeRequestId.current
+
     try {
       const response = await fetch(
         `${API_BASE}/api/files/tree?${new URLSearchParams({
@@ -195,12 +204,17 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         })}`
       )
 
+      // A newer request started while this one was in flight - discard
+      if (requestId !== treeRequestId.current) return
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to load file tree")
       }
 
       const data = await response.json()
+      if (requestId !== treeRequestId.current) return
+
       setFileTree(data)
       // Store the API's resolved path (expanded ~) for consistent comparisons
       setFileTreePath(data.path)
@@ -210,21 +224,27 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         setExpandedFolders(new Set([data.path]))
       }
     } catch (err: any) {
+      if (requestId !== treeRequestId.current) return
       setError(err.message || "Failed to load files")
     } finally {
-      setLoading(false)
+      if (requestId === treeRequestId.current) {
+        setLoading(false)
+      }
     }
   }, [currentPath, showHidden, maxDepth, fileTree, fileTreePath, expandedFolders.size, setFileTree, setFileTreePath])
 
   // Fetch git status for the current directory
   const fetchGitStatus = useCallback(async (path?: string) => {
     const targetPath = path || currentPath
+    const requestId = ++gitRequestId.current
     try {
       const response = await fetch(
         `${API_BASE}/api/files/git-status?${new URLSearchParams({ path: targetPath })}`
       )
+      if (requestId !== gitRequestId.current) return
       if (response.ok) {
         const data = await response.json()
+        if (requestId !== gitRequestId.current) return
         setIsGitRepo(data.isGitRepo)
         setGitStatus(data.files || {})
       }
@@ -826,8 +846,18 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
     }
   }, [contextMenu.node, fetchFileContent])
 
-  // Set folder as working directory
+  // Update the shared working directory and keep the tree on the selected folder.
   const handleSetWorkingDir = useCallback(() => {
+    if (!contextMenu.node || contextMenu.node.type !== 'directory') return
+    const dir = contextMenu.node.path
+    setGlobalWorkingDir(dir)
+    addToRecentDirs(dir)
+    setCurrentPath(dir)
+    fetchFileTree(dir, true)
+  }, [contextMenu.node, fetchFileTree, setGlobalWorkingDir, addToRecentDirs])
+
+  // Navigate this tree without changing the shared working directory.
+  const handleBrowseHere = useCallback(() => {
     if (!contextMenu.node || contextMenu.node.type !== 'directory') return
     setCurrentPath(contextMenu.node.path)
     fetchFileTree(contextMenu.node.path, true)
@@ -1136,7 +1166,8 @@ export function FileTree({ onFileSelect, basePath = "~", showHidden: showHiddenP
         onPasteToTerminal={handlePasteToTerminal}
         onReadAloud={handleReadAloud}
         isLoadingAudio={isLoadingAudio}
-        onSetWorkingDir={handleSetWorkingDir}
+        onSetWorkingDir={isWorkingDirectoryLoaded ? handleSetWorkingDir : undefined}
+        onBrowseHere={handleBrowseHere}
         // Audio playback for audio files
         isAudioFile={contextMenu.node ? isAudioFile(contextMenu.node.name) : false}
         onPlayAudio={handlePlayAudio}

@@ -9,6 +9,7 @@
  * The debugger banner will appear in Chrome while emulation is active.
  * Use tabz_emulate_clear to reset all emulation and detach.
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -121,125 +122,110 @@ async function emulateVision(options) {
 const EmulateDeviceSchema = z.object({
     device: z.enum(['custom', ...DEVICE_NAMES])
         .optional()
-        .describe(`Device preset to emulate. Options: ${DEVICE_NAMES.join(', ')}. Use 'custom' for manual dimensions.`),
+        .describe("Device preset, or 'custom' with width and height."),
     width: z.number()
         .int()
         .min(1)
         .max(4096)
-        .optional()
-        .describe("Viewport width in pixels (required if device='custom')"),
+        .optional(),
     height: z.number()
         .int()
         .min(1)
         .max(4096)
-        .optional()
-        .describe("Viewport height in pixels (required if device='custom')"),
+        .optional(),
     deviceScaleFactor: z.number()
         .min(0.5)
         .max(4)
         .default(1)
-        .describe("Device pixel ratio (2-3 for retina/mobile displays)"),
+        .describe("Device pixel ratio; 2-3 is retina."),
     mobile: z.boolean()
         .default(true)
-        .describe("Enable mobile mode (touch events, mobile user agent)"),
+        .describe("Touch events and a mobile user agent."),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 const EmulateClearSchema = z.object({
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 const EmulateGeolocationSchema = z.object({
     latitude: z.number()
         .min(-90)
         .max(90)
         .optional()
-        .describe("Latitude in degrees (-90 to 90)"),
+        .describe("Latitude in degrees."),
     longitude: z.number()
         .min(-180)
         .max(180)
         .optional()
-        .describe("Longitude in degrees (-180 to 180)"),
+        .describe("Longitude in degrees."),
     accuracy: z.number()
         .min(0)
         .default(100)
-        .describe("Accuracy in meters"),
+        .describe("Accuracy in metres."),
     clear: z.boolean()
         .optional()
-        .describe("Set to true to clear geolocation override"),
+        .describe("Clear the override instead."),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 const EmulateNetworkSchema = z.object({
     preset: z.enum(NETWORK_PRESET_NAMES)
         .optional()
-        .describe(`Network preset: ${NETWORK_PRESET_NAMES.join(', ')}`),
+        .describe("Throttling preset, instead of the custom fields."),
     offline: z.boolean()
         .optional()
-        .describe("Simulate offline mode (for custom conditions)"),
+        .describe("Custom: go offline."),
     downloadThroughput: z.number()
         .optional()
-        .describe("Download speed in bytes/sec, -1 for disabled (for custom conditions)"),
+        .describe("Custom: bytes/sec down, -1 to disable."),
     uploadThroughput: z.number()
         .optional()
-        .describe("Upload speed in bytes/sec, -1 for disabled (for custom conditions)"),
+        .describe("Custom: bytes/sec up, -1 to disable."),
     latency: z.number()
         .optional()
-        .describe("Network latency in milliseconds (for custom conditions)"),
+        .describe("Custom: added latency in ms."),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 const EmulateMediaSchema = z.object({
     media: z.enum(['screen', 'print', ''])
         .optional()
-        .describe("CSS media type: 'screen', 'print', or '' to reset"),
+        .describe("CSS media type; '' resets it."),
     colorScheme: z.enum(['light', 'dark', 'no-preference'])
         .optional()
-        .describe("Emulate prefers-color-scheme media feature"),
+        .describe("prefers-color-scheme."),
     reducedMotion: z.enum(['reduce', 'no-preference'])
         .optional()
-        .describe("Emulate prefers-reduced-motion media feature"),
+        .describe("prefers-reduced-motion."),
     forcedColors: z.enum(['active', 'none'])
         .optional()
-        .describe("Emulate forced-colors media feature (high contrast mode)"),
+        .describe("forced-colors, for high contrast."),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 const EmulateVisionSchema = z.object({
-    type: z.enum(VISION_TYPES)
-        .describe(`Vision deficiency type: ${VISION_TYPES.join(', ')}`),
+    type: z.enum(VISION_TYPES),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID (defaults to active tab)"),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' or 'json'")
 }).strict();
 // =====================================
 // Tool Registration
@@ -249,9 +235,7 @@ const EmulateVisionSchema = z.object({
  */
 export function registerEmulationTools(server) {
     // Emulate Device
-    server.tool("tabz_emulate_device", `Emulate mobile/tablet viewport via CDP. Use tabz_emulate_clear to reset. Presets: ${DEVICE_NAMES.join(', ')}.
-
-Args: device (preset name or 'custom'), width/height (if custom), deviceScaleFactor, mobile, tabId (optional)`, EmulateDeviceSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_device", "Emulate a mobile or tablet viewport through the debugger; reset with tabz_emulate_clear.", EmulateDeviceSchema, async (params) => {
         try {
             const result = await emulateDevice({
                 tabId: params.tabId,
@@ -302,9 +286,7 @@ Args: device (preset name or 'custom'), width/height (if custom), deviceScaleFac
         }
     });
     // Clear Emulation
-    server.tool("tabz_emulate_clear", `Clear all emulation overrides and detach debugger. Resets viewport, geolocation, network, media, vision.
-
-Args: tabId (optional)`, EmulateClearSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_clear", "Clear every emulation override for a tab (viewport, geolocation, network, media, vision).", EmulateClearSchema, async (params) => {
         try {
             const result = await emulateClear({ tabId: params.tabId });
             if (!result.success) {
@@ -344,9 +326,7 @@ Args: tabId (optional)`, EmulateClearSchema.shape, async (params) => {
         }
     });
     // Emulate Geolocation
-    server.tool("tabz_emulate_geolocation", `Spoof browser geolocation coordinates via CDP. Set clear=true to reset.
-
-Args: latitude, longitude (required unless clear=true), accuracy (optional), clear (optional), tabId (optional)`, EmulateGeolocationSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_geolocation", "Override coordinates and report actual Location permission; clear drops the override. Cannot grant permission.", EmulateGeolocationSchema, async (params) => {
         try {
             const result = await emulateGeolocation({
                 tabId: params.tabId,
@@ -373,14 +353,23 @@ Args: latitude, longitude (required unless clear=true), accuracy (optional), cle
                 if (params.clear) {
                     lines.push("# Geolocation Override Cleared");
                     lines.push("");
-                    lines.push("Browser will use real location for geolocation requests.");
+                    lines.push("The coordinate override is removed. Location requests still depend on site permission and device availability.");
                 }
                 else {
-                    lines.push("# Geolocation Override Active");
+                    const permissionState = result.permissionState ?? "unknown";
+                    lines.push(result.permissionGranted === true
+                        ? "# Geolocation Override Active"
+                        : permissionState === "prompt" || permissionState === "denied"
+                            ? "# Geolocation Override Set, Site Permission Not Granted"
+                            : "# Geolocation Override Set, Site Permission Unknown");
                     lines.push("");
                     lines.push(`**Latitude:** ${result.latitude}`);
                     lines.push(`**Longitude:** ${result.longitude}`);
                     lines.push(`**Accuracy:** ${result.accuracy}m`);
+                    lines.push(`**Location permission:** ${permissionState}`);
+                    lines.push("");
+                    lines.push(result.permissionNote
+                        ?? "The backend did not return a permission observation, so page access to the overridden coordinates is not confirmed.");
                     lines.push("");
                     lines.push("---");
                     lines.push("Use `tabz_emulate_geolocation` with `clear=true` to reset.");
@@ -400,9 +389,7 @@ Args: latitude, longitude (required unless clear=true), accuracy (optional), cle
         }
     });
     // Emulate Network
-    server.tool("tabz_emulate_network", `Throttle network speed via CDP. Presets: ${NETWORK_PRESET_NAMES.join(', ')}.
-
-Args: preset (optional), or custom offline/downloadThroughput/uploadThroughput/latency, tabId (optional)`, EmulateNetworkSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_network", "Throttle the tab's network, by preset or by custom throughput and latency.", EmulateNetworkSchema, async (params) => {
         try {
             const result = await emulateNetwork({
                 tabId: params.tabId,
@@ -458,9 +445,7 @@ Args: preset (optional), or custom offline/downloadThroughput/uploadThroughput/l
         }
     });
     // Emulate Media
-    server.tool("tabz_emulate_media", `Emulate CSS media type and features (color-scheme, reduced-motion, forced-colors, print mode).
-
-Args: media (optional), colorScheme (optional), reducedMotion (optional), forcedColors (optional), tabId (optional)`, EmulateMediaSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_media", "Emulate the CSS media type and features: print, color-scheme, reduced-motion, forced-colors.", EmulateMediaSchema, async (params) => {
         try {
             const result = await emulateMedia({
                 tabId: params.tabId,
@@ -517,9 +502,7 @@ Args: media (optional), colorScheme (optional), reducedMotion (optional), forced
         }
     });
     // Emulate Vision Deficiency
-    server.tool("tabz_emulate_vision", `Simulate vision deficiency for accessibility testing. Types: ${VISION_TYPES.join(', ')}.
-
-Args: type (required), tabId (optional)`, EmulateVisionSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_emulate_vision", "Simulate a vision deficiency for accessibility testing.", EmulateVisionSchema, async (params) => {
         try {
             const result = await emulateVision({
                 tabId: params.tabId,

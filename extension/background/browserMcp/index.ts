@@ -7,6 +7,7 @@
 export {
   handleBrowserListTabs,
   handleBrowserSwitchTab,
+  handleBrowserCloseTab,
   handleBrowserGetActiveTab,
   handleBrowserOpenUrl
 } from './tabs'
@@ -42,6 +43,9 @@ export {
 } from './bookmarks'
 
 // Element interaction
+export { handleBrowserAct } from './act'
+export { handleBrowserReadPage } from './pageRefs'
+
 export {
   handleBrowserClickElement,
   handleBrowserFillInput,
@@ -66,6 +70,10 @@ export {
   handleBrowserGetPageInfo
 } from './script'
 
+// Manual login handoff (value-free state probe and human-owned dashboard)
+export { handleBrowserLoginState } from './login'
+export { handleBrowserOpenLoginsPage } from './logins'
+
 // Tab groups
 export {
   handleBrowserListTabGroups,
@@ -75,6 +83,7 @@ export {
   handleBrowserUngroupTabs,
   handleBrowserAddToClaudeGroup,
   handleBrowserRemoveFromClaudeGroup,
+  handleBrowserReleaseClaudeGroup,
   handleBrowserGetClaudeGroupStatus
 } from './tabGroups'
 

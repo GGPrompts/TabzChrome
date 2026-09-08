@@ -1,0 +1,272 @@
+{
+  "method": "Actual built stdio MCP protocol against an ephemeral synthetic HTTP backend. Task: read the known synthetic orders page and click #submit in tab 41 once. Compact reads also return an outline. No model or real browser calls.",
+  "comparisonLimits": "Response shape and evidence differ. Schema/startup size is measured separately; batching reduces outer MCP calls, not backend actions. These are bytes and RPC counts, not model invocations, latency or billed tokens.",
+  "frozenBaselineSha256": "7d6748e9c5e899a7efd3d05fc885bb5c047c71d686637cd3cec185eb7c1d708f",
+  "frozenBaseline": {
+    "workflowRpcRoundTrips": 2,
+    "initializationRpcRoundTrips": 2,
+    "backendRequests": {
+      "configuration": 1,
+      "workflowRead": 1,
+      "workflowAction": 1,
+      "workflowTotal": 2,
+      "unexpected": 0
+    },
+    "resultPayload": {
+      "bytes": 461,
+      "chars": 461
+    },
+    "responseEnvelopeBytes": 526
+  },
+  "measurements": [
+    {
+      "mode": "legacy-current",
+      "workflowRpcRoundTrips": 2,
+      "initializationRpcRoundTrips": 2,
+      "backendRequests": {
+        "configuration": 1,
+        "read": 1,
+        "action": 1,
+        "unexpected": 0
+      },
+      "resultPayload": {
+        "bytes": 1114,
+        "chars": 1114
+      },
+      "responseEnvelopeBytes": 1179,
+      "responseEnvelopeChars": 1179,
+      "protocolEvidence": {
+        "calls": [
+          {
+            "name": "tabz_get_page_info",
+            "arguments": {
+              "response_format": "json"
+            }
+          },
+          {
+            "name": "tabz_click",
+            "arguments": {
+              "selector": "#submit",
+              "tabId": 41
+            }
+          }
+        ],
+        "responses": [
+          {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\n  \"url\": \"https://example.test/orders\",\n  \"title\": \"Synthetic orders\",\n  \"tabId\": 41\n}"
+                }
+              ],
+              "structuredContent": {
+                "status": "found",
+                "found": true,
+                "tabId": 41,
+                "url": "https://example.test/orders",
+                "title": "Synthetic orders",
+                "favIconUrl": null,
+                "text": "{\n  \"url\": \"https://example.test/orders\",\n  \"title\": \"Synthetic orders\",\n  \"tabId\": 41\n}"
+              },
+              "isError": false
+            },
+            "jsonrpc": "2.0",
+            "id": 3
+          },
+          {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "## Click Successful\n\nClicked element: `#submit`\n\nThe click action was performed. Use these tools to verify the result:\n- `tabz_get_page_info` - Check if page navigated\n- `tabz_execute_script` - Check DOM changes\n- `tabz_screenshot` - Capture current state"
+                }
+              ],
+              "structuredContent": {
+                "status": "completed",
+                "clicked": true,
+                "selector": "#submit",
+                "tabId": 41,
+                "tagName": "BUTTON",
+                "text": "## Click Successful\n\nClicked element: `#submit`\n\nThe click action was performed. Use these tools to verify the result:\n- `tabz_get_page_info` - Check if page navigated\n- `tabz_execute_script` - Check DOM changes\n- `tabz_screenshot` - Capture current state"
+              },
+              "isError": false
+            },
+            "jsonrpc": "2.0",
+            "id": 4
+          }
+        ]
+      }
+    },
+    {
+      "mode": "compact-separate",
+      "workflowRpcRoundTrips": 2,
+      "initializationRpcRoundTrips": 2,
+      "backendRequests": {
+        "configuration": 1,
+        "read": 1,
+        "action": 1,
+        "unexpected": 0
+      },
+      "resultPayload": {
+        "bytes": 1007,
+        "chars": 1007
+      },
+      "responseEnvelopeBytes": 1072,
+      "responseEnvelopeChars": 1072,
+      "protocolEvidence": {
+        "calls": [
+          {
+            "name": "tabz_read_page",
+            "arguments": {
+              "tabId": 41
+            }
+          },
+          {
+            "name": "tabz_act",
+            "arguments": {
+              "action": "click",
+              "selector": "#submit",
+              "tabId": 41
+            }
+          }
+        ],
+        "responses": [
+          {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Tab 41 \"Synthetic orders\" https://example.test/orders\n\nInteractive elements:\n[ref:synthetic-submit] button \"Submit\""
+                }
+              ],
+              "structuredContent": {
+                "status": "completed",
+                "success": true,
+                "outline": "Tab 41 \"Synthetic orders\" https://example.test/orders\n\nInteractive elements:\n[ref:synthetic-submit] button \"Submit\"",
+                "tabId": 41,
+                "title": "Synthetic orders",
+                "url": "https://example.test/orders",
+                "nodeCount": 1,
+                "refCount": 1,
+                "truncated": false,
+                "text": "Tab 41 \"Synthetic orders\" https://example.test/orders\n\nInteractive elements:\n[ref:synthetic-submit] button \"Submit\""
+              },
+              "isError": false
+            },
+            "jsonrpc": "2.0",
+            "id": 3
+          },
+          {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "## tabz_act click\n\n**Target:** `#submit`\n**Path:** synthetic events\n**Status:** completed"
+                }
+              ],
+              "structuredContent": {
+                "status": "completed",
+                "action": "click",
+                "success": true,
+                "trusted": false,
+                "tabId": 41,
+                "target": null,
+                "verified": true,
+                "text": "## tabz_act click\n\n**Target:** `#submit`\n**Path:** synthetic events\n**Status:** completed"
+              },
+              "isError": false
+            },
+            "jsonrpc": "2.0",
+            "id": 4
+          }
+        ]
+      }
+    },
+    {
+      "mode": "compact-batch",
+      "workflowRpcRoundTrips": 1,
+      "initializationRpcRoundTrips": 2,
+      "backendRequests": {
+        "configuration": 1,
+        "read": 1,
+        "action": 1,
+        "unexpected": 0
+      },
+      "resultPayload": {
+        "bytes": 750,
+        "chars": 750
+      },
+      "responseEnvelopeBytes": 782,
+      "responseEnvelopeChars": 782,
+      "protocolEvidence": {
+        "calls": [
+          {
+            "name": "tabz_batch",
+            "arguments": {
+              "items": [
+                {
+                  "name": "tabz_read_page",
+                  "input": {
+                    "tabId": 41
+                  }
+                },
+                {
+                  "name": "tabz_act",
+                  "input": {
+                    "action": "click",
+                    "selector": "#submit",
+                    "tabId": 41
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": [
+          {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "## 1. tabz_read_page"
+                },
+                {
+                  "type": "text",
+                  "text": "Tab 41 \"Synthetic orders\" https://example.test/orders\n\nInteractive elements:\n[ref:synthetic-submit] button \"Submit\""
+                },
+                {
+                  "type": "text",
+                  "text": "## 2. tabz_act"
+                },
+                {
+                  "type": "text",
+                  "text": "## tabz_act click\n\n**Target:** `#submit`\n**Path:** synthetic events\n**Status:** completed"
+                }
+              ],
+              "structuredContent": {
+                "completed": 2,
+                "sections": [
+                  {
+                    "index": 1,
+                    "name": "tabz_read_page",
+                    "text": "Tab 41 \"Synthetic orders\" https://example.test/orders\n\nInteractive elements:\n[ref:synthetic-submit] button \"Submit\"",
+                    "isError": false
+                  },
+                  {
+                    "index": 2,
+                    "name": "tabz_act",
+                    "text": "## tabz_act click\n\n**Target:** `#submit`\n**Path:** synthetic events\n**Status:** completed",
+                    "isError": false
+                  }
+                ]
+              }
+            },
+            "jsonrpc": "2.0",
+            "id": 3
+          }
+        ]
+      }
+    }
+  ]
+}

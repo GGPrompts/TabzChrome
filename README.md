@@ -50,11 +50,11 @@ TabzChrome is designed to work seamlessly with Claude Code:
 - Browse curated lists ([awesome-tuis](https://github.com/rothgar/awesome-tuis), [modern-unix](https://github.com/ibraheemdev/modern-unix)) to discover new CLI tools
 - Import ready-made profile configurations with sensible defaults
 
-**⚡ 0 Token Cost Up Front** - MCP tools with no context overhead!
+**Compact MCP tools with measured schema sizes**
 
 ![MCP settings](docs/screenshots/mcp-settings.png)
 
-Using Claude Code's experimental MCP CLI mode, tool schemas are loaded on-demand instead of all 85 definitions into context. Enable with the `ENABLE_EXPERIMENTAL_MCP_CLI=true` environment variable. See the [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c) for details.
+The full catalog contains 97 tools; the compact `page-agent` preset selects 20. The current description pass reduces published schema and startup text by 25.4% for the same 97 tools. Settings estimates use serialized characters divided by four; actual token loading depends on the client and preset. See the [measurement evidence](docs/planning/glass-catchup-2026-09-07/tool-overhead-verification.md).
 
 **🎭 Power Features (Claude Code Integration):**
 
@@ -62,11 +62,12 @@ TabzChrome includes a [Claude Code plugin](.claude-plugin/marketplace.json) with
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 85 browser control tools (screenshots, clicks, bookmarks, network, tab groups, windows, history, cookies, emulation, profiles, plugins) |
+| [**Tabz MCP Server**](tabz-mcp-server/MCP_TOOLS.md) | MCP | 97 tools, including compact actions, page reads, saved-login handoffs and browser capture |
+| [**Tabz CLI**](docs/tabz-cli.md) | CLI/client | Discover tools, call with JSON input, and run deterministic workflows without a model |
 | [**tabz-browser**](.claude/skills/tabz-browser/) | skill | Browser automation patterns (screenshots, forms, network debugging) |
 | [**tabz-terminals**](.claude/skills/tabz-terminals/) | skill | Terminal spawning and worker management via REST API |
 | [**tabz-development**](.claude/skills/tabz-development/) | skill | Terminal.tsx, xterm.js, WebSocket patterns |
-| [**tabz-expert**](.claude/agents/tabz-expert.md) | agent | Browser automation specialist with 85 MCP tools |
+| [**tabz-expert**](.claude/agents/tabz-expert.md) | agent | Browser automation specialist using the configured MCP toolset |
 
 **Quick setup:** Skills auto-load when you run Claude Code in the TabzChrome directory.
 
@@ -178,7 +179,10 @@ npm run build
 
 ### Start Backend
 
+Copy TabzChrome's ID from `chrome://extensions` and configure it in the backend environment. Unpacked builds use different IDs; see [local browser trust](docs/local-browser-trust.md) for multiple installations and the trust boundary.
+
 ```bash
+export TABZ_EXTENSION_IDS="YOUR_TABZCHROME_EXTENSION_ID"
 # Recommended (WSL/Linux/macOS)
 ./scripts/dev.sh
 ```
@@ -492,12 +496,15 @@ The URL opens in a new tab and the sidebar activates automatically.
 
 ## Tabz MCP Integration
 
-Tabz includes an **MCP server** with 85 tools that let Claude Code control your browser:
+Tabz includes an **MCP server** with 97 tools for browser and terminal automation. The compact `page-agent` preset uses 20 tools; legacy tools remain available.
 
 ![Claude using MCP tools to control DALL-E in the browser - filling prompts, clicking generate, downloading results](docs/screenshots/mcp-dalle-demo.png)
 
 | Tool | Description |
 |------|-------------|
+| `tabz_act` | Click, type, scroll, capture and other page actions through one typed interface |
+| `tabz_read_page` | Read a bounded page outline with document-bound element references |
+| `tabz_batch` | Run enabled tool calls sequentially in one outer MCP call |
 | `tabz_screenshot` | Capture viewport to disk |
 | `tabz_screenshot_full` | Capture entire scrollable page |
 | `tabz_click` | Click element by CSS selector |
@@ -534,11 +541,11 @@ Open the Dashboard (`localhost:8129/#/mcp`) to configure which tools Claude can 
 - Add custom allowed domains for `tabz_open_url`
 - Apply presets (Minimal, Standard, Full)
 
-> **Tip:** Set `ENABLE_EXPERIMENTAL_MCP_CLI=true` in your shell to load tool schemas on-demand (0 tokens up front). See [setup gist](https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c).
+> **Estimates:** Schema/startup size and workflow response size are separate costs. [Synthetic workflow measurements](docs/planning/glass-catchup-2026-09-07/workflow-measurement.md) record actual protocol bytes and round trips without making billed-token claims.
 
 ### No Remote Debugging Required
 
-**All 85 MCP tools work using Chrome Extension APIs only!** No `--remote-debugging-port=9222` flag needed.
+**Browser tools use Chrome Extension APIs.** No `--remote-debugging-port=9222` flag is needed.
 
 | Feature | Works Out of the Box |
 |---------|---------------------|

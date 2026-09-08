@@ -64,6 +64,10 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const { createModuleLogger } = require('./modules/logger');
+const { AUTH_TOKEN_FILE } = require('./modules/auth-token');
+const { mountTabzMcp } = require('./modules/tabz-mcp-mount');
+const wsIdentity = require('./modules/ws-identity');
+const settingsStore = require('./modules/settings-store');
 
 // =============================================================================
 // RATE LIMITING CONFIGURATION
@@ -96,12 +100,12 @@ const audioRateLimiter = rateLimit({
 // from connecting to the WebSocket server (local privilege escalation mitigation)
 // =============================================================================
 const WS_AUTH_TOKEN = crypto.randomBytes(32).toString('hex');
-const WS_AUTH_TOKEN_FILE = '/tmp/tabz-auth-token';
+const PORT = process.env.PORT || 8129;
 
 // Write token to file so Chrome extension can read it
 try {
-  fs.writeFileSync(WS_AUTH_TOKEN_FILE, WS_AUTH_TOKEN, { mode: 0o600 }); // Owner read/write only
-  console.log(`[Auth] WebSocket auth token written to ${WS_AUTH_TOKEN_FILE}`);
+  fs.writeFileSync(AUTH_TOKEN_FILE, WS_AUTH_TOKEN, { mode: 0o600 }); // Owner read/write only
+  console.log(`[Auth] WebSocket auth token written to ${AUTH_TOKEN_FILE}`);
 } catch (err) {
   console.error(`[Auth] Failed to write auth token file: ${err.message}`);
 }
@@ -127,34 +131,48 @@ const log = createModuleLogger('Server');
 const app = express();
 const server = http.createServer(app);
 
+const originPolicy = wsIdentity.createOriginPolicy({
+  selfPort: PORT,
+  getTrustedOrigins: settingsStore.getTrustedWebOrigins,
+  log
+});
+app.set('originPolicy', originPolicy);
+app.set('terminalRegistry', terminalRegistry);
+app.set('unifiedSpawn', unifiedSpawn);
+
 // Middleware
 // Handle Private Network Access (required for HTTPS sites like Vercel to access localhost)
 // Chrome 94+ blocks requests from HTTPS to private networks without this header
 app.use((req, res, next) => {
-  // Handle preflight requests for Private Network Access
   if (req.headers['access-control-request-private-network']) {
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    originPolicy.corsOrigin(req.headers.origin, (_error, allowed) => {
+      if (allowed) res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    });
   }
   next();
 });
-// CORS configuration - allow Chrome extension pages and localhost origins
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like curl, Postman, or same-origin)
-    if (!origin) return callback(null, true);
-
-    // Allow chrome-extension:// origins (dashboard page)
-    if (origin.startsWith('chrome-extension://')) return callback(null, true);
-
-    // Allow localhost origins
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
-
-    // Allow all other origins for flexibility
-    callback(null, true);
-  },
+  origin: originPolicy.corsOrigin,
   credentials: true
 }));
 app.use(express.json());
+
+// Register synchronously before static middleware. The mount returns JSON-RPC
+// 503 while the built ESM transport is loading or needs a /rebuild.
+const mcpMount = mountTabzMcp({
+  app,
+  log,
+  backendUrl: `http://127.0.0.1:${PORT}`,
+  publicUrl: `http://localhost:${PORT}/mcp`
+});
+
+// The legacy dashboard token route lives in apiRouter; apply the same origin
+// decision as /api/auth/token before the router can serve it.
+app.use('/api/auth-token', (req, res, next) => {
+  const refusal = originPolicy.tokenRefusal(req);
+  if (refusal) return res.status(refusal.status).json({ success: false, error: refusal.message });
+  next();
+});
 
 // API Routes
 app.use('/api', apiRouter);
@@ -166,7 +184,36 @@ app.use('/api/git', gitRouter);
 // Note: External launchers (GitHub Pages) should use manual token input, not auto-fetch
 // The UX improvement is that users consciously paste their token to authorize a site
 app.get('/api/auth/token', (req, res) => {
+  const refusal = originPolicy.tokenRefusal(req);
+  if (refusal) {
+    log.warn(`[Auth] Refused token to ${refusal.kind} origin ${refusal.origin}`);
+    return res.status(refusal.status).json({ success: false, error: refusal.message });
+  }
   res.json({ token: WS_AUTH_TOKEN });
+});
+
+app.get('/api/settings/trusted-origins', (req, res) => {
+  res.json({ success: true, data: { origins: settingsStore.getTrustedWebOrigins() } });
+});
+
+app.put('/api/settings/trusted-origins', (req, res) => {
+  const refusal = originPolicy.tokenRefusal(req);
+  if (refusal) {
+    return res.status(refusal.status).json({ success: false, error: refusal.message });
+  }
+  const token = req.headers['x-auth-token'] || req.query.token;
+  if (!token || token !== WS_AUTH_TOKEN) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  const origins = req.body && req.body.origins;
+  if (!Array.isArray(origins)) {
+    return res.status(400).json({ success: false, error: 'origins must be an array of http(s) origins' });
+  }
+  const result = settingsStore.setTrustedWebOrigins(origins);
+  if (!result.saved) {
+    return res.status(500).json({ success: false, error: 'Settings failed to save' });
+  }
+  res.json({ success: true, data: { origins: result.origins, rejected: result.rejected } });
 });
 
 // Serve cached audio files from edge-tts
@@ -529,8 +576,9 @@ if (process.env.FORCE_CLEANUP === 'true') {
   log.info('Preserving existing terminals (normal start, CLEANUP_ON_START=false)');
 }
 
-// WebSocket server
-const wss = new WebSocket.Server({ server });
+// The origin policy decides whether an HTTP upgrade reaches WebSocket auth.
+const wss = new WebSocket.Server({ noServer: true });
+originPolicy.installUpgradeGuard(server, wss);
 
 // Track active WebSocket connections
 const activeConnections = new Set();
@@ -538,6 +586,7 @@ const activeConnections = new Set();
 // Track sidebar connections separately (for accurate "multiple browser windows" warning)
 // Web pages (like docs site) sending QUEUE_COMMAND should NOT count as browser windows
 const sidebarConnections = new Set();
+const extensionChannel = wsIdentity.createExtensionChannel(sidebarConnections, { activeConnections, log });
 
 // Track if session recovery is complete (prevents frontend from clearing Chrome storage too early)
 let recoveryComplete = false;
@@ -567,7 +616,8 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  log.success('WebSocket client connected (authenticated)');
+  const identity = wsIdentity.markConnection(ws, req, originPolicy.policyFor());
+  log.success(`WebSocket client connected (authenticated, ${identity.isExtension ? `extension ${identity.extensionId}` : `${identity.originKind} origin ${identity.origin || 'none'}`})`);
 
   // Add to active connections
   activeConnections.add(ws);
@@ -613,17 +663,30 @@ wss.on('connection', (ws, req) => {
     try {
       data = JSON.parse(message);
 
+      const secretRefusal = wsIdentity.secretTerminalRefusal(ws, data, terminalRegistry);
+      if (secretRefusal) {
+        log.warn(`[WS] Refused ${data.type} on a protected terminal from ${ws.origin || 'no origin'}`);
+        ws.send(JSON.stringify(secretRefusal));
+        return;
+      }
+
+      if (!wsIdentity.acceptsBrowserFrame(ws, data)) {
+        log.warn(`[WS] Dropped ${data.type} from non-extension socket (${ws.origin || 'no origin'})`);
+        ws.send(JSON.stringify(wsIdentity.browserFrameRefusal(data)));
+        return;
+      }
+
       switch (data.type) {
-        case 'identify':
-          // Client type identification - sidebar vs web page
-          // Only sidebar connections should count towards "multiple browser windows" warning
-          if (data.clientType === 'sidebar') {
-            sidebarConnections.add(ws);
-            log.info(`[WS] Client identified as sidebar (${sidebarConnections.size} sidebar connections)`);
+        case 'identify': {
+          const verdict = wsIdentity.applyIdentify(ws, data, sidebarConnections);
+          if (verdict.member) {
+            const sameExtension = extensionChannel.countFor(ws.extensionId);
+            log.info(`[WS] Client identified as sidebar (extension ${ws.extensionId}, ${sameExtension} open socket${sameExtension === 1 ? '' : 's'})`);
           } else {
-            log.info(`[WS] Client identified as ${data.clientType || 'unknown'} (not counted as browser window)`);
+            log.info(`[WS] Client identified as ${data.clientType || 'unknown'}: not an extension channel member (${verdict.reason})`);
           }
           break;
+        }
 
         case 'set-default-profile':
           // Store default profile settings from Chrome extension
@@ -648,10 +711,21 @@ wss.on('connection', (ws, req) => {
           if (data.config && data.config.terminalType === 'gemini') {
             log.debug('Spawning Gemini terminal with config:', data.config);
           }
+          const spawnConfig = wsIdentity.stripSecretSpawnKeys(data.config);
+          if (spawnConfig.rejected.length > 0) {
+            ws.send(JSON.stringify({
+              type: 'spawn-error',
+              error: `Spawn config may not set ${spawnConfig.rejected.join(', ')}`,
+              requestId: data.requestId,
+              terminalType: data.config?.terminalType,
+              terminalName: data.config?.name
+            }));
+            break;
+          }
           // Use UnifiedSpawn for better validation and rate limiting
           // Pass requestId from frontend if provided
           const result = await unifiedSpawn.spawn({
-            ...data.config,
+            ...spawnConfig.config,
             requestId: data.requestId
           });
           if (result.success) {
@@ -718,23 +792,18 @@ wss.on('connection', (ws, req) => {
             try {
               const { spawnSync } = require('child_process');
 
-              // SAFETY: Extract session from pane target (format: session:window.pane or just session)
-              // and verify it exists before sending (prevents hangs on dead sessions)
-              const sessionMatch = tmuxPane.match(/^([^:]+)/);
-              if (sessionMatch) {
-                const session = sessionMatch[1];
-                const hasSession = spawnSync('tmux', ['has-session', '-t', session], { timeout: 1000 });
-                if (hasSession.status !== 0) {
-                  log.warn(`[targeted-pane-send] Session ${session} does not exist, skipping`);
-                  break;
-                }
+              const sessionNames = new Set(tmuxSessionManager.listSessionNames().map(session => session.name));
+              const paneTarget = wsIdentity.exactTmuxTarget(tmuxPane, sessionNames);
+              if (!paneTarget) {
+                log.warn(`[targeted-pane-send] Session for ${tmuxPane} does not exist, skipping`);
+                break;
               }
 
               if (text) {
                 // Use spawnSync with array args to bypass shell interpretation
                 // This preserves $VAR, backticks, and other shell special characters
                 // The -l flag sends keys literally (without interpreting tmux special sequences)
-                spawnSync('tmux', ['send-keys', '-t', tmuxPane, '-l', text], { timeout: 5000 });
+                spawnSync('tmux', ['send-keys', '-t', paneTarget, '-l', text], { timeout: 5000 });
                 log.debug(`Targeted send → pane ${tmuxPane}: ${text.length} bytes`);
               }
               if (sendEnter) {
@@ -742,7 +811,7 @@ wss.on('connection', (ws, req) => {
                 // Without delay, Claude may interpret newline before full text loads
                 await new Promise(resolve => setTimeout(resolve, 300));
                 // Send Enter key (not literal, so tmux interprets it as Enter)
-                spawnSync('tmux', ['send-keys', '-t', tmuxPane, 'Enter'], { timeout: 5000 });
+                spawnSync('tmux', ['send-keys', '-t', paneTarget, 'Enter'], { timeout: 5000 });
                 log.debug(`Targeted Enter → pane ${tmuxPane}`);
               }
             } catch (err) {
@@ -764,15 +833,13 @@ wss.on('connection', (ws, req) => {
             try {
               const { spawnSync } = require('child_process');
 
-              // SAFETY: Verify session exists before sending (prevents hangs on dead sessions)
-              const hasSession = spawnSync('tmux', ['has-session', '-t', sessionName], { timeout: 1000 });
-              if (hasSession.status !== 0) {
+              const sessionNames = new Set(tmuxSessionManager.listSessionNames().map(session => session.name));
+              const target = wsIdentity.exactTmuxTarget(sessionName, sessionNames);
+              if (!target) {
                 log.warn(`[tmux-session-send] Session ${sessionName} does not exist, skipping`);
                 break;
               }
 
-              // Target the session directly (tmux will use current window/pane)
-              const target = sessionName;
               if (sessionText) {
                 // Use spawnSync with array args to bypass shell interpretation
                 // This preserves $VAR, backticks, and other shell special characters
@@ -816,6 +883,9 @@ wss.on('connection', (ws, req) => {
         case 'detach':
           // Power off button: detach from tmux but keep session alive
           log.info(`Detaching from terminal ${data.terminalId.slice(-8)} (preserving tmux session)`);
+          const detachingTerminal = terminalRegistry.getTerminal(data.terminalId);
+          const detachingProtected = (detachingTerminal && detachingTerminal.secret === true) ||
+            wsIdentity.isProtectedTerminalReference(terminalRegistry, data.terminalId);
           connectionTerminals.delete(data.terminalId);
 
           // Remove this connection from terminal owners
@@ -828,12 +898,20 @@ wss.on('connection', (ws, req) => {
           }
 
           await terminalRegistry.closeTerminal(data.terminalId, false); // Don't force - keep tmux session alive
-          broadcast({ type: 'terminal-closed', data: { id: data.terminalId } });
+          terminalOwners.delete(data.terminalId);
+          if (detachingProtected) {
+            sendToAllExtensions({ type: 'terminal-closed', data: { id: data.terminalId } });
+          } else {
+            broadcast({ type: 'terminal-closed', data: { id: data.terminalId } });
+          }
           break;
 
         case 'close':
           // X button: force close and kill tmux session
           log.info(`Force closing terminal ${data.terminalId.slice(-8)} (killing tmux session)`);
+          const closingTerminal = terminalRegistry.getTerminal(data.terminalId);
+          const closingProtected = (closingTerminal && closingTerminal.secret === true) ||
+            wsIdentity.isProtectedTerminalReference(terminalRegistry, data.terminalId);
           connectionTerminals.delete(data.terminalId);
 
           // Remove this connection from terminal owners
@@ -846,12 +924,17 @@ wss.on('connection', (ws, req) => {
           }
 
           await terminalRegistry.closeTerminal(data.terminalId, true); // Force close - kill tmux session
-          broadcast({ type: 'terminal-closed', data: { id: data.terminalId } });
+          terminalOwners.delete(data.terminalId);
+          if (closingProtected) {
+            sendToAllExtensions({ type: 'terminal-closed', data: { id: data.terminalId } });
+          } else {
+            broadcast({ type: 'terminal-closed', data: { id: data.terminalId } });
+          }
           break;
 
         case 'list-terminals':
           // List all active terminals in the registry, filtered to ctt- prefix only
-          const allTerminals = terminalRegistry.getAllTerminals();
+          const allTerminals = wsIdentity.visibleTerminals(ws, terminalRegistry.getAllTerminals());
           const chromeTerminals = allTerminals.filter(t => t.id && t.id.startsWith('ctt-'));
           // connectionCount uses sidebarConnections, not activeConnections
           // This prevents web pages (like docs site) from triggering "multiple browser windows" warning
@@ -868,9 +951,10 @@ wss.on('connection', (ws, req) => {
           // Query for orphaned tmux sessions that can be reconnected
           log.info('Querying for orphaned tmux sessions');
           try {
-            const { execSync } = require('child_process');
-            const tmuxListOutput = execSync('tmux ls -F "#{session_name}" 2>/dev/null || echo ""').toString().trim();
-            const allSessions = tmuxListOutput.split('\n').filter(s => s);
+            const allSessions = tmuxSessionManager.listSessionNames()
+              .filter(session => ws.isExtension === true ||
+                (!session.secret && !terminalRegistry.isSecretInRegistry(session.name)))
+              .map(session => session.name);
 
             // Filter for terminal-tabs sessions (all formats)
             // Old: terminal-tabs-terminal-1762...
@@ -921,7 +1005,10 @@ wss.on('connection', (ws, req) => {
             terminalOwners.get(terminalId).add(ws);
 
             log.debug(`Successfully reconnected to terminal ${terminalId}`);
-            ws.send(JSON.stringify({ type: 'terminal-reconnected', data: reconnected }));
+            ws.send(JSON.stringify({
+              type: 'terminal-reconnected',
+              data: wsIdentity.clientTerminalRecord(reconnected)
+            }));
           } else {
             log.debug(`Failed to reconnect to terminal ${terminalId} - terminal not found in registry`);
             ws.send(JSON.stringify({ type: 'reconnect-failed', terminalId: terminalId }));
@@ -955,14 +1042,19 @@ wss.on('connection', (ws, req) => {
           }
           break;
 
+        case 'browser-console-logs-prune':
+          if (Number.isInteger(data.tabId)) {
+            browserRouter.removeConsoleLogsForTab(data.tabId);
+          }
+          break;
+
         case 'browser-script-result':
           // Receive script execution result from Chrome extension
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              result: data.result,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.scriptResultFields(data)
+            );
           }
           break;
 
@@ -974,8 +1066,29 @@ wss.on('connection', (ws, req) => {
               title: data.title,
               tabId: data.tabId,
               favIconUrl: data.favIconUrl,
+              protectedFillVersion: data.protectedFillVersion === 1 ? 1 : undefined,
               error: data.error
-            });
+            }, ws);
+          }
+          break;
+
+        case 'browser-login-state-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.loginStateResultFields(data),
+              ws
+            );
+          }
+          break;
+
+        case 'browser-open-logins-page-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.openLoginsPageResultFields(data),
+              ws
+            );
           }
           break;
 
@@ -985,6 +1098,19 @@ wss.on('connection', (ws, req) => {
             browserRouter.resolvePendingRequest(data.requestId, {
               success: data.success,
               tabs: data.tabs,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-close-tab-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              closed: data.closed,
+              refused: data.refused,
+              missing: data.missing,
+              groupId: data.groupId,
               error: data.error
             });
           }
@@ -1019,9 +1145,13 @@ wss.on('connection', (ws, req) => {
               success: data.success,
               tabId: data.tabId,
               url: data.url,
-              reused: data.reused,
+              reused: data.reusedExisting ?? data.reused,
+              reusedExisting: data.reusedExisting ?? data.reused,
+              created: typeof data.created === 'boolean' ? data.created : undefined,
+              groupId: data.groupId,
+              inClaudeGroup: data.inClaudeGroup,
               error: data.error
-            });
+            }, ws);
           }
           break;
 
@@ -1148,30 +1278,14 @@ wss.on('connection', (ws, req) => {
           break;
 
         case 'browser-capture-image-result':
-          // Receive image capture result from Chrome extension
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              filePath: data.filePath,
-              windowsPath: data.windowsPath,
-              wslPath: data.wslPath,
-              width: data.width,
-              height: data.height,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(data.requestId, browserRouter.screenshotResultFields(data), ws);
           }
           break;
 
         case 'browser-screenshot-result':
-          // Receive screenshot result from Chrome extension
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              filePath: data.filePath,
-              windowsPath: data.windowsPath,
-              wslPath: data.wslPath,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(data.requestId, browserRouter.screenshotResultFields(data), ws);
           }
           break;
 
@@ -1190,11 +1304,31 @@ wss.on('connection', (ws, req) => {
 
         case 'browser-fill-input-result':
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              tagName: data.tagName,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.fillInputResultFields(data),
+              ws
+            );
+          }
+          break;
+
+        case 'browser-act-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.actResultFields(data),
+              ws
+            );
+          }
+          break;
+
+        case 'browser-read-page-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.readPageResultFields(data),
+              ws
+            );
           }
           break;
 
@@ -1282,11 +1416,17 @@ wss.on('connection', (ws, req) => {
         // NETWORK CAPTURE RESPONSES - From Chrome extension
         // ============================================
         case 'browser-enable-network-capture-result':
+        case 'browser-enable-deep-capture-result':
+        case 'browser-disable-deep-capture-result':
+        case 'browser-clear-network-requests-result':
           if (data.requestId) {
             browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
+              success: data.success === true,
+              tabId: data.tabId,
+              tabIds: data.tabIds,
+              maxBodyBytes: data.maxBodyBytes,
               error: data.error
-            });
+            }, ws);
           }
           break;
 
@@ -1297,17 +1437,34 @@ wss.on('connection', (ws, req) => {
               total: data.total,
               hasMore: data.hasMore,
               nextOffset: data.nextOffset,
-              captureActive: data.captureActive
-            });
+              captureActive: data.captureActive,
+              webRequestCaptureActive: data.webRequestCaptureActive,
+              deepCaptureActive: data.deepCaptureActive,
+              error: data.error
+            }, ws);
           }
           break;
 
-        case 'browser-clear-network-requests-result':
+        case 'browser-get-response-body-result':
           if (data.requestId) {
             browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
+              success: data.success === true,
+              requestId: data.networkRequestId,
+              tabId: data.tabId,
+              kind: data.kind,
+              text: typeof data.text === 'string' ? data.text.slice(0, 32000) : undefined,
+              base64Encoded: data.base64Encoded === true,
+              truncated: data.truncated === true,
+              redacted: data.redacted === true,
+              streamCapture: data.streamCapture,
+              offset: data.offset,
+              length: data.length,
+              totalLength: data.totalLength,
+              hasMore: data.hasMore,
+              nextOffset: data.nextOffset,
+              dropped: data.dropped,
               error: data.error
-            });
+            }, ws);
           }
           break;
 
@@ -1419,6 +1576,17 @@ wss.on('connection', (ws, req) => {
             browserRouter.resolvePendingRequest(data.requestId, {
               success: data.success,
               message: data.message,
+              error: data.error
+            });
+          }
+          break;
+
+        case 'browser-release-claude-group-result':
+          if (data.requestId) {
+            browserRouter.resolvePendingRequest(data.requestId, {
+              success: data.success,
+              groupId: data.groupId,
+              ungroupedCount: data.ungroupedCount,
               error: data.error
             });
           }
@@ -1749,14 +1917,10 @@ wss.on('connection', (ws, req) => {
 
         case 'browser-emulate-geolocation-result':
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              latitude: data.latitude,
-              longitude: data.longitude,
-              accuracy: data.accuracy,
-              message: data.message,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.emulateGeolocationResultFields(data)
+            );
           }
           break;
 
@@ -1774,13 +1938,10 @@ wss.on('connection', (ws, req) => {
 
         case 'browser-emulate-media-result':
           if (data.requestId) {
-            browserRouter.resolvePendingRequest(data.requestId, {
-              success: data.success,
-              media: data.media,
-              features: data.features,
-              message: data.message,
-              error: data.error
-            });
+            browserRouter.resolvePendingRequest(
+              data.requestId,
+              browserRouter.emulateMediaResultFields(data)
+            );
           }
           break;
 
@@ -1966,8 +2127,40 @@ function broadcast(message) {
   });
 }
 
+function sendToExtension(message) {
+  return extensionChannel.sendToOne(message);
+}
+
+function sendToAllExtensions(message) {
+  return extensionChannel.sendToAll(message);
+}
+
+function sendToClient(client, message) {
+  if (!client || client.readyState !== WebSocket.OPEN ||
+      client.isExtension !== true || !sidebarConnections.has(client)) return 0;
+  try {
+    client.send(JSON.stringify(message));
+    return 1;
+  } catch (error) {
+    log.error('Error sending to selected extension client:', error);
+    sidebarConnections.delete(client);
+    activeConnections.delete(client);
+    return 0;
+  }
+}
+
+function routeBroadcast(message) {
+  return message && typeof message.type === 'string' && message.type.startsWith('browser-')
+    ? sendToExtension(message)
+    : broadcast(message);
+}
+
 // Make broadcast available to routes (for browser MCP)
-app.set('broadcast', broadcast);
+app.set('broadcast', routeBroadcast);
+app.set('sendToExtension', sendToExtension);
+app.set('sendToAllExtensions', sendToAllExtensions);
+app.set('sendToClient', sendToClient);
+app.set('extensionConnected', () => extensionChannel.connected());
 // Make recoveryPromise available to routes (for /api/agents to wait for recovery)
 app.set('recoveryPromise', recoveryPromise);
 
@@ -1991,8 +2184,11 @@ terminalRegistry.on('output', (terminalId, data) => {
 
     // Clean up dead connections while sending (prevents escape sequence leaks)
     const deadConnections = [];
+    const protectedTerminal = wsIdentity.isProtectedTerminalReference(terminalRegistry, terminalId);
     owners.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
+      if (protectedTerminal && (client.isExtension !== true || !sidebarConnections.has(client))) {
+        deadConnections.push(client);
+      } else if (client.readyState === WebSocket.OPEN) {
         try {
           client.send(message);
         } catch (error) {
@@ -2020,18 +2216,25 @@ terminalRegistry.on('output', (terminalId, data) => {
 
 // Listen for terminal lifecycle close events (natural exit) and broadcast to clients
 terminalRegistry.removeAllListeners('closed');
-terminalRegistry.on('closed', (terminalId) => {
-  broadcast({ type: 'terminal-closed', data: { id: terminalId } });
+terminalRegistry.on('closed', (terminalId, terminal) => {
+  terminalOwners.delete(terminalId);
+  const frame = { type: 'terminal-closed', data: { id: terminalId } };
+  if (terminal?.secret === true || wsIdentity.isProtectedTerminalReference(terminalRegistry, terminalId)) {
+    sendToAllExtensions(frame);
+  }
+  else broadcast(frame);
 });
 
 // Listen for terminal error exits (non-zero exit code) for desktop notifications
 terminalRegistry.removeAllListeners('error-exit');
-terminalRegistry.on('error-exit', ({ terminalId, name, exitCode, signal }) => {
+terminalRegistry.on('error-exit', ({ terminalId, name, exitCode, signal, secret }) => {
   log.info(`Terminal ${name} exited with error code ${exitCode}`);
-  broadcast({
+  const frame = {
     type: 'terminal-error-exit',
     data: { terminalId, name, exitCode, signal }
-  });
+  };
+  if (secret === true) sendToAllExtensions(frame);
+  else broadcast(frame);
 });
 
 // Periodic pane sync - update pane data for all terminals every 2 seconds
@@ -2110,8 +2313,19 @@ setInterval(() => {
 }, 5000); // Run every 5 seconds
 
 // Graceful shutdown handler
+let shutdownStarted = false;
 const gracefulShutdown = async () => {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
   log.warn('\nShutting down gracefully...');
+
+  // Bound the complete shutdown, including MCP session/group release. MCP
+  // closes first while its backend routes and extension WebSocket still work.
+  const forceExitTimer = setTimeout(() => {
+    log.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 5000);
+  await mcpMount.close();
   
   // Close all WebSocket connections
   activeConnections.forEach(ws => {
@@ -2144,15 +2358,10 @@ const gracefulShutdown = async () => {
 
   // Close HTTP server
   server.close(() => {
+    clearTimeout(forceExitTimer);
     log.success('HTTP server closed');
     process.exit(0);
   });
-
-  // Force exit after 5 seconds
-  setTimeout(() => {
-    log.error('Forced shutdown after timeout');
-    process.exit(1);
-  }, 5000);
 };
 
 // Handle shutdown signals
@@ -2160,7 +2369,6 @@ process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
 // Start server
-const PORT = process.env.PORT || 8129;
 server.listen(PORT, '127.0.0.1', async () => {
   log.ready('');
   log.ready('╔════════════════════════════════════════╗');
@@ -2185,9 +2393,9 @@ server.listen(PORT, '127.0.0.1', async () => {
     // (Frontend has 1000ms init guard + 1000ms resize debounce + buffer)
     setTimeout(async () => {
       try {
-        const { execSync } = require('child_process');
-        const tmuxOutput = execSync('tmux ls -F "#{session_name}" 2>/dev/null || echo ""').toString().trim();
-        const sessions = tmuxOutput.split('\n').filter(s => s && s.startsWith('ctt-'));
+        const sessions = tmuxSessionManager.listSessionNames()
+          .map(session => session.name)
+          .filter(name => name.startsWith('ctt-'));
 
         if (sessions.length > 0) {
           log.info(`🔄 Recovering ${sessions.length} ctt- sessions...`);
@@ -2232,13 +2440,21 @@ server.listen(PORT, '127.0.0.1', async () => {
             }
 
             try {
+              const secretConfig = terminalRegistry.recoveredSecretSpawnConfig(sessionName);
               // Get the current working directory from the tmux session
               let workingDir;
-              try {
-                workingDir = execSync(`tmux display-message -p -t "${sessionName}" "#{pane_current_path}" 2>/dev/null`).toString().trim();
-                log.info(`[Recovery] Got workingDir from tmux for ${sessionName}: ${workingDir}`);
-              } catch (e) {
-                log.debug(`Could not get working dir for ${sessionName}: ${e.message}`);
+              if (!secretConfig.secret) {
+                try {
+                  const { execFileSync } = require('child_process');
+                  workingDir = execFileSync(
+                    'tmux',
+                    ['display-message', '-p', '-t', `=${sessionName}`, '#{pane_current_path}'],
+                    { stdio: ['ignore', 'pipe', 'ignore'] }
+                  ).toString().trim();
+                  log.info(`[Recovery] Got workingDir from tmux for ${sessionName}: ${workingDir}`);
+                } catch (e) {
+                  log.debug(`Could not get working dir for ${sessionName}: ${e.message}`);
+                }
               }
 
               // Register the terminal with useTmux - registerTerminal creates PTY internally
@@ -2249,6 +2465,7 @@ server.listen(PORT, '127.0.0.1', async () => {
                 isChrome: true,
                 useTmux: true,  // Enable tmux reconnection
                 workingDir: workingDir,  // Pass the actual working directory from tmux
+                ...secretConfig
               });
 
               log.success(`✅ Recovered: ${sessionName}`);
@@ -2265,11 +2482,19 @@ server.listen(PORT, '127.0.0.1', async () => {
           recoveryComplete = true;
           recoveryResolve();
           log.info(`[WS] Broadcasting ${chromeTerminals.length} recovered terminals to ${activeConnections.size} clients (${sidebarConnections.size} sidebars, recoveryComplete=true)`);
-          broadcast({
-            type: 'terminals',
-            data: chromeTerminals,
-            connectionCount: sidebarConnections.size,
-            recoveryComplete: true
+          activeConnections.forEach(client => {
+            if (client.readyState !== WebSocket.OPEN) return;
+            const visible = wsIdentity.visibleTerminals(client, chromeTerminals);
+            try {
+              client.send(JSON.stringify({
+                type: 'terminals',
+                data: visible,
+                connectionCount: sidebarConnections.size,
+                recoveryComplete: true
+              }));
+            } catch (error) {
+              log.error('Error sending recovered terminals:', error);
+            }
           });
         } else {
           // No ctt- sessions to recover - mark recovery as complete

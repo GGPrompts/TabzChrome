@@ -392,61 +392,6 @@ const errorPatterns = [
   },
 ]
 
-// ============================================
-// BROWSER MCP - Console Log Capture
-// ============================================
-
-// Capture all console methods and forward to background worker
-function setupConsoleCapture() {
-  const consoleMethods = ['log', 'info', 'warn', 'error', 'debug'] as const
-
-  for (const level of consoleMethods) {
-    const originalMethod = console[level]
-
-    console[level] = (...args: unknown[]) => {
-      // Call original method first
-      originalMethod.apply(console, args)
-
-      // Format message for capture
-      const message = args.map(arg => {
-        if (typeof arg === 'string') return arg
-        if (arg instanceof Error) return `${arg.name}: ${arg.message}\n${arg.stack || ''}`
-        try {
-          return JSON.stringify(arg, null, 2)
-        } catch {
-          return String(arg)
-        }
-      }).join(' ')
-
-      // Get stack trace for errors
-      let stack: string | undefined
-      if (level === 'error') {
-        const err = args.find(arg => arg instanceof Error) as Error | undefined
-        stack = err?.stack || new Error().stack
-      }
-
-      // Send to background worker (fire and forget)
-      try {
-        chrome.runtime.sendMessage({
-          type: 'CONSOLE_LOG',
-          entry: {
-            level,
-            message,
-            timestamp: Date.now(),
-            url: window.location.href,
-            tabId: -1, // Will be filled in by background worker
-            stack,
-          }
-        }).catch(() => {
-          // Ignore errors - background may not be ready
-        })
-      } catch {
-        // Ignore - extension context may be invalid
-      }
-    }
-  }
-}
-
 // Monitor console errors for pattern-based suggestions
 function setupErrorMonitoring() {
   const originalConsoleError = console.error
@@ -917,7 +862,6 @@ function init() {
     console.log('Terminal Tabs: Extension context invalid, skipping init')
     return
   }
-  setupConsoleCapture()  // Browser MCP - capture console logs
   setupContextMenus()
   setupErrorMonitoring()
   detectCustomCommands()  // Custom data-terminal-command elements

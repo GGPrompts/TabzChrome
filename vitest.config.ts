@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@': fileURLToPath(new URL('./extension', import.meta.url)),
     },
   },
   test: {
@@ -30,12 +30,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
       include: [
-        'src/hooks/**/*.ts',
-        'src/hooks/**/*.tsx',
-        'src/stores/**/*.ts',
-        'src/stores/**/*.tsx',
-        'src/utils/**/*.ts',
-        'src/utils/**/*.tsx',
+        'extension/hooks/**/*.ts',
+        'extension/hooks/**/*.tsx',
+        'extension/stores/**/*.ts',
+        'extension/stores/**/*.tsx',
+        'extension/utils/**/*.ts',
+        'extension/utils/**/*.tsx',
       ],
       exclude: [
         '**/*.test.ts',

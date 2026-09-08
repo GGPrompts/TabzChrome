@@ -4,6 +4,7 @@
  * Tools for recovering recently closed tabs/windows and viewing tabs on synced devices.
  * Uses chrome.sessions API via the TabzChrome extension.
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
@@ -17,14 +18,13 @@ const RecentlyClosedSchema = z.object({
         .min(1)
         .max(25)
         .default(25)
-        .describe("Maximum sessions to return (Chrome limits to 25)"),
+        .describe("Max sessions; Chrome caps this at 25."),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 const RestoreSessionSchema = z.object({
     sessionId: z.string()
-        .describe("Session ID from tabz_sessions_recently_closed. If omitted, restores the most recently closed session.")
+        .describe("Session ID; omit for the most recently closed one.")
         .optional()
 }).strict();
 const DevicesSchema = z.object({
@@ -32,11 +32,9 @@ const DevicesSchema = z.object({
         .int()
         .min(1)
         .max(10)
-        .default(10)
-        .describe("Maximum devices to return"),
+        .default(10),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 // =====================================
 // API Functions
@@ -205,7 +203,7 @@ Sign in to Chrome and enable Sync in Settings > You and Google > Sync.`;
  */
 export function registerSessionTools(server) {
     // Recently closed tabs/windows
-    server.tool("tabz_sessions_recently_closed", `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_docs for detailed docs.`, RecentlyClosedSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_sessions_recently_closed", "List recently closed tabs and windows, with the sessionIds tabz_sessions_restore takes.", RecentlyClosedSchema, async (params) => {
         try {
             const result = await getRecentlyClosed(params.maxResults);
             if (!result.success || result.error) {
@@ -240,7 +238,7 @@ export function registerSessionTools(server) {
         }
     });
     // Restore closed session
-    server.tool("tabz_sessions_restore", `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_docs for detailed docs.`, RestoreSessionSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_sessions_restore", "Restore a recently closed tab or window; omit sessionId for the most recent.", RestoreSessionSchema, async (params) => {
         try {
             const result = await restoreSession(params.sessionId);
             if (!result.success || result.error) {
@@ -279,7 +277,7 @@ The tab/window is now open and active.`;
         }
     });
     // Synced devices
-    server.tool("tabz_sessions_devices", `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_docs for detailed docs.`, DevicesSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_sessions_devices", "List tabs open on the user's other synced Chrome devices; needs Chrome Sync.", DevicesSchema, async (params) => {
         try {
             const result = await getDevices(params.maxResults);
             if (!result.success || result.error) {

@@ -9,7 +9,7 @@
  */
 
 const pty = require('node-pty');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const EventEmitter = require('events');
 const path = require('path');
 const os = require('os');
@@ -68,6 +68,7 @@ class PTYHandler extends EventEmitter {
 
     // Tmux config file path (relative to backend)
     this.tmuxConfigPath = path.join(__dirname, '../../.tmux-terminal-tabs.conf');
+    this.execTmux = (args, options = {}) => execFileSync('tmux', args, options);
   }
 
   /**
@@ -75,7 +76,7 @@ class PTYHandler extends EventEmitter {
    */
   tmuxSessionExists(sessionName) {
     try {
-      execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
+      this.execTmux(['has-session', '-t', `=${sessionName}`], { stdio: 'pipe' });
       return true;
     } catch {
       return false;
@@ -98,7 +99,7 @@ class PTYHandler extends EventEmitter {
     try {
       const out = require('child_process').execFileSync(
         'tmux',
-        ['list-panes', '-t', sessionName, '-F', '#{pane_current_command}|#{mouse_any_flag}|#{alternate_on}|#{pane_tty}'],
+        ['list-panes', '-t', `=${sessionName}`, '-F', '#{pane_current_command}|#{mouse_any_flag}|#{alternate_on}|#{pane_tty}'],
         { encoding: 'utf8' }
       );
       const SHELLS = new Set(['bash', 'zsh', 'sh', 'fish', 'dash']);
@@ -113,6 +114,49 @@ class PTYHandler extends EventEmitter {
     } catch (e) {
       // Best-effort: never block an attach on sanitization
       log.debug(`sanitizeStalePaneModes skipped: ${e.message}`);
+    }
+  }
+
+  buildTmuxSessionEnvArgs(sessionEnv = {}) {
+    const args = [];
+    for (const [key, value] of Object.entries(sessionEnv)) {
+      if (value === undefined || value === null) continue;
+      if (typeof value !== 'string' && typeof value !== 'number') continue;
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+      args.push('-e', `${key}=${value}`);
+    }
+    return args;
+  }
+
+  buildTmuxNewSessionArgs({ sessionName, workingDir, cols, rows, sessionEnv = {} }) {
+    return [
+      '-f', this.tmuxConfigPath,
+      'new-session', '-d',
+      '-s', sessionName,
+      '-c', workingDir,
+      '-x', String(cols),
+      '-y', String(rows),
+      ...this.buildTmuxSessionEnvArgs(sessionEnv)
+    ];
+  }
+
+  buildTmuxSetOptionArgs(sessionName, option, value) {
+    return ['set-option', '-t', `=${sessionName}`, option, String(value)];
+  }
+
+  setTmuxOption(sessionName, option, value) {
+    this.execTmux(this.buildTmuxSetOptionArgs(sessionName, option, value), { stdio: 'pipe' });
+  }
+
+  getTmuxOption(sessionName, option) {
+    try {
+      const output = this.execTmux(
+        ['show-options', '-t', `=${sessionName}`, '-qv', option],
+        { stdio: 'pipe' }
+      );
+      return String(output || '').replace(/\r?\n$/, '');
+    } catch {
+      return '';
     }
   }
 
@@ -172,6 +216,11 @@ class PTYHandler extends EventEmitter {
     delete filteredEnv.WEZTERM_PANE;  // WezTerm
     delete filteredEnv.ALACRITTY_SOCKET;  // Alacritty
     delete filteredEnv.KITTY_WINDOW_ID;  // Kitty
+    // A backend started by scripts/dev.sh can itself be inside tmux. Do not
+    // inherit that client identity into the tmux attach process: tmux rejects
+    // nested clients before the terminal can load.
+    delete filteredEnv.TMUX;
+    delete filteredEnv.TMUX_PANE;
 
     // Determine terminal background for lipgloss/charm apps
     // COLORFGBG format: "foreground;background" (ANSI color indices)
@@ -239,7 +288,7 @@ class PTYHandler extends EventEmitter {
 
           // Apply remain-on-exit setting to existing sessions (fixes old sessions)
           try {
-            execSync(`tmux set-option -t "${sessionName}" remain-on-exit off`);
+            this.setTmuxOption(sessionName, 'remain-on-exit', 'off');
             log.debug(`Applied remain-on-exit off to existing session ${sessionName}`);
           } catch (err) {
             log.warn(`Failed to set remain-on-exit for ${sessionName}:`, err.message);
@@ -297,26 +346,45 @@ class PTYHandler extends EventEmitter {
           try {
             // Use custom tmux config for optimal terminal experience
             // Pass critical environment variables with -e flag so they're available in the session
-            const tmuxCmd = `tmux -f "${this.tmuxConfigPath}" new-session -d -s "${sessionName}" -c "${validWorkingDir}" -x ${cols} -y ${rows} -e "COLORFGBG=${colorFgBg}" -e "COLORTERM=truecolor" -e "FORCE_COLOR=1"`;
+            const tmuxArgs = this.buildTmuxNewSessionArgs({
+              sessionName,
+              workingDir: validWorkingDir,
+              cols,
+              rows,
+              sessionEnv: {
+                ...env,
+                COLORFGBG: colorFgBg,
+                COLORTERM: 'truecolor',
+                FORCE_COLOR: '1'
+              }
+            });
             log.debug(`Using tmux config: ${this.tmuxConfigPath}`);
             log.debug(`Creating tmux session with COLORFGBG=${colorFgBg}`);
-            execSync(tmuxCmd, {
+            this.execTmux(tmuxArgs, {
               env: enhancedEnv
             });
 
             // CRITICAL: Ensure xterm.js config is applied even if tmux server was started elsewhere
             // The -f flag only works on server startup, not when joining existing server
             // This prevents corruption when Windows Terminal starts tmux first with different settings
-            execSync(`tmux source-file "${this.tmuxConfigPath}"`);
+            try {
+              this.execTmux(['source-file', this.tmuxConfigPath], { stdio: 'pipe' });
+            } catch (sourceError) {
+              // The session was created successfully. A host-specific config
+              // optional feature (such as a missing plugin) must not conceal
+              // that success, while subsequent launch failures remain fatal.
+              const detail = (sourceError.stderr || sourceError.message || '').toString().trim();
+              log.warn(`tmux source-file reported an error, continuing: ${detail}`);
+            }
 
             // CRITICAL: Ensure remain-on-exit is off for this session
             // This allows tabs to auto-close when you type 'exit' or Ctrl+D
-            execSync(`tmux set-option -t "${sessionName}" remain-on-exit off`);
+            this.setTmuxOption(sessionName, 'remain-on-exit', 'off');
 
             // Set profile name as tmux user option for status bar display
             // This is shown in the tmux status bar for popped-out/3D focus views
             if (profile?.name) {
-              execSync(`tmux set-option -t "${sessionName}" @profile "${profile.name}"`);
+              this.setTmuxOption(sessionName, '@profile', profile.name);
               log.debug(`Set tmux @profile option: ${profile.name}`);
             }
 
@@ -333,7 +401,7 @@ class PTYHandler extends EventEmitter {
         this.sanitizeStalePaneModes(sessionName);
 
         // Attach to the tmux session via PTY (works for both new and existing)
-        ptyProcess = pty.spawn('tmux', ['attach-session', '-t', sessionName], {
+        ptyProcess = pty.spawn('tmux', ['attach-session', '-t', `=${sessionName}`], {
           name: 'xterm-256color',
           cols,
           rows,

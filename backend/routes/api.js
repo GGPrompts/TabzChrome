@@ -12,12 +12,95 @@ const express = require('express');
 const Joi = require('joi');
 const rateLimit = require('express-rate-limit');
 const terminalRegistry = require('../modules/terminal-registry');
+const tmuxSessionManager = require('../modules/tmux-session-manager');
+const wsIdentity = require('../modules/ws-identity');
 const unifiedSpawn = require('../modules/unified-spawn');
 const { createModuleLogger } = require('../modules/logger');
 const { makeBrowserRequest } = require('./browser');
+const { AUTH_TOKEN_FILE } = require('../modules/auth-token');
+const {
+  CUSTOM_COLLISION_SUFFIX,
+  deriveBuiltInMcpPresets,
+  mergeMcpPresets,
+  readMcpToolCatalog
+} = require('../modules/mcp-presets');
+const { mergeKnownTools } = require('../modules/mcp-known-tools');
 
 const router = express.Router();
 const log = createModuleLogger('API');
+
+function isExtensionRequest(req) {
+  const policy = req.app.get('originPolicy');
+  return Boolean(policy &&
+    policy.classify(req.headers.origin).kind === wsIdentity.ORIGIN_KINDS.EXTENSION);
+}
+
+function refuseSecretTerminal(res, idOrSession) {
+  if (!terminalRegistry.isSecretTerminal(idOrSession)) return false;
+  res.status(403).json({
+    success: false,
+    error: 'Secret editor terminal',
+    message: 'This terminal is a protected credential editor; agents may not list, read, or type into it.'
+  });
+  return true;
+}
+
+function refuseSecretTerminalUnlessExtension(req, res, idOrSession) {
+  if (isExtensionRequest(req)) return false;
+  return refuseSecretTerminal(res, idOrSession);
+}
+
+function isSecretSession(session) {
+  return session.secret === true || terminalRegistry.isSecretInRegistry(session.name);
+}
+
+function secretSessionView(session) {
+  return { id: session.name, name: session.name, secret: true };
+}
+
+function visibleSessions(req, sessions) {
+  const fromExtension = isExtensionRequest(req);
+  return sessions.flatMap(session => {
+    if (!isSecretSession(session)) return [session];
+    return fromExtension ? [secretSessionView(session)] : [];
+  });
+}
+
+function announceTerminal(req, terminal, extra = {}) {
+  const frame = {
+    type: 'terminal-spawned',
+    data: wsIdentity.clientTerminalRecord(terminal),
+    ...extra
+  };
+  if (terminal && terminal.secret === true) {
+    const send = req.app.get('sendToAllExtensions') || req.app.get('sendToExtension');
+    if (send) send(frame);
+    return;
+  }
+  const broadcast = req.app.get('broadcast');
+  if (broadcast) broadcast(frame);
+}
+
+function announceTerminalClosed(req, terminal) {
+  const frame = { type: 'terminal-closed', data: { id: terminal.id } };
+  if (terminal.secret === true) {
+    const send = req.app.get('sendToAllExtensions') || req.app.get('sendToExtension');
+    if (send) send(frame);
+    return;
+  }
+  const broadcast = req.app.get('broadcast');
+  if (broadcast) broadcast(frame);
+}
+
+async function resolveExactSession(res, name) {
+  const sessions = await tmuxSessionManager.listDetailedSessions();
+  const session = sessions.find(candidate => candidate.name === name);
+  if (!session) {
+    res.status(404).json({ success: false, error: `Session ${name} not found` });
+    return null;
+  }
+  return session;
+}
 
 // =============================================================================
 // RATE LIMITING CONFIGURATION
@@ -297,10 +380,7 @@ router.post('/agents', spawnRateLimiter, validateBody(spawnAgentSchema), asyncHa
   const terminal = result.terminal;
 
   // Broadcast to WebSocket clients so Chrome extension picks up the new terminal
-  const broadcast = req.app.get('broadcast');
-  if (broadcast) {
-    broadcast({ type: 'terminal-spawned', data: terminal });
-  }
+  announceTerminal(req, terminal);
 
   res.status(201).json({
     success: true,
@@ -337,12 +417,16 @@ router.get('/agents', asyncHandler(async (req, res) => {
     await Promise.race([recoveryPromise, timeout]);
   }
 
-  const terminals = terminalRegistry.getAllTerminals();
+  const fromExtension = isExtensionRequest(req);
+  const terminals = terminalRegistry.getAllTerminals()
+    .filter(terminal => fromExtension || terminal.secret !== true);
 
   res.json({
     success: true,
     count: terminals.length,
-    data: terminals.map(t => ({
+    data: terminals.map(t => t.secret === true
+      ? wsIdentity.clientTerminalRecord(t)
+      : ({
       id: t.id,
       name: t.name,
       terminalType: t.terminalType, // Always explicit
@@ -364,6 +448,7 @@ router.get('/agents', asyncHandler(async (req, res) => {
  */
 router.get('/agents/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (refuseSecretTerminal(res, id)) return;
   const terminal = terminalRegistry.getTerminal(id);
   
   if (!terminal) {
@@ -401,6 +486,7 @@ router.get('/agents/:id', asyncHandler(async (req, res) => {
 router.delete('/agents/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const force = req.query.force !== 'false'; // Default to true, only false if explicitly set
+  if (refuseSecretTerminalUnlessExtension(req, res, id)) return;
   const terminal = terminalRegistry.getTerminal(id);
 
   if (!terminal) {
@@ -412,24 +498,22 @@ router.delete('/agents/:id', asyncHandler(async (req, res) => {
 
   // Close terminal - force=true kills tmux, force=false just removes from registry
   // Must await so the terminal is removed from registry before we respond
+  const killed = force || terminal.secret === true;
   await terminalRegistry.closeTerminal(id, force);
 
   // Broadcast to WebSocket clients so UI removes the tab
-  const broadcast = req.app.get('broadcast');
-  if (broadcast) {
-    broadcast({ type: 'terminal-closed', data: { id } });
-  }
+  announceTerminalClosed(req, terminal);
 
   res.json({
     success: true,
-    message: force
+    message: killed
       ? `Agent '${terminal.name}' closed and tmux session killed`
       : `Agent '${terminal.name}' detached (tmux session preserved)`,
     data: {
       id: terminal.id,
       name: terminal.name,
       terminalType: terminal.terminalType,
-      detached: !force
+      detached: !killed
     }
   });
 }));
@@ -443,6 +527,7 @@ router.delete('/agents/:id', asyncHandler(async (req, res) => {
  */
 router.post('/agents/:id/detach', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (refuseSecretTerminalUnlessExtension(req, res, id)) return;
   const terminal = terminalRegistry.getTerminal(id);
 
   if (!terminal) {
@@ -451,21 +536,21 @@ router.post('/agents/:id/detach', asyncHandler(async (req, res) => {
   }
 
   // Detach: remove from registry but keep tmux session alive
-  terminalRegistry.closeTerminal(id, false);
+  await terminalRegistry.closeTerminal(id, false);
 
   // Broadcast to WebSocket clients so UI removes the tab
-  const broadcast = req.app.get('broadcast');
-  if (broadcast) {
-    broadcast({ type: 'terminal-closed', data: { id } });
-  }
+  announceTerminalClosed(req, terminal);
 
+  const killed = terminal.secret === true;
   res.json({
     success: true,
-    message: `Agent '${terminal.name}' detached (tmux session preserved)`,
+    message: killed
+      ? `Agent '${terminal.name}' closed and tmux session killed`
+      : `Agent '${terminal.name}' detached (tmux session preserved)`,
     data: {
       id: terminal.id,
       name: terminal.name,
-      detached: true
+      detached: !killed
     }
   });
 }));
@@ -476,6 +561,7 @@ router.post('/agents/:id/detach', asyncHandler(async (req, res) => {
 router.post('/agents/:id/command', validateBody(commandSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { command } = req.body;
+  if (refuseSecretTerminal(res, id)) return;
   
   const terminal = terminalRegistry.getTerminal(id);
   if (!terminal) {
@@ -512,6 +598,7 @@ router.post('/agents/:id/command', validateBody(commandSchema), asyncHandler(asy
 router.post('/agents/:id/resize', validateBody(resizeSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { cols, rows } = req.body;
+  if (refuseSecretTerminalUnlessExtension(req, res, id)) return;
   
   const terminal = terminalRegistry.getTerminal(id);
   if (!terminal) {
@@ -547,6 +634,8 @@ router.post('/terminals/send-keys', validateBody(sendKeysSchema), asyncHandler(a
   const { terminalId, sessionName, text, execute, delay } = req.body;
   const { spawnSync } = require('child_process');
 
+  if (refuseSecretTerminal(res, terminalId) || refuseSecretTerminal(res, sessionName)) return;
+
   // Verify terminal exists
   const terminal = terminalRegistry.getTerminal(terminalId);
   if (!terminal) {
@@ -557,27 +646,20 @@ router.post('/terminals/send-keys', validateBody(sendKeysSchema), asyncHandler(a
     });
   }
 
-  // Verify tmux session exists
-  const hasSession = spawnSync('tmux', ['has-session', '-t', sessionName], { timeout: 1000 });
-  if (hasSession.status !== 0) {
-    return res.status(404).json({
-      success: false,
-      error: 'Session not found',
-      message: `tmux session "${sessionName}" does not exist`
-    });
-  }
+  if (!(await resolveExactSession(res, sessionName))) return;
+  const target = `=${sessionName}`;
 
   try {
     // Send text using tmux send-keys with -l (literal) flag
     if (text) {
-      spawnSync('tmux', ['send-keys', '-t', sessionName, '-l', text], { timeout: 5000 });
+      spawnSync('tmux', ['send-keys', '-t', target, '-l', text], { timeout: 5000 });
       log.debug(`Send-keys → ${sessionName}: ${text.length} bytes`);
     }
 
     // If execute is true, wait for delay then send Enter
     if (execute) {
       await new Promise(resolve => setTimeout(resolve, delay));
-      spawnSync('tmux', ['send-keys', '-t', sessionName, 'Enter'], { timeout: 5000 });
+      spawnSync('tmux', ['send-keys', '-t', target, 'Enter'], { timeout: 5000 });
       log.debug(`Send-keys Enter → ${sessionName} (after ${delay}ms delay)`);
     }
 
@@ -607,6 +689,7 @@ router.post('/terminals/send-keys', validateBody(sendKeysSchema), asyncHandler(a
  */
 router.get('/terminals/:id/capture', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (refuseSecretTerminal(res, id)) return;
   const lines = parseInt(req.query.lines) || 50;
   const { spawnSync } = require('child_process');
 
@@ -623,15 +706,7 @@ router.get('/terminals/:id/capture', asyncHandler(async (req, res) => {
   // Use terminal ID as tmux session name
   const sessionName = id;
 
-  // Verify tmux session exists
-  const hasSession = spawnSync('tmux', ['has-session', '-t', sessionName], { timeout: 1000 });
-  if (hasSession.status !== 0) {
-    return res.status(404).json({
-      success: false,
-      error: 'Session not found',
-      message: `tmux session "${sessionName}" does not exist`
-    });
-  }
+  if (!(await resolveExactSession(res, sessionName))) return;
 
   try {
     // Capture pane output
@@ -639,7 +714,7 @@ router.get('/terminals/:id/capture', asyncHandler(async (req, res) => {
     // -S: start line (negative = from end of scrollback)
     const result = spawnSync('tmux', [
       'capture-pane',
-      '-t', sessionName,
+      '-t', `=${sessionName}`,
       '-p',
       '-S', `-${lines}`
     ], { timeout: 5000, encoding: 'utf-8' });
@@ -671,6 +746,7 @@ router.get('/terminals/:id/capture', asyncHandler(async (req, res) => {
  */
 router.get('/terminals/:id/panes', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (refuseSecretTerminal(res, id)) return;
 
   const terminal = terminalRegistry.getTerminal(id);
   if (!terminal) {
@@ -784,41 +860,14 @@ router.get('/mcp/inspector-command', asyncHandler(async (req, res) => {
  * GET /api/tmux/sessions - List active tmux sessions (simple)
  */
 router.get('/tmux/sessions', asyncHandler(async (req, res) => {
-  const { execSync } = require('child_process');
-
-  try {
-    // List tmux sessions with format: session_name:session_id
-    const output = execSync('tmux list-sessions -F "#{session_name}" 2>/dev/null', { encoding: 'utf8' });
-    const sessions = output.trim().split('\n').filter(s => s.length > 0);
-
-    res.json({
-      success: true,
-      data: {
-        sessions,
-        count: sessions.length
-      }
-    });
-  } catch (error) {
-    // If tmux server is not running or no sessions exist
-    if (error.status === 1) {
-      res.json({
-        success: true,
-        data: {
-          sessions: [],
-          count: 0
-        }
-      });
-    } else {
-      throw error;
-    }
-  }
+  const sessions = visibleSessions(req, tmuxSessionManager.listSessionNames())
+    .map(session => session.name);
+  res.json({ success: true, data: { sessions, count: sessions.length } });
 }));
 
 // =============================================================================
 // TMUX SESSION MANAGER ENDPOINTS
 // =============================================================================
-
-const tmuxSessionManager = require('../modules/tmux-session-manager');
 
 /**
  * GET /api/tmux/sessions/detailed - List all sessions with rich metadata
@@ -830,7 +879,7 @@ const tmuxSessionManager = require('../modules/tmux-session-manager');
  * - Tabz managed vs external
  */
 router.get('/tmux/sessions/detailed', asyncHandler(async (req, res) => {
-  const sessions = await tmuxSessionManager.listDetailedSessions();
+  const sessions = visibleSessions(req, await tmuxSessionManager.listDetailedSessions());
   const grouped = tmuxSessionManager.groupSessions(sessions);
 
   res.json({
@@ -853,19 +902,13 @@ router.get('/tmux/sessions/detailed', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/sessions/:name', asyncHandler(async (req, res) => {
   const { name } = req.params;
-  const sessions = await tmuxSessionManager.listDetailedSessions();
-  const session = sessions.find(s => s.name === name);
-
-  if (!session) {
-    return res.status(404).json({
-      success: false,
-      error: `Session ${name} not found`
-    });
-  }
+  const session = await resolveExactSession(res, name);
+  if (!session) return;
+  if (refuseSecretTerminalUnlessExtension(req, res, name)) return;
 
   res.json({
     success: true,
-    data: session
+    data: isSecretSession(session) ? secretSessionView(session) : session
   });
 }));
 
@@ -878,6 +921,8 @@ router.get('/tmux/sessions/:name', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/sessions/:name/preview', asyncHandler(async (req, res) => {
   const { name } = req.params;
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminal(res, name)) return;
   const lines = parseInt(req.query.lines || '100', 10);
   const windowIndex = parseInt(req.query.window || '1', 10);
   const full = req.query.full === 'true';
@@ -912,6 +957,7 @@ router.get('/tmux/sessions/:name/preview', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/sessions/:name/capture', asyncHandler(async (req, res) => {
   const { name } = req.params;
+  if (refuseSecretTerminal(res, name)) return;
 
   // Get session details for metadata
   const sessions = await tmuxSessionManager.listDetailedSessions();
@@ -934,11 +980,15 @@ router.get('/tmux/sessions/:name/capture', asyncHandler(async (req, res) => {
   // Capture full scrollback using the paneId from session metadata
   // This avoids issues with tmux base-index settings
   try {
-    const { execSync } = require('child_process');
-    const rawContent = execSync(
-      `tmux capture-pane -p -e -S - -t "${session.paneId}"`,
-      { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
+    const { spawnSync } = require('child_process');
+    const captured = spawnSync(
+      'tmux', ['capture-pane', '-p', '-e', '-S', '-', '-t', session.paneId],
+      { encoding: 'utf8', timeout: 5000, maxBuffer: 10 * 1024 * 1024 }
     );
+    if (captured.error || captured.status !== 0) {
+      throw captured.error || new Error(String(captured.stderr || '').trim() || 'tmux capture-pane failed');
+    }
+    const rawContent = String(captured.stdout || '');
     // Strip ANSI codes but DON'T truncate lines - user wants full content for copying
     let content = rawContent.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
     content = content.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
@@ -970,6 +1020,7 @@ router.get('/tmux/sessions/:name/capture', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/sessions/:name/statusline', asyncHandler(async (req, res) => {
   const { name } = req.params;
+  if (refuseSecretTerminal(res, name)) return;
   const sessions = await tmuxSessionManager.listDetailedSessions();
   const session = sessions.find(s => s.name === name);
 
@@ -1001,6 +1052,8 @@ router.get('/tmux/sessions/:name/statusline', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/sessions/:name/windows', asyncHandler(async (req, res) => {
   const { name } = req.params;
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminal(res, name)) return;
   const result = await tmuxSessionManager.listWindows(name);
 
   if (result.success) {
@@ -1025,6 +1078,8 @@ router.get('/tmux/sessions/:name/windows', asyncHandler(async (req, res) => {
 router.post('/tmux/sessions/:name/command', asyncHandler(async (req, res) => {
   const { name } = req.params;
   const { command } = req.body;
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminal(res, name)) return;
 
   if (!command || typeof command !== 'string') {
     return res.status(400).json({
@@ -1041,7 +1096,7 @@ router.post('/tmux/sessions/:name/command', asyncHandler(async (req, res) => {
       message: `Command executed on session ${name}`
     });
   } else {
-    res.status(500).json({
+    res.status(result.rejected ? 400 : 500).json({
       success: false,
       error: result.error
     });
@@ -1056,14 +1111,13 @@ router.post('/tmux/sessions/:name/command', asyncHandler(async (req, res) => {
  */
 router.post('/tmux/refresh/:name', asyncHandler(async (req, res) => {
   const { name } = req.params;
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminal(res, name)) return;
 
   try {
     // Send empty key to trigger redraw (refresh-client needs attached client, not PTY)
-    execSync(`tmux send-keys -t "${name}" '' 2>/dev/null || true`, {
-      encoding: 'utf8',
-      timeout: 1000
-    });
+    spawnSync('tmux', ['send-keys', '-t', `=${name}`, ''], { timeout: 1000 });
 
     res.json({
       success: true,
@@ -1086,7 +1140,7 @@ router.post('/tmux/refresh/:name', asyncHandler(async (req, res) => {
  */
 router.delete('/tmux/sessions/bulk', asyncHandler(async (req, res) => {
   const { sessions } = req.body;
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
 
   if (!Array.isArray(sessions) || sessions.length === 0) {
     return res.status(400).json({
@@ -1100,17 +1154,28 @@ router.delete('/tmux/sessions/bulk', asyncHandler(async (req, res) => {
     failed: []
   };
 
+  const fromExtension = isExtensionRequest(req);
   for (const sessionName of sessions) {
+    if (typeof sessionName !== 'string' || sessionName.length === 0) {
+      results.failed.push({ session: sessionName, error: 'Session name must be a string' });
+      continue;
+    }
+    const wasSecret = terminalRegistry.isSecretTerminal(sessionName);
+    if (!fromExtension && wasSecret) {
+      results.failed.push({ session: sessionName, error: 'Secret editor terminal' });
+      continue;
+    }
     try {
-      execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null`);
+      const killed = spawnSync('tmux', ['kill-session', '-t', `=${sessionName}`], { timeout: 5000 });
+      if (killed.status !== 0) throw new Error('kill-session failed');
       results.killed.push(sessionName);
 
       // Broadcast to WebSocket clients so UI removes the tab (if it was registered)
       if (sessionName.startsWith('ctt-')) {
-        const broadcast = req.app.get('broadcast');
-        if (broadcast) {
-          broadcast({ type: 'terminal-closed', data: { id: sessionName } });
-        }
+        announceTerminalClosed(req, {
+          id: sessionName,
+          secret: wasSecret
+        });
       }
     } catch (err) {
       results.failed.push({ session: sessionName, error: 'Session not found or already killed' });
@@ -1130,15 +1195,19 @@ router.delete('/tmux/sessions/bulk', asyncHandler(async (req, res) => {
  */
 router.delete('/tmux/sessions/:name', asyncHandler(async (req, res) => {
   const { name } = req.params;
+  const session = await resolveExactSession(res, name);
+  if (!session) return;
+  if (refuseSecretTerminalUnlessExtension(req, res, name)) return;
+  const wasSecret = isSecretSession(session);
   const result = await tmuxSessionManager.killSession(name);
 
   if (result.success) {
     // Broadcast to WebSocket clients so UI removes the tab (if it's a ctt- session)
     if (name.startsWith('ctt-')) {
-      const broadcast = req.app.get('broadcast');
-      if (broadcast) {
-        broadcast({ type: 'terminal-closed', data: { id: name } });
-      }
+      announceTerminalClosed(req, {
+        id: name,
+        secret: wasSecret
+      });
     }
 
     res.json({
@@ -1159,22 +1228,14 @@ router.delete('/tmux/sessions/:name', asyncHandler(async (req, res) => {
  */
 router.post('/tmux/detach/:name', asyncHandler(async (req, res) => {
   const { name } = req.params;
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminalUnlessExtension(req, res, name)) return;
 
   try {
-    // Check if session exists
-    try {
-      execSync(`tmux has-session -t "${name}" 2>/dev/null`);
-    } catch {
-      return res.status(404).json({
-        success: false,
-        error: `Session ${name} not found`
-      });
-    }
-
     // Detach all clients from this session (non-destructive)
     // This doesn't kill the session, just detaches clients
-    execSync(`tmux detach-client -s "${name}" 2>/dev/null || true`);
+    spawnSync('tmux', ['detach-client', '-s', `=${name}`], { timeout: 5000 });
 
     log.info(` Detached from tmux session: ${name}`);
 
@@ -1198,25 +1259,19 @@ router.post('/tmux/detach/:name', asyncHandler(async (req, res) => {
  */
 router.get('/tmux/info/:name', asyncHandler(async (req, res) => {
   const { name } = req.params;
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
+  if (!(await resolveExactSession(res, name))) return;
+  if (refuseSecretTerminalUnlessExtension(req, res, name)) return;
 
   try {
-    // Check if session exists
-    try {
-      execSync(`tmux has-session -t "${name}" 2>/dev/null`);
-    } catch {
-      return res.status(404).json({
-        success: false,
-        error: `Session ${name} not found`
-      });
-    }
-
     // Get window name, pane title, window count, pane count, current working directory, and pane state
     // Format: "window_name|pane_title|session_windows|window_index|pane_count|pane_current_path|pane_marked|window_zoomed_flag"
-    const info = execSync(
-      `tmux display-message -t "${name}" -p "#{window_name}|#{pane_title}|#{session_windows}|#{window_index}|#{window_panes}|#{pane_current_path}|#{pane_marked}|#{window_zoomed_flag}"`,
-      { encoding: 'utf-8' }
-    ).trim();
+    const infoResult = spawnSync('tmux', [
+      'display-message', '-t', `=${name}`, '-p',
+      '#{window_name}|#{pane_title}|#{session_windows}|#{window_index}|#{window_panes}|#{pane_current_path}|#{pane_marked}|#{window_zoomed_flag}'
+    ], { encoding: 'utf-8', timeout: 5000 });
+    if (infoResult.status !== 0) throw new Error(String(infoResult.stderr || '').trim() || 'tmux display-message failed');
+    const info = String(infoResult.stdout || '').trim();
 
     const [windowName, paneTitle, windowCountStr, activeWindowStr, paneCountStr, currentPath, paneMarkedStr, paneZoomedStr] = info.split('|');
     const paneMarked = paneMarkedStr === '1';
@@ -1309,9 +1364,10 @@ router.get('/tmux/info/:name', asyncHandler(async (req, res) => {
 router.get('/claude-status', asyncHandler(async (req, res) => {
   const workingDir = req.query.dir;
   const sessionName = req.query.sessionName;
+  if (sessionName && refuseSecretTerminal(res, sessionName)) return;
   const fs = require('fs');
   const path = require('path');
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
 
 
   if (!workingDir) {
@@ -1327,22 +1383,29 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
 
     // If sessionName provided, get the tmux pane ID and pane_title for precise matching
     let paneTitle = null;
+    let paneCommand = null;
     if (sessionName) {
       try {
         // First check if session exists (silent check)
-        execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
+        const exists = spawnSync('tmux', ['has-session', '-t', `=${sessionName}`], { timeout: 1000 });
+        if (exists.status !== 0) throw new Error('session unavailable');
         // Get pane ID for this session (format: %123)
-        tmuxPaneId = execSync(`tmux list-panes -t "${sessionName}" -F "#{pane_id}"`, { encoding: 'utf-8' }).trim().split('\n')[0];
+        const panes = spawnSync('tmux', ['list-panes', '-t', `=${sessionName}`, '-F', '#{pane_id}\t#{pane_current_command}'], { encoding: 'utf-8', timeout: 1000 });
+        if (panes.status !== 0) throw new Error('panes unavailable');
+        [tmuxPaneId, paneCommand] = String(panes.stdout || '').trim().split('\n')[0].split('\t');
+        if (!/^%\d+$/.test(tmuxPaneId)) throw new Error('pane unavailable');
         // Get pane_title - this is set by Claude Code's TodoWrite when there's an in_progress task
-        const rawPaneTitle = execSync(`tmux display-message -t "${sessionName}" -p "#{pane_title}"`, { encoding: 'utf-8' }).trim();
+        const titleResult = spawnSync('tmux', ['display-message', '-t', `=${sessionName}`, '-p', '#{pane_title}'], { encoding: 'utf-8', timeout: 1000 });
+        if (titleResult.status !== 0) throw new Error('title unavailable');
+        const rawPaneTitle = String(titleResult.stdout || '').trim();
         // Only use pane_title if it's meaningful (not hostname, bash, or empty)
         const hostnamePattern = /^(localhost|[\w]+-?(desktop|laptop)|ip-[\d-]+|bash)$/i;
         if (rawPaneTitle && !hostnamePattern.test(rawPaneTitle)) {
           paneTitle = rawPaneTitle;
         }
       } catch (err) {
-        // Session doesn't exist - silently fall back to dir matching
-        // This is expected during backend restart before terminals reconnect
+        // A named terminal must never borrow another terminal's cwd status.
+        return res.json({ success: true, status: 'unknown', sessionId: null });
       }
     }
 
@@ -1451,6 +1514,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
                       subagent_count: stateData.subagent_count || 0,
                       matchType: 'split-pane'
                     };
+                    paneCommand = pane.command;
                     bestMatchTime = updateTime;
                   }
                 }
@@ -1467,6 +1531,7 @@ router.get('/claude-status', asyncHandler(async (req, res) => {
 
     // Return best match or unknown if no match found
     if (bestMatch) {
+      if (paneCommand) bestMatch.pane_command = paneCommand;
       // Try to merge context window data from statusline
       // Look for claude_session_id (set by statusline) to find the context file
       const claudeSessionId = bestMatch.claude_session_id;
@@ -1743,20 +1808,12 @@ router.post('/claude-status/cleanup', asyncHandler(async (req, res) => {
  * These are "ghost" sessions that can be reattached or killed
  */
 router.get('/tmux/orphaned-sessions', asyncHandler(async (req, res) => {
-  const { execSync } = require('child_process');
-
   try {
-    // Get all tmux sessions
-    let tmuxSessions = [];
-    try {
-      const output = execSync('tmux list-sessions -F "#{session_name}" 2>/dev/null', { encoding: 'utf8' });
-      tmuxSessions = output.trim().split('\n').filter(s => s.length > 0);
-    } catch (err) {
-      // tmux server not running or no sessions
-      if (err.status !== 1) {
-        throw err;
-      }
-    }
+    const listed = tmuxSessionManager.listSessionNames();
+    const fromExtension = isExtensionRequest(req);
+    const tmuxSessions = listed
+      .filter(session => fromExtension || (!session.secret && !terminalRegistry.isSecretInRegistry(session.name)))
+      .map(session => session.name);
 
     // Filter to only ctt-* prefixed sessions (Chrome extension terminals)
     const cttSessions = tmuxSessions.filter(s => s.startsWith('ctt-'));
@@ -1793,7 +1850,7 @@ router.get('/tmux/orphaned-sessions', asyncHandler(async (req, res) => {
  */
 router.post('/tmux/reattach', asyncHandler(async (req, res) => {
   const { sessions } = req.body;
-  const { execSync } = require('child_process');
+  const { spawnSync } = require('child_process');
 
   if (!Array.isArray(sessions) || sessions.length === 0) {
     return res.status(400).json({
@@ -1806,18 +1863,23 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
     success: [],
     failed: []
   };
+  const fromExtension = isExtensionRequest(req);
+  const knownSessions = new Set(tmuxSessionManager.listSessionNames().map(session => session.name));
 
   for (const sessionName of sessions) {
     // Validate session name (must be ctt-* prefix)
-    if (!sessionName.startsWith('ctt-')) {
+    if (typeof sessionName !== 'string' || !sessionName.startsWith('ctt-')) {
       results.failed.push({ session: sessionName, error: 'Invalid session name (must start with ctt-)' });
       continue;
     }
 
-    // Check if session exists in tmux
-    try {
-      execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
-    } catch {
+    const secretConfig = terminalRegistry.recoveredSecretSpawnConfig(sessionName);
+    if (secretConfig.secret && !fromExtension) {
+      results.failed.push({ session: sessionName, error: 'Secret editor terminal' });
+      continue;
+    }
+
+    if (!knownSessions.has(sessionName)) {
       results.failed.push({ session: sessionName, error: 'Session does not exist in tmux' });
       continue;
     }
@@ -1833,16 +1895,19 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
       // Get session info from tmux for better naming
       let paneTitle = 'Recovered Session';
       let workingDir = process.env.HOME;
-      try {
-        const info = execSync(
-          `tmux display-message -t "${sessionName}" -p "#{pane_title}|#{pane_current_path}"`,
-          { encoding: 'utf-8' }
-        ).trim();
-        const [title, path] = info.split('|');
-        if (title && title !== 'bash') paneTitle = title;
-        if (path) workingDir = path;
-      } catch (e) {
-        // Use defaults if tmux info fails
+      if (!secretConfig.secret) {
+        try {
+          const infoResult = spawnSync('tmux', [
+            'display-message', '-t', `=${sessionName}`, '-p', '#{pane_title}|#{pane_current_path}'
+          ], { encoding: 'utf-8', timeout: 5000 });
+          if (infoResult.status === 0) {
+            const [title, currentPath] = String(infoResult.stdout || '').trim().split('|');
+            if (title && title !== 'bash') paneTitle = title;
+            if (currentPath) workingDir = currentPath;
+          }
+        } catch {
+          // Use defaults if tmux info fails.
+        }
       }
 
       // Extract profile name from session ID (ctt-ProfileName-shortId)
@@ -1858,6 +1923,7 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
         useTmux: true,
         sessionName: sessionName,  // Attach to existing session
         isChrome: true,
+        ...secretConfig
       });
 
       results.success.push({
@@ -1870,10 +1936,7 @@ router.post('/tmux/reattach', asyncHandler(async (req, res) => {
       // IMPORTANT: Send the full terminal object (same as normal spawn in server.js:79)
       // This ensures profile, sessionName, ptyInfo etc are all included
       // Previously only sent a subset which caused missing profile settings on reattach
-      const broadcast = req.app.get('broadcast');
-      if (broadcast) {
-        broadcast({ type: 'terminal-spawned', data: terminal });
-      }
+      announceTerminal(req, terminal);
     } catch (error) {
       results.failed.push({ session: sessionName, error: error.message });
     }
@@ -1901,21 +1964,22 @@ router.post('/tmux/cleanup', asyncHandler(async (req, res) => {
   }
 
   try {
-    const { execSync } = require('child_process');
-
-    // List all sessions matching pattern
-    const sessionsOutput = execSync('tmux ls -F "#{session_name}" 2>/dev/null || echo ""').toString().trim();
-    const allSessions = sessionsOutput.split('\n').filter(s => s);
+    const { spawnSync } = require('child_process');
+    const allSessions = tmuxSessionManager.listSessionNames().map(session => session.name);
 
     // Filter by pattern (simple wildcard matching)
-    const patternRegex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-    const matchingSessions = allSessions.filter(s => patternRegex.test(s));
+    const patternRegex = new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+    const fromExtension = isExtensionRequest(req);
+    const matchingSessions = allSessions.filter(session =>
+      patternRegex.test(session) && (fromExtension || !terminalRegistry.isSecretTerminal(session))
+    );
 
     // Kill each matching session
     let killed = 0;
     for (const session of matchingSessions) {
       try {
-        execSync(`tmux kill-session -t "${session}" 2>/dev/null`);
+        const result = spawnSync('tmux', ['kill-session', '-t', `=${session}`], { timeout: 5000 });
+        if (result.status !== 0) throw new Error('kill-session failed');
         killed++;
       } catch (err) {
         log.warn(` Failed to kill session ${session}:`, err.message);
@@ -1962,30 +2026,51 @@ router.post('/console-log', asyncHandler(async (req, res) => {
 const fs = require('fs').promises;
 const configPath = require('path').join(__dirname, '../../mcp-config.json');
 
-// Default MCP tools (individual tool IDs) - core tools always enabled
-const CORE_TOOLS = ['tabz_list_tabs', 'tabz_switch_tab', 'tabz_rename_tab', 'tabz_get_page_info'];
+// These match the locked Core entries in extension/shared/mcpTools.ts.
+const CORE_TOOLS = [
+  'tabz_list_tabs', 'tabz_switch_tab', 'tabz_close_tab', 'tabz_rename_tab',
+  'tabz_get_page_info', 'tabz_claude_group_status', 'tabz_docs'
+];
 const DEFAULT_ENABLED_TOOLS = [
   ...CORE_TOOLS,
   'tabz_click', 'tabz_fill', 'tabz_screenshot', 'tabz_open_url', 'tabz_get_console_logs'
 ];
 
+function catalogToolIds() {
+  return readMcpToolCatalog().map(tool => tool.id);
+}
+
+function withCoreTools(enabledTools) {
+  const finalTools = [...enabledTools];
+  for (const coreTool of CORE_TOOLS) {
+    if (!finalTools.includes(coreTool)) finalTools.unshift(coreTool);
+  }
+  return finalTools;
+}
+
 /**
  * GET /api/mcp-config - Get MCP tool configuration
- * Returns enabled tools and URL settings
+ * Returns the enabled tools, current catalog snapshot, new-tool markers and
+ * URL settings. A catalog id absent from both enabledTools and knownTools is
+ * new; one in knownTools but omitted from enabledTools is explicitly disabled.
  */
 router.get('/mcp-config', asyncHandler(async (req, res) => {
+  const catalogIds = catalogToolIds();
   let config = {
     enabledTools: DEFAULT_ENABLED_TOOLS,
+    knownTools: catalogIds,
+    newTools: [],
     allowAllUrls: false,
     customDomains: ''
   };
+  let savedConfig = null;
 
   try {
     const data = await fs.readFile(configPath, 'utf-8');
-    const savedConfig = JSON.parse(data);
+    savedConfig = JSON.parse(data);
 
     // Support both new (enabledTools) and legacy (enabledGroups) formats
-    if (savedConfig.enabledTools) {
+    if (Array.isArray(savedConfig.enabledTools)) {
       config.enabledTools = savedConfig.enabledTools;
     } else if (savedConfig.enabledGroups) {
       // Legacy format - return defaults for migration
@@ -2000,22 +2085,42 @@ router.get('/mcp-config', asyncHandler(async (req, res) => {
       config.customDomains = savedConfig.customDomains;
     }
 
-    // Ensure core tools are always enabled
-    for (const coreTool of CORE_TOOLS) {
-      if (!config.enabledTools.includes(coreTool)) {
-        config.enabledTools.unshift(coreTool);
-      }
+    const merged = mergeKnownTools({
+      enabledTools: config.enabledTools,
+      knownTools: savedConfig.knownTools,
+      newTools: savedConfig.newTools,
+      catalogIds
+    });
+    config.enabledTools = withCoreTools(merged.enabledTools);
+    config.knownTools = merged.knownTools;
+    config.newTools = merged.newTools;
+
+    if (merged.discovered.length > 0) {
+      log.info(
+        ` MCP config: enabling ${merged.discovered.length} tool(s) new since the last save` +
+        `${merged.legacy ? ' (one-time knownTools migration)' : ''}: ${merged.discovered.join(', ')}`
+      );
     }
+    if (merged.retired.length > 0) {
+      log.info(` MCP config: dropping ${merged.retired.length} retired tool name(s): ${merged.retired.join(', ')}`);
+    }
+
+    // GET is read-only. Persisting this merge here can race a concurrent POST
+    // and overwrite a newer explicit tool choice. The dashboard acknowledges
+    // the returned newTools on its next explicit save.
   } catch (err) {
     // File doesn't exist, use defaults
     if (err.code !== 'ENOENT') {
       log.error(' Error reading MCP config:', err.message);
     }
+    config.enabledTools = withCoreTools(config.enabledTools);
   }
 
   res.json({
     success: true,
     enabledTools: config.enabledTools,
+    knownTools: config.knownTools,
+    newTools: config.newTools,
     allowAllUrls: config.allowAllUrls,
     customDomains: config.customDomains
   });
@@ -2045,14 +2150,14 @@ router.post('/mcp-config', asyncHandler(async (req, res) => {
 
   // Update enabledTools if provided
   if (Array.isArray(enabledTools)) {
-    // Ensure core tools are always included
-    const finalTools = [...enabledTools];
-    for (const coreTool of CORE_TOOLS) {
-      if (!finalTools.includes(coreTool)) {
-        finalTools.unshift(coreTool);
-      }
-    }
-    config.enabledTools = finalTools;
+    const catalogIds = catalogToolIds();
+    const catalogSet = new Set(catalogIds);
+    const validEnabled = enabledTools.filter(tool => typeof tool === 'string' && catalogSet.has(tool));
+    config.enabledTools = withCoreTools(validEnabled);
+    // The backend's generated catalog is authoritative. Ignore malformed or
+    // stale caller snapshot entries rather than writing them into the config.
+    config.knownTools = catalogIds;
+    config.newTools = [];
   }
 
   // Update URL settings if provided
@@ -2069,6 +2174,8 @@ router.post('/mcp-config', asyncHandler(async (req, res) => {
     success: true,
     message: 'MCP config saved successfully. Restart Claude Code to apply changes.',
     enabledTools: config.enabledTools,
+    knownTools: config.knownTools,
+    newTools: config.newTools,
     allowAllUrls: config.allowAllUrls,
     customDomains: config.customDomains
   });
@@ -2084,21 +2191,26 @@ const presetsPath = require('path').join(__dirname, '../../mcp-presets.json');
  * GET /api/mcp-presets - List all saved presets
  */
 router.get('/mcp-presets', asyncHandler(async (req, res) => {
-  let presets = {};
+  let customPresets = {};
 
   try {
     const data = await fs.readFile(presetsPath, 'utf-8');
-    presets = JSON.parse(data);
+    customPresets = JSON.parse(data);
   } catch (err) {
-    // File doesn't exist, return empty
     if (err.code !== 'ENOENT') {
       log.error('Error reading MCP presets:', err.message);
     }
   }
 
+  const { presets, shadowed } = mergeMcpPresets(customPresets);
+
   res.json({
     success: true,
-    presets
+    presets,
+    shadowedBuiltInSlugs: shadowed,
+    ...(shadowed.length > 0 && {
+      note: `Custom preset(s) ${shadowed.join(', ')} collide with a built-in slug and are listed with the "${CUSTOM_COLLISION_SUFFIX}" suffix. Delete them by their original slug.`
+    })
   });
 }));
 
@@ -2117,21 +2229,39 @@ router.post('/mcp-presets', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: 'Tools array is required' });
   }
 
+  const catalogIds = new Set(catalogToolIds());
+  const invalidTools = tools.filter(tool => typeof tool !== 'string' || !catalogIds.has(tool));
+  if (tools.length === 0 || invalidTools.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: tools.length === 0
+        ? 'Preset must contain at least one tool'
+        : 'Preset contains unknown tool IDs'
+    });
+  }
+
   // Load existing presets
   let presets = {};
   try {
     const data = await fs.readFile(presetsPath, 'utf-8');
     presets = JSON.parse(data);
+    if (!presets || typeof presets !== 'object' || Array.isArray(presets)) presets = {};
   } catch (err) {
     // File doesn't exist, start fresh
   }
 
   // Add/update preset
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (!slug) {
+    return res.status(400).json({ success: false, error: 'Preset name must contain a letter or number' });
+  }
+  if (deriveBuiltInMcpPresets()[slug]) {
+    return res.status(409).json({ success: false, error: `Built-in preset "${slug}" is read-only` });
+  }
   presets[slug] = {
     name,
     description: description || '',
-    tools,
+    tools: Array.from(new Set(tools)),
     updatedAt: new Date().toISOString()
   };
 
@@ -2150,22 +2280,35 @@ router.post('/mcp-presets', asyncHandler(async (req, res) => {
  */
 router.delete('/mcp-presets/:slug', asyncHandler(async (req, res) => {
   const { slug } = req.params;
+  const builtIns = deriveBuiltInMcpPresets();
 
   // Load existing presets
   let presets = {};
   try {
     const data = await fs.readFile(presetsPath, 'utf-8');
     presets = JSON.parse(data);
+    if (!presets || typeof presets !== 'object' || Array.isArray(presets)) presets = {};
   } catch (err) {
+    presets = {};
+  }
+
+  let storedSlug = slug;
+  if (!presets[storedSlug]) {
+    const displayedPreset = mergeMcpPresets(presets).presets[slug];
+    if (displayedPreset?.shadowedBuiltIn && presets[displayedPreset.shadowedBuiltIn]) {
+      storedSlug = displayedPreset.shadowedBuiltIn;
+    }
+  }
+
+  if (!presets[storedSlug]) {
+    if (builtIns[slug]) {
+      return res.status(409).json({ success: false, error: `Built-in preset "${slug}" is read-only` });
+    }
     return res.status(404).json({ success: false, error: 'Preset not found' });
   }
 
-  if (!presets[slug]) {
-    return res.status(404).json({ success: false, error: 'Preset not found' });
-  }
-
-  const deletedName = presets[slug].name;
-  delete presets[slug];
+  const deletedName = presets[storedSlug].name;
+  delete presets[storedSlug];
 
   await fs.writeFile(presetsPath, JSON.stringify(presets, null, 2), 'utf-8');
 
@@ -2179,31 +2322,7 @@ router.delete('/mcp-presets/:slug', asyncHandler(async (req, res) => {
 // SETTINGS API - Sync between extension and dashboard
 // =============================================================================
 
-const fsSync = require('fs');
-const settingsPath = require('path').join(__dirname, '../.settings.json');
-
-// Load settings from disk
-function loadSettings() {
-  try {
-    if (fsSync.existsSync(settingsPath)) {
-      return JSON.parse(fsSync.readFileSync(settingsPath, 'utf8'));
-    }
-  } catch (e) {
-    log.error('Settings failed to load:', e.message);
-  }
-  return { globalWorkingDir: '~', recentDirs: ['~', '~/projects'] };
-}
-
-// Save settings to disk
-function saveSettings(settings) {
-  try {
-    fsSync.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-    return true;
-  } catch (e) {
-    log.error('Settings failed to save:', e.message);
-    return false;
-  }
-}
+const { loadSettings, saveSettings } = require('../modules/settings-store');
 
 // GET /api/settings/working-dir - Get current working directory settings
 router.get('/settings/working-dir', asyncHandler(async (req, res) => {
@@ -3506,7 +3625,7 @@ router.get('/pages', asyncHandler(async (req, res) => {
 router.get('/auth-token', asyncHandler(async (req, res) => {
   const fs = require('fs');
   try {
-    const token = fs.readFileSync('/tmp/tabz-auth-token', 'utf8').trim();
+    const token = fs.readFileSync(AUTH_TOKEN_FILE, 'utf8').trim();
     res.json({ token });
   } catch (err) {
     res.status(500).json({ error: 'Token not available', message: err.message });

@@ -4,7 +4,18 @@
  */
 
 import { sendToWebSocket } from '../websocket'
+import { assertAgentReadableTab } from './pageGuard'
+import { resolveAgentTab } from './tabGroups'
 import { windowsToWslPath, waitForDownload } from '../utils'
+import {
+  assertDocumentReadable,
+  assertDocumentReadCurrent,
+  protectedDocumentTarget,
+  runWithDocumentAdmission
+} from './documentProtection'
+import { prepareInlineImageData, type InlineImageData } from './screenshots'
+import { captureDeadline, CaptureDeadlineError } from './captureScheduler'
+import { waitForTabLoadComplete } from './pageLoad'
 
 // Voice options for random selection (matches TTS_VOICES in extension settings)
 // Using non-multilingual voices to prevent auto-language detection
@@ -118,6 +129,11 @@ export async function handleBrowserDownloadFile(message: {
   conflictAction?: 'uniquify' | 'overwrite' | 'prompt'
 }): Promise<void> {
   try {
+    let parsedUrl: URL
+    try { parsedUrl = new URL(message.url) } catch { throw new Error('Download URL is invalid') }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error('Refused: agent downloads support only http:// and https:// URLs')
+    }
     const downloadOptions: chrome.downloads.DownloadOptions = {
       url: message.url,
       conflictAction: message.conflictAction || 'uniquify'
@@ -259,21 +275,28 @@ export async function handleBrowserCaptureImage(message: {
   selector?: string
   tabId?: number
   outputPath?: string
+  agent?: string
+  requestTimeoutMs?: number
 }): Promise<void> {
+  const expiresAt = captureDeadline(message.requestTimeoutMs, 30_000)
+  const guard = () => {
+    if (Date.now() >= expiresAt) throw new CaptureDeadlineError()
+  }
   try {
-    // Get target tab
-    const tabs = message.tabId
-      ? [{ id: message.tabId }]
-      : await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-
-    const targetTab = tabs[0]
+    guard()
+    const targetTab = await resolveAgentTab(message.agent, message.tabId)
     if (!targetTab?.id) {
       throw new Error('No active tab found')
     }
+    await assertAgentReadableTab('tabz_capture_image', targetTab)
 
-    // Execute canvas capture in the page context
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: targetTab.id },
+    // Bind DOM extraction and its result to the admitted document. The lock is
+    // released only after the captured value has passed the post-check.
+    const captured = await runWithDocumentAdmission(targetTab.id, async () => {
+      guard()
+      const token = await assertDocumentReadable(targetTab.id!, 'tabz_capture_image', { guard, expiresAt })
+      const results = await chrome.scripting.executeScript({
+      target: protectedDocumentTarget(token),
       func: (selector: string) => {
         // Find the image element
         let imgEl: HTMLImageElement | null = null
@@ -333,34 +356,39 @@ export async function handleBrowserCaptureImage(message: {
         }
       },
       args: [message.selector || '']
+      })
+
+      const injection = results[0]
+      if (!injection?.documentId) throw new Error('Image capture returned no document identity')
+      await assertDocumentReadCurrent(targetTab.id!, token, { documentId: injection?.documentId })
+      const result = injection?.result as {
+        dataUrl?: string
+        width?: number
+        height?: number
+        src?: string
+        error?: string
+      }
+      if (result?.error) throw new Error(result.error)
+      if (!result?.dataUrl) throw new Error('No image data captured')
+
+      // The image data was produced inside the admitted document. Preparing
+      // inline metadata fetches only that data URL and never follows imgEl.src.
+      let inlineImage: Partial<InlineImageData> = {}
+      let inlineImageWarning: string | undefined
+      try {
+        inlineImage = await prepareInlineImageData(result.dataUrl)
+      } catch (error) {
+        inlineImageWarning = `Inline image data skipped: ${(error as Error).message}`
+      }
+      guard()
+      await assertDocumentReadCurrent(targetTab.id!, token, { documentId: injection.documentId, guard })
+      const verifiedTab = await resolveAgentTab(message.agent, targetTab.id)
+      if (!verifiedTab?.id || verifiedTab.id !== targetTab.id) throw new Error('The image tab is no longer owned by this caller')
+      await assertAgentReadableTab('tabz_capture_image', verifiedTab)
+      return { result, inlineImage, inlineImageWarning }
     })
-
-    const result = results[0]?.result as {
-      dataUrl?: string
-      width?: number
-      height?: number
-      src?: string
-      error?: string
-    }
-
-    if (result?.error) {
-      throw new Error(result.error)
-    }
-
-    if (!result?.dataUrl) {
-      throw new Error('No image data captured')
-    }
-
-    // Convert data URL to blob and download
-    const base64Data = result.dataUrl.replace(/^data:image\/\w+;base64,/, '')
-    const byteCharacters = atob(base64Data)
-    const byteNumbers = new Array(byteCharacters.length)
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i)
-    }
-    const byteArray = new Uint8Array(byteNumbers)
-    const blob = new Blob([byteArray], { type: 'image/png' })
-    const blobUrl = URL.createObjectURL(blob)
+    const { result, inlineImage, inlineImageWarning } = captured
+    guard()
 
     // Generate filename with optional custom path
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -373,14 +401,14 @@ export async function handleBrowserCaptureImage(message: {
       filename = `tabz/images/captured-image-${timestamp}.png`
     }
 
-    // Download the blob
+    // chrome.downloads accepts the self-contained data URL directly. This also
+    // works in MV3 service workers where URL.createObjectURL is unavailable.
     const downloadId = await new Promise<number>((resolve, reject) => {
       chrome.downloads.download({
-        url: blobUrl,
+        url: result.dataUrl!,
         filename: filename,
         conflictAction: 'uniquify'
       }, (id) => {
-        URL.revokeObjectURL(blobUrl) // Clean up blob URL
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message))
         } else if (id === undefined) {
@@ -444,7 +472,10 @@ export async function handleBrowserCaptureImage(message: {
     sendToWebSocket({
       type: 'browser-capture-image-result',
       requestId: message.requestId,
-      ...downloadResult
+      tabId: targetTab.id,
+      ...downloadResult,
+      ...inlineImage,
+      ...(inlineImageWarning ? { warning: inlineImageWarning } : {})
     })
   } catch (err) {
     sendToWebSocket({
@@ -496,61 +527,67 @@ export async function handleBrowserSavePage(message: {
   requestId: string
   tabId?: number
   filename?: string
+  agent?: string
 }): Promise<void> {
   try {
-    // Get target tab
-    const tabs = message.tabId
-      ? [{ id: message.tabId }]
-      : await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-
-    const targetTab = tabs[0]
+    const targetTab = await resolveAgentTab(message.agent, message.tabId)
     if (!targetTab?.id) {
       throw new Error('No active tab found')
     }
 
     // Get full tab info for URL and status checks
     const tabInfo = await chrome.tabs.get(targetTab.id)
+    await assertAgentReadableTab('tabz_save_page', tabInfo)
 
     // Check if tab URL is capturable (not chrome://, chrome-extension://, etc.)
     if (tabInfo.url?.startsWith('chrome://') || tabInfo.url?.startsWith('chrome-extension://')) {
       throw new Error('Cannot capture chrome:// or extension pages. Navigate to a regular webpage first.')
     }
 
-    // Wait for tab to finish loading (saveAsMHTML fails on loading tabs)
+    // Wait for tab to finish loading (saveAsMHTML fails on loading tabs).
+    // The helper subscribes before rechecking so completion cannot land in a gap.
     if (tabInfo.status !== 'complete') {
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          chrome.tabs.onUpdated.removeListener(listener)
-          reject(new Error('Tab did not finish loading within 15 seconds'))
-        }, 15000)
-
-        const listener = (updatedTabId: number, changeInfo: { status?: string }) => {
-          if (updatedTabId === targetTab.id && changeInfo.status === 'complete') {
-            clearTimeout(timeout)
-            chrome.tabs.onUpdated.removeListener(listener)
-            resolve()
-          }
-        }
-        chrome.tabs.onUpdated.addListener(listener)
-      })
+      await waitForTabLoadComplete(targetTab.id)
     }
 
-    // Capture the page as MHTML using Promise-based API (MV3)
-    let mhtmlBlob: Blob | undefined
-    try {
-      mhtmlBlob = await chrome.pageCapture.saveAsMHTML({ tabId: targetTab.id })
-    } catch (captureErr) {
-      // Provide a more descriptive error than the raw Chrome error
-      const msg = (captureErr as Error).message || 'Unknown error'
-      throw new Error(`MHTML capture failed for tab ${targetTab.id} (${tabInfo.url}): ${msg}`)
-    }
+    const capture = await runWithDocumentAdmission(targetTab.id, async () => {
+      // The tab may have navigated or changed owners while it was loading.
+      const ownedTab = await resolveAgentTab(message.agent, targetTab.id)
+      if (!ownedTab?.id || ownedTab.id !== targetTab.id) {
+        throw new Error('The target tab is no longer owned by this agent')
+      }
+      const currentTab = await chrome.tabs.get(targetTab.id)
+      await assertAgentReadableTab('tabz_save_page', currentTab)
+      if (currentTab.status !== 'complete') {
+        throw new Error('Tab started loading again before MHTML capture')
+      }
+
+      const token = await assertDocumentReadable(targetTab.id, 'tabz_save_page')
+      let blob: Blob | undefined
+      try {
+        blob = await chrome.pageCapture.saveAsMHTML({ tabId: targetTab.id })
+      } catch (captureErr) {
+        const msg = (captureErr as Error).message || 'Unknown error'
+        throw new Error(`MHTML capture failed for tab ${targetTab.id}: ${msg}`)
+      }
+      await assertDocumentReadCurrent(targetTab.id, token)
+
+      // Refuse to release captured page content after an ownership transfer.
+      const stillOwnedTab = await resolveAgentTab(message.agent, targetTab.id)
+      if (!stillOwnedTab?.id || stillOwnedTab.id !== targetTab.id) {
+        throw new Error('The target tab is no longer owned by this agent')
+      }
+      return { blob, tab: currentTab }
+    })
+
+    const mhtmlBlob = capture.blob
 
     if (!mhtmlBlob || mhtmlBlob.size === 0) {
       throw new Error('MHTML capture returned empty data. The tab may have navigated or been closed during capture.')
     }
 
     // Generate filename from page title or custom name
-    const pageTitle = tabInfo.title || 'page'
+    const pageTitle = capture.tab.title || 'page'
     const sanitizedTitle = pageTitle.replace(/[<>:"/\\|?*]/g, '-').substring(0, 100)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
     const baseFilename = message.filename

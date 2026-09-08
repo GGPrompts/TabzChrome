@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     // Test environment
     environment: 'node',
+    setupFiles: ['./tests/setup-logging.js'],
 
     // Coverage configuration
     coverage: {

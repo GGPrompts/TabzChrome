@@ -21,9 +21,11 @@ import {
   handleBrowserGetNetworkRequests,
   handleBrowserClearNetworkRequests
 } from './networkCapture'
+import { handleBrowserEnableDeepCapture, handleBrowserDisableDeepCapture, handleBrowserGetResponseBody } from './deepCapture'
 import {
   handleBrowserListTabs,
   handleBrowserSwitchTab,
+  handleBrowserCloseTab,
   handleBrowserGetActiveTab,
   handleBrowserOpenUrl,
   handleBrowserGetProfiles,
@@ -45,6 +47,8 @@ import {
   handleBrowserBookmarksMove,
   handleBrowserBookmarksDelete,
   handleBrowserClickElement,
+  handleBrowserAct,
+  handleBrowserReadPage,
   handleBrowserFillInput,
   handleBrowserGetElementInfo,
   handleBrowserScreenshot,
@@ -53,6 +57,8 @@ import {
   handleBrowserGetCoverage,
   handleBrowserExecuteScript,
   handleBrowserGetPageInfo,
+  handleBrowserLoginState,
+  handleBrowserOpenLoginsPage,
   handleBrowserListTabGroups,
   handleBrowserCreateTabGroup,
   handleBrowserUpdateTabGroup,
@@ -60,6 +66,7 @@ import {
   handleBrowserUngroupTabs,
   handleBrowserAddToClaudeGroup,
   handleBrowserRemoveFromClaudeGroup,
+  handleBrowserReleaseClaudeGroup,
   handleBrowserGetClaudeGroupStatus,
   handleBrowserListWindows,
   handleBrowserCreateWindow,
@@ -507,6 +514,18 @@ function routeWebSocketMessage(message: any): void {
     return
   }
 
+  if (message.type === 'browser-login-state') {
+    console.log('Browser MCP: login-state request', message.requestId)
+    handleBrowserLoginState(message)
+    return
+  }
+
+  if (message.type === 'browser-open-logins-page') {
+    console.log('Browser MCP: open-logins-page request', message.requestId)
+    handleBrowserOpenLoginsPage(message)
+    return
+  }
+
   // Tab management handlers
   if (message.type === 'browser-list-tabs') {
     console.log('Browser MCP: list-tabs request', message.requestId)
@@ -517,6 +536,12 @@ function routeWebSocketMessage(message: any): void {
   if (message.type === 'browser-switch-tab') {
     console.log('Browser MCP: switch-tab request', message.requestId, message.tabId)
     handleBrowserSwitchTab(message)
+    return
+  }
+
+  if (message.type === 'browser-close-tab') {
+    console.log('Browser MCP: close-tab request', message.requestId)
+    handleBrowserCloseTab(message)
     return
   }
 
@@ -612,6 +637,18 @@ function routeWebSocketMessage(message: any): void {
   }
 
   // Interaction handlers
+  if (message.type === 'browser-act') {
+    console.log('Browser MCP: act request', message.requestId)
+    handleBrowserAct(message)
+    return
+  }
+
+  if (message.type === 'browser-read-page') {
+    console.log('Browser MCP: read-page request', message.requestId)
+    handleBrowserReadPage(message)
+    return
+  }
+
   if (message.type === 'browser-click-element') {
     console.log('Browser MCP: click-element request', message.requestId, message.selector)
     handleBrowserClickElement(message)
@@ -664,6 +701,15 @@ function routeWebSocketMessage(message: any): void {
   if (message.type === 'browser-bookmarks-delete') {
     console.log('Browser MCP: bookmarks-delete request', message.requestId, message.id)
     handleBrowserBookmarksDelete(message)
+    return
+  }
+
+  // Deep handlers return data; the relay envelope owns correlation fields.
+  if (message.type === 'browser-enable-deep-capture' || message.type === 'browser-disable-deep-capture' || message.type === 'browser-get-response-body') {
+    const handler = message.type === 'browser-enable-deep-capture' ? handleBrowserEnableDeepCapture
+      : message.type === 'browser-disable-deep-capture' ? handleBrowserDisableDeepCapture : handleBrowserGetResponseBody
+    void handler(message).then(result => sendToWebSocket({ ...result, type: `${message.type}-result`, requestId: message.requestId }))
+      .catch(() => sendToWebSocket({ type: `${message.type}-result`, requestId: message.requestId, success: false, error: 'Capture operation could not be completed' }))
     return
   }
 
@@ -748,6 +794,12 @@ function routeWebSocketMessage(message: any): void {
   if (message.type === 'browser-get-claude-group-status') {
     console.log('Browser MCP: get-claude-group-status request', message.requestId)
     handleBrowserGetClaudeGroupStatus(message)
+    return
+  }
+
+  if (message.type === 'browser-close-claude-group' || message.type === 'browser-release-claude-group') {
+    console.log('Browser MCP: release-claude-group request', message.requestId)
+    handleBrowserReleaseClaudeGroup(message)
     return
   }
 

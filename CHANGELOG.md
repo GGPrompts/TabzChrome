@@ -13,6 +13,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For older versions (1.2.x, 1.1.x, 1.0.x, and pre-public 2.x), see [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
+## [Unreleased]
+
+### Added
+
+- Added the `tabz` CLI and reusable MCP client with isolated sessions, JSON file/stdin input, typed exit codes, and bounded cleanup. Lost mutation responses prevent automatic replay; see [CLI usage](docs/tabz-cli.md).
+- Added bounded workflow helpers and generic synthetic examples that reconcile a one-submit action without replay, report metadata-only assertion errors, and clean up only explicitly created tabs.
+- Added inline screenshot metadata and cropped zoom captures, optional post-action observation, early attributed console capture, and bounded deep network response/stream inspection. Captures retain caller ownership and respect protected login documents.
+- Permission and question desktop alerts now run in the background, respect notification preferences and visible terminal focus, and exclude protected credential terminals from status polling.
+- Reduced published MCP schema/startup text by 25.4% for the same 97 tools. The compact page-agent preset uses 20 tools; legacy tools remain available. Added size-budget checks and refreshed the settings estimates from measured schemas.
+- Added compact `tabz_act`, `tabz_read_page`, and sequential `tabz_batch` tools, with document-bound refs, Unicode-aware input, enabled-tool checks, and explicit unknown action outcomes. Legacy browser tools also provide structured results for CLI callers.
+- Added a host-matched local Saved Logins store with metadata-only responses, protected human credential prompts, validated private file permissions, and atomic rotation/deletion. See [saved login boundaries](docs/saved-logins.md).
+- Added dashboard Logins management, saved-field MCP requests, and a bounded manual sign-in handoff. Saved values never populate edit forms, and navigation protects unsaved entries.
+
+- Shared tool presets and a generated catalog keep MCP Settings and server selection aligned while preserving custom/profile presets and saved disabled-tool choices.
+
+- The backend serves local Streamable HTTP MCP sessions at `/mcp` and named preset routes, alongside stdio, with isolated caller state, clear rebuild guidance, and bounded shutdown cleanup.
+
+### Security
+
+- Saved-field filling and manual sign-in handoffs protect browser documents from later inspection and diagnostic capture. Trusted keyboard filling applies a stricter tab-lifetime restriction; see [saved login boundaries](docs/saved-logins.md).
+- The local backend now checks configured extension identities and exact web origins before serving authentication tokens or accepting WebSocket connections. Unpacked installations configure `TABZ_EXTENSION_IDS`; see [local browser trust](docs/local-browser-trust.md).
+- Browser inspection, network capture, fill results, and cookie tools redact credential-shaped values while retaining ordinary diagnostics. Browser requests target an identified extension connection.
+- MCP browser connections keep tab targets and console logs scoped to their own groups, recover stable identities on reconnect, and safely close or release owned tabs. Group creation and failure cleanup preserve unrelated tabs.
+
+### Fixed
+
+- `/rebuild` now checks each build/copy step, resolves the actual Windows Desktop instead of guessing a user folder, guards destructive sync destinations, and reports Windows sync separately from backend restart and Chrome reload.
+- The toolbar icon uses Chrome's built-in side-panel toggle. MHTML saves handle load-completion races and tab closure, then recheck ownership and document identity before releasing the capture.
+- Network emulation supplies supported CDP parameters and preserves policy errors. Geolocation clearing reaches the extension, and results report observed site permission without claiming to grant it.
+- MCP Settings can save a validated screenshot folder and opt into per-connection folders. Upgrades retain `Downloads/tabz/screenshots`; explicit tool output paths remain Downloads-relative.
+- Importing backend utilities preserves existing log history; protected login prompts append their startup marker without resetting the running backend log.
+
+- Browser automation clicks once, verifies settled form values, and reports script timeout uncertainty without replaying operations. Debugger requests serialize per tab and safely reuse persistent emulation attachments; coverage reload and failure cleanup are coordinated.
+- Backend and MCP token readers use the operating system temporary directory consistently, including on macOS.
+- Files now offers distinct folder actions: Browse Here navigates only the tree; Set as Working Dir updates the shared working directory and recent directories. Directory changes made immediately after loading now persist to the backend.
+- Terminal launches work when the backend runs inside tmux, and missing optional TPM plugins no longer prevent a successfully created terminal from opening. Development startup switches an existing tmux client instead of nesting attachments.
+- On macOS, development startup checks the installed node-pty spawn helper after dependency installation and reports a local repair when the helper is missing or not executable.
+
 ## [1.6.2] - 2026-08-24
 
 ### Security

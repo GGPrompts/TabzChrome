@@ -3,22 +3,23 @@
  *
  * Tool for executing JavaScript in browser tabs
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
+import { docsPointer } from "../descriptions.js";
 // Input schema for tabz_execute_script
 const ExecuteScriptSchema = z.object({
     code: z.string()
         .min(1, "Code is required")
         .max(50000, "Code must not exceed 50,000 characters")
-        .describe("JavaScript code to execute in the browser. The result of the last expression is returned."),
+        .describe("JavaScript to evaluate; the last expression's value returns."),
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Target tab ID. If not specified, executes in the active tab."),
+        .optional(),
     allFrames: z.boolean()
         .default(false)
-        .describe("Execute in all frames of the page (default: false, main frame only)")
+        .describe("All frames, but only on the whitelist fallback path.")
 }).strict();
 /**
  * Execute JavaScript in the browser via Extension API
@@ -40,7 +41,7 @@ async function executeScript(options) {
  * Register script tools with the MCP server
  */
 export function registerScriptTools(server, backendUrl) {
-    server.tool("tabz_execute_script", `Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_docs for detailed docs.`, ExecuteScriptSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_execute_script", "Evaluate JavaScript through the debugger, or exact supported whitelist forms across all frames; returned values are bounded. Chrome may show its debugging bar. " + docsPointer("tabz_execute_script"), ExecuteScriptSchema, async (params) => {
         try {
             const response = await executeScript({
                 code: params.code,
@@ -55,13 +56,22 @@ export function registerScriptTools(server, backendUrl) {
                     : JSON.stringify(response.result, null, 2);
                 resultText = `## Script Executed Successfully
 
+**Execution path:** ${response.executionPath || 'unknown'}${response.resultTruncated ? ' (result truncated)' : ''}
+${response.warning ? `\n**Warning:** ${response.warning}\n` : ''}
+
 **Result:**
 \`\`\`json
 ${resultStr}
 \`\`\``;
             }
             else {
+                const timeoutDetails = response.timedOut
+                    ? `\n**Timed out:** yes\n**Outcome uncertain:** ${response.uncertain === true ? 'yes' : 'no'}\n**Termination attempted:** ${response.terminationAttempted === true ? 'yes' : 'no'}\n**Termination acknowledged:** ${response.terminationAcknowledged === true ? 'yes' : 'no'}\n`
+                    : '';
                 resultText = `## Script Execution Failed
+
+**Execution path:** ${response.executionPath || 'unknown'}
+${response.warning ? `\n**Warning:** ${response.warning}\n` : ''}${timeoutDetails}
 
 **Error:** ${response.error}
 

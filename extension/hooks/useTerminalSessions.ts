@@ -32,6 +32,7 @@ export interface TerminalSession {
   fontSizeOffset?: number // Per-instance font size offset (-4 to +8), not persisted
   appearanceOverrides?: TerminalAppearanceOverrides  // Temp appearance customization (footer 🎨 button)
   paneCount?: number // Number of tmux panes (>1 means splits exist)
+  secret?: boolean // Protected editor: UI may render it, automated status must not inspect it
 }
 
 interface UseTerminalSessionsParams {
@@ -319,6 +320,7 @@ export function useTerminalSessions({
                 workingDir: t.workingDir ?? existingSession.workingDir,
                 active: false,
                 paneCount: t.paneCount ?? existingSession.paneCount,
+                secret: t.secret === true || existingSession.secret === true,
               })
             } else {
               // Add new terminal from backend
@@ -329,6 +331,9 @@ export function useTerminalSessions({
                 active: false,
                 sessionName: t.sessionName,
                 profile: t.profile,
+                workingDir: t.workingDir,
+                command: t.command,
+                secret: t.secret === true,
               })
             }
           })
@@ -432,6 +437,7 @@ export function useTerminalSessions({
             profile: effectiveTerminalProfile,  // Store profile settings (may be updated async)
             assignedVoice,  // Auto-assigned voice for audio notifications
             command: terminal.config?.command,  // Store command for API-spawned terminals
+            secret: terminal.secret === true,
           }]
         })
         // Auto-focus the new terminal

@@ -3,19 +3,26 @@
  *
  * Tools for opening URLs and triggering omnibox commands
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
-import { BACKEND_URL, setCurrentTabId } from "../shared.js";
+import { NEVER_ASK_FOR_CREDENTIALS, defaultAddToClaudeGroup, getAgentLabel, getBackendUrl, setCurrentTabId } from "../shared.js";
+import { mutationFailureStatus, structuredToolResult } from "./result-contract.js";
+import { docsPointer, GROUP_RULE_SUMMARY } from "../descriptions.js";
 /**
  * Open a URL in the browser via Extension API
  */
 async function openUrl(options) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/api/browser/open-url`, {
+        const response = await axios.post(`${getBackendUrl()}/api/browser/open-url`, {
             url: options.url,
             newTab: options.newTab,
             background: options.background,
-            reuseExisting: options.reuseExisting
+            reuseExisting: options.reuseExisting,
+            tabId: options.tabId,
+            groupId: options.groupId,
+            addToClaudeGroup: options.addToClaudeGroup,
+            claudeGroupTitle: options.claudeGroupTitle
         }, { timeout: 10000 });
         // Update current tab ID if successful
         if (response.data.success && response.data.tabId && !options.background) {
@@ -24,29 +31,30 @@ async function openUrl(options) {
         return response.data;
     }
     catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, transportError: true, error: error instanceof Error ? error.message : String(error) };
     }
 }
-let urlSettingsCache = null;
-let urlSettingsCacheTime = 0;
+const urlSettingsCache = new Map();
 const URL_SETTINGS_CACHE_TTL = 5000; // 5 seconds
 /**
  * Load URL settings from backend API
  */
 async function loadUrlSettings() {
     const now = Date.now();
-    if (urlSettingsCache && (now - urlSettingsCacheTime) < URL_SETTINGS_CACHE_TTL) {
-        return urlSettingsCache;
+    const backendUrl = getBackendUrl();
+    const cached = urlSettingsCache.get(backendUrl);
+    if (cached && (now - cached.loadedAt) < URL_SETTINGS_CACHE_TTL) {
+        return cached.value;
     }
     try {
-        const response = await fetch('http://localhost:8129/api/mcp-config');
+        const response = await fetch(`${backendUrl}/api/mcp-config`);
         const data = await response.json();
-        urlSettingsCache = {
+        const value = {
             allowAllUrls: data.allowAllUrls || false,
             customDomains: data.customDomains || ''
         };
-        urlSettingsCacheTime = now;
-        return urlSettingsCache;
+        urlSettingsCache.set(backendUrl, { value, loadedAt: now });
+        return value;
     }
     catch {
         // Return defaults if backend unavailable
@@ -228,23 +236,36 @@ function isAllowedUrl(url, settings) {
 const OpenUrlSchema = z.object({
     url: z.string()
         .min(1)
-        .describe("URL to open (any URL if 'Allow All URLs' is enabled in settings)"),
+        .describe("URL to open; the scheme is optional."),
     newTab: z.boolean()
         .default(true)
-        .describe("Open in new tab (default: true) or current tab"),
+        .describe("Open a new tab, or navigate the current one."),
     background: z.boolean()
-        .default(false)
-        .describe("Open in background tab (default: false, opens in foreground)"),
+        .default(false),
     reuseExisting: z.boolean()
         .default(true)
-        .describe("If a tab with this URL already exists, switch to it instead of opening a new one (default: true)")
+        .describe("Reuse a matching tab already in your group."),
+    tabId: z.number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("With newTab false, the tab to navigate (tabz_list_tabs)."),
+    groupId: z.number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Existing tab group for the opened tab."),
+    addToClaudeGroup: z.boolean()
+        .optional()
+        .describe("Add it to your enforced group (default true).")
 }).strict();
 /**
  * Register omnibox/navigation tools with the MCP server
  */
 export function registerOmniboxTools(server) {
     // Open URL tool
-    server.tool("tabz_open_url", `Open a URL in the browser. Auto-adds protocol (http for localhost, https otherwise). Reuses existing tab by default. URL whitelist configurable in Dashboard settings. Use tabz_docs for detailed docs.`, OpenUrlSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_open_url", "Open a URL; bare URLs use https, or http for localhost. " +
+        GROUP_RULE_SUMMARY + " " + NEVER_ASK_FOR_CREDENTIALS + " " + docsPointer("tabz_open_url"), OpenUrlSchema, async (params) => {
         try {
             // Load URL settings from backend
             const urlSettings = await loadUrlSettings();
@@ -254,10 +275,7 @@ export function registerOmniboxTools(server) {
                 const customDomainsNote = urlSettings.customDomains
                     ? `\n- Custom: ${urlSettings.customDomains.split('\n').filter(d => d.trim()).join(', ')}`
                     : '';
-                return {
-                    content: [{
-                            type: "text",
-                            text: `## URL Not Allowed
+                const text = `## URL Not Allowed
 
 **Error:** The URL domain is not whitelisted.
 
@@ -275,10 +293,10 @@ export function registerOmniboxTools(server) {
 - AI/ML: huggingface.co, replicate.com, openrouter.ai, skillsmp.com
 - Design: figma.com, dribbble.com, unsplash.com, iconify.design${customDomainsNote}
 
-Please provide a URL from one of the allowed domains, or add custom domains in Settings > MCP Tools > Open URL.`
-                        }],
-                    isError: true
-                };
+Please provide a URL from one of the allowed domains, or add custom domains in Settings > MCP Tools > Open URL.`;
+                return structuredToolResult(text, "refused", {
+                    opened: false, reused: false, tabId: null, groupId: null, url: null
+                }, true);
             }
             const normalizedUrl = validation.normalizedUrl;
             // Open URL via Chrome Extension API (no CDP required)
@@ -286,13 +304,14 @@ Please provide a URL from one of the allowed domains, or add custom domains in S
                 url: normalizedUrl,
                 newTab: params.newTab,
                 background: params.background,
-                reuseExisting: params.reuseExisting
+                reuseExisting: params.reuseExisting,
+                tabId: params.tabId,
+                groupId: params.groupId,
+                addToClaudeGroup: params.addToClaudeGroup ?? defaultAddToClaudeGroup(),
+                claudeGroupTitle: getAgentLabel()
             });
             if (!result.success) {
-                return {
-                    content: [{
-                            type: "text",
-                            text: `## Failed to Open URL
+                const text = `## Failed to Open URL
 
 **Error:** ${result.error || 'Unknown error'}
 
@@ -300,53 +319,86 @@ Please provide a URL from one of the allowed domains, or add custom domains in S
 1. TabzChrome backend is running
 2. Chrome extension is installed and connected
 
-**Attempted URL:** ${normalizedUrl}`
-                        }],
-                    isError: true
-                };
+**Attempted URL:** ${normalizedUrl}`;
+                const status = mutationFailureStatus(result.error, result.transportError === true);
+                return structuredToolResult(text, status, {
+                    opened: status === "unknown" ? null : false,
+                    reused: false,
+                    tabId: null,
+                    groupId: null,
+                    url: normalizedUrl,
+                    error: result.error ?? "Unknown error"
+                }, true);
             }
+            const positiveTabId = Number.isInteger(result.tabId) && (result.tabId ?? 0) > 0;
             // Handle reused tab case
-            if (result.reused) {
-                return {
-                    content: [{
-                            type: "text",
-                            text: `## Switched to Existing Tab
+            if ((result.reusedExisting === true || result.reused === true) && positiveTabId) {
+                const text = `## Switched to Existing Tab
 
 **URL already open!** Switched to existing tab instead of opening a new one.
 
 **URL:** ${result.url || normalizedUrl}
 **Tab ID:** ${result.tabId} (now Claude's current target)
 
-Use \`tabz_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a new tab.`
-                        }]
-                };
+Use \`tabz_list_tabs\` to see all tabs, or \`reuseExisting=false\` to force a new tab.`;
+                return structuredToolResult(text, "reused", {
+                    opened: false,
+                    reused: true,
+                    tabId: result.tabId,
+                    groupId: result.groupId ?? null,
+                    inClaudeGroup: result.inClaudeGroup === true,
+                    url: result.url || normalizedUrl
+                }, false);
+            }
+            const status = result.created === true
+                ? "created"
+                : params.newTab === false && result.created === false
+                    ? "navigated"
+                    : "unknown";
+            if (!positiveTabId || status === "unknown") {
+                const error = "The browser did not confirm whether it created, reused, or navigated a tab.";
+                const text = `## Failed to Open URL
+
+**Error:** ${error}
+
+**URL:** ${result.url || normalizedUrl}`;
+                return structuredToolResult(text, "unknown", {
+                    opened: null,
+                    reused: false,
+                    tabId: positiveTabId ? result.tabId : null,
+                    groupId: result.groupId ?? null,
+                    url: result.url || normalizedUrl,
+                    error
+                }, true);
             }
             return {
-                content: [{
-                        type: "text",
-                        text: `## URL Opened
+                ...structuredToolResult(`## URL Opened
 
-**Success!** Opened ${params.newTab ? 'in new tab' : 'in current tab'}${params.background ? ' (background)' : ''}.
+**Success!** ${status === "created" ? "Opened in new tab" : "Navigated the current tab"}${params.background ? ' (background)' : ''}.
 
 **URL:** ${result.url || normalizedUrl}
 **Tab ID:** ${result.tabId}${!params.background ? ' (now Claude\'s current target)' : ''}
 
-Use \`tabz_list_tabs\` to see all tabs with the "← CURRENT" marker.`
-                    }]
+Use \`tabz_list_tabs\` to see all tabs with the "← CURRENT" marker.`, status, {
+                    opened: status === "created",
+                    reused: false,
+                    tabId: result.tabId,
+                    groupId: result.groupId ?? null,
+                    inClaudeGroup: result.inClaudeGroup === true,
+                    url: result.url || normalizedUrl
+                }, false)
             };
         }
         catch (error) {
-            return {
-                content: [{
-                        type: "text",
-                        text: `## Failed to Open URL
+            const message = error instanceof Error ? error.message : String(error);
+            const text = `## Failed to Open URL
 
-**Error:** ${error instanceof Error ? error.message : String(error)}
+**Error:** ${message}
 
-**URL:** ${params.url}`
-                    }],
-                isError: true
-            };
+**URL:** ${params.url}`;
+            return structuredToolResult(text, "unknown", {
+                opened: null, reused: false, tabId: null, groupId: null, url: params.url, error: message
+            }, true);
         }
     });
 }

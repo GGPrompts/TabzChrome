@@ -4,13 +4,16 @@
  * Tools for listing, creating, updating, deleting terminal profiles,
  * and spawning terminals by profile.
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { readFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { BACKEND_URL } from "../shared.js";
 import { ResponseFormat } from "../types.js";
 // Auth token file location (same as backend uses)
-const AUTH_TOKEN_FILE = "/tmp/tabz-auth-token";
+const AUTH_TOKEN_FILE = join(tmpdir(), "tabz-auth-token");
 /**
  * Read auth token from file
  */
@@ -26,74 +29,61 @@ function getAuthToken() {
 const ListProfilesSchema = z.object({
     category: z.string()
         .optional()
-        .describe("Optional: Filter profiles by category name (e.g., 'AI Assistants', 'Checkpoints')"),
+        .describe("Category to filter by (tabz_list_categories)."),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 // Input schema for tabz_list_categories
 const ListCategoriesSchema = z.object({
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 // Input schema for tabz_spawn_profile
 const SpawnProfileSchema = z.object({
     profileId: z.string()
         .min(1)
-        .describe("Required: Profile ID or name to spawn (use tabz_list_profiles to discover available profiles)"),
+        .describe("Profile ID or name (tabz_list_profiles)."),
     workingDir: z.string()
         .optional()
-        .describe("Optional: Override the profile's default working directory"),
+        .describe("Override the profile's working directory."),
     name: z.string()
-        .optional()
-        .describe("Optional: Custom name for this terminal instance"),
+        .optional(),
     env: z.record(z.string())
         .optional()
-        .describe("Optional: Additional environment variables to set")
 }).strict();
 // Input schema for tabz_get_profile
 const GetProfileSchema = z.object({
     profileId: z.string()
-        .min(1)
-        .describe("Profile ID or name to retrieve"),
+        .min(1),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 // Input schema for tabz_create_profile
 const CreateProfileSchema = z.object({
     name: z.string()
         .min(1)
-        .max(50)
-        .describe("Required: Display name for the profile"),
+        .max(50),
     command: z.string()
         .optional()
-        .describe("Optional: Command to run on terminal start (e.g., 'claude', 'npm start')"),
+        .describe("Command to run on start, e.g. 'claude'."),
     workingDir: z.string()
-        .optional()
-        .describe("Optional: Default working directory for this profile"),
+        .optional(),
     category: z.string()
-        .optional()
-        .describe("Optional: Category to group this profile (e.g., 'AI Assistants', 'Dev Tools')"),
+        .optional(),
     themeName: z.string()
-        .optional()
-        .describe("Optional: Color theme name (e.g., 'matrix', 'dracula', 'amber')"),
+        .optional(),
     fontSize: z.number()
         .int()
         .min(8)
         .max(32)
-        .optional()
-        .describe("Optional: Font size in pixels (8-32)"),
+        .optional(),
     fontFamily: z.string()
         .optional()
-        .describe("Optional: Font family (e.g., 'JetBrains Mono', 'Fira Code')")
 }).strict();
 // Input schema for tabz_update_profile
 const UpdateProfileSchema = z.object({
     profileId: z.string()
-        .min(1)
-        .describe("Required: Profile ID to update"),
+        .min(1),
     updates: z.object({
         name: z.string().min(1).max(50).optional(),
         command: z.string().optional(),
@@ -102,13 +92,12 @@ const UpdateProfileSchema = z.object({
         themeName: z.string().optional(),
         fontSize: z.number().int().min(8).max(32).optional(),
         fontFamily: z.string().optional()
-    }).describe("Fields to update")
+    })
 }).strict();
 // Input schema for tabz_delete_profile
 const DeleteProfileSchema = z.object({
     profileId: z.string()
         .min(1)
-        .describe("Required: Profile ID to delete")
 }).strict();
 /**
  * List terminal profiles from Chrome extension
@@ -179,7 +168,7 @@ async function spawnByProfile(profileId, workingDir, name, env) {
     if (!token) {
         return {
             success: false,
-            error: "Auth token not found at /tmp/tabz-auth-token. Is the TabzChrome backend running?"
+            error: `Auth token not found at ${AUTH_TOKEN_FILE}. Is the TabzChrome backend running?`
         };
     }
     try {
@@ -281,9 +270,7 @@ async function deleteProfile(profileId) {
  */
 export function registerProfileTools(server) {
     // List profiles tool
-    server.tool("tabz_list_profiles", `List terminal profiles (theme, command, working dir). Use to discover profiles before spawning.
-
-Args: category (optional filter), response_format (optional)`, ListProfilesSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_list_profiles", "List the saved terminal profiles, to find one before spawning.", ListProfilesSchema, async (params) => {
         try {
             const result = await listProfiles(params.category);
             if (result.error) {
@@ -387,9 +374,7 @@ Add profiles in the TabzChrome settings.`;
         }
     });
     // List categories tool
-    server.tool("tabz_list_categories", `List all profile categories. Use to discover categories before filtering with tabz_list_profiles.
-
-Args: response_format (optional)`, ListCategoriesSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_list_categories", "List the profile categories, for filtering tabz_list_profiles.", ListCategoriesSchema, async (params) => {
         try {
             const result = await listCategories();
             if (result.error) {
@@ -448,9 +433,7 @@ Total profiles: ${result.total}`;
         }
     });
     // Spawn terminal by profile
-    server.tool("tabz_spawn_profile", `Spawn a terminal using a saved profile. Use tabz_list_profiles to discover available profiles.
-
-Args: profileId (required), workingDir (optional override), name (optional), env (optional)`, SpawnProfileSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_spawn_profile", "Spawn a terminal from a saved profile (tabz_list_profiles to find one).", SpawnProfileSchema, async (params) => {
         try {
             const result = await spawnByProfile(params.profileId, params.workingDir, params.name, params.env);
             if (!result.success || result.error) {
@@ -491,9 +474,7 @@ Terminal is now running. Connect via TabzChrome sidebar to interact.`;
         }
     });
     // Get single profile
-    server.tool("tabz_get_profile", `Get all settings for a specific terminal profile (theme, command, working dir, etc.).
-
-Args: profileId (required), response_format (optional)`, GetProfileSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_get_profile", "Get every setting of one terminal profile.", GetProfileSchema, async (params) => {
         try {
             const result = await getProfile(params.profileId);
             if (result.error) {
@@ -545,9 +526,7 @@ Args: profileId (required), response_format (optional)`, GetProfileSchema.shape,
         }
     });
     // Create profile
-    server.tool("tabz_create_profile", `Create a new terminal profile for reuse when spawning terminals.
-
-Args: name (required), command/workingDir/category/themeName/fontSize/fontFamily (optional)`, CreateProfileSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_create_profile", "Create a terminal profile to spawn from later.", CreateProfileSchema, async (params) => {
         try {
             const result = await createProfile({
                 name: params.name,
@@ -589,9 +568,7 @@ Use \`tabz_spawn_profile(profileId="${profile.id}")\` to spawn a terminal.`;
         }
     });
     // Update profile
-    server.tool("tabz_update_profile", `Update an existing terminal profile. Only specified fields are changed.
-
-Args: profileId (required), updates (object with name/command/workingDir/category/themeName/fontSize/fontFamily)`, UpdateProfileSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_update_profile", "Update a terminal profile; only the fields you pass change.", UpdateProfileSchema, async (params) => {
         try {
             const result = await updateProfile(params.profileId, params.updates);
             if (result.error) {
@@ -625,9 +602,7 @@ Changes are saved and will apply to new terminals using this profile.`;
         }
     });
     // Delete profile
-    server.tool("tabz_delete_profile", `Permanently delete a terminal profile. Running terminals are unaffected.
-
-Args: profileId (required)`, DeleteProfileSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_delete_profile", "Delete a terminal profile permanently. Running terminals are unaffected.", DeleteProfileSchema, async (params) => {
         try {
             const result = await deleteProfile(params.profileId);
             if (!result.success || result.error) {

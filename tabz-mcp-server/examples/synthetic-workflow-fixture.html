@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic workflow fixture</title>
+</head>
+<body>
+  <main>
+    <h1>Synthetic workflow fixture</h1>
+    <p>Generated records for local workflow checks only.</p>
+
+    <form id="item-lookup">
+      <label for="item-id">Synthetic item ID</label>
+      <input id="item-id" name="item-id" autocomplete="off">
+      <button id="lookup-item" type="submit">Look up item</button>
+    </form>
+    <section id="item-result" aria-live="polite"></section>
+
+    <form id="request-form">
+      <label for="request-id">Synthetic request ID</label>
+      <input id="request-id" name="request-id" autocomplete="off">
+      <button id="submit-request" type="submit">Submit once</button>
+    </form>
+    <section id="receipt-result" aria-live="polite"></section>
+  </main>
+  <script>
+    const items = new Map([
+      ["SYNTHETIC-ITEM-100", "ready"],
+      ["SYNTHETIC-ITEM-200", "complete"]
+    ]);
+    let submissions = 0;
+
+    document.querySelector("#item-lookup").addEventListener("submit", event => {
+      event.preventDefault();
+      const itemId = document.querySelector("#item-id").value;
+      const status = items.get(itemId) ?? "not found";
+      setTimeout(() => {
+        const row = document.createElement("p");
+        row.id = "item-status";
+        row.textContent = `Item ${itemId} status: ${status}`;
+        document.querySelector("#item-result").replaceChildren(row);
+      }, 75);
+    });
+
+    document.querySelector("#request-form").addEventListener("submit", event => {
+      event.preventDefault();
+      submissions += 1;
+      const requestId = document.querySelector("#request-id").value;
+      setTimeout(() => {
+        const row = document.createElement("p");
+        row.id = "submission-receipt";
+        row.textContent = `Receipt ${requestId}; submissions: ${submissions}`;
+        document.querySelector("#receipt-result").replaceChildren(row);
+      }, 75);
+    });
+  </script>
+</body>
+</html>

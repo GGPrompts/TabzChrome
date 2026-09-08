@@ -11,6 +11,8 @@ This folder contains debugging lessons, gotchas, and best practices discovered d
 | React Patterns | [react-patterns.md](react-patterns.md) | Hooks, performance, state management |
 | Architecture | [architecture.md](architecture.md) | Multi-window, splits, WebSocket routing |
 | Debugging | [debugging.md](debugging.md) | Dev environment, troubleshooting patterns |
+| Capture Lifecycle | [2026-09-07-capture-lifecycle.md](2026-09-07-capture-lifecycle.md) | Document revocation, debugger cleanup, bounded queues and UTF-8 limits |
+| Rebuild Safety | [windows-rebuild-safety.md](windows-rebuild-safety.md) | Windows destination resolution, guarded sync and separate runtime outcomes |
 
 ## Related Resources
 

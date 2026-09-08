@@ -573,6 +573,15 @@ if [ ${#NEEDS_INSTALL[@]} -gt 0 ]; then
     echo ""
 fi
 
+# macOS node-pty installs can leave their local spawn helper without execute
+# permission. Run this after the dependency recovery path and before tmux;
+# the preflight only diagnoses and never installs or changes permissions.
+if [ "$(uname -s)" = "Darwin" ]; then
+    if ! node "$SCRIPT_DIR/node-pty-helper-preflight.cjs" "$BACKEND_DIR"; then
+        exit 1
+    fi
+fi
+
 echo -e "${GREEN}🚀 Creating tmux session: $SESSION_NAME${NC}"
 echo ""
 
@@ -635,5 +644,10 @@ echo ""
 echo -e "${YELLOW}Attaching to tmux session...${NC}"
 echo ""
 
-# Attach to the session
-tmux attach -t $SESSION_NAME
+# Attaching a tmux client from another tmux client is refused as nesting.
+# Switch the current client when this script was started inside tmux instead.
+if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "$SESSION_NAME"
+else
+    tmux attach -t "$SESSION_NAME"
+fi

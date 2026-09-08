@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -109,17 +110,15 @@ async function savePage(options: {
 // Input schema for tabz_download_file
 const DownloadFileSchema = z.object({
   url: z.string()
-    .url()
-    .describe("URL of the file to download. Must be a valid URL."),
+    .url(),
   filename: z.string()
     .optional()
-    .describe("Custom filename (relative to Chrome's Downloads folder). If not provided, uses URL filename."),
+    .describe("Filename under the Downloads folder; from the URL by default."),
   conflictAction: z.enum(["uniquify", "overwrite", "prompt"])
     .default("uniquify")
-    .describe("Action when file exists: 'uniquify' adds suffix (default), 'overwrite' replaces, 'prompt' asks user"),
+    .describe("On a name clash: suffix, replace, or ask."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type DownloadFileInput = z.infer<typeof DownloadFileSchema>;
@@ -130,14 +129,11 @@ const GetDownloadsSchema = z.object({
     .int()
     .min(1)
     .max(100)
-    .default(20)
-    .describe("Maximum number of downloads to return (1-100, default: 20)"),
+    .default(20),
   state: z.enum(["in_progress", "complete", "interrupted", "all"])
-    .default("all")
-    .describe("Filter by download state: 'in_progress', 'complete', 'interrupted', or 'all' (default)"),
+    .default("all"),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type GetDownloadsInput = z.infer<typeof GetDownloadsSchema>;
@@ -146,7 +142,6 @@ type GetDownloadsInput = z.infer<typeof GetDownloadsSchema>;
 const CancelDownloadSchema = z.object({
   downloadId: z.number()
     .int()
-    .describe("The download ID to cancel (from tabz_get_downloads)")
 }).strict();
 
 type CancelDownloadInput = z.infer<typeof CancelDownloadSchema>;
@@ -211,12 +206,10 @@ function formatDownloadMarkdown(download: DownloadItem, index: number): string[]
 export function registerDownloadTools(server: McpServer): void {
 
   // Download file tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_download_file",
-    `Download a file via Chrome's download manager. Returns both Windows and WSL paths.
-
-Args: url (required), filename (optional), conflictAction (optional: uniquify/overwrite/prompt)`,
-    DownloadFileSchema.shape,
+    "Download a file through Chrome's download manager, answering the Windows and WSL paths.",
+    DownloadFileSchema,
     async (params: DownloadFileInput) => {
       try {
         const result = await downloadFile({
@@ -278,12 +271,10 @@ To view the downloaded file, use the Read tool with the WSL path above.`;
   );
 
   // Get downloads list tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_downloads",
-    `List recent Chrome downloads with status, size, and file paths.
-
-Args: limit (optional, default 20), state (optional: in_progress/complete/interrupted/all)`,
-    GetDownloadsSchema.shape,
+    "List recent Chrome downloads with status, size, and paths.",
+    GetDownloadsSchema,
     async (params: GetDownloadsInput) => {
       try {
         const result = await getDownloads({
@@ -333,12 +324,10 @@ Args: limit (optional, default 20), state (optional: in_progress/complete/interr
   );
 
   // Cancel download tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_cancel_download",
-    `Cancel an in-progress download. Get IDs from tabz_get_downloads.
-
-Args: downloadId (required)`,
-    CancelDownloadSchema.shape,
+    "Cancel a download that is still running (IDs from tabz_get_downloads).",
+    CancelDownloadSchema,
     async (params: CancelDownloadInput) => {
       try {
         const result = await cancelDownload(params.downloadId);
@@ -376,24 +365,20 @@ The download may have already completed or been cancelled.`;
   const SavePageSchema = z.object({
     tabId: z.number()
       .int()
-      .optional()
-      .describe("Tab ID to save. If not specified, saves the currently active tab."),
+      .optional(),
     filename: z.string()
       .optional()
-      .describe("Custom filename (without extension). Defaults to page title + timestamp. Extension will be .mhtml."),
+      .describe("Filename without extension; page title by default."),
     response_format: z.nativeEnum(ResponseFormat)
       .default(ResponseFormat.MARKDOWN)
-      .describe("Output format: 'markdown' (default) or 'json'")
   }).strict();
 
   type SavePageInput = z.infer<typeof SavePageSchema>;
 
-  server.tool(
+  registerTabzTool(server,
     "tabz_save_page",
-    `Save current tab as MHTML file (complete page archive with CSS/images/JS). Returns both Windows and WSL paths.
-
-Args: tabId (optional), filename (optional, no extension), response_format (optional)`,
-    SavePageSchema.shape,
+    "Save a tab as one MHTML file, a complete archive with its CSS, images, and scripts.",
+    SavePageSchema,
     async (params: SavePageInput) => {
       try {
         const result = await savePage({

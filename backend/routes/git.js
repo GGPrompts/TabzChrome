@@ -10,15 +10,15 @@ const router = express.Router();
 const path = require('path');
 const gitUtils = require('../modules/git-utils');
 const { createModuleLogger } = require('../modules/logger');
+const { AUTH_TOKEN_FILE } = require('../modules/auth-token');
 
 const log = createModuleLogger('Git');
 
 // Read auth token for secure endpoints
 const fs = require('fs');
-const WS_AUTH_TOKEN_FILE = '/tmp/tabz-auth-token';
 let authToken = null;
 try {
-  authToken = fs.readFileSync(WS_AUTH_TOKEN_FILE, 'utf-8').trim();
+  authToken = fs.readFileSync(AUTH_TOKEN_FILE, 'utf-8').trim();
 } catch {
   log.warn(' Could not read auth token - write operations will fail');
 }

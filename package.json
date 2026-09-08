@@ -29,7 +29,13 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "check:mcp-sync": "node scripts/check-tabz-mcp-sync.mjs",
+    "generate:mcp-catalog": "node scripts/generate-mcp-tool-catalog.mjs",
+    "check:mcp-catalog": "node scripts/generate-mcp-tool-catalog.mjs --check-worktree",
+    "generate:act-actions": "node scripts/generate-act-actions.mjs",
+    "check:act-actions": "node scripts/generate-act-actions.mjs --check",
+    "prebuild": "node scripts/generate-act-actions.mjs && node scripts/generate-mcp-tool-catalog.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

@@ -4,6 +4,18 @@
  */
 
 import { sendToWebSocket } from '../websocket'
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  type NotificationSettings
+} from '../../components/settings/types'
+import { isTerminalFocused, type ClaudePromptKind } from '../../shared/claudePromptNotifications'
+import {
+  broadcastToClients,
+  claimClaudePromptKey,
+  popoutWindows,
+  terminalViews
+} from '../state'
+import { tryOpenSidebar } from '../utils'
 
 /**
  * Cache of notification metadata.
@@ -22,6 +34,119 @@ const notificationCache = new Map<string, {
  */
 function getDefaultIconUrl(): string {
   return chrome.runtime.getURL('icons/icon48.png')
+}
+
+const CLAUDE_PROMPT_NOTIFICATION_PREFIX = 'tabz-claude-waiting:'
+let claudePromptClickHandlerRegistered = false
+
+function isQuietHours(settings: NotificationSettings): boolean {
+  if (!settings.quietHours.enabled) return false
+  const currentHour = new Date().getHours()
+  const { startHour, endHour } = settings.quietHours
+  return startHour < endHour
+    ? currentHour >= startHour && currentHour < endHour
+    : currentHour >= startHour || currentHour < endHour
+}
+
+async function promptNotificationsEnabled(): Promise<boolean> {
+  const stored = await chrome.storage.local.get('notificationSettings')
+  const partial = stored.notificationSettings as Partial<NotificationSettings> | undefined
+  const settings: NotificationSettings = {
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    ...partial,
+    quietHours: { ...DEFAULT_NOTIFICATION_SETTINGS.quietHours, ...partial?.quietHours },
+    events: { ...DEFAULT_NOTIFICATION_SETTINGS.events, ...partial?.events }
+  }
+  return settings.enabled && settings.events.questionWaiting && !isQuietHours(settings)
+}
+
+function promptNotificationId(terminalId: string): string {
+  return `${CLAUDE_PROMPT_NOTIFICATION_PREFIX}${encodeURIComponent(terminalId)}`
+}
+
+export async function showClaudePromptNotification(message: {
+  terminalId: string
+  terminalName: string
+  promptKind: ClaudePromptKind
+  dedupeKey: string
+}, isCurrent: () => boolean = () => true): Promise<void> {
+  if (!isCurrent()) return
+  if (!await claimClaudePromptKey(`${message.terminalId}:${message.dedupeKey}`)) return
+  if (!isCurrent() || !await promptNotificationsEnabled() || !isCurrent()) return
+
+  let focusedWindowId: number | undefined
+  try {
+    const focusedWindow = await chrome.windows.getLastFocused()
+    focusedWindowId = focusedWindow.focused ? focusedWindow.id : undefined
+  } catch {
+    // If Chrome cannot report focus, delivering the alert is safer.
+  }
+  if (!isCurrent() || isTerminalFocused(message.terminalId, focusedWindowId, terminalViews.values())) return
+
+  const notificationId = promptNotificationId(message.terminalId)
+  const notificationMessage = message.promptKind === 'permission_prompt'
+    ? 'Permission prompt'
+    : 'Question waiting'
+  await new Promise<void>(resolve => {
+    if (!isCurrent()) {
+      resolve()
+      return
+    }
+    chrome.notifications.create(notificationId, {
+      type: 'basic',
+      iconUrl: getDefaultIconUrl(),
+      title: `Claude needs you: ${message.terminalName}`,
+      message: notificationMessage,
+      priority: 1,
+      requireInteraction: true
+    }, () => resolve())
+  })
+  if (!isCurrent()) {
+    await clearClaudePromptNotification(message.terminalId)
+    return
+  }
+  notificationCache.set(notificationId, {
+    title: `Claude needs you: ${message.terminalName}`,
+    message: notificationMessage,
+    type: 'basic',
+    createdAt: Date.now()
+  })
+}
+
+export async function clearClaudePromptNotification(terminalId: string): Promise<void> {
+  const notificationId = promptNotificationId(terminalId)
+  await new Promise<void>(resolve => {
+    chrome.notifications.clear(notificationId, () => resolve())
+  })
+  notificationCache.delete(notificationId)
+}
+
+export function setupClaudePromptNotificationClickHandler(): void {
+  if (claudePromptClickHandlerRegistered) return
+  claudePromptClickHandlerRegistered = true
+  chrome.notifications.onClicked.addListener(async notificationId => {
+    if (!notificationId.startsWith(CLAUDE_PROMPT_NOTIFICATION_PREFIX)) return
+    let terminalId: string
+    try {
+      terminalId = decodeURIComponent(notificationId.slice(CLAUDE_PROMPT_NOTIFICATION_PREFIX.length))
+    } catch {
+      return
+    }
+    await clearClaudePromptNotification(terminalId)
+    const popout = Array.from(popoutWindows.entries()).find(([, id]) => id === terminalId)
+    if (popout) {
+      await chrome.windows.update(popout[0], { focused: true })
+      return
+    }
+    const knownView = Array.from(terminalViews.values()).find(view => !view.isPopout)
+    let windowId = knownView?.windowId
+    if (windowId === undefined) {
+      try { windowId = (await chrome.windows.getLastFocused()).id } catch { /* best effort */ }
+    }
+    if (windowId !== undefined) await chrome.windows.update(windowId, { focused: true })
+    await tryOpenSidebar(windowId)
+    broadcastToClients({ type: 'SWITCH_TO_TERMINAL', terminalId })
+  })
 }
 
 /**

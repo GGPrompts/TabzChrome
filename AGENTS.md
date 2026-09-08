@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This project uses **ggbd** (beads) for issue tracking with a shared Supabase/Postgres backend.
+This project uses **bd** (beads) for issue tracking with a local embedded Dolt backend.
 
 ## Project Context
 
@@ -30,20 +30,20 @@ This project uses **ggbd** (beads) for issue tracking with a shared Supabase/Pos
 ## Quick Reference
 
 ```bash
-ggbd ready              # Find available work
-ggbd show <id>          # View issue details
-ggbd update <id> --status in_progress  # Claim work
-ggbd close <id>         # Complete work
-# Supabase auto-syncs (no manual sync needed)
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+# Local Dolt; automatic push is off. Shipping uses the configured pre-push hook.
 ```
 
 ## Landing The Plane (When Shipping)
 
 Only do this workflow when asked to land changes (commit/push), or when finishing a change that should clearly be published.
 
-1. File ggbd issues for follow-ups (only if needed)
+1. File bd issues for follow-ups (only if needed)
 2. Run relevant quality gates (tests/linters/build) if applicable
-3. Update/close ggbd issue(s) if used
+3. Update/close bd issue(s) if used
 4. Publish:
    ```bash
    git pull --rebase

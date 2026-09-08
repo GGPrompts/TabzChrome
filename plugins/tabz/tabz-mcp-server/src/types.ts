@@ -4,7 +4,12 @@
 
 export type ConsoleLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
+export type ConsoleLogOrigin = 'page' | 'unknown' | `extension:${string}`;
+
 export interface ConsoleLogEntry {
+  source?: 'page' | 'extension';
+  origin?: ConsoleLogOrigin;
+  count?: number;
   level: ConsoleLogLevel;
   message: string;
   timestamp: number;
@@ -16,11 +21,19 @@ export interface ConsoleLogEntry {
 export interface ConsoleLogsResponse {
   logs: ConsoleLogEntry[];
   total: number;
+  error?: string;
 }
 
 export interface ScriptResult {
   success: boolean;
   result?: unknown;
+  executionPath?: 'debugger' | 'whitelist-fallback' | 'whitelist-all-frames';
+  resultTruncated?: true;
+  warning?: string;
+  timedOut?: true;
+  uncertain?: true;
+  terminationAttempted?: true;
+  terminationAcknowledged?: boolean;
   error?: string;
 }
 
@@ -63,6 +76,31 @@ export interface NetworkRequest {
   // Response body (filled on demand)
   responseBody?: string;
   responseBodyTruncated?: boolean;
+
+  // Set on a request that answered with a redirect: where it went, and
+  // which hop of the chain this record is (the live record has no hop).
+  redirectedTo?: string;
+  redirectHop?: number;
+
+  // Capture layer and deep-capture summary fields. Response payloads remain
+  // behind tabz_get_response_body so request lists stay bounded.
+  source?: 'webrequest' | 'deep' | 'both';
+  deep?: boolean;
+  webRequestId?: string;
+  bodyAvailable?: boolean;
+  base64Encoded?: boolean;
+  responseBodyByteLength?: number;
+  bodyRedacted?: boolean;
+  streamCapture?: 'eventsource' | 'data-received-final-body';
+  streamMessageCount?: number;
+  droppedStreamMessages?: number;
+  dataReceivedChunkCount?: number;
+  dataReceivedBytes?: number;
+  webSocketFrameCount?: number;
+  webSocketFramesSent?: number;
+  webSocketFramesReceived?: number;
+  droppedWebSocketFrames?: number;
+  webSocketClosed?: boolean;
 }
 
 export interface NetworkRequestsResponse {
@@ -71,6 +109,28 @@ export interface NetworkRequestsResponse {
   hasMore: boolean;
   nextOffset?: number;
   captureActive: boolean;
+  webRequestCaptureActive?: boolean;
+  deepCaptureActive?: boolean;
+  error?: string;
+}
+
+export interface NetworkResponseBodyPage {
+  success: boolean;
+  requestId: string;
+  tabId?: number;
+  kind?: 'body' | 'event-stream' | 'websocket';
+  text?: string;
+  base64Encoded?: boolean;
+  truncated?: boolean;
+  redacted?: boolean;
+  streamCapture?: 'eventsource' | 'data-received-final-body';
+  offset: number;
+  length: number;
+  totalLength: number;
+  hasMore: boolean;
+  nextOffset?: number;
+  dropped?: number;
+  error?: string;
 }
 
 // Download types

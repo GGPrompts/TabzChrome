@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import os from 'os'
+import './helpers/process-boundary-fake.js'
 
 // Import the actual module - we'll test its behavior directly
 const spawnService = (await import('../modules/unified-spawn.js')).default

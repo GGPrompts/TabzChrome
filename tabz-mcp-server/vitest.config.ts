@@ -4,6 +4,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    env: {
+      // shared.ts resolves identity at module load. A synthetic label keeps
+      // every test process away from the user's tmux session.
+      TABZ_AGENT_LABEL: 'tabz-test-agent',
+    },
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',

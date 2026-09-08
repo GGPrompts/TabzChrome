@@ -3,6 +3,7 @@
  *
  * Tools for displaying Chrome desktop notifications
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
@@ -11,87 +12,76 @@ import { BACKEND_URL } from "../shared.js";
 // =====================================
 // List item for 'list' type notifications
 const NotificationItemSchema = z.object({
-    title: z.string().describe("Item title"),
-    message: z.string().describe("Item message")
+    title: z.string(),
+    message: z.string()
 });
 // Button for notifications (max 2)
 const NotificationButtonSchema = z.object({
-    title: z.string().max(32).describe("Button title (max 32 chars)"),
-    iconUrl: z.string().url().optional().describe("URL to button icon")
+    title: z.string().max(32),
+    iconUrl: z.string().url().optional()
 });
 // Show notification schema
 const ShowNotificationSchema = z.object({
     title: z.string()
         .min(1)
-        .max(100)
-        .describe("Notification title"),
+        .max(100),
     message: z.string()
         .min(1)
-        .max(500)
-        .describe("Notification body text"),
+        .max(500),
     type: z.enum(['basic', 'image', 'list', 'progress'])
-        .default('basic')
-        .describe("Notification template type: 'basic' (default), 'image', 'list', or 'progress'"),
+        .default('basic'),
     iconUrl: z.string()
         .url()
         .optional()
-        .describe("URL to notification icon (48x48 recommended). Uses extension icon if omitted."),
+        .describe("48x48; extension icon if omitted."),
     imageUrl: z.string()
         .url()
-        .optional()
-        .describe("Image URL for 'image' type notifications"),
+        .optional(),
     items: z.array(NotificationItemSchema)
-        .optional()
-        .describe("List items for 'list' type notifications"),
+        .optional(),
     progress: z.number()
         .int()
         .min(0)
         .max(100)
-        .optional()
-        .describe("Progress percentage (0-100) for 'progress' type"),
+        .optional(),
     buttons: z.array(NotificationButtonSchema)
         .max(2)
         .optional()
-        .describe("Action buttons (max 2). Note: button clicks are not yet handled."),
+        .describe("Max 2; clicks are not handled yet."),
     priority: z.number()
         .int()
         .min(-2)
         .max(2)
         .default(0)
-        .describe("Priority: -2 (lowest) to 2 (highest). Default 0."),
+        .describe("-2 (lowest) to 2 (highest)."),
     notificationId: z.string()
         .optional()
-        .describe("Custom ID for this notification. Auto-generated if omitted. Use for updates."),
+        .describe("Custom ID; auto-generated."),
     requireInteraction: z.boolean()
         .default(false)
-        .describe("Keep notification visible until user dismisses it")
 }).strict();
 // Update notification schema
 const UpdateNotificationSchema = z.object({
-    notificationId: z.string()
-        .describe("ID of notification to update"),
+    notificationId: z.string(),
     title: z.string()
         .max(100)
-        .optional()
-        .describe("New title"),
+        .optional(),
     message: z.string()
         .max(500)
-        .optional()
-        .describe("New message"),
+        .optional(),
     progress: z.number()
         .int()
         .min(0)
         .max(100)
         .optional()
-        .describe("New progress percentage (0-100)"),
+        .describe("New percentage, 0-100."),
     type: z.enum(['basic', 'image', 'list', 'progress'])
         .optional()
-        .describe("Change notification type (e.g., progress -> basic when complete)")
+        .describe("Switch template, e.g. progress to basic when done.")
 }).strict();
 // Clear notification schema
 const ClearNotificationSchema = z.object({
     notificationId: z.string()
-        .describe("ID of notification to dismiss")
 }).strict();
 // List notifications schema (no parameters needed)
 const ListNotificationsSchema = z.object({}).strict();
@@ -151,9 +141,7 @@ async function listNotifications() {
  */
 export function registerNotificationTools(server) {
     // Show notification tool
-    server.tool("tabz_notification_show", `Show a Chrome desktop notification. Types: basic, image, list, progress. Returns notificationId for updates.
-
-Args: title (required), message (required), type/iconUrl/progress/buttons/priority/notificationId/requireInteraction (optional)`, ShowNotificationSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_notification_show", "Show a Chrome desktop notification and answer its notificationId.", ShowNotificationSchema, async (params) => {
         try {
             const result = await showNotification(params);
             let resultText;
@@ -185,9 +173,7 @@ Use this ID with \`tabz_notification_update\` or \`tabz_notification_clear\`.`;
         }
     });
     // Update notification tool
-    server.tool("tabz_notification_update", `Update an existing notification (title, message, progress, or type).
-
-Args: notificationId (required), title/message/progress/type (optional)`, UpdateNotificationSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_notification_update", "Update an existing notification's title, message, progress, or type.", UpdateNotificationSchema, async (params) => {
         try {
             const result = await updateNotification(params);
             let resultText;
@@ -224,9 +210,7 @@ Notification \`${params.notificationId}\` does not exist or was already dismisse
         }
     });
     // Clear notification tool
-    server.tool("tabz_notification_clear", `Dismiss a notification by ID.
-
-Args: notificationId (required)`, ClearNotificationSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_notification_clear", "Dismiss a notification by ID.", ClearNotificationSchema, async (params) => {
         try {
             const result = await clearNotification(params);
             let resultText;
@@ -263,7 +247,7 @@ Notification \`${params.notificationId}\` does not exist or was already dismisse
         }
     });
     // List notifications tool
-    server.tool("tabz_notification_list", `List all active (undismissed) notifications.`, ListNotificationsSchema.shape, async () => {
+    registerTabzTool(server, "tabz_notification_list", `List all active (undismissed) notifications.`, ListNotificationsSchema, async () => {
         try {
             const result = await listNotifications();
             let resultText;

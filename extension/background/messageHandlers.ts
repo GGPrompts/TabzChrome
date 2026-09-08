@@ -8,11 +8,21 @@ import {
   ws, connectedClients, broadcastToClients,
   pendingQueueCommand, pendingPasteCommand,
   setPendingQueueCommand, setPendingPasteCommand,
-  popoutWindows
+  popoutWindows, updateTerminalView
 } from './state'
 import { sendToWebSocket, updateBadge } from './websocket'
-import { addConsoleLog, getConsoleLogs, getConsoleLogCount } from './consoleCapture'
+import { captureConsoleLog, getConsoleLogs, getConsoleLogCount } from './consoleCapture'
 import { tryOpenSidebar } from './utils'
+import { assertAgentReadableTab } from './browserMcp/pageGuard'
+import { executeWhitelistFallback } from './browserMcp/script'
+import {
+  assertDocumentReadable,
+  assertDocumentReadCurrent,
+  assertProtectedDocumentCurrent,
+  currentDocumentProtection,
+  protectedDocumentTarget,
+  runWithDocumentAdmission
+} from './browserMcp/documentProtection'
 
 /**
  * Setup Chrome message listeners
@@ -121,6 +131,15 @@ export function setupMessageHandlers(): void {
             terminalId: (message as any).terminalId,
           })
         }, 300)
+        break
+
+      case 'UPDATE_TERMINAL_VIEW':
+        updateTerminalView({
+          terminalId: message.terminalId,
+          visible: message.visible,
+          windowId: message.windowId,
+          isPopout: message.isPopout,
+        })
         break
 
       case 'FOCUS_POPOUT_TERMINAL':
@@ -318,22 +337,22 @@ export function setupMessageHandlers(): void {
           ...message.entry,
           tabId: sender.tab?.id || -1
         }
-        addConsoleLog(logEntry)
+        await captureConsoleLog(logEntry, sender.tab, sender.documentId, sender.url)
         break
 
       case 'GET_CONSOLE_LOGS':
-        // Return console logs (called by MCP server via backend)
-        const logs = getConsoleLogs({
-          level: message.level,
-          limit: message.limit,
-          since: message.since,
-          tabId: message.tabId
-        })
-        sendResponse({
-          type: 'CONSOLE_LOGS_RESPONSE',
-          logs,
-          total: getConsoleLogCount()
-        })
+        try {
+          if (!message.tabId) throw new Error('A tabId is required for console-log reads')
+          await assertAgentReadableTab('console log read', message.tabId)
+          await runWithDocumentAdmission(message.tabId, async () => {
+            const token = await assertDocumentReadable(message.tabId!, 'console log read')
+            const logs = getConsoleLogs({ level: message.level, limit: message.limit, since: message.since, tabId: message.tabId })
+            await assertDocumentReadCurrent(message.tabId!, token)
+            sendResponse({ type: 'CONSOLE_LOGS_RESPONSE', logs, total: getConsoleLogCount() })
+          })
+        } catch (error) {
+          sendResponse({ type: 'CONSOLE_LOGS_RESPONSE', logs: [], total: 0, error: error instanceof Error ? error.message : String(error) })
+        }
         return true // Keep channel open for async response
 
       case 'BROWSER_EXECUTE_SCRIPT':
@@ -345,83 +364,17 @@ export function setupMessageHandlers(): void {
             return true
           }
 
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: targetTabId, allFrames: message.allFrames || false },
-            func: (code: string) => {
-              try {
-                // Safe predefined operations - NO eval() for security
-                if (code === 'document.links' || code.includes('document.links')) {
-                  const links = [...document.links].map(a => ({
-                    text: a.textContent?.trim() || '',
-                    href: a.href
-                  }))
-                  return { success: true, result: links }
-                }
-
-                if (code === 'document.title') {
-                  return { success: true, result: document.title }
-                }
-
-                if (code.includes('outerHTML') || code.includes('innerHTML')) {
-                  return { success: true, result: document.documentElement.outerHTML.slice(0, 10000) }
-                }
-
-                if (code.includes('document.images')) {
-                  const images = [...document.images].map(img => ({
-                    src: img.src,
-                    alt: img.alt
-                  }))
-                  return { success: true, result: images }
-                }
-
-                if (code.includes('textContent') || code.includes('innerText')) {
-                  return { success: true, result: document.body.innerText.slice(0, 10000) }
-                }
-
-                const selectorMatch = code.match(/querySelector\(['"]([^'"]+)['"]\)/)
-                if (selectorMatch) {
-                  const el = document.querySelector(selectorMatch[1])
-                  if (el) {
-                    return { success: true, result: {
-                      tagName: el.tagName,
-                      text: el.textContent?.trim(),
-                      html: el.outerHTML.slice(0, 1000)
-                    }}
-                  }
-                  return { success: false, error: `Element not found: ${selectorMatch[1]}` }
-                }
-
-                const selectorAllMatch = code.match(/querySelectorAll\(['"]([^'"]+)['"]\)/)
-                if (selectorAllMatch) {
-                  const els = document.querySelectorAll(selectorAllMatch[1])
-                  const results = [...els].slice(0, 100).map(el => ({
-                    tagName: el.tagName,
-                    text: el.textContent?.trim()
-                  }))
-                  return { success: true, result: results }
-                }
-
-                if (code.includes('localStorage')) {
-                  const storage: Record<string, string> = {}
-                  for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i)
-                    if (key) storage[key] = localStorage.getItem(key) || ''
-                  }
-                  return { success: true, result: storage }
-                }
-
-                return {
-                  success: false,
-                  error: 'Arbitrary code execution is disabled for security. Supported operations: document.links, document.title, document.images, querySelector("selector"), querySelectorAll("selector"), localStorage, textContent, outerHTML'
-                }
-              } catch (e) {
-                return { success: false, error: (e as Error).message }
-              }
-            },
-            args: [message.code]
+          if (message.allFrames) throw new Error('Refused: all-frame reads cannot be bound to one verified document')
+          await assertAgentReadableTab('browser script read', targetTabId)
+          const result = await runWithDocumentAdmission(targetTabId, async () => {
+            const token = await assertDocumentReadable(targetTabId, 'browser script read')
+            const results = await chrome.scripting.executeScript({
+              target: protectedDocumentTarget(token), func: executeWhitelistFallback, args: [message.code]
+            })
+            const injection = results[0]
+            await assertDocumentReadCurrent(targetTabId, token, { documentId: injection?.documentId })
+            return injection?.result as { success: boolean; result?: unknown; error?: string } | undefined
           })
-
-          const result = results[0]?.result as { success: boolean; result?: unknown; error?: string } | undefined
           sendResponse({
             type: 'BROWSER_SCRIPT_RESULT',
             success: result?.success || false,
@@ -445,13 +398,29 @@ export function setupMessageHandlers(): void {
             : await chrome.tabs.query({ active: true, lastFocusedWindow: true })
           const tab = tabs[0]
 
-          if (tab) {
+          if (tab?.id) {
+            await assertAgentReadableTab('browser page info', tab)
+            const response = await runWithDocumentAdmission(tab.id, async () => {
+              const protectedDocument = await currentDocumentProtection(tab.id!)
+              if (protectedDocument) {
+                const currentTab = await chrome.tabs.get(tab.id!)
+                await assertProtectedDocumentCurrent(tab.id!, protectedDocument)
+                const parsed = new URL(currentTab.url || '')
+                return { url: parsed.origin, title: '', tabId: tab.id || -1, protectedFillVersion: 1 }
+              }
+              const token = await assertDocumentReadable(tab.id!, 'browser page info')
+              const injection = (await chrome.scripting.executeScript({
+                target: protectedDocumentTarget(token),
+                func: () => ({ url: location.href, title: document.title })
+              }))[0]
+              await assertDocumentReadCurrent(tab.id!, token, { documentId: injection?.documentId })
+              const metadata = injection?.result as { url?: string; title?: string } | undefined
+              if (!metadata) throw new Error('Page metadata could not be bound to the current document')
+              return { url: metadata.url || '', title: metadata.title || '', tabId: tab.id || -1, protectedFillVersion: 1 }
+            })
             sendResponse({
               type: 'BROWSER_PAGE_INFO',
-              url: tab.url || '',
-              title: tab.title || '',
-              tabId: tab.id || -1,
-              favIconUrl: tab.favIconUrl
+              ...response
             })
           } else {
             sendResponse({

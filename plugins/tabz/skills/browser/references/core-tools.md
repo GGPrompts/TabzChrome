@@ -17,7 +17,7 @@ Essential tools for tab management, page interaction, and screenshots.
 - [What site am I on?](tabz:paste?text=What%20site%20am%20I%20on%3F)
 
 **Parameters:**
-- `tabId` (optional): Specific tab ID to query. Defaults to active tab.
+- `tabId` (optional): Specific owned tab ID to query. Defaults to this connection's current target.
 - `response_format`: `markdown` (default) or `json`
 
 **Returns:**
@@ -30,7 +30,7 @@ Essential tools for tab management, page interaction, and screenshots.
 
 ## tabz_list_tabs
 
-**Purpose:** List all open browser tabs with **accurate active tab detection**.
+**Purpose:** List tabs in this MCP connection's automatically managed group.
 
 **Trigger phrases:**
 - [What tabs are open?](tabz:paste?text=What%20tabs%20are%20open%3F)
@@ -57,7 +57,7 @@ Essential tools for tab management, page interaction, and screenshots.
       "tabId": 1762556601,
       "url": "https://example.com",
       "title": "Example",
-      "active": true    // ← USER'S ACTUAL FOCUSED TAB
+      "active": true
     }
   ]
 }
@@ -65,20 +65,11 @@ Essential tools for tab management, page interaction, and screenshots.
 
 **Key fields:**
 - `tabId`: Chrome's internal tab ID (large number like `1762556601`) - use this for `tabz_switch_tab`
-- `active`: **THE USER'S ACTUAL FOCUSED TAB** - true on whichever tab they have selected in Chrome
-- `claudeCurrentTabId`: Which tab Claude is currently targeting for operations (screenshots, clicks, etc.)
+- `active`: Whether the owned tab is focused in Chrome
+- `claudeCurrentTabId`: Which owned tab this connection currently targets
 - `customName`: User-assigned name (if set via `tabz_rename_tab`)
 
-**Understanding the two "active" concepts:**
-1. `active: true` = The tab the USER has focused in Chrome right now
-2. `claudeCurrentTabId` = The tab CLAUDE will target for operations
-
-These are synced automatically: when you call `tabz_list_tabs`, Claude's target is updated to match the user's active tab.
-
-**Active Tab Detection:**
-Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the **real** focused tab. If you manually click a different tab in Chrome, Claude will know immediately.
-
-**Markdown output shows:** `← CURRENT` marker indicates Claude's target tab (which matches user's active tab after listing).
+The enforced group excludes user tabs and tabs owned by other MCP connections. Use only IDs returned by this connection's `tabz_list_tabs` result. The Markdown `← CURRENT` marker identifies this connection's current target.
 
 ---
 
@@ -97,7 +88,7 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 **Returns:**
 - `success`: Whether the switch was successful
 
-**Important:** After switching, all subsequent tool calls (screenshot, click, fill, etc.) will automatically target that tab without needing to pass `tabId`. This enables workflows like:
+**Important:** After switching, calls that omit `tabId` use this connection's current target. Prefer explicit IDs when a workflow has more than one owned tab:
 1. `tabz_switch_tab(tabId: 123456789)`
 2. `tabz_screenshot()` ← automatically captures that tab
 
@@ -143,11 +134,10 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 
 ## tabz_click
 
-**Purpose:** Click an element on the page.
+**Purpose:** Legacy CSS-selector click for compatible, non-sensitive pages. Prefer `tabz_read_page` and `tabz_act` with an opaque ref.
 
 **Trigger phrases:**
 - [Click the submit button](tabz:paste?text=Click%20the%20submit%20button)
-- [Press the login button](tabz:paste?text=Press%20the%20login%20button)
 - [Click on that link](tabz:paste?text=Click%20on%20that%20link)
 
 **Parameters:**
@@ -172,17 +162,17 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 ```
 
 **Returns:**
-- `success`: Whether the click was performed
+- A structured status of `verified`, `mismatch`, or `unknown` when available
+- An unknown result may follow dispatch; stop and reconcile instead of replaying the click
 
 ---
 
 ## tabz_fill
 
-**Purpose:** Fill an input field with text.
+**Purpose:** Legacy CSS-selector fill for ordinary, non-sensitive input. Prefer `tabz_read_page` and `tabz_act` with an opaque ref.
 
 **Trigger phrases:**
 - [Fill in the email field](tabz:paste?text=Fill%20in%20the%20email%20field)
-- [Type my username](tabz:paste?text=Type%20my%20username)
 - [Enter text in the search box](tabz:paste?text=Enter%20text%20in%20the%20search%20box)
 
 **Parameters:**
@@ -193,8 +183,7 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 **Common Selectors:**
 ```javascript
 "#email"                    // By ID
-"input[name='username']"    // By name attribute
-"input[type='password']"    // By type
+"input[name='query']"       // By name attribute
 "textarea#message"          // Textarea by ID
 ```
 
@@ -208,7 +197,10 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 ```
 
 **Returns:**
-- `success`: Whether the fill was performed
+- `verified` only after readback confirms the ordinary value
+- `mismatch` or `unknown` is an error; do not replay automatically
+
+Never pass a password or saved credential value to this tool. Use `tabz_request_login` or the saved-login tools documented in repository `docs/saved-logins.md`.
 
 ---
 
@@ -290,7 +282,7 @@ Unlike CDP-only solutions, this tool uses the Chrome Extension API to detect the
 
 **Parameters:**
 - `code` (required): JavaScript code to execute
-- `tabId` (optional): Target tab ID. Defaults to active tab.
+- `tabId` (optional): Owned target tab ID. Defaults to this connection's current target.
 - `allFrames` (optional): Run in all iframes too (default: false)
 
 **Returns:**
@@ -486,10 +478,10 @@ Only whitelisted domains can be opened to prevent abuse. Cannot open arbitrary w
 - `filePath`: Path to the saved image (use Read tool to view)
 
 **AI Image Support:**
-The tool automatically extracts full image URLs (including auth tokens) from AI platforms:
+The tool can extract image URLs from supported page elements and CDN-backed image sources:
 - **ChatGPT**: Uses `oaiusercontent.com` CDN URLs
 - **Copilot/DALL-E**: Similar CDN-based URLs
-- Works by extracting the `src` attribute from the page, preserving auth tokens
+- Prefer a specific selector. Do not copy, log, or supply credential-bearing image URLs; use the tool's redaction and refusal boundary.
 
 **Examples:**
 ```javascript

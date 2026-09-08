@@ -63,6 +63,30 @@ describe('useWorkingDirectory', () => {
       // Should keep default globalWorkingDir
       expect(result.current.globalWorkingDir).toBe('~')
     })
+
+    it('should sync the merged initial values back to the backend', async () => {
+      setChromeStorageData({
+        globalWorkingDir: '~/local-project',
+        recentDirs: ['~/local-project', '~'],
+      })
+
+      const { result } = renderHook(() => useWorkingDirectory())
+
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
+
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:8129/api/settings/working-dir',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            globalWorkingDir: '~/local-project',
+            recentDirs: ['~/local-project', '~'],
+          }),
+        }),
+      )
+    })
   })
 
   describe('setGlobalWorkingDir', () => {
@@ -91,6 +115,30 @@ describe('useWorkingDirectory', () => {
       await waitFor(() => {
         const storageData = getChromeStorageData()
         expect(storageData.globalWorkingDir).toBe('~/persisted-project')
+      })
+    })
+
+    it('should persist an immediate post-load change to Chrome storage and the backend', async () => {
+      const { result } = renderHook(() => useWorkingDirectory())
+
+      await waitFor(() => {
+        expect(result.current.isLoaded).toBe(true)
+      })
+      vi.mocked(fetch).mockClear()
+
+      act(() => {
+        result.current.setGlobalWorkingDir('~/ready-project')
+      })
+
+      await waitFor(() => {
+        expect(getChromeStorageData().globalWorkingDir).toBe('~/ready-project')
+        expect(fetch).toHaveBeenCalledWith(
+          'http://localhost:8129/api/settings/working-dir',
+          expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({ globalWorkingDir: '~/ready-project' }),
+          }),
+        )
       })
     })
   })

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import os from 'os'
+import './helpers/process-boundary-fake.js'
 
 // Import the actual module
 const registry = (await import('../modules/terminal-registry.js')).default

@@ -5,6 +5,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -152,89 +153,80 @@ const OTHER_BOOKMARKS_ID = "2";
 const GetBookmarkTreeSchema = z.object({
   folderId: z.string()
     .optional()
-    .describe("Folder ID to get children of. Omit for full tree. Special IDs: '1' = Bookmarks Bar, '2' = Other Bookmarks"),
+    .describe("Folder to list; omit for the whole tree."),
   maxDepth: z.number()
     .int()
     .min(1)
     .max(10)
     .default(3)
-    .describe("Maximum depth to traverse (1-10, default: 3). Use 1 for immediate children only."),
+    .describe("Levels to descend."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type GetBookmarkTreeInput = z.infer<typeof GetBookmarkTreeSchema>;
 
 const SearchBookmarksSchema = z.object({
   query: z.string()
-    .min(1)
-    .describe("Search query - matches against bookmark titles and URLs"),
+    .min(1),
   limit: z.number()
     .int()
     .min(1)
     .max(100)
-    .default(20)
-    .describe("Maximum results to return (1-100, default: 20)"),
+    .default(20),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type SearchBookmarksInput = z.infer<typeof SearchBookmarksSchema>;
 
 const SaveBookmarkSchema = z.object({
   url: z.string()
-    .url()
-    .describe("URL to bookmark"),
+    .url(),
   title: z.string()
-    .min(1)
-    .describe("Bookmark title"),
+    .min(1),
   parentId: z.string()
     .optional()
-    .describe("Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks, or a folder ID from tabz_get_bookmark_tree."),
+    .describe("Parent folder; '1' = Bookmarks Bar, '2' = Other."),
   index: z.number()
     .int()
     .min(0)
     .optional()
-    .describe("Position within the folder (0 = first). Omit to add at end.")
+    .describe("Position, 0 first; omit to append.")
 }).strict();
 
 type SaveBookmarkInput = z.infer<typeof SaveBookmarkSchema>;
 
 const CreateFolderSchema = z.object({
   title: z.string()
-    .min(1)
-    .describe("Folder name"),
+    .min(1),
   parentId: z.string()
     .optional()
-    .describe("Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks."),
+    .describe("Parent folder; '1' = Bookmarks Bar, '2' = Other."),
   index: z.number()
     .int()
     .min(0)
     .optional()
-    .describe("Position within parent (0 = first). Omit to add at end.")
+    .describe("Position, 0 first; omit to append.")
 }).strict();
 
 type CreateFolderInput = z.infer<typeof CreateFolderSchema>;
 
 const MoveBookmarkSchema = z.object({
-  id: z.string()
-    .describe("Bookmark or folder ID to move (from tabz_get_bookmark_tree or tabz_search_bookmarks)"),
-  parentId: z.string()
-    .describe("Destination folder ID. Use '1' for Bookmarks Bar, '2' for Other Bookmarks."),
+  id: z.string(),
+  parentId: z.string(),
   index: z.number()
     .int()
     .min(0)
     .optional()
-    .describe("Position in destination folder (0 = first). Omit to add at end.")
+    .describe("Position, 0 first; omit to append.")
 }).strict();
 
 type MoveBookmarkInput = z.infer<typeof MoveBookmarkSchema>;
 
 const DeleteBookmarkSchema = z.object({
   id: z.string()
-    .describe("Bookmark or folder ID to delete. WARNING: Deleting a folder removes all contents!")
+    .describe("Bookmark or folder to delete.")
 }).strict();
 
 type DeleteBookmarkInput = z.infer<typeof DeleteBookmarkSchema>;
@@ -304,10 +296,10 @@ function formatSearchResults(bookmarks: BookmarkNode[]): string[] {
 export function registerBookmarkTools(server: McpServer): void {
 
   // Get bookmark tree
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_bookmark_tree",
-    `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_docs for detailed docs.`,
-    GetBookmarkTreeSchema.shape,
+    "Browse the Chrome bookmarks tree.",
+    GetBookmarkTreeSchema,
     async (params: GetBookmarkTreeInput) => {
       try {
         const result = await getBookmarkTree({
@@ -368,10 +360,10 @@ export function registerBookmarkTools(server: McpServer): void {
   );
 
   // Search bookmarks
-  server.tool(
+  registerTabzTool(server,
     "tabz_search_bookmarks",
-    `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_docs for detailed docs.`,
-    SearchBookmarksSchema.shape,
+    "Search bookmarks by title or URL, answering IDs the move and delete tools take.",
+    SearchBookmarksSchema,
     async (params: SearchBookmarksInput) => {
       try {
         const result = await searchBookmarks({
@@ -426,10 +418,10 @@ export function registerBookmarkTools(server: McpServer): void {
   );
 
   // Save bookmark
-  server.tool(
+  registerTabzTool(server,
     "tabz_save_bookmark",
-    `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_docs for detailed docs.`,
-    SaveBookmarkSchema.shape,
+    "Save a URL as a Chrome bookmark.",
+    SaveBookmarkSchema,
     async (params: SaveBookmarkInput) => {
       try {
         const result = await createBookmark({
@@ -479,10 +471,10 @@ Use this ID with \`tabz_move_bookmark\` or \`tabz_delete_bookmark\` if needed.`
   );
 
   // Create folder
-  server.tool(
+  registerTabzTool(server,
     "tabz_create_folder",
-    `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_docs for detailed docs.`,
-    CreateFolderSchema.shape,
+    "Create a bookmark folder, answering its ID for tabz_save_bookmark.",
+    CreateFolderSchema,
     async (params: CreateFolderInput) => {
       try {
         const result = await createBookmarkFolder({
@@ -530,10 +522,10 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
   );
 
   // Move bookmark
-  server.tool(
+  registerTabzTool(server,
     "tabz_move_bookmark",
-    `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_docs for detailed docs.`,
-    MoveBookmarkSchema.shape,
+    "Move a bookmark or folder into another folder.",
+    MoveBookmarkSchema,
     async (params: MoveBookmarkInput) => {
       try {
         const result = await moveBookmark({
@@ -578,10 +570,10 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
   );
 
   // Delete bookmark
-  server.tool(
+  registerTabzTool(server,
     "tabz_delete_bookmark",
-    `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_docs for detailed docs.`,
-    DeleteBookmarkSchema.shape,
+    "Delete a bookmark or folder permanently; a folder takes its contents.",
+    DeleteBookmarkSchema,
     async (params: DeleteBookmarkInput) => {
       try {
         const result = await deleteBookmark(params.id);

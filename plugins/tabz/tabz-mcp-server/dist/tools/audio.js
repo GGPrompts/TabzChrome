@@ -8,9 +8,11 @@
  * (voice, rate, pitch, volume) from Chrome storage, so Claude doesn't
  * need to specify these unless overriding for a specific purpose.
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
+import { docsPointer } from "../descriptions.js";
 // Available voices (edge-tts neural voices that are known to work)
 // The extension UI may show more, but these are the reliable ones
 const VOICE_OPTIONS = [
@@ -36,36 +38,36 @@ const PRIORITY_OPTIONS = ['low', 'high'];
 const PlayAudioSchema = z.object({
     url: z.string()
         .min(1)
-        .describe("URL of the audio file to play. Can be a local URL (e.g., http://localhost:8129/sounds/ding.mp3) or remote URL."),
+        .describe("Audio URL, local or remote."),
     volume: z.number()
         .min(0)
         .max(1)
         .optional()
-        .describe("Playback volume from 0.0 to 1.0. If not specified, uses user's configured volume."),
+        .describe("Volume from 0 to 1; configured default otherwise."),
     priority: z.enum(PRIORITY_OPTIONS)
         .default('low')
-        .describe("Audio priority. 'high' interrupts current audio, 'low' may be skipped if high-priority audio is playing.")
+        .describe("High interrupts; low may be skipped.")
 }).strict();
 // Input schema for tabz_speak
 const SpeakSchema = z.object({
     text: z.string()
         .min(1)
         .max(3000)
-        .describe("The text to speak aloud. Markdown formatting will be stripped automatically. Maximum 3000 characters."),
+        .describe("Text to speak; Markdown is stripped. Max 3000 characters."),
     voice: z.enum(VOICE_OPTIONS)
         .optional()
-        .describe("Voice to use. If not specified, uses the user's configured voice from settings. Options: en-US-AndrewMultilingualNeural (default), en-US-EmmaMultilingualNeural, en-US-AriaNeural, en-GB-SoniaNeural, etc."),
+        .describe("Voice name; configured voice by default."),
     rate: z.string()
         .regex(/^[+-]?\d{1,3}%$/)
         .optional()
-        .describe("Speech rate as percentage. Format: '+30%' (faster), '-20%' (slower), '+0%' (normal). If not specified, uses user's configured rate."),
+        .describe("Speech rate, e.g. '+30%' or '-20%'."),
     pitch: z.string()
         .regex(/^[+-]?\d{1,3}Hz$/)
         .optional()
-        .describe("Voice pitch in Hz. Format: '+50Hz' (higher), '-100Hz' (lower), '+0Hz' (normal). If not specified, uses user's configured pitch."),
+        .describe("Pitch, e.g. '+50Hz' or '-100Hz'."),
     priority: z.enum(PRIORITY_OPTIONS)
         .default('low')
-        .describe("Audio priority. 'high' interrupts current audio (use for important announcements). 'low' is skipped if high-priority audio is playing (use for status updates).")
+        .describe("High interrupts; low may be skipped.")
 }).strict();
 // Input schema for tabz_list_voices
 const ListVoicesSchema = z.object({}).strict();
@@ -139,9 +141,7 @@ function listVoices() {
  */
 export function registerAudioTools(server) {
     // Speak tool
-    server.tool("tabz_speak", `Speak text aloud via neural TTS. User's configured voice/rate/pitch apply unless overridden.
-
-Args: text (required, max 3000 chars), voice/rate/pitch (optional overrides), priority (optional: high/low)`, SpeakSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_speak", "Speak text with the configured browser voice. " + docsPointer("tabz_speak"), SpeakSchema, async (params) => {
         try {
             const result = await speak(params);
             let resultText;
@@ -185,7 +185,7 @@ Possible causes:
         }
     });
     // List voices tool
-    server.tool("tabz_list_voices", `List available TTS voices for use with tabz_speak.`, ListVoicesSchema.shape, async () => {
+    registerTabzTool(server, "tabz_list_voices", "List available text-to-speech voices. " + docsPointer("tabz_list_voices"), ListVoicesSchema, async () => {
         const result = listVoices();
         const lines = [
             "# Available TTS Voices",
@@ -213,9 +213,7 @@ Possible causes:
         };
     });
     // Play audio file tool
-    server.tool("tabz_play_audio", `Play an audio file (MP3/WAV/OGG) through the browser.
-
-Args: url (required), volume (optional 0.0-1.0), priority (optional: high/low)`, PlayAudioSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_play_audio", "Play an audio URL through the browser. " + docsPointer("tabz_play_audio"), PlayAudioSchema, async (params) => {
         try {
             const result = await playAudio(params);
             let resultText;

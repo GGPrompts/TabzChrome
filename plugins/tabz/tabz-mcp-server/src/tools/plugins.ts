@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -109,34 +110,31 @@ interface ToggleResponse {
 
 const ListPluginsSchema = z.object({
   marketplace: z.string()
-    .optional()
-    .describe("Filter by marketplace name (e.g., 'my-plugins', 'anthropic')"),
+    .optional(),
   enabled: z.boolean()
     .optional()
-    .describe("Filter by enabled status: true for enabled only, false for disabled only")
+    .describe("Keep only enabled, or only disabled.")
 }).strict();
 
 const ListSkillsSchema = z.object({
   plugin: z.string()
-    .optional()
-    .describe("Filter by plugin name (e.g., 'conductor', 'beads')"),
+    .optional(),
   search: z.string()
     .optional()
-    .describe("Search skills by name or description (case-insensitive)")
+    .describe("Text to match in a skill's name or description.")
 }).strict();
 
 const GetSkillSchema = z.object({
   skillId: z.string()
-    .describe("The skill ID in format '/pluginName:skillName' (e.g., '/conductor:brainstorm')")
+    .describe("Skill ID, '/pluginName:skillName'.")
 }).strict();
 
 const PluginsHealthSchema = z.object({}).strict();
 
 const TogglePluginSchema = z.object({
   pluginId: z.string()
-    .describe("The plugin ID in format 'pluginName@marketplace' (e.g., 'conductor@my-plugins')"),
+    .describe("Plugin ID, 'pluginName@marketplace'."),
   enabled: z.boolean()
-    .describe("Set to true to enable the plugin, false to disable")
 }).strict();
 
 // =====================================
@@ -343,10 +341,10 @@ async function togglePlugin(pluginId: string, enabled: boolean): Promise<ToggleR
  */
 export function registerPluginTools(server: McpServer): void {
   // List plugins tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_list_plugins",
-    `List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_docs for detailed docs.`,
-    ListPluginsSchema.shape,
+    "List the installed Claude Code plugins by marketplace, with their enabled state.",
+    ListPluginsSchema,
     async (params: z.infer<typeof ListPluginsSchema>) => {
       try {
         const result = await listPlugins(params.marketplace, params.enabled);
@@ -371,10 +369,10 @@ export function registerPluginTools(server: McpServer): void {
   );
 
   // List skills tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_list_skills",
-    `List available skills from enabled plugins. Filter by plugin name or search by keyword. Use tabz_get_skill to read full SKILL.md content.`,
-    ListSkillsSchema.shape,
+    "List the skills available from enabled plugins; tabz_get_skill reads one in full.",
+    ListSkillsSchema,
     async (params: z.infer<typeof ListSkillsSchema>) => {
       try {
         const result = await listSkills(params.plugin, params.search);
@@ -399,34 +397,10 @@ export function registerPluginTools(server: McpServer): void {
   );
 
   // Get skill details tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_skill",
-    `Get full details and content of a specific skill.
-
-Reads the SKILL.md file for a skill, providing complete context
-including instructions, examples, and configuration.
-
-Args:
-  - skillId (required): Skill ID in format "/pluginName:skillName"
-                        (e.g., "/conductor:brainstorm", "/tabz-browser:screenshot")
-
-Returns:
-  {
-    "skill": {
-      "id": "/conductor:brainstorm",
-      "name": "Brainstorm",
-      "desc": "...",
-      "pluginName": "conductor"
-    },
-    "content": "---\\nname: Brainstorm\\n...full SKILL.md content..."
-  }
-
-Examples:
-  - Get skill: skillId="/conductor:brainstorm"
-  - Without leading slash: skillId="conductor:brainstorm"
-
-Use tabz_list_skills first to find available skill IDs.`,
-    GetSkillSchema.shape,
+    "Read one plugin skill's whole SKILL.md, with its instructions and examples.",
+    GetSkillSchema,
     async (params: z.infer<typeof GetSkillSchema>) => {
       try {
         const result = await getSkill(params.skillId);
@@ -451,10 +425,10 @@ Use tabz_list_skills first to find available skill IDs.`,
   );
 
   // Plugins health check tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_plugins_health",
-    `Check plugin health: outdated versions, cache size, marketplace reachability. Run /restart after updating plugins.`,
-    PluginsHealthSchema.shape,
+    "Check plugin health: outdated versions, cache size, marketplace reachability.",
+    PluginsHealthSchema,
     async () => {
       try {
         const result = await pluginsHealth();
@@ -479,10 +453,10 @@ Use tabz_list_skills first to find available skill IDs.`,
   );
 
   // Toggle plugin tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_toggle_plugin",
-    `Enable or disable a plugin. pluginId format: "name@marketplace". Run /restart after toggling to apply. Use tabz_docs for detailed docs.`,
-    TogglePluginSchema.shape,
+    "Enable or disable a plugin. Run /restart afterwards to apply it.",
+    TogglePluginSchema,
     async (params: z.infer<typeof TogglePluginSchema>) => {
       try {
         const result = await togglePlugin(params.pluginId, params.enabled);

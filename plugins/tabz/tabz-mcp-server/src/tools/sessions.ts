@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
@@ -21,17 +22,16 @@ const RecentlyClosedSchema = z.object({
     .min(1)
     .max(25)
     .default(25)
-    .describe("Maximum sessions to return (Chrome limits to 25)"),
+    .describe("Max sessions; Chrome caps this at 25."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type RecentlyClosedInput = z.infer<typeof RecentlyClosedSchema>;
 
 const RestoreSessionSchema = z.object({
   sessionId: z.string()
-    .describe("Session ID from tabz_sessions_recently_closed. If omitted, restores the most recently closed session.")
+    .describe("Session ID; omit for the most recently closed one.")
     .optional()
 }).strict();
 
@@ -42,11 +42,9 @@ const DevicesSchema = z.object({
     .int()
     .min(1)
     .max(10)
-    .default(10)
-    .describe("Maximum devices to return"),
+    .default(10),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type DevicesInput = z.infer<typeof DevicesSchema>;
@@ -275,10 +273,10 @@ Sign in to Chrome and enable Sync in Settings > You and Google > Sync.`;
  */
 export function registerSessionTools(server: McpServer): void {
   // Recently closed tabs/windows
-  server.tool(
+  registerTabzTool(server,
     "tabz_sessions_recently_closed",
-    `List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_docs for detailed docs.`,
-    RecentlyClosedSchema.shape,
+    "List recently closed tabs and windows, with the sessionIds tabz_sessions_restore takes.",
+    RecentlyClosedSchema,
     async (params: RecentlyClosedInput) => {
       try {
         const result = await getRecentlyClosed(params.maxResults);
@@ -318,10 +316,10 @@ export function registerSessionTools(server: McpServer): void {
   );
 
   // Restore closed session
-  server.tool(
+  registerTabzTool(server,
     "tabz_sessions_restore",
-    `Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_docs for detailed docs.`,
-    RestoreSessionSchema.shape,
+    "Restore a recently closed tab or window; omit sessionId for the most recent.",
+    RestoreSessionSchema,
     async (params: RestoreSessionInput) => {
       try {
         const result = await restoreSession(params.sessionId);
@@ -364,10 +362,10 @@ The tab/window is now open and active.`;
   );
 
   // Synced devices
-  server.tool(
+  registerTabzTool(server,
     "tabz_sessions_devices",
-    `List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_docs for detailed docs.`,
-    DevicesSchema.shape,
+    "List tabs open on the user's other synced Chrome devices; needs Chrome Sync.",
+    DevicesSchema,
     async (params: DevicesInput) => {
       try {
         const result = await getDevices(params.maxResults);

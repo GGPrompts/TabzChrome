@@ -26,11 +26,10 @@ if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-// Clear/initialize unified log on startup
-fs.writeFileSync(UNIFIED_LOG_PATH, `--- Unified Log Started: ${new Date().toISOString()} ---\n`);
-
-// Create write stream for unified log file
+// Utility processes (including protected login prompts) import this module
+// too. Append their startup marker without resetting the running backend log.
 const logStream = fs.createWriteStream(UNIFIED_LOG_PATH, { flags: 'a' });
+logStream.write(`--- Unified Log Started: ${new Date().toISOString()} ---\n`);
 
 // Format timestamp consistently: HH:MM:SS
 const formatTime = (date = new Date()) => {

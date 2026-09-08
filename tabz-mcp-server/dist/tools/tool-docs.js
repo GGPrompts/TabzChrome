@@ -7,6 +7,20 @@
  * trimmed from tool descriptions to reduce context size.
  */
 export const TOOL_DOCS = {
+    tabz_act: `## tabz_act
+Perform one compact browser action.
+
+Page actions are click, right_click, double_click, triple_click, hover, type, key, scroll, scroll_to, and drag. Target with one ref from the latest tabz_read_page, one CSS selector, visible text, or viewport x/y. Type and key may use the focused editable element without an explicit target. Screenshot saves the viewport, a ref/selector target, or the full page and includes an inline image. Zoom captures a CSS-pixel rectangle x0,y0-x1,y1. Image results report MIME type, dimensions and byte count. Observe adds an inline viewport after a page action; unavailable observation does not replay or change the action verdict. Wait pauses locally for up to 10 seconds and can observe afterward.
+
+Refs are opaque and bound to this browser agent, tab, exact document, and publication. Re-reading, navigation, tab removal, or ownership changes make them stale. On a protected login document, only a synthetic click on a prepublished ref is allowed; selector, text, coordinate, trusted clicks, and observation are refused. A mutation timeout or interrupted verification has unknown outcome; inspect current state and never replay it automatically. Never use value to pass a password, one-time code, token, or card number obtained from the user; use tabz_request_login or tabz_fill_secret.`,
+    tabz_read_page: `## tabz_read_page
+Read a compact, bounded outline of visible interactive page elements.
+
+Returns opaque refs for tabz_act plus the tab ID, title, URL, node/ref counts, and truncation flag. maxChars is 500-20000, default 6000. Every read publishes a new ref generation, so earlier refs become stale. Refs are also invalidated by navigation, tab removal, and browser-agent ownership changes. Protected login documents refuse this read and do not expose page content.`,
+    tabz_batch: `## tabz_batch
+Run 1-20 enabled tabz tool calls sequentially in one MCP round trip.
+
+Each item has name and input. Inputs are parsed through the called tool's strict schema. Execution stops on the first isError result, thrown error, unavailable/disabled tool, invalid arguments, attempted nested tabz_batch, or cancellation between items. A cancelled call does not start later items and never replays the item already in flight. It is a convenience call, not a workflow engine, transaction, retry mechanism, or parallel executor.`,
     // ============================================================
     // AUDIO TOOLS
     // ============================================================
@@ -269,17 +283,19 @@ the given URL and name.
 ### Parameters
 - **url** (required): URL to get cookie for (determines domain/path matching)
 - **name** (required): Name of the cookie to retrieve
+- **revealValue** (optional, default false): Reveal a non-auth cookie value
 
 ### Returns
-- Cookie object with name, value, domain, path, flags, expiration
+- Cookie metadata with the value redacted by default
 - null if cookie not found
 
 ### Examples
 - Get session cookie: url="https://github.com", name="user_session"
-- Get auth token: url="https://api.example.com", name="auth_token"
+- Get preference cookie: url="https://example.com", name="theme"
 
 ### Security Notes
-Cookie values are shown in full. Be careful with auth tokens.
+Auth and session cookie names always keep their values redacted. Other values are
+shown only when revealValue=true.
 
 ### Error Handling
 - "Cannot connect": Ensure TabzChrome backend is running at localhost:8129
@@ -304,7 +320,7 @@ At least one filter (domain or url) should be provided for targeted results.
 - List session cookies: domain="example.com", session=true
 
 ### Security Notes
-Cookie values are truncated in markdown output.
+Cookie values are omitted from both markdown and JSON output.
 
 ### Error Handling
 - "Cannot connect": Ensure TabzChrome backend is running
@@ -333,7 +349,10 @@ Use with caution, especially for auth-related cookies.**
 ### Examples
 - Set session cookie: url="https://example.com", name="test", value="123"
 - Set persistent cookie: url="https://example.com", name="pref", value="dark", expirationDate=1735689600
-- Set secure cookie: url="https://example.com", name="token", value="abc", secure=true, httpOnly=true, sameSite="strict"
+- Set secure preference: url="https://example.com", name="theme", value="dark", secure=true, sameSite="strict"
+
+### Returns
+Cookie metadata and the submitted value length. The value itself is not echoed.
 
 ### Error Handling
 - "Cannot connect": Ensure TabzChrome backend is running
@@ -379,6 +398,8 @@ understanding cookie usage on a page, and privacy audits.
 - Third-party cookies (different domain)
 - Known trackers highlighted
 - Session vs persistent breakdown
+
+Cookie values are omitted from both markdown and JSON output.
 
 ### Examples
 - Audit current page: (no args needed)
@@ -451,6 +472,7 @@ The debugger automatically detaches after metrics are collected.
 Analyze JavaScript and/or CSS code coverage on the current page.
 
 Uses chrome.debugger to track which code has been executed or which CSS rules have been applied.
+Reloads the owned tab after arming coverage trackers, so unsaved page state is lost.
 This helps identify unused code that could be removed to improve performance.
 
 ### Important Behavior
@@ -955,14 +977,21 @@ Works with buttons, links, checkboxes, and any clickable element.
 After clicking, use tabz_get_page_info to check if page changed,
 or tabz_execute_script to verify the result.`,
     tabz_fill: `## tabz_fill
-Fill an input field with text.
+Fill a form field with text, or set a checkbox or radio input with a boolean.
 
 Waits for the element to appear (up to 5 seconds), clears any existing value,
-then types the new value. Works with text inputs, textareas, and other form fields.
+then enters the new text. For checkbox and radio inputs, pass true or false to set
+the checked state. Works with text inputs, textareas, and other form fields.
+Successful fills report the value for ordinary fields. Credential-shaped fields
+report only a redaction marker and character count. Errors never echo the submitted value.
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form.
+On a login page call tabz_request_login and wait; the user signs in in their own browser.
+For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
+For a password or login code, call tabz_request_login instead of filling it here.
 
 ### Parameters
 - **selector** (required): CSS selector for the input field
-- **value** (required): Text to type into the field
+- **value** (required): Text to type, or a boolean checked state for checkbox/radio inputs
 - **tabId** (optional): Target tab
 
 ### Common Selectors
@@ -977,7 +1006,6 @@ then types the new value. Works with text inputs, textareas, and other form fiel
 
 ### Examples
 - Fill email: selector="input[type='email']", value="user@example.com"
-- Fill password: selector="#password", value="secret123"
 - Fill search: selector="input[name='q']", value="search query"
 
 ### Error Handling
@@ -987,7 +1015,62 @@ then types the new value. Works with text inputs, textareas, and other form fiel
 ### Cross-references
 After filling, you may want to:
 - Click a submit button: tabz_click with selector="button[type='submit']"
-- Verify the value: tabz_execute_script with code="document.querySelector('selector').value"`,
+- Verify ordinary field state through page behavior without echoing credential values`,
+    tabz_request_login: `## tabz_request_login
+Hand a tab to the user so they can sign in themselves, then wait within one bounded call.
+
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form. On a login page call tabz_request_login and wait; the user signs in in their own browser. For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
+
+Before the tab is focused or the user is notified, the extension starts a persistent manual-handoff reservation. Protection follows the tab across login and SSO redirects while the handoff is pending and retains every protected document. After two clear observations, the current document is protected before the reservation ends. Same-document and SPA URL changes remain protected. Automated submission requires a prepublished element reference; arbitrary selector clicks are refused. When no reference is available, ask the user to submit or navigate. Ordinary reads resume only after a later fresh document navigation.
+
+### Parameters
+- **tabId** (optional): Existing login tab inside this connection's group.
+- **url** (optional): Sign-in URL opened in a new background tab before protection.
+- Pass either tabId or url, never both. An ambiguous request is rejected before opening or focusing a tab.
+- **reason** (optional): Short notification text; never include credentials or page content.
+- **timeoutMs** (optional): Overall 5000-50000 ms budget, default 45000. Call again to continue waiting.
+
+### Returns
+- **status**: signed_in, still_on_login, or pending.
+- **url**: current origin only while the manual handoff is protected; no path, userinfo, query, or fragment.
+- **host**: current hostname.
+- **evidence/authenticationConfirmed** on signed_in: two completed probes found no login prompt; this does not prove authenticated access. Verify the site's authenticated state before continuing.
+
+Loading, failed, and unprobed observations never count as clear. The tool follows the original tab through navigation, reports a closed tab as an error, and clears its notification before returning. A signed_in status does not lift protection from a same-document login flow.`,
+    tabz_secret_request: `## tabz_secret_request
+Ask the user to save a login for a host, then wait briefly without reading any saved value.
+
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form. On a login page call tabz_request_login and wait; the user signs in in their own browser. For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
+Never read, list, or edit ~/.tabzchrome or any path named by its config. Use only tabz_secret_request, tabz_secret_status, and tabz_fill_secret.
+
+### Parameters
+- **host** (required): Hostname only; a port is removed.
+- **reason** (optional): Short user-facing reason, never a credential.
+- **surface** (optional): page, terminal, or editor; page is the default.
+- **timeoutMs** (optional): Overall 5000-50000 ms budget, default 45000.
+
+### Returns
+Metadata only: status, host, hasUsername, Host patterns, extra Field/SecretFile names, surface, and bounded status details. No username or saved value is returned. pending means poll tabz_secret_status; deferred means an existing editor must be finished and closed first.`,
+    tabz_secret_status: `## tabz_secret_status
+Check saved-login readiness without opening an editor, showing a notification, or waiting.
+
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form. On a login page call tabz_request_login and wait; the user signs in in their own browser. For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
+Never read, list, or edit ~/.tabzchrome or any path named by its config. Use only tabz_secret_request, tabz_secret_status, and tabz_fill_secret.
+
+Pass a hostname in **host**. The result contains only ready/pending/bad_mode status, host, hasUsername, Host patterns, extra field names, near-miss pattern names, and a bounded chmod fix when required. It never returns a username or saved value.`,
+    tabz_fill_secret: `## tabz_fill_secret
+Fill a saved field without disclosing its value.
+
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form. On a login page call tabz_request_login and wait; the user signs in in their own browser. For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
+Never read, list, or edit ~/.tabzchrome or any path named by its config. Use only tabz_secret_request, tabz_secret_status, and tabz_fill_secret.
+
+Before asking the backend for a saved value, the tool checks page-info for the current document-protection protocol marker and pins the returned tab ID. A missing marker fails closed with rebuild/reload guidance, so a newer MCP process cannot perform an unguarded fill through an older backend or extension.
+
+The tab's hostname selects the entry. Pass **selector**, **field** (username, password, or a saved field name), optional **tabId**, optional host disambiguation, and optional trusted typing. Passwords and SecretFiles can target only password inputs. Every value from the saved-login store, including usernames, organization fields, and select choices, protects the exact target document before typing. Page-content, script, screenshot, console, and network reads remain blocked through same-document/SPA changes; click and navigation can submit, and ordinary reads resume only after a fresh document navigation. Use the default synthetic fill first. **trusted=true** uses CDP and protects the whole tab until it closes, so fresh navigation does not restore content inspection. Success requires filled, verified, and protected to all be true. A failed or uncertain response may follow partial typing: filled=false means no verified success, not proof that the page stayed unchanged, so never replay automatically. The result contains those booleans, trusted mode, host, hasUsername, field kind, and selection/normalization flags; it never returns a username or saved value.`,
+    tabz_docs: `## tabz_docs
+Read detailed documentation for a TabzChrome MCP tool.
+
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form. On a login page call tabz_request_login and wait; the user signs in in their own browser. For a saved login use tabz_fill_secret; to add one use tabz_secret_request.`,
     // ============================================================
     // NETWORK TOOLS
     // ============================================================
@@ -1007,18 +1090,26 @@ Network capture intercepts XHR, fetch, and other network requests in real-time.
 
 ### Behavioral Limits
 - Uses Chrome Extension API (no special Chrome flags needed)
-- Capture persists until MCP server restarts
+- Capture lives in extension memory; re-enable after the extension restarts. Each enable call adds a caller-owned tab.
 - Requests older than 5 minutes are automatically cleaned up
 - Maximum 500 requests stored (oldest removed first)
 
 ### Error Handling
 - "Extension API failed": Chrome extension may not be connected
 - "No active page": No browser tab is open`,
+    tabz_enable_deep_capture: `## tabz_enable_deep_capture
+Start debugger-backed response body, EventSource and WebSocket capture for one caller-owned readable tab. tabId is optional; maxBodyBytes is 1-1000000, default 64000. includeSelf defaults false. Disable when finished to release the debugger.
+
+Capture stores at most 500 requests per session, expires old rows after five minutes, bounds body and message buffers, redacts before storage, and refuses credential-protected documents. Navigation, ownership changes and protection terminate deep capture and purge its rows; explicitly enable again on a fresh readable document. Requests before trusted document admission are not captured. Existing DevTools/debugger ownership may prevent attaching.`,
+    tabz_disable_deep_capture: `## tabz_disable_deep_capture
+Stop deep capture for the resolved caller-owned tab, clear its rows, and release its debugger ownership. tabId is optional. This does not authorize reading another caller's rows.`,
+    tabz_get_response_body: `## tabz_get_response_body
+Read one deep-capture request by requestId from tabz_get_network_requests. tabId is optional. offset is a character offset, length is 1-32000 (default 32000). response_format is markdown or json. Follow nextOffset only while hasMore is true. Responses identify body, event-stream or websocket data and report truncation, redaction and dropped entries. Protected, stale or differently owned rows are unavailable.`,
     tabz_get_network_requests: `## tabz_get_network_requests
 List captured network requests (XHR, fetch, etc.) from browser pages.
 
 Returns information about network requests captured after calling tabz_enable_network_capture.
-Requests are sorted by time (newest first).
+Requests are sorted by time (newest first). Redirect hops and failed status-0 rows remain visible. source selects webrequest, deep or both; excludePattern drops matching URLs. Bodies are read separately with tabz_get_response_body.
 
 ### Parameters
 - **urlPattern** (optional): Filter by URL pattern (regex or substring, e.g., "api/", "\\.json$")
@@ -1064,9 +1155,9 @@ Requests are sorted by time (newest first).
 ### Error Handling
 - "Capture not active": Call tabz_enable_network_capture first`,
     tabz_clear_network_requests: `## tabz_clear_network_requests
-Clear all captured network requests.
+Clear captured network requests owned by this connection.
 
-Removes all stored network requests from memory. Useful when you want to
+Removes those stored network requests from memory after extension confirmation. Useful when you want to
 start fresh or reduce memory usage.
 
 ### Behavioral Limits
@@ -1155,6 +1246,9 @@ Returns all notifications that haven't been dismissed by the user or cleared pro
 Open a URL in the browser.
 
 Opens URLs in a new or current browser tab.
+Never ask the user for a password, one-time code, token, or card number, in chat or through a form.
+On a login page call tabz_request_login and wait; the user signs in in their own browser.
+For a saved login use tabz_fill_secret; to add one use tabz_secret_request.
 
 ### Smart Tab Reuse
 By default, if the URL is already open in a tab, this tool switches to that
@@ -1683,7 +1777,7 @@ The return value of the last expression is captured and returned.
 ### Parameters
 - **code** (required): JavaScript code to execute
 - **tabId**: Specific tab to target (default: active tab)
-- **allFrames**: Run in all iframes too (default: false)
+- **allFrames**: Use supported whitelist expressions in all frames, returning the first frame result (default: false). Arbitrary debugger evaluation runs only in the main frame.
 
 ### Returns
 JSON with: success (boolean), result (any), error (string if failed)
@@ -1704,16 +1798,7 @@ JSON with: success (boolean), result (any), error (string if failed)
 ### Error Handling
 - Syntax errors in code will be returned in the error field
 - Permission errors occur on chrome:// pages
-- Timeout errors if script takes too long
-
-### CLI Quoting (mcp-cli)
-When using mcp-cli with complex JS code containing quotes, use heredoc:
-\`\`\`
-mcp-cli call tabz/tabz_execute_script - <<'EOF'
-{"code": "document.querySelector('button').click()"}
-EOF
-\`\`\`
-The <<'EOF' syntax passes JSON literally without bash interpretation.`,
+- Timeout errors if script takes too long`,
     // ============================================================
     // SESSION TOOLS
     // ============================================================
@@ -1954,10 +2039,10 @@ Shows whether the Claude group exists and which tabs are in it.
     // TAB TOOLS
     // ============================================================
     tabz_list_tabs: `## tabz_list_tabs
-List all open browser tabs with ACCURATE active tab detection.
+List readable tabs in this MCP connection's owned group.
 
-Returns information about all non-chrome:// tabs currently open in the browser.
-Uses Chrome Extension API to detect which tab the user actually has focused.
+Other connections' tabs and unowned user tabs are omitted. Open a tab with
+tabz_open_url to establish a group for a new connection.
 
 ### Parameters
 - **response_format**: 'markdown' (default) or 'json'
@@ -1979,8 +2064,8 @@ Uses Chrome Extension API to detect which tab the user actually has focused.
 - active: TRUE on whichever tab the USER has focused in Chrome right now
 - claudeCurrentTabId: Which tab Claude will target for operations
 
-The "active" field shows the user's ACTUAL focused tab. After calling this tool,
-Claude's target is synced to match the user's active tab.
+The "active" field reflects Chrome's active state within the returned group.
+The connection's target follows an active owned tab when one is present.
 
 ### Cross-references
 - tabz_switch_tab: Switch to a specific tab using the tabId
@@ -1988,7 +2073,7 @@ Claude's target is synced to match the user's active tab.
 
 ### Error Handling
 - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129
-- Empty list: No web pages open (only chrome:// pages)`,
+- Empty list: This connection has no readable grouped tabs`,
     tabz_switch_tab: `## tabz_switch_tab
 Switch to a specific browser tab.
 
@@ -2000,8 +2085,8 @@ for subsequent operations (screenshots, clicks, fills, etc.).
 
 ### Best Practices
 Before switching between multiple tabs, use tabz_rename_tab to assign custom names
-(e.g., "GitHub PR", "Dev Server", "Docs"). Custom names are stored by URL and persist
-even if tab IDs change.
+(e.g., "GitHub PR", "Dev Server", "Docs"). Custom names are stored by tab ID,
+so two tabs with the same URL can have different names.
 
 ### Cross-references
 - Use tabz_list_tabs first to get available tab IDs
@@ -2010,15 +2095,25 @@ even if tab IDs change.
 ### Error Handling
 - "Invalid tab ID": tabId doesn't exist (use tabz_list_tabs to see valid IDs)
 - "Cannot connect": Ensure TabzChrome extension is installed and backend is running at localhost:8129`,
+    tabz_close_tab: `## tabz_close_tab
+Close tabs owned by this MCP connection.
+
+### Parameters
+- **tabIds**: Non-empty array of owned Chrome tab IDs.
+- **groupId**: Close the tabs in this connection's group instead of naming tabs.
+
+Pass tabIds or groupId. Other agents' groups and unowned user tabs are refused.
+The result reports closed, refused, and missing tab IDs. Closing is destructive;
+use the group release API to ungroup owned tabs while leaving them open.`,
     tabz_rename_tab: `## tabz_rename_tab
 Assign a custom name to a browser tab.
 
 Custom names make it easier to identify tabs when working with multiple pages.
-Names are stored by URL, so they persist even if tab order changes.
+Names are stored by tab ID, so same-URL tabs can have distinct names.
 Names are session-based and reset when the MCP server restarts.
 
 ### Why Rename
-1. Stable identification even if tabs are opened/closed (names stay with URLs)
+1. Stable identification when tab order changes
 2. Clear visual feedback about which tab you're targeting
 3. Better communication with the user about which tab you're working on
 

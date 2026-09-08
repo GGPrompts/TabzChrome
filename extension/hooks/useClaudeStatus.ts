@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { isProtectedPromptTerminal } from '../shared/claudePromptNotifications'
 
 export interface ClaudeStatus {
   status: 'idle' | 'awaiting_input' | 'processing' | 'tool_use' | 'working' | 'unknown'
@@ -9,6 +10,7 @@ export interface ClaudeStatus {
   context_pct?: number  // Context window usage percentage (0-100)
   permission_mode?: string  // 'plan' when in plan mode, null otherwise
   pane_title?: string  // Tmux pane title - set by Claude Code when there's an in_progress todo
+  pane_command?: string
   details?: {
     args?: {
       file_path?: string
@@ -36,7 +38,11 @@ interface TerminalInfo {
   sessionName?: string  // tmux session name
   workingDir?: string
   profileCommand?: string  // Profile's startup command (to filter for claude terminals)
+  secret?: boolean
 }
+
+export const isClaudeProfile = (command?: string): boolean => !!command && /claude/i.test(command)
+export const isClaudePaneCommand = isClaudeProfile
 
 // Number of consecutive "unknown" responses before removing a terminal from the map
 // At 3s polling, 3 misses = 9 seconds of grace period before tab stops showing status
@@ -118,7 +124,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
   // The parent component passes a new array reference each render (sessions.map(...))
   // which would cause the effect to re-run and flood the network with requests
   const terminalsRef = useRef<TerminalInfo[]>([])
-  const terminalsKey = terminals.map(t => `${t.id}:${t.sessionName}:${t.workingDir}:${t.profileCommand}`).join('|')
+  const terminalsKey = terminals.map(t => `${t.id}:${t.sessionName}:${t.workingDir}:${t.profileCommand}:${t.secret}`).join('|')
   const prevTerminalsKeyRef = useRef<string>('')
 
   // Only update ref when terminals actually change (by content, not reference)
@@ -133,11 +139,11 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
 
     // Only poll terminals that:
     // 1. Have a working directory (needed for status detection)
-    // 2. Have "claude" in their profile command (only Claude terminals should be polled)
-    // This prevents non-Claude terminals from picking up status from Claude terminals in same dir
+    // 2. Have a Claude profile or exact tmux session; the latter requires a
+    // Claude foreground command in the result, rather than borrowing cwd state.
     const terminalsWithDir = currentTerminals.filter(t =>
-      t.workingDir &&
-      t.profileCommand?.toLowerCase().includes('claude')
+      !isProtectedPromptTerminal(t) && t.workingDir &&
+      (isClaudeProfile(t.profileCommand) || !!t.sessionName)
     )
     const terminalIds = new Set(terminalsWithDir.map(t => t.id))
 
@@ -153,7 +159,11 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
       return
     }
 
+    let cancelled = false
+    let inFlight = false
     const checkStatus = async () => {
+      if (cancelled || inFlight) return
+      inFlight = true
       // Collect results for all terminals
       const results = await Promise.all(
         terminalsWithDir.map(async (terminal) => {
@@ -167,14 +177,16 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
               : ''
 
             const response = await fetch(
-              `http://localhost:8129/api/claude-status?dir=${encodedDir}${sessionParam}`
+              `http://localhost:8129/api/claude-status?dir=${encodedDir}${sessionParam}`,
+              { signal: AbortSignal.timeout(2000) }
             )
             const result = await response.json()
 
             // Debug: log status fetches
             // Debug log removed to reduce console spam
 
-            if (result.success && result.status !== 'unknown') {
+            if (result.success && result.status !== 'unknown' &&
+                (isClaudeProfile(terminal.profileCommand) || isClaudePaneCommand(result.pane_command))) {
               return {
                 id: terminal.id,
                 status: {
@@ -185,6 +197,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
                   subagent_count: result.subagent_count || 0,
                   context_pct: result.context_window?.context_pct,
                   pane_title: result.pane_title,
+                  pane_command: result.pane_command,
                   details: result.details,
                 } as ClaudeStatus,
                 success: true,
@@ -196,6 +209,8 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
           }
         })
       )
+      inFlight = false
+      if (cancelled) return
 
       // Update statuses with debounce logic to prevent flashing
       setStatuses(prevStatuses => {
@@ -280,7 +295,7 @@ export function useClaudeStatus(terminals: TerminalInfo[]): ClaudeStatusResult {
     // Poll every 1 second (more responsive for tool announcements)
     const interval = setInterval(checkStatus, 1000)
 
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [terminalsKey])  // Use stable key instead of array reference to prevent re-running on every render
 
   return { statuses, history }
@@ -498,4 +513,3 @@ export function getStatusColor(status: ClaudeStatus | undefined): string {
   }
   return ''  // Default color for other states
 }
-

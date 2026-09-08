@@ -5,6 +5,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
@@ -60,33 +61,29 @@ interface HistoryDeleteResult {
 
 const HistorySearchSchema = z.object({
   query: z.string()
-    .describe("Search text to match against URLs and page titles. Use empty string to match all history."),
+    .describe("Text to match in URLs and titles; empty matches all."),
   startTime: z.number()
     .optional()
-    .describe("Start of time range (milliseconds since epoch). Default: 24 hours ago."),
+    .describe("Range start, ms since epoch."),
   endTime: z.number()
     .optional()
-    .describe("End of time range (milliseconds since epoch). Default: now."),
+    .describe("Range end, ms since epoch; now by default."),
   maxResults: z.number()
     .int()
     .min(1)
     .max(1000)
-    .default(100)
-    .describe("Maximum results to return (1-1000). Default: 100."),
+    .default(100),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type HistorySearchInput = z.infer<typeof HistorySearchSchema>;
 
 const HistoryVisitsSchema = z.object({
   url: z.string()
-    .url()
-    .describe("The exact URL to get visit details for"),
+    .url(),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type HistoryVisitsInput = z.infer<typeof HistoryVisitsSchema>;
@@ -96,11 +93,9 @@ const HistoryRecentSchema = z.object({
     .int()
     .min(1)
     .max(1000)
-    .default(50)
-    .describe("Maximum results to return (1-1000). Default: 50."),
+    .default(50),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type HistoryRecentInput = z.infer<typeof HistoryRecentSchema>;
@@ -108,16 +103,16 @@ type HistoryRecentInput = z.infer<typeof HistoryRecentSchema>;
 const HistoryDeleteUrlSchema = z.object({
   url: z.string()
     .url()
-    .describe("The exact URL to delete from history")
+    .describe("The exact URL to delete.")
 }).strict();
 
 type HistoryDeleteUrlInput = z.infer<typeof HistoryDeleteUrlSchema>;
 
 const HistoryDeleteRangeSchema = z.object({
   startTime: z.number()
-    .describe("Start of time range to delete (milliseconds since epoch)"),
+    .describe("Range start, ms since epoch."),
   endTime: z.number()
-    .describe("End of time range to delete (milliseconds since epoch)")
+    .describe("Range end, ms since epoch.")
 }).strict();
 
 type HistoryDeleteRangeInput = z.infer<typeof HistoryDeleteRangeSchema>;
@@ -240,12 +235,10 @@ async function deleteHistoryRange(startTime: number, endTime: number): Promise<H
 
 export function registerHistoryTools(server: McpServer): void {
   // Search history tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_history_search",
-    `Search browsing history by keyword. Searches URLs and page titles.
-
-Args: query (required, "" for all), startTime/endTime (optional ms since epoch), maxResults (optional)`,
-    HistorySearchSchema.shape,
+    "Search the user's browsing history by keyword, over URLs and page titles.",
+    HistorySearchSchema,
     async (params: HistorySearchInput) => {
       try {
         const result = await searchHistory(
@@ -318,12 +311,10 @@ Try:
   );
 
   // Get visits for URL tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_history_visits",
-    `Get detailed visit history for a specific URL -- timestamps and navigation transitions.
-
-Args: url (required, exact URL), response_format (optional)`,
-    HistoryVisitsSchema.shape,
+    "Get one URL's visits: timestamps and navigation transitions.",
+    HistoryVisitsSchema,
     async (params: HistoryVisitsInput) => {
       try {
         const result = await getHistoryVisits(params.url);
@@ -390,12 +381,10 @@ This could mean:
   );
 
   // Get recent history tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_history_recent",
-    `Get most recently visited pages sorted by visit time.
-
-Args: maxResults (optional, default 50), response_format (optional)`,
-    HistoryRecentSchema.shape,
+    "List the most recently visited pages, newest first.",
+    HistoryRecentSchema,
     async (params: HistoryRecentInput) => {
       try {
         const result = await getRecentHistory(params.maxResults);
@@ -462,12 +451,10 @@ This could mean:
   );
 
   // Delete URL from history tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_history_delete_url",
-    `Permanently delete a URL and all its visits from browsing history. Cannot be undone.
-
-Args: url (required, exact URL)`,
-    HistoryDeleteUrlSchema.shape,
+    "Delete one URL and all its visits from history. This cannot be undone.",
+    HistoryDeleteUrlSchema,
     async (params: HistoryDeleteUrlInput) => {
       try {
         const result = await deleteHistoryUrl(params.url);
@@ -505,12 +492,10 @@ URL: ${params.url}`;
   );
 
   // Delete history range tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_history_delete_range",
-    `Delete all browsing history within a time range. Cannot be undone.
-
-Args: startTime (required, ms since epoch), endTime (required, ms since epoch)`,
-    HistoryDeleteRangeSchema.shape,
+    "Delete all history in a time range. This cannot be undone.",
+    HistoryDeleteRangeSchema,
     async (params: HistoryDeleteRangeInput) => {
       try {
         const result = await deleteHistoryRange(params.startTime, params.endTime);

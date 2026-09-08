@@ -13,10 +13,45 @@
  * - Working directory tracking
  */
 
-const { execSync, exec } = require('child_process');
+const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { createModuleLogger } = require('./logger');
+const { SECRET_TMUX_OPTION, secretFlagsForRecoveredSession } = require('./terminal-registry');
+
+const TMUX_CONTROL_COMMANDS = new Set([
+  'list-panes', 'list-windows', 'display-message',
+  'split-window', 'new-window', 'kill-pane', 'kill-window', 'break-pane',
+  'select-pane', 'select-window', 'select-layout', 'next-window', 'previous-window',
+  'last-window', 'last-pane', 'rotate-window', 'swap-pane', 'resize-pane',
+  'rename-window', 'respawn-pane', 'clear-history'
+]);
+
+function parseTmuxControlCommand(command) {
+  if (typeof command !== 'string' || command.trim().length === 0) {
+    return { error: 'Command is required' };
+  }
+  const [subcommand, ...args] = command.trim().split(/\s+/);
+  if (!TMUX_CONTROL_COMMANDS.has(subcommand)) {
+    return { error: `tmux command "${subcommand}" is not allowed here` };
+  }
+  for (const token of args) {
+    if (token.includes(';')) return { error: 'Command may not contain a tmux command separator' };
+    if (/^-[A-Za-z]*[tsST]/.test(token)) {
+      return { error: `Flag "${token}" is not allowed: the route session is the only target` };
+    }
+  }
+  return { argv: [subcommand, ...args] };
+}
+
+function runTmux(args, options = {}) {
+  const result = spawnSync('tmux', args, { encoding: 'utf8', timeout: 5000, ...options });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(String(result.stderr || '').trim() || `tmux exited ${result.status}`);
+  }
+  return String(result.stdout || '');
+}
 
 const log = createModuleLogger('Tmux');
 
@@ -48,7 +83,7 @@ class TmuxSessionManager {
    */
   isTmuxRunning() {
     try {
-      execSync('tmux list-sessions 2>/dev/null', { encoding: 'utf8' });
+      runTmux(['list-sessions']);
       return true;
     } catch (error) {
       return false;
@@ -71,10 +106,10 @@ class TmuxSessionManager {
 
     try {
       // Get raw session data
-      const output = execSync(
-        'tmux list-sessions -F "#{session_name}|#{session_windows}|#{session_attached}|#{session_created}"',
-        { encoding: 'utf8' }
-      );
+      const output = runTmux([
+        'list-sessions', '-F',
+        `#{session_name}|#{session_windows}|#{session_attached}|#{session_created}|#{${SECRET_TMUX_OPTION}}`
+      ]);
 
       const lines = output.trim().split('\n').filter(l => l.length > 0);
       const sessions = [];
@@ -83,13 +118,15 @@ class TmuxSessionManager {
       const stateCache = this.loadAllClaudeStates();
 
       for (const line of lines) {
-        const [name, windows, attached, created] = line.split('|');
+        const [name, windows, attached, created, secretOption] = line.split('|');
+        const secret = secretFlagsForRecoveredSession(name, secretOption).secret;
 
         const session = {
           name,
           windows: parseInt(windows, 10),
           attached: attached === '1',
           created,
+          secret,
           workingDir: null,
           gitBranch: null,
           aiTool: null,
@@ -98,6 +135,13 @@ class TmuxSessionManager {
           paneCommand: null,
           paneCount: 1,
         };
+
+        // Protected editors are classified from the one list-sessions call.
+        // Do not inspect their pane title, command, working directory, or git state.
+        if (secret) {
+          sessions.push(session);
+          continue;
+        }
 
         // Detect if Opustrator-managed session
         session.tabzManaged = this.isTabzSession(name);
@@ -123,6 +167,20 @@ class TmuxSessionManager {
     }
   }
 
+  listSessionNames() {
+    try {
+      const output = runTmux([
+        'list-sessions', '-F', `#{session_name}|#{${SECRET_TMUX_OPTION}}`
+      ]);
+      return output.trim().split('\n').filter(Boolean).map(line => {
+        const [name, secretOption] = line.split('|');
+        return { name, secret: secretFlagsForRecoveredSession(name, secretOption).secret };
+      });
+    } catch {
+      return [];
+    }
+  }
+
   /**
    * Check if session is managed by Tabz
    */
@@ -141,10 +199,10 @@ class TmuxSessionManager {
   async enrichSessionMetadata(session) {
     try {
       // Get pane information including pane_title (use session name without window index - works with any base-index)
-      const paneLines = execSync(
-        `tmux list-panes -t "${session.name}" -F "#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_title}"`,
-        { encoding: 'utf8' }
-      ).trim().split('\n');
+      const paneLines = runTmux([
+        'list-panes', '-t', `=${session.name}`, '-F',
+        '#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_title}'
+      ]).trim().split('\n');
       session.paneCount = paneLines.length;
       const paneInfo = paneLines[0]; // Get first pane
 
@@ -182,9 +240,12 @@ class TmuxSessionManager {
    */
   getGitBranch(directory) {
     try {
-      const branch = execSync(`git -C "${directory}" rev-parse --abbrev-ref HEAD 2>/dev/null`, {
-        encoding: 'utf8'
-      }).trim();
+      const result = spawnSync(
+        'git', ['-C', directory, 'rev-parse', '--abbrev-ref', 'HEAD'],
+        { encoding: 'utf8', timeout: 5000 }
+      );
+      if (result.error || result.status !== 0) return null;
+      const branch = String(result.stdout || '').trim();
       return branch || null;
     } catch (error) {
       return null;
@@ -333,9 +394,9 @@ class TmuxSessionManager {
       }
 
       // Fallback: Parse statusline from terminal content
-      const content = execSync(
-        `tmux capture-pane -p -S -100 -t "${session.paneId}"`,
-        { encoding: 'utf8', maxBuffer: 1024 * 1024 }
+      const content = runTmux(
+        ['capture-pane', '-p', '-S', '-100', '-t', session.paneId],
+        { maxBuffer: 1024 * 1024 }
       );
 
       return this.parseClaudeStatusline(content);
@@ -479,10 +540,9 @@ class TmuxSessionManager {
   async capturePanePreview(sessionName, lines = 100, windowIndex = 1) {
     try {
       // Get pane ID for the window
-      const paneInfo = execSync(
-        `tmux list-panes -t "${sessionName}:${windowIndex}" -F "#{pane_id}"`,
-        { encoding: 'utf8' }
-      ).trim().split('\n')[0];
+      const paneInfo = runTmux([
+        'list-panes', '-t', `=${sessionName}:${windowIndex}`, '-F', '#{pane_id}'
+      ]).trim().split('\n')[0];
 
       if (!paneInfo) {
         throw new Error('No pane found');
@@ -492,9 +552,9 @@ class TmuxSessionManager {
       // -e: preserve escape sequences for better handling
       // -p: print to stdout
       // -S -N: start N lines back from current position
-      const rawContent = execSync(
-        `tmux capture-pane -p -e -S -${lines} -t "${paneInfo}"`,
-        { encoding: 'utf8', maxBuffer: 1024 * 1024 }
+      const rawContent = runTmux(
+        ['capture-pane', '-p', '-e', '-S', `-${lines}`, '-t', paneInfo],
+        { maxBuffer: 1024 * 1024 }
       );
 
       // Sanitize content to fix rendering issues
@@ -521,19 +581,18 @@ class TmuxSessionManager {
    */
   async captureFullScrollback(sessionName, windowIndex = 1) {
     try {
-      const paneInfo = execSync(
-        `tmux list-panes -t "${sessionName}:${windowIndex}" -F "#{pane_id}"`,
-        { encoding: 'utf8' }
-      ).trim().split('\n')[0];
+      const paneInfo = runTmux([
+        'list-panes', '-t', `=${sessionName}:${windowIndex}`, '-F', '#{pane_id}'
+      ]).trim().split('\n')[0];
 
       if (!paneInfo) {
         throw new Error('No pane found');
       }
 
       // Capture from beginning of scrollback
-      const rawContent = execSync(
-        `tmux capture-pane -p -e -S - -t "${paneInfo}"`,
-        { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 } // 10MB limit
+      const rawContent = runTmux(
+        ['capture-pane', '-p', '-e', '-S', '-', '-t', paneInfo],
+        { maxBuffer: 10 * 1024 * 1024 }
       );
 
       // Sanitize content to fix rendering issues
@@ -558,7 +617,7 @@ class TmuxSessionManager {
    */
   async killSession(sessionName) {
     try {
-      execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null`);
+      runTmux(['kill-session', '-t', `=${sessionName}`]);
       return { success: true };
     } catch (error) {
       return {
@@ -577,13 +636,13 @@ class TmuxSessionManager {
       const { spawnSync } = require('child_process');
       // Use spawnSync with array args to bypass shell interpretation
       // This preserves $VAR, #, backticks, and other shell special characters
-      spawnSync('tmux', ['send-keys', '-t', sessionName, '-l', command], { timeout: 5000 });
+      runTmux(['send-keys', '-t', `=${sessionName}`, '-l', command]);
 
       // Wait a bit for command to be typed
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Send Enter
-      spawnSync('tmux', ['send-keys', '-t', sessionName, 'Enter'], { timeout: 5000 });
+      runTmux(['send-keys', '-t', `=${sessionName}`, 'Enter']);
 
       return { success: true };
     } catch (error) {
@@ -601,9 +660,9 @@ class TmuxSessionManager {
    */
   async executeTmuxCommand(sessionName, command) {
     try {
-      // Execute tmux command directly on the session
-      // Example: tmux split-window -t "sessionName" -h
-      execSync(`tmux ${command} -t "${sessionName}"`, { encoding: 'utf8' });
+      const parsed = parseTmuxControlCommand(command);
+      if (parsed.error) return { success: false, error: parsed.error, rejected: true };
+      runTmux([...parsed.argv, '-t', `=${sessionName}`]);
 
       return { success: true };
     } catch (error) {
@@ -619,10 +678,10 @@ class TmuxSessionManager {
    */
   async listWindows(sessionName) {
     try {
-      const output = execSync(
-        `tmux list-windows -t "${sessionName}" -F "#{window_index}|#{window_name}|#{window_panes}|#{window_active}"`,
-        { encoding: 'utf8' }
-      );
+      const output = runTmux([
+        'list-windows', '-t', `=${sessionName}`, '-F',
+        '#{window_index}|#{window_name}|#{window_panes}|#{window_active}'
+      ]);
 
       const windows = output.trim().split('\n').map(line => {
         const [index, name, panes, active] = line.split('|');
@@ -650,10 +709,10 @@ class TmuxSessionManager {
    */
   async listPanes(sessionName) {
     try {
-      const output = execSync(
-        `tmux list-panes -t "${sessionName}" -F "#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_title}|#{pane_active}|#{pane_current_path}"`,
-        { encoding: 'utf8' }
-      );
+      const output = runTmux([
+        'list-panes', '-t', `=${sessionName}`, '-F',
+        '#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_title}|#{pane_active}|#{pane_current_path}'
+      ]);
 
       return output.trim().split('\n').filter(l => l.length > 0).map(line => {
         const [paneId, index, command, title, active, currentPath] = line.split('|');
@@ -684,10 +743,9 @@ class TmuxSessionManager {
     // Refresh cache if stale (>5 seconds)
     if (!this._paneSessionCache || (now - this._paneSessionCacheTime) > 5000) {
       try {
-        const output = execSync(
-          'tmux list-panes -a -F "#{session_name}|#{pane_id}"',
-          { encoding: 'utf8' }
-        );
+        const output = runTmux([
+          'list-panes', '-a', '-F', '#{session_name}|#{pane_id}'
+        ]);
 
         this._paneSessionCache = new Map();
         output.trim().split('\n').filter(l => l.length > 0).forEach(line => {
@@ -777,3 +835,4 @@ class TmuxSessionManager {
 }
 
 module.exports = new TmuxSessionManager();
+module.exports.parseTmuxControlCommand = parseTmuxControlCommand;

@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import {
@@ -172,52 +173,43 @@ async function popoutTerminal(options: {
 const ListWindowsSchema = z.object({
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type ListWindowsInput = z.infer<typeof ListWindowsSchema>;
 
 const CreateWindowSchema = z.object({
   url: z.union([z.string(), z.array(z.string())])
-    .optional()
-    .describe("URL(s) to open. Use '/sidepanel/sidepanel.html' for extension page. Default: new tab page."),
+    .optional(),
   type: WindowTypeSchema
-    .optional()
-    .describe("Window type: 'normal' (full browser UI) or 'popup' (minimal UI). Default: 'normal'."),
+    .optional(),
   state: WindowStateSchema
-    .optional()
-    .describe("Initial state: 'normal', 'minimized', 'maximized', or 'fullscreen'. Default: 'normal'."),
+    .optional(),
   focused: z.boolean()
-    .optional()
-    .describe("Whether window should be focused on creation. Default: true."),
+    .optional(),
   width: z.number()
     .int()
     .min(100)
     .max(10000)
-    .optional()
-    .describe("Window width in pixels."),
+    .optional(),
   height: z.number()
     .int()
     .min(100)
     .max(10000)
-    .optional()
-    .describe("Window height in pixels."),
+    .optional(),
   left: z.number()
     .int()
     .optional()
-    .describe("Window left position (for multi-monitor). Use tabz_get_displays to get monitor positions."),
+    .describe("Left position; see tabz_get_displays."),
   top: z.number()
     .int()
-    .optional()
-    .describe("Window top position."),
+    .optional(),
   incognito: z.boolean()
-    .optional()
-    .describe("Create incognito window. Default: false."),
+    .optional(),
   tabId: z.number()
     .int()
     .min(1)
     .optional()
-    .describe("Move this tab to the new window instead of opening URLs.")
+    .describe("Move this tab in instead of opening URLs.")
 }).strict();
 
 type CreateWindowInput = z.infer<typeof CreateWindowSchema>;
@@ -225,37 +217,30 @@ type CreateWindowInput = z.infer<typeof CreateWindowSchema>;
 const UpdateWindowSchema = z.object({
   windowId: z.number()
     .int()
-    .min(1)
-    .describe("The window ID to update. Get IDs from tabz_list_windows."),
+    .min(1),
   state: WindowStateSchema
-    .optional()
-    .describe("New state: 'normal', 'minimized', 'maximized', or 'fullscreen'."),
+    .optional(),
   focused: z.boolean()
-    .optional()
-    .describe("Set to true to focus/bring window to front."),
+    .optional(),
   width: z.number()
     .int()
     .min(100)
     .max(10000)
     .optional()
-    .describe("New width in pixels (ignored if maximized/fullscreen)."),
+    .describe("New width; ignored when maximized."),
   height: z.number()
     .int()
     .min(100)
     .max(10000)
-    .optional()
-    .describe("New height in pixels (ignored if maximized/fullscreen)."),
+    .optional(),
   left: z.number()
     .int()
-    .optional()
-    .describe("New left position (for multi-monitor positioning)."),
+    .optional(),
   top: z.number()
     .int()
-    .optional()
-    .describe("New top position."),
+    .optional(),
   drawAttention: z.boolean()
     .optional()
-    .describe("Flash/highlight the window to get user attention.")
 }).strict();
 
 type UpdateWindowInput = z.infer<typeof UpdateWindowSchema>;
@@ -264,7 +249,7 @@ const CloseWindowSchema = z.object({
   windowId: z.number()
     .int()
     .min(1)
-    .describe("The window ID to close. Get IDs from tabz_list_windows. WARNING: Closes all tabs in the window!")
+    .describe("Window to close; all its tabs go with it.")
 }).strict();
 
 type CloseWindowInput = z.infer<typeof CloseWindowSchema>;
@@ -272,7 +257,6 @@ type CloseWindowInput = z.infer<typeof CloseWindowSchema>;
 const GetDisplaysSchema = z.object({
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type GetDisplaysInput = z.infer<typeof GetDisplaysSchema>;
@@ -280,20 +264,18 @@ type GetDisplaysInput = z.infer<typeof GetDisplaysSchema>;
 const TileWindowsSchema = z.object({
   windowIds: z.array(z.number().int().min(1))
     .min(1)
-    .max(20)
-    .describe("Array of window IDs to tile. Get IDs from tabz_list_windows."),
+    .max(20),
   layout: TileLayoutSchema
     .optional()
-    .describe("Layout: 'horizontal' (side by side), 'vertical' (stacked), or 'grid' (auto grid). Default: 'horizontal'."),
+    .describe("Side by side, stacked, or an automatic grid."),
   displayId: z.string()
     .optional()
-    .describe("Target display ID from tabz_get_displays. Default: primary display."),
+    .describe("Display from tabz_get_displays; primary by default."),
   gap: z.number()
     .int()
     .min(0)
     .max(100)
     .optional()
-    .describe("Gap between windows in pixels. Default: 0.")
 }).strict();
 
 type TileWindowsInput = z.infer<typeof TileWindowsSchema>;
@@ -301,27 +283,23 @@ type TileWindowsInput = z.infer<typeof TileWindowsSchema>;
 const PopoutTerminalSchema = z.object({
   terminalId: z.string()
     .optional()
-    .describe("Terminal ID to focus in the new window. If omitted, shows all terminals."),
+    .describe("Terminal to focus; omit to show all of them."),
   width: z.number()
     .int()
     .min(200)
     .max(5000)
-    .optional()
-    .describe("Window width in pixels. Default: 500."),
+    .optional(),
   height: z.number()
     .int()
     .min(200)
     .max(5000)
-    .optional()
-    .describe("Window height in pixels. Default: 700."),
+    .optional(),
   left: z.number()
     .int()
-    .optional()
-    .describe("Window left position."),
+    .optional(),
   top: z.number()
     .int()
     .optional()
-    .describe("Window top position.")
 }).strict();
 
 type PopoutTerminalInput = z.infer<typeof PopoutTerminalSchema>;
@@ -331,12 +309,10 @@ type PopoutTerminalInput = z.infer<typeof PopoutTerminalSchema>;
  */
 export function registerWindowTools(server: McpServer): void {
   // List windows tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_list_windows",
-    `List all Chrome windows with dimensions, state, and tab counts.
-
-Args: response_format (optional)`,
-    ListWindowsSchema.shape,
+    "List every Chrome window with its dimensions, state, and tab count.",
+    ListWindowsSchema,
     async (params: ListWindowsInput) => {
       try {
         const result = await listWindows();
@@ -393,12 +369,10 @@ Args: response_format (optional)`,
   );
 
   // Create window tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_create_window",
-    `Create a new Chrome window. Use type="popup" for minimal UI. Use url="/sidepanel/sidepanel.html" for terminal popout.
-
-Args: url (optional), type (optional), state/focused/width/height/left/top/incognito/tabId (optional)`,
-    CreateWindowSchema.shape,
+    "Create a Chrome window; url \"/sidepanel/sidepanel.html\" gives a terminal popout.",
+    CreateWindowSchema,
     async (params: CreateWindowInput) => {
       try {
         const result = await createWindow({
@@ -448,12 +422,10 @@ Use this windowId with \`tabz_update_window\` to modify, or \`tabz_close_window\
   );
 
   // Update window tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_update_window",
-    `Resize, move, focus, or change state of a Chrome window. Get IDs from tabz_list_windows.
-
-Args: windowId (required), state/focused/width/height/left/top/drawAttention (optional)`,
-    UpdateWindowSchema.shape,
+    "Resize, move, focus, or restate a Chrome window (IDs from tabz_list_windows).",
+    UpdateWindowSchema,
     async (params: UpdateWindowInput) => {
       try {
         const result = await updateWindow({
@@ -500,12 +472,10 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   );
 
   // Close window tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_close_window",
-    `Close a Chrome window and ALL its tabs. Get IDs from tabz_list_windows.
-
-Args: windowId (required)`,
-    CloseWindowSchema.shape,
+    "Close a Chrome window and ALL of its tabs (IDs from tabz_list_windows).",
+    CloseWindowSchema,
     async (params: CloseWindowInput) => {
       try {
         const result = await closeWindow(params.windowId);
@@ -540,12 +510,10 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   );
 
   // Get displays tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_displays",
-    `Get connected monitor/display info -- dimensions, positions, work areas. Use for multi-monitor window placement.
-
-Args: response_format (optional)`,
-    GetDisplaysSchema.shape,
+    "List the connected displays with dimensions, positions, and work areas.",
+    GetDisplaysSchema,
     async (params: GetDisplaysInput) => {
       try {
         const result = await getDisplays();
@@ -601,12 +569,10 @@ Args: response_format (optional)`,
   );
 
   // Tile windows tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_tile_windows",
-    `Auto-arrange windows in horizontal, vertical, or grid layout on a display.
-
-Args: windowIds (required array), layout (optional: horizontal/vertical/grid), displayId (optional), gap (optional)`,
-    TileWindowsSchema.shape,
+    "Arrange the named windows side by side, stacked, or in a grid on one display.",
+    TileWindowsSchema,
     async (params: TileWindowsInput) => {
       try {
         const result = await tileWindows({
@@ -661,12 +627,10 @@ Use \`tabz_list_windows\` to get valid window IDs.`;
   );
 
   // Popout terminal tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_popout_terminal",
-    `Pop terminal sidebar into a standalone popup window. Shares extension instance -- no conflicts.
-
-Args: terminalId (optional), width/height/left/top (optional)`,
-    PopoutTerminalSchema.shape,
+    "Pop the terminal sidebar out into its own window; it shares the extension instance.",
+    PopoutTerminalSchema,
     async (params: PopoutTerminalInput) => {
       try {
         const result = await popoutTerminal({

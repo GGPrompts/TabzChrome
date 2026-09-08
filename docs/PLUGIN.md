@@ -91,7 +91,7 @@ claude
 # Should show: plugin:tabz-chrome:tabz ✓ connected
 
 # Test a tool
-mcp-cli call plugin_tabz-chrome_tabz/tabz_list_tabs '{}'
+tabz_list_tabs({})
 ```
 
 ## Troubleshooting Setup Issues
@@ -143,16 +143,18 @@ cd tabz-mcp-server && npm run build
 
 ### MCP Server: Tabz
 
-**29 browser automation tools** for controlling Chrome programmatically (all use Extension APIs, no CDP required):
+The full compatibility catalog currently publishes 97 tools; the compact `page-agent` preset publishes 20. Browser tools use extension APIs, and debugger-backed actions, capture, and emulation transport CDP through `chrome.debugger` without a remote debugging port.
 
 | Category | Tools | Purpose |
 |----------|-------|---------|
 | Tab Management | `tabz_list_tabs`, `tabz_switch_tab`, `tabz_rename_tab` | Navigate between tabs |
 | Screenshots | `tabz_screenshot`, `tabz_screenshot_full` | Capture page visuals |
-| Interaction | `tabz_click`, `tabz_fill` | Click elements, fill forms |
+| Interaction | `tabz_read_page`, `tabz_act`, `tabz_batch` | Read compact page state and perform verified actions |
 | Downloads | `tabz_download_image`, `tabz_download_file` | Download files from pages |
 | Network | `tabz_enable_network_capture`, `tabz_get_network_requests` | Monitor API calls |
 | Scripting | `tabz_execute_script`, `tabz_get_console_logs` | Run JS, debug |
+
+Each MCP connection uses an automatically managed group and can target only its owned tabs. Check structured mutation results: continue after `verified`, and stop without replay on `mismatch` or `unknown`.
 
 **Requirements:**
 - TabzChrome extension installed in Chrome
@@ -161,7 +163,7 @@ cd tabz-mcp-server && npm run build
 ### Skills
 
 #### `tabz-mcp`
-Browser automation guidance with dynamic tool discovery. Never goes stale - discovers available tools at runtime.
+Browser automation guidance for the tools published by the configured MCP server and preset. Clients may load schemas eagerly or through tool discovery.
 
 ```
 Use the tabz-mcp skill when you need to automate browser tasks.
@@ -258,20 +260,20 @@ TabzChrome/
 ### Take a Screenshot
 
 ```bash
-mcp-cli call tabz/tabz_screenshot '{}'
+tabz_screenshot({})
 ```
 
 ### Control AI Image Tools
 
 ```bash
 # Fill DALL-E prompt
-mcp-cli call tabz/tabz_fill '{"selector": "textarea", "value": "a cat astronaut"}'
+tabz_fill({"selector": "textarea", "value": "a cat astronaut"})
 
 # Click generate
-mcp-cli call tabz/tabz_click '{"selector": "button.generate"}'
+tabz_click({"selector": "button.generate"})
 
 # Download result
-mcp-cli call tabz/tabz_download_image '{"selector": "img.result"}'
+tabz_download_image({"selector": "img.result"})
 ```
 
 ### Generate Handoff Summary
@@ -295,7 +297,7 @@ Without audio:
 ### MCP Server Not Connecting
 
 1. Check backend is running: `curl http://localhost:8129/health`
-2. Check MCP server: `mcp-cli tools tabz`
+2. Check MCP server is configured: `claude mcp list`
 3. Restart Claude Code to reload MCP config
 
 ### Status Indicators Not Showing
@@ -320,15 +322,10 @@ npm run build
 
 ### Testing MCP Tools
 
-```bash
-# List available tools
-mcp-cli tools tabz
+Tools are called directly as MCP tool calls. Available schemas and loading behavior depend on the configured client and preset:
 
-# Check tool schema
-mcp-cli info tabz/tabz_screenshot
-
-# Call a tool
-mcp-cli call tabz/tabz_screenshot '{}'
+```
+tabz_screenshot({})
 ```
 
 ### Testing Hooks

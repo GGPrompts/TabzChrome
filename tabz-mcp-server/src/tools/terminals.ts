@@ -6,14 +6,17 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { readFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { BACKEND_URL } from "../shared.js";
 import { ResponseFormat } from "../types.js";
 
 // Auth token file location (same as backend uses)
-const AUTH_TOKEN_FILE = "/tmp/tabz-auth-token";
+const AUTH_TOKEN_FILE = join(tmpdir(), "tabz-auth-token");
 
 /**
  * Read auth token from file
@@ -45,11 +48,9 @@ interface Terminal {
 // Input schema for tabz_list_terminals
 const ListTerminalsSchema = z.object({
   state: z.enum(["active", "disconnected", "all"])
-    .default("all")
-    .describe("Filter by terminal state: 'active', 'disconnected', or 'all' (default)"),
+    .default("all"),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type ListTerminalsInput = z.infer<typeof ListTerminalsSchema>;
@@ -58,19 +59,18 @@ type ListTerminalsInput = z.infer<typeof ListTerminalsSchema>;
 const SendKeysSchema = z.object({
   terminal: z.string()
     .min(1)
-    .describe("Terminal name or ID to send keys to (use tabz_list_terminals to find terminals)"),
+    .describe("Terminal name or ID (tabz_list_terminals)."),
   text: z.string()
-    .min(1)
-    .describe("Text to send to the terminal"),
+    .min(1),
   execute: z.boolean()
     .default(true)
-    .describe("Whether to press Enter after sending text (default: true). Set to false to just paste text."),
+    .describe("Press Enter afterwards; false just pastes."),
   delay: z.number()
     .int()
     .min(0)
     .max(5000)
     .default(600)
-    .describe("Delay in milliseconds before pressing Enter (default: 600ms). Helps Claude terminals process long prompts.")
+    .describe("Ms before Enter; raise it for long prompts.")
 }).strict();
 
 type SendKeysInput = z.infer<typeof SendKeysSchema>;
@@ -78,14 +78,12 @@ type SendKeysInput = z.infer<typeof SendKeysSchema>;
 // Input schema for tabz_capture_terminal
 const CaptureTerminalSchema = z.object({
   terminal: z.string()
-    .min(1)
-    .describe("Terminal name or ID to capture output from"),
+    .min(1),
   lines: z.number()
     .int()
     .min(1)
     .max(1000)
     .default(50)
-    .describe("Number of lines to capture (default: 50, max: 1000)")
 }).strict();
 
 type CaptureTerminalInput = z.infer<typeof CaptureTerminalSchema>;
@@ -189,7 +187,7 @@ async function sendKeys(
   if (!token) {
     return {
       success: false,
-      error: "Auth token not found at /tmp/tabz-auth-token. Is the TabzChrome backend running?"
+      error: `Auth token not found at ${AUTH_TOKEN_FILE}. Is the TabzChrome backend running?`
     };
   }
 
@@ -269,10 +267,10 @@ async function captureTerminal(
  */
 export function registerTerminalTools(server: McpServer): void {
   // List terminals tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_list_terminals",
-    `List running terminals in TabzChrome. Filter by state: 'active', 'disconnected', or 'all'. Returns IDs for tabz_send_keys and tabz_capture_terminal. Use tabz_docs for detailed docs.`,
-    ListTerminalsSchema.shape,
+    "List the running terminals, with the IDs tabz_send_keys and tabz_capture_terminal take.",
+    ListTerminalsSchema,
     async (params: ListTerminalsInput) => {
       try {
         const result = await listTerminals(params.state);
@@ -354,10 +352,10 @@ Use \`tabz_spawn_profile\` to create a terminal.`;
   );
 
   // Send keys tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_send_keys",
-    `Send text/keys to a terminal via tmux. Default 600ms delay before Enter suits Claude terminals; increase for long prompts. Use tabz_docs for detailed docs.`,
-    SendKeysSchema.shape,
+    "Send text to a terminal through tmux; the 600ms pause before Enter suits Claude terminals.",
+    SendKeysSchema,
     async (params: SendKeysInput) => {
       try {
         // Find terminal by name or ID
@@ -417,10 +415,10 @@ Keys have been sent to the terminal.`;
   );
 
   // Capture terminal output tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_capture_terminal",
-    `Capture recent output from a terminal's scrollback buffer. Returns last N lines (default 50, max 1000). Use tabz_docs for detailed docs.`,
-    CaptureTerminalSchema.shape,
+    "Capture a terminal's recent output, truncated to the last `lines` of scrollback (default 50, max 1000).",
+    CaptureTerminalSchema,
     async (params: CaptureTerminalInput) => {
       try {
         // Find terminal by name or ID

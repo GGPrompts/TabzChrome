@@ -1,14 +1,19 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Search, RefreshCw, ChevronDown, ChevronRight, ExternalLink, CheckCircle, Circle, Settings, Zap, Terminal, Microscope, Save, Trash2, FolderOpen, Copy, Play } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, ChevronRight, CheckCircle, Circle, Settings, Terminal, Microscope, Save, Trash2, FolderOpen, Copy, Play } from 'lucide-react'
 import { SettingsIcon, type AnimatedIconHandle } from '../../components/icons'
 import { spawnTerminal } from '../hooks/useDashboard'
-import { MCP_TOOLS, CORE_TOOL_IDS, ALL_TOOL_IDS, type McpTool } from '../../shared/mcpTools'
+import { MCP_TOOLS, CORE_TOOL_IDS, ALL_TOOL_IDS, MCP_INITIALIZE_INSTRUCTION_CHARS, type McpTool } from '../../shared/mcpTools'
+import { DEFAULT_SCREENSHOT_FOLDER, SCREENSHOT_FOLDER_KEY, SCREENSHOT_PER_CONNECTION_KEY, buildScreenshotPath, normalizeScreenshotFolder } from '../../background/browserMcp/screenshotPaths'
 
 interface Preset {
   name: string
   description: string
   tools: string[]
-  updatedAt: string
+  categories?: string[]
+  updatedAt?: string
+  builtIn?: boolean
+  readOnly?: boolean
+  shadowedBuiltIn?: string
 }
 
 const PRESETS = {
@@ -21,6 +26,7 @@ const API_BASE = 'http://localhost:8129'
 
 export default function McpPlayground() {
   const [enabledTools, setEnabledTools] = useState<string[]>([])
+  const [newTools, setNewTools] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -34,6 +40,12 @@ export default function McpPlayground() {
   const [presets, setPresets] = useState<Record<string, Preset>>({})
   const [newPresetName, setNewPresetName] = useState('')
   const [showPresetSave, setShowPresetSave] = useState(false)
+  const [screenshotFolder, setScreenshotFolder] = useState('')
+  const [screenshotPerConnection, setScreenshotPerConnection] = useState(false)
+  const [screenshotReady, setScreenshotReady] = useState(false)
+  const [screenshotSaving, setScreenshotSaving] = useState(false)
+  const [screenshotSaved, setScreenshotSaved] = useState(false)
+  const [screenshotError, setScreenshotError] = useState('')
 
   // Animated icon ref - play animation on mount
   const iconRef = useRef<AnimatedIconHandle>(null)
@@ -55,6 +67,7 @@ export default function McpPlayground() {
         if (configRes.ok) {
           const data = await configRes.json()
           setEnabledTools(data.enabledTools || PRESETS.standard)
+          setNewTools(data.newTools || [])
           setAllowAllUrls(data.allowAllUrls || false)
           setCustomDomains(data.customDomains || '')
         }
@@ -79,6 +92,52 @@ export default function McpPlayground() {
     fetchConfig()
   }, [])
 
+  // Load separately from backend tool selection; never write defaults on upgrade.
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        const stored = await chrome.storage.local.get([SCREENSHOT_FOLDER_KEY, SCREENSHOT_PER_CONNECTION_KEY])
+        if (!active) return
+        setScreenshotFolder(typeof stored?.[SCREENSHOT_FOLDER_KEY] === 'string' ? stored[SCREENSHOT_FOLDER_KEY] : '')
+        setScreenshotPerConnection(stored?.[SCREENSHOT_PER_CONNECTION_KEY] === true)
+        setScreenshotReady(true)
+      } catch {
+        if (active) setScreenshotError('Could not load screenshot settings. Reopen this page to try again.')
+      }
+    }
+    void load()
+    return () => { active = false }
+  }, [])
+
+  const screenshotFolderCheck = normalizeScreenshotFolder(screenshotFolder)
+  const screenshotExample = buildScreenshotPath({
+    folder: screenshotFolder,
+    perConnection: screenshotPerConnection,
+    connectionLabel: 'page-agent',
+    kind: 'viewport',
+    timestamp: 'example'
+  }).filename
+
+  const saveScreenshotSettings = async () => {
+    if (!screenshotReady || screenshotSaving || screenshotFolderCheck.invalidReason) return
+    setScreenshotSaving(true)
+    setScreenshotSaved(false)
+    setScreenshotError('')
+    try {
+      await chrome.storage.local.set({
+        [SCREENSHOT_FOLDER_KEY]: screenshotFolderCheck.folder,
+        [SCREENSHOT_PER_CONNECTION_KEY]: screenshotPerConnection
+      })
+      setScreenshotFolder(screenshotFolderCheck.folder)
+      setScreenshotSaved(true)
+    } catch {
+      setScreenshotError('Could not save screenshot settings. Try saving again.')
+    } finally {
+      setScreenshotSaving(false)
+    }
+  }
+
   // Save config
   const saveConfig = async () => {
     setSaving(true)
@@ -86,9 +145,10 @@ export default function McpPlayground() {
       const res = await fetch(`${API_BASE}/api/mcp-config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabledTools, allowAllUrls, customDomains }),
+        body: JSON.stringify({ enabledTools, knownTools: ALL_TOOL_IDS, allowAllUrls, customDomains }),
       })
       if (res.ok) {
+        setNewTools([])
         setSaved(true)
         setChanged(false)
         setTimeout(() => setSaved(false), 3000)
@@ -154,9 +214,20 @@ export default function McpPlayground() {
     }
   }
 
+  const copyBuiltInPreset = (slug: string) => {
+    const preset = presets[slug]
+    if (!preset?.builtIn) return
+
+    setEnabledTools(preset.tools)
+    setNewPresetName(`${preset.name} Copy`)
+    setShowPresetSave(true)
+    setChanged(true)
+    setSaved(false)
+  }
+
   const deleteCustomPreset = async (slug: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/mcp-presets/${slug}`, { method: 'DELETE' })
+      const res = await fetch(`${API_BASE}/api/mcp-presets/${encodeURIComponent(slug)}`, { method: 'DELETE' })
       if (res.ok) {
         setPresets(prev => {
           const newPresets = { ...prev }
@@ -206,7 +277,7 @@ export default function McpPlayground() {
   const estimatedTokens = enabledTools.reduce((sum, toolId) => {
     const tool = MCP_TOOLS.find(t => t.id === toolId)
     return sum + (tool?.tokens || 0)
-  }, 0)
+  }, Math.ceil(MCP_INITIALIZE_INSTRUCTION_CHARS / 4))
 
   return (
     <div className="p-6">
@@ -233,7 +304,7 @@ export default function McpPlayground() {
           )}
           <button
             onClick={saveConfig}
-            disabled={saving || !changed}
+            disabled={saving || (!changed && newTools.length === 0)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {saving ? (
@@ -245,6 +316,57 @@ export default function McpPlayground() {
           </button>
         </div>
       </div>
+
+      {newTools.length > 0 && (
+        <div className="mb-6 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-sm text-amber-200">
+          {newTools.length} tool{newTools.length === 1 ? '' : 's'} new since your last save
+          {' '}({newTools.join(', ')}) {newTools.length === 1 ? 'is' : 'are'} enabled. Save to acknowledge.
+        </div>
+      )}
+
+      <section aria-labelledby="screenshot-settings-title" className="p-4 rounded-lg bg-card border border-border mb-6">
+        <h2 id="screenshot-settings-title" className="font-semibold mb-1">Screenshot location</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Choose a folder inside Downloads for screenshots. An explicit output path on a tool call still takes precedence.
+        </p>
+        <label htmlFor="screenshot-folder" className="block text-sm mb-1">Screenshot folder</label>
+        <input
+          id="screenshot-folder"
+          value={screenshotFolder}
+          onChange={event => { setScreenshotFolder(event.target.value); setScreenshotSaved(false) }}
+          placeholder={DEFAULT_SCREENSHOT_FOLDER}
+          disabled={!screenshotReady || screenshotSaving}
+          spellCheck={false}
+          aria-invalid={Boolean(screenshotFolderCheck.invalidReason)}
+          aria-describedby="screenshot-folder-help"
+          className="w-full px-3 py-2 rounded-lg bg-background border border-border font-mono text-sm disabled:opacity-50"
+        />
+        <p id="screenshot-folder-help" className="text-xs text-muted-foreground mt-1">
+          Use forward slashes and portable folder names. Leave empty for {DEFAULT_SCREENSHOT_FOLDER}.
+        </p>
+        <label className="flex items-center gap-2 mt-3 text-sm">
+          <input
+            type="checkbox"
+            checked={screenshotPerConnection}
+            onChange={event => { setScreenshotPerConnection(event.target.checked); setScreenshotSaved(false) }}
+            disabled={!screenshotReady || screenshotSaving}
+          />
+          Give each agent connection its own subfolder
+        </label>
+        {screenshotFolderCheck.invalidReason && <p role="alert" className="text-sm text-amber-400 mt-2">{screenshotFolderCheck.invalidReason}</p>}
+        {screenshotError && <p role="alert" className="text-sm text-amber-400 mt-2">{screenshotError}</p>}
+        <p className="text-xs text-muted-foreground mt-3">Example: <span className="font-mono">Downloads/{screenshotExample}</span></p>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={saveScreenshotSettings}
+            disabled={!screenshotReady || screenshotSaving || Boolean(screenshotFolderCheck.invalidReason)}
+            className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm disabled:opacity-50"
+          >
+            {screenshotSaving ? 'Saving screenshot settings…' : 'Save screenshot settings'}
+          </button>
+          {screenshotSaved && <span role="status" className="text-sm text-emerald-400">Screenshot settings saved</span>}
+        </div>
+      </section>
 
       {/* MCP Inspector */}
       <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30 mb-6">
@@ -295,7 +417,7 @@ export default function McpPlayground() {
         </div>
         <div className="p-4 rounded-lg bg-card border border-border">
           <div className="text-2xl font-bold text-cyan-400">~{estimatedTokens.toLocaleString()}</div>
-          <div className="text-sm text-muted-foreground">Context Tokens</div>
+          <div className="text-sm text-muted-foreground">Schema + Startup Estimate</div>
         </div>
         <div className="p-4 rounded-lg bg-card border border-border">
           <div className="text-2xl font-bold text-purple-400">{MCP_TOOLS.length}</div>
@@ -342,14 +464,14 @@ export default function McpPlayground() {
         </div>
       </div>
 
-      {/* Custom Presets */}
+      {/* Tool Presets */}
       <div className="p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/30 mb-6">
         <div className="flex items-start gap-3">
           <FolderOpen className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-semibold text-indigo-200 mb-1">Custom Presets</h3>
+            <h3 className="font-semibold text-indigo-200 mb-1">Tool Presets</h3>
             <p className="text-sm text-indigo-200/80 mb-3">
-              Save your current tool selection as a preset. Use presets via environment variable for different agents.
+              Built-in presets are read-only. Apply or copy one, or save your current tool selection as a custom preset.
             </p>
 
             {/* Save new preset */}
@@ -411,9 +533,26 @@ export default function McpPlayground() {
                       <div>
                         <span className="font-medium text-indigo-200">{preset.name}</span>
                         <span className="text-xs text-indigo-400/60 ml-2">{preset.tools.length} tools</span>
+                        {preset.readOnly && (
+                          <span className="text-xs text-indigo-300/70 ml-2">Read-only</span>
+                        )}
+                        {preset.categories && (
+                          <div className="text-xs text-indigo-200/50 mt-0.5">
+                            {preset.categories.join(', ')}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
+                      {preset.builtIn && (
+                        <button
+                          onClick={() => copyBuiltInPreset(slug)}
+                          className="p-1.5 rounded text-indigo-400/60 hover:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                          title="Copy to a new custom preset"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => copyPresetEnvCommand(slug)}
                         className="p-1.5 rounded text-indigo-400/60 hover:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
@@ -421,13 +560,15 @@ export default function McpPlayground() {
                       >
                         <Copy className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => deleteCustomPreset(slug)}
-                        className="p-1.5 rounded text-red-400/60 hover:text-red-400 hover:bg-red-500/20 transition-colors"
-                        title="Delete preset"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!preset.readOnly && (
+                        <button
+                          onClick={() => deleteCustomPreset(slug)}
+                          className="p-1.5 rounded text-red-400/60 hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                          title="Delete preset"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -443,53 +584,12 @@ export default function McpPlayground() {
             <p className="text-xs text-indigo-200/50 mt-3">
               Use a preset: <code className="bg-indigo-500/20 px-1.5 py-0.5 rounded">MCP_PRESET=preset-name claude</code>
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Experimental MCP CLI Mode */}
-      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30 mb-6">
-        <div className="flex items-start gap-3">
-          <Zap className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-purple-200 mb-1">Experimental: MCP CLI Mode</h3>
-            <p className="text-sm text-purple-200/80 mb-3">
-              Load MCP tools on-demand instead of upfront. Requires Claude Code restart after enabling.
+            <p className="text-xs text-amber-200/70 mt-2">
+              Estimates use complete published schema characters divided by four, not a tokenizer.
+              The total includes {MCP_INITIALIZE_INSTRUCTION_CHARS.toLocaleString()} characters of startup instructions.
+              Actual loading depends on your client and preset;
+              page-agent provides the compact browser surface while Full retains legacy tools.
             </p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={async () => {
-                  await spawnTerminal({
-                    name: 'Enable MCP CLI',
-                    command: `grep -q 'ENABLE_EXPERIMENTAL_MCP_CLI' ~/.bashrc 2>/dev/null || echo 'export ENABLE_EXPERIMENTAL_MCP_CLI=true' >> ~/.bashrc; echo "✓ MCP CLI mode enabled. Restart Claude Code to apply."`,
-                  })
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-              >
-                <Terminal className="w-4 h-4" />
-                Enable
-              </button>
-              <button
-                onClick={async () => {
-                  await spawnTerminal({
-                    name: 'Disable MCP CLI',
-                    command: `sed -i '/ENABLE_EXPERIMENTAL_MCP_CLI/d' ~/.bashrc 2>/dev/null; echo "✓ MCP CLI mode disabled. Restart Claude Code to apply."`,
-                  })
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-              >
-                <Terminal className="w-4 h-4" />
-                Disable
-              </button>
-              <a
-                href="https://gist.github.com/GGPrompts/50e82596b345557656df2fc8d2d54e2c"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-purple-400 hover:underline inline-flex items-center gap-1"
-              >
-                Details <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -511,6 +611,7 @@ export default function McpPlayground() {
                 key={tool.id}
                 tool={tool}
                 enabled={enabledTools.includes(tool.id)}
+                isNew={newTools.includes(tool.id)}
                 onToggle={() => toggleTool(tool.id)}
               />
             ))}
@@ -552,6 +653,7 @@ export default function McpPlayground() {
                       key={tool.id}
                       tool={tool}
                       enabled={enabledTools.includes(tool.id)}
+                      isNew={newTools.includes(tool.id)}
                       onToggle={() => toggleTool(tool.id)}
                     />
                   ))}
@@ -627,7 +729,7 @@ export default function McpPlayground() {
   )
 }
 
-function ToolRow({ tool, enabled, onToggle }: { tool: McpTool; enabled: boolean; onToggle: () => void }) {
+function ToolRow({ tool, enabled, isNew, onToggle }: { tool: McpTool; enabled: boolean; isNew: boolean; onToggle: () => void }) {
   const isLocked = tool.locked
 
   return (
@@ -650,11 +752,16 @@ function ToolRow({ tool, enabled, onToggle }: { tool: McpTool; enabled: boolean;
         <div className="flex items-center gap-2">
           <span className="font-medium">{tool.name}</span>
           <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tool.id}</code>
+          {isNew && (
+            <span className="text-[10px] uppercase tracking-wide text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded">
+              New since your last save
+            </span>
+          )}
         </div>
         <p className="text-sm text-muted-foreground truncate">{tool.desc}</p>
       </div>
       <div className="flex-shrink-0 text-xs text-muted-foreground">
-        {tool.tokens.toLocaleString()} tokens
+        ~{tool.tokens.toLocaleString()} tokens
       </div>
     </div>
   )

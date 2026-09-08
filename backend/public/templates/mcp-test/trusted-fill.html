@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tabz trusted fill fixture</title>
+  <style>
+    body { font: 16px/1.4 system-ui, sans-serif; margin: 2rem; max-width: 44rem; }
+    form { display: grid; gap: 1rem; }
+    label { display: grid; gap: .3rem; }
+    input, select { font: inherit; padding: .45rem; }
+  </style>
+</head>
+<body>
+  <h1>Trusted fill fixture</h1>
+  <p>All fields are synthetic. Buttons change the target to exercise navigation and type checks.</p>
+  <form id="fixture-form">
+    <label>Organization <input id="organization" name="organization" autocomplete="organization"></label>
+    <label>Unicode <input id="unicode" name="display_name"></label>
+    <label>Role
+      <select id="role" name="role">
+        <option value="">Choose</option>
+        <option value="dispatch">Dispatch login</option>
+        <option value="admin">Admin login</option>
+      </select>
+    </label>
+    <label><input id="remember" name="remember" type="checkbox"> Remember this synthetic session</label>
+    <label>Password <input id="password" name="password" type="password" autocomplete="current-password"></label>
+    <label>Controlled input <input id="controlled" name="controlled"></label>
+    <label>Replacement input <input id="replacement" name="replacement"></label>
+    <label>Delayed input host <span id="delayed-host"></span></label>
+    <button type="button" id="add-delayed">Add delayed input</button>
+    <button type="button" id="change-password-type">Change password to text</button>
+    <button type="button" id="navigate">Navigate after synthetic submit</button>
+  </form>
+  <script>
+    const controlled = document.querySelector('#controlled')
+    controlled.addEventListener('input', () => { controlled.value = 'fixture-controlled-state' })
+
+    const replacement = document.querySelector('#replacement')
+    replacement.addEventListener('input', () => {
+      const next = document.createElement('input')
+      next.id = 'replacement'
+      next.name = 'replacement_password'
+      next.type = 'password'
+      next.value = replacement.value
+      replacement.replaceWith(next)
+    }, { once: true })
+
+    document.querySelector('#add-delayed').addEventListener('click', () => {
+      setTimeout(() => {
+        const input = document.createElement('input')
+        input.id = 'delayed'
+        input.name = 'delayed'
+        document.querySelector('#delayed-host').replaceChildren(input)
+      }, 250)
+    })
+
+    document.querySelector('#change-password-type').addEventListener('click', () => {
+      document.querySelector('#password').type = 'text'
+    })
+
+    document.querySelector('#navigate').addEventListener('click', () => {
+      location.assign('navigation.html#trusted-fill-submitted')
+    })
+  </script>
+</body>
+</html>

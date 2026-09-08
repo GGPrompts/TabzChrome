@@ -27,8 +27,9 @@ interface FileTreeContextMenuProps {
   onPasteToTerminal?: () => void
   onReadAloud?: () => void
   isLoadingAudio?: boolean
-  // New action for directories
+  // Directory actions
   onSetWorkingDir?: () => void
+  onBrowseHere?: () => void
   // Audio file playback
   isAudioFile?: boolean
   onPlayAudio?: () => void
@@ -59,7 +60,8 @@ interface FileTreeContextMenuProps {
  * - **Paste to Terminal**: Paste file content to active terminal (files only)
  * - **Read Aloud**: TTS playback of file content (files only)
  * - **Open in Editor**: Open file in user's default editor (files only)
- * - **Set as Working Dir**: Set folder as working directory (folders only)
+ * - **Set as Working Dir**: Set folder as the global working directory (folders only)
+ * - **Browse Here**: Navigate the file tree without changing the working directory
  *
  * Script-specific actions (for .sh, .py, .js, .ts, etc.):
  * - **Run**: Execute script in new terminal
@@ -83,6 +85,7 @@ export function FileTreeContextMenu({
   onReadAloud,
   isLoadingAudio,
   onSetWorkingDir,
+  onBrowseHere,
   // Audio file playback
   isAudioFile,
   onPlayAudio,
@@ -384,19 +387,35 @@ export function FileTreeContextMenu({
       )}
 
       {/* Directory-only actions */}
-      {!isFile && onSetWorkingDir && (
+      {!isFile && (onSetWorkingDir || onBrowseHere) && (
         <>
           <div className="context-menu-divider" />
-          <button
-            className="context-menu-item"
-            onClick={() => {
-              onSetWorkingDir()
-              onClose()
-            }}
-          >
-            <FolderOpenIcon size={16} className="inline mr-2" />
-            Set as Working Dir
-          </button>
+          {onSetWorkingDir && (
+            <button
+              className="context-menu-item"
+              onClick={() => {
+                onSetWorkingDir()
+                onClose()
+              }}
+              title="Sets the working directory dropdowns; new terminals launch here"
+            >
+              <FolderOpenIcon size={16} className="inline mr-2" />
+              Set as Working Dir
+            </button>
+          )}
+          {onBrowseHere && (
+            <button
+              className="context-menu-item"
+              onClick={() => {
+                onBrowseHere()
+                onClose()
+              }}
+              title="Navigate the file tree only"
+            >
+              <FolderOpenIcon size={16} className="inline mr-2" />
+              Browse Here
+            </button>
+          )}
         </>
       )}
     </div>

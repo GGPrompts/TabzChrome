@@ -27,6 +27,52 @@ describe('useClaudeStatus', () => {
   })
 
   describe('initialization', () => {
+    it('never polls protected editors, including recovered protected session names', async () => {
+      const { result } = renderHook(() => useClaudeStatus([
+        { id: 'flagged', secret: true, workingDir: '/synthetic', profileCommand: 'claude' },
+        { id: 'ctt-secret-fixture', workingDir: '/synthetic', profileCommand: 'claude' },
+        { id: 'recovered', sessionName: 'ctt-secret-recovered', workingDir: '/synthetic', profileCommand: 'claude' },
+      ]))
+      await act(async () => { vi.advanceTimersByTime(5000) })
+      expect(mockFetch).not.toHaveBeenCalled()
+      expect(result.current.statuses.size).toBe(0)
+    })
+
+    it('does not overlap reads or restore removed terminals from a late response', async () => {
+      let finish!: (value: unknown) => void
+      mockFetch.mockImplementation(() => new Promise(resolve => { finish = resolve }))
+      const initial = [{ id: 'fixture', workingDir: '/synthetic', profileCommand: 'claude' }]
+      const { result, rerender } = renderHook(({ terminals }) => useClaudeStatus(terminals), {
+        initialProps: { terminals: initial },
+      })
+      await act(async () => { vi.advanceTimersByTime(1000) })
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      rerender({ terminals: [] })
+      await act(async () => {
+        finish({ ok: true, json: async () => ({ success: true, status: 'tool_use', current_tool: 'Read' }) })
+      })
+      expect(result.current.statuses.size).toBe(0)
+      expect(result.current.history.size).toBe(0)
+    })
+
+    it('requires a Claude foreground pane for status from a plain shell profile', async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => ({
+        success: true, status: 'tool_use', current_tool: 'Read', pane_command: 'bash',
+      }) })
+      const { result } = renderHook(() => useClaudeStatus([
+        { id: 'fixture', sessionName: 'ctt-fixture', workingDir: '/synthetic', profileCommand: 'bash' },
+      ]))
+      await act(async () => {})
+      expect(result.current.statuses.size).toBe(0)
+      mockFetch.mockResolvedValue({ ok: true, json: async () => ({
+        success: true, status: 'tool_use', current_tool: 'Read', pane_command: 'claude',
+      }) })
+      await act(async () => { vi.advanceTimersByTime(1000) })
+      expect(result.current.statuses.get('fixture')?.tmuxPane).toBeUndefined()
+      expect(result.current.statuses.get('fixture')?.current_tool).toBe('Read')
+      expect(mockFetch.mock.calls[0][0]).toContain('sessionName=ctt-fixture')
+    })
+
     it('should start with empty statuses and history maps', () => {
       mockFetch.mockResolvedValue({
         ok: true,
@@ -104,7 +150,8 @@ describe('useClaudeStatus', () => {
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/claude-status?dir=')
+        expect.stringContaining('/api/claude-status?dir='),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     })
 

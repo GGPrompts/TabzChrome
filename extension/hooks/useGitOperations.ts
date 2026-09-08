@@ -8,7 +8,7 @@ interface OperationResult {
 }
 
 async function getAuthToken(): Promise<string> {
-  // Read from backend - the token is stored at /tmp/tabz-auth-token
+  // Read from backend - the backend manages the token file in the OS temporary directory
   const res = await fetch('http://localhost:8129/api/auth/token')
   if (res.ok) {
     const data = await res.json()

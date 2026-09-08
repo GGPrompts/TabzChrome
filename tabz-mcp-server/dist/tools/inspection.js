@@ -4,24 +4,33 @@
  * Tools for inspecting DOM elements - HTML, styles, bounds, attributes
  * Ideal for CSS debugging and recreating UI elements
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
 import { ResponseFormat } from "../types.js";
+import { readFailureStatus, structuredToolResult } from "./result-contract.js";
+const SAFE_ELEMENT_ATTRIBUTES = new Set(["id", "class", "name", "role", "aria-label", "type"]);
+function safeElementAttributes(attributes) {
+    if (!attributes)
+        return {};
+    return Object.fromEntries(Object.entries(attributes).filter(([name]) => SAFE_ELEMENT_ATTRIBUTES.has(name.toLowerCase())));
+}
 // Input schema for tabz_get_element
 const GetElementSchema = z.object({
     selector: z.string()
-        .min(1, "Selector is required")
-        .describe("CSS selector for the element to inspect (e.g., '.card', '#header', 'button.primary')"),
+        .min(1, "Selector is required"),
     includeStyles: z.boolean()
-        .default(true)
-        .describe("Include computed CSS styles (default: true)"),
+        .default(true),
     styleProperties: z.array(z.string())
         .optional()
-        .describe("Specific CSS properties to extract. If not provided, extracts common layout/typography/visual properties."),
+        .describe("Properties to extract; common ones by default."),
+    tabId: z.number()
+        .int()
+        .positive()
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 /**
  * Get detailed information about an element via Chrome Extension API
@@ -37,7 +46,7 @@ async function getElementInfo(selector, options = {}) {
         return response.data;
     }
     catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return { success: false, transportError: true, error: error instanceof Error ? error.message : String(error) };
     }
 }
 /**
@@ -126,34 +135,50 @@ document.querySelectorAll('${selector}').length
  * Register element inspection tools with the MCP server
  */
 export function registerInspectionTools(server) {
-    server.tool("tabz_get_element", `Inspect a DOM element -- returns HTML, computed styles, bounds, and attributes. Ideal for CSS debugging.
-
-Args: selector (required), includeStyles (optional, default true), styleProperties (optional array), response_format (optional)`, GetElementSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_get_element", "Inspect one DOM element: HTML, computed styles, bounds, attributes. Run it before acting so you target a stable attribute.", GetElementSchema, async (params) => {
         try {
             const result = await getElementInfo(params.selector, {
                 includeStyles: params.includeStyles,
-                styleProperties: params.styleProperties
+                styleProperties: params.styleProperties,
+                tabId: params.tabId
             });
+            const resultForText = { ...result };
+            delete resultForText.transportError;
             let resultText;
             if (params.response_format === ResponseFormat.JSON) {
-                resultText = JSON.stringify(result, null, 2);
+                resultText = JSON.stringify(resultForText, null, 2);
             }
             else {
-                resultText = formatElementAsMarkdown(result, params.selector);
+                resultText = formatElementAsMarkdown(resultForText, params.selector);
             }
-            return {
-                content: [{ type: "text", text: resultText }],
-                isError: !result.success
-            };
+            if (!result.success) {
+                return structuredToolResult(resultText, readFailureStatus(result.error, result.transportError === true), {
+                    found: false,
+                    selector: params.selector,
+                    tabId: params.tabId ?? null,
+                    error: result.error ?? "Element not found"
+                }, true);
+            }
+            return structuredToolResult(resultText, "found", {
+                found: true,
+                selector: params.selector,
+                tabId: params.tabId ?? null,
+                tagName: result.tagName ?? null,
+                innerText: result.innerText ?? "",
+                attributes: safeElementAttributes(result.attributes),
+                bounds: result.bounds ?? null,
+                parentSelector: result.parentSelector ?? null,
+                childCount: result.childCount ?? null
+            }, false);
         }
         catch (error) {
-            return {
-                content: [{
-                        type: "text",
-                        text: `Error: ${error instanceof Error ? error.message : String(error)}`
-                    }],
-                isError: true
-            };
+            const message = error instanceof Error ? error.message : String(error);
+            return structuredToolResult(`Error: ${message}`, "transport_error", {
+                found: false,
+                selector: params.selector,
+                tabId: params.tabId ?? null,
+                error: message
+            }, true);
         }
     });
 }

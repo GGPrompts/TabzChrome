@@ -55,19 +55,13 @@ tabz_click({ selector: ".btn-primary" })
 
 ### Form Filling
 ```javascript
-// 1. Fill fields
-tabz_fill({ selector: "#login-email", value: "user@example.com" })
-tabz_fill({ selector: "#login-password", value: "password123" })
-
-// 2. Check a checkbox (click it)
-tabz_click({ selector: "#login-remember" })
-
-// 3. Submit
-tabz_click({ selector: "#login-submit" })
-
-// 4. Verify success
-tabz_get_element({ selector: "#login-status" })
+// Fill a non-sensitive fixture field, submit once, then inspect its status.
+tabz_fill({ selector: "#feedback-message", value: "Synthetic feedback for the test page." })
+tabz_click({ selector: "#feedback-submit" })
+tabz_get_element({ selector: "#feedback-status" })
 ```
+
+For sign-in, use `tabz_request_login` for human entry or the saved-login workflow in [Saved logins](../../../../docs/saved-logins.md). Never put passwords or other credentials in tool arguments. Protected documents refuse element inspection and arbitrary-selector clicks; use human submission or an already published page ref when that tool is available. A missing login prompt alone does not prove authentication.
 
 ### Multi-Step Wizard
 ```javascript

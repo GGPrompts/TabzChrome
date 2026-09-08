@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { isProtectedPromptTerminal } from '../../shared/claudePromptNotifications'
 
 const BACKEND_URL = 'http://localhost:8129'
 
@@ -22,6 +23,7 @@ interface TerminalInfo {
   paneTitle?: string | null
   aiTool?: string | null
   displayMode?: DisplayMode
+  secret?: boolean
 }
 
 interface UseTerminalsReturn {
@@ -61,13 +63,21 @@ export function useTerminals(): UseTerminalsReturn {
 
   // Load terminals from API (for rich status) and Chrome storage (for profile info)
   useEffect(() => {
+    let cancelled = false
+    let inFlight = false
+    let generation = 0
     const loadTerminals = async () => {
+      if (cancelled || inFlight) return
+      inFlight = true
+      const currentGeneration = generation
+      const isCurrent = () => !cancelled && currentGeneration === generation
       try {
         // Get Chrome storage for profile info
         const storageResult = await new Promise<{ terminalSessions?: any[] }>((resolve) =>
           chrome.storage.local.get(['terminalSessions'], (result) => resolve(result as { terminalSessions?: any[] }))
         )
         const chromeSessions = storageResult.terminalSessions || []
+        if (!isCurrent()) return
         const chromeSessionMap = new Map(chromeSessions.map((s: any) => [s.id, s]))
 
         // Fetch from API for rich status data
@@ -81,14 +91,17 @@ export function useTerminals(): UseTerminalsReturn {
             id: t.id,
             name: t.name || 'Terminal',
             workingDir: t.workingDir,
+            sessionName: t.sessionName,
+            secret: t.secret === true,
             profileColor: undefined,  // Colors come from backend, use CSS fallback
             profileIcon: undefined,
           }))
-          setTerminals(mapped)
+          if (isCurrent()) setTerminals(mapped)
           return
         }
 
         const apiData = await apiRes.json()
+        if (!isCurrent()) return
         const apiTerminals = apiData.data || []
 
         // Filter to only ctt- terminals (Chrome extension managed)
@@ -114,17 +127,18 @@ export function useTerminals(): UseTerminalsReturn {
             paneTitle: null as string | null,
             aiTool: chromeSession?.profile?.command?.includes('claude') ? 'claude-code' : null,
             displayMode,
+            secret: t.secret === true || chromeSession?.secret === true,
           }
         })
 
         // Fetch Claude status only for terminals running Claude (has 'claude' in profile command)
         const statusPromises = mapped.map(async (terminal) => {
           // Only poll Claude status for terminals with Claude in their profile command
-          if (!terminal.workingDir || !terminal.aiTool) return terminal
+          if (isProtectedPromptTerminal(terminal) || !terminal.workingDir || !terminal.aiTool) return terminal
 
           try {
             const encodedDir = encodeURIComponent(terminal.workingDir)
-            const sessionParam = terminal.sessionName ? `&session=${encodeURIComponent(terminal.sessionName)}` : ''
+            const sessionParam = terminal.sessionName ? `&sessionName=${encodeURIComponent(terminal.sessionName)}` : ''
             const statusRes = await fetch(
               `${BACKEND_URL}/api/claude-status?dir=${encodedDir}${sessionParam}`,
               { signal: AbortSignal.timeout(2000) }
@@ -161,10 +175,12 @@ export function useTerminals(): UseTerminalsReturn {
           return orderA - orderB
         })
 
-        setTerminals(terminalsWithStatus)
+        if (isCurrent()) setTerminals(terminalsWithStatus)
       } catch (e) {
         // Silently fail - just use existing state
         console.debug('[useTerminals] Failed to load terminals:', e)
+      } finally {
+        inFlight = false
       }
     }
 
@@ -176,12 +192,14 @@ export function useTerminals(): UseTerminalsReturn {
     // Also listen for storage changes
     const handleChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.terminalSessions) {
+        generation++
         loadTerminals()
       }
     }
     chrome.storage.local.onChanged.addListener(handleChange)
 
     return () => {
+      cancelled = true
       clearInterval(interval)
       chrome.storage.local.onChanged.removeListener(handleChange)
     }

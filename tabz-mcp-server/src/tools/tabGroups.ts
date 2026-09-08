@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import {
@@ -19,6 +20,8 @@ import {
   type ClaudeGroupStatus
 } from "../shared.js";
 import { ResponseFormat } from "../types.js";
+import { readFailureStatus, structuredToolResult } from "./result-contract.js";
+import { docsPointer } from "../descriptions.js";
 
 /**
  * List all tab groups via Extension API
@@ -149,7 +152,7 @@ async function removeFromClaudeGroup(tabId: number): Promise<{ success: boolean;
 /**
  * Get status of the Claude Active group via Extension API
  */
-async function getClaudeGroupStatus(): Promise<ClaudeGroupStatus> {
+async function getClaudeGroupStatus(): Promise<ClaudeGroupStatus & { transportError?: boolean }> {
   try {
     const response = await axios.get<ClaudeGroupStatus>(
       `${BACKEND_URL}/api/browser/claude-group/status`,
@@ -162,6 +165,7 @@ async function getClaudeGroupStatus(): Promise<ClaudeGroupStatus> {
       exists: false,
       groupId: null,
       tabCount: 0,
+      transportError: true,
       error: handleApiError(error, "Failed to get Claude group status").message
     };
   }
@@ -174,7 +178,6 @@ const TabGroupColorSchema = z.enum(['grey', 'blue', 'red', 'yellow', 'green', 'p
 const ListGroupsSchema = z.object({
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type ListGroupsInput = z.infer<typeof ListGroupsSchema>;
@@ -182,18 +185,14 @@ type ListGroupsInput = z.infer<typeof ListGroupsSchema>;
 // Input schema for tabz_create_group
 const CreateGroupSchema = z.object({
   tabIds: z.array(z.number().int().min(1))
-    .min(1)
-    .describe("Array of Chrome tab IDs to group together. Get IDs from tabz_list_tabs."),
+    .min(1),
   title: z.string()
     .max(50)
-    .optional()
-    .describe("Optional title for the group (displayed in tab bar)"),
+    .optional(),
   color: TabGroupColorSchema
-    .optional()
-    .describe("Optional color: grey, blue, red, yellow, green, pink, purple, or cyan"),
+    .optional(),
   collapsed: z.boolean()
     .optional()
-    .describe("Whether the group should be collapsed (default: false)")
 }).strict();
 
 type CreateGroupInput = z.infer<typeof CreateGroupSchema>;
@@ -202,18 +201,14 @@ type CreateGroupInput = z.infer<typeof CreateGroupSchema>;
 const UpdateGroupSchema = z.object({
   groupId: z.number()
     .int()
-    .min(0)
-    .describe("The tab group ID to update. Get IDs from tabz_list_groups."),
+    .min(0),
   title: z.string()
     .max(50)
-    .optional()
-    .describe("New title for the group"),
+    .optional(),
   color: TabGroupColorSchema
-    .optional()
-    .describe("New color: grey, blue, red, yellow, green, pink, purple, or cyan"),
+    .optional(),
   collapsed: z.boolean()
     .optional()
-    .describe("Whether the group should be collapsed")
 }).strict();
 
 type UpdateGroupInput = z.infer<typeof UpdateGroupSchema>;
@@ -222,11 +217,9 @@ type UpdateGroupInput = z.infer<typeof UpdateGroupSchema>;
 const AddToGroupSchema = z.object({
   groupId: z.number()
     .int()
-    .min(0)
-    .describe("The tab group ID to add tabs to. Get IDs from tabz_list_groups."),
+    .min(0),
   tabIds: z.array(z.number().int().min(1))
     .min(1)
-    .describe("Array of Chrome tab IDs to add to the group. Get IDs from tabz_list_tabs.")
 }).strict();
 
 type AddToGroupInput = z.infer<typeof AddToGroupSchema>;
@@ -235,7 +228,6 @@ type AddToGroupInput = z.infer<typeof AddToGroupSchema>;
 const UngroupTabsSchema = z.object({
   tabIds: z.array(z.number().int().min(1))
     .min(1)
-    .describe("Array of Chrome tab IDs to remove from their groups. Get IDs from tabz_list_tabs.")
 }).strict();
 
 type UngroupTabsInput = z.infer<typeof UngroupTabsSchema>;
@@ -245,7 +237,6 @@ const ClaudeGroupAddSchema = z.object({
   tabId: z.number()
     .int()
     .min(1)
-    .describe("Chrome tab ID to add to the Claude Active group. Get IDs from tabz_list_tabs.")
 }).strict();
 
 type ClaudeGroupAddInput = z.infer<typeof ClaudeGroupAddSchema>;
@@ -255,7 +246,6 @@ const ClaudeGroupRemoveSchema = z.object({
   tabId: z.number()
     .int()
     .min(1)
-    .describe("Chrome tab ID to remove from the Claude Active group.")
 }).strict();
 
 type ClaudeGroupRemoveInput = z.infer<typeof ClaudeGroupRemoveSchema>;
@@ -264,7 +254,6 @@ type ClaudeGroupRemoveInput = z.infer<typeof ClaudeGroupRemoveSchema>;
 const ClaudeGroupStatusSchema = z.object({
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type ClaudeGroupStatusInput = z.infer<typeof ClaudeGroupStatusSchema>;
@@ -274,12 +263,10 @@ type ClaudeGroupStatusInput = z.infer<typeof ClaudeGroupStatusSchema>;
  */
 export function registerTabGroupTools(server: McpServer): void {
   // List tab groups tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_list_groups",
-    `List all tab groups with title, color, collapsed state, and member tab IDs.
-
-Args: response_format (optional)`,
-    ListGroupsSchema.shape,
+    "List every tab group with its title, colour, collapsed state, and member tab IDs.",
+    ListGroupsSchema,
     async (params: ListGroupsInput) => {
       try {
         const result = await listTabGroups();
@@ -343,12 +330,10 @@ Use \`tabz_create_group\` to create a group from existing tabs.`;
   );
 
   // Create tab group tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_create_group",
-    `Create a tab group from specified tabs with optional title and color.
-
-Args: tabIds (required array), title (optional), color (optional), collapsed (optional)`,
-    CreateGroupSchema.shape,
+    "Create a tab group from the named tabs.",
+    CreateGroupSchema,
     async (params: CreateGroupInput) => {
       try {
         const result = await createTabGroup({
@@ -393,12 +378,10 @@ Use \`tabz_list_tabs\` to get valid tab IDs.`;
   );
 
   // Update tab group tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_update_group",
-    `Update a tab group's title, color, or collapsed state. Get IDs from tabz_list_groups.
-
-Args: groupId (required), title/color/collapsed (optional)`,
-    UpdateGroupSchema.shape,
+    "Change a tab group's title, colour, or collapsed state.",
+    UpdateGroupSchema,
     async (params: UpdateGroupInput) => {
       try {
         const result = await updateTabGroup({
@@ -441,12 +424,10 @@ Use \`tabz_list_groups\` to get valid group IDs.`;
   );
 
   // Add to group tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_add_to_group",
-    `Add tabs to an existing tab group.
-
-Args: groupId (required), tabIds (required array)`,
-    AddToGroupSchema.shape,
+    "Add tabs to an existing tab group.",
+    AddToGroupSchema,
     async (params: AddToGroupInput) => {
       try {
         const result = await addToTabGroup({
@@ -486,12 +467,10 @@ Use \`tabz_list_groups\` to verify the group exists.`;
   );
 
   // Ungroup tabs tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_ungroup_tabs",
-    `Remove tabs from their groups. Empty groups are auto-deleted by Chrome.
-
-Args: tabIds (required array)`,
-    UngroupTabsSchema.shape,
+    "Remove tabs from their groups; Chrome deletes a group that empties.",
+    UngroupTabsSchema,
     async (params: UngroupTabsInput) => {
       try {
         const result = await ungroupTabs(params.tabIds);
@@ -526,12 +505,10 @@ Note: Empty groups are automatically deleted by Chrome.`;
   );
 
   // Claude group add tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_claude_group_add",
-    `Add a tab to the purple "Claude Active" group. Auto-creates group if needed.
-
-Args: tabId (required)`,
-    ClaudeGroupAddSchema.shape,
+    "Add a tab to your own enforced group, creating the group with your label and colour if needed.",
+    ClaudeGroupAddSchema,
     async (params: ClaudeGroupAddInput) => {
       try {
         const result = await addToClaudeGroup(params.tabId);
@@ -569,12 +546,10 @@ The tab is now visually highlighted in Chrome's tab bar.`;
   );
 
   // Claude group remove tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_claude_group_remove",
-    `Remove a tab from the "Claude Active" group.
-
-Args: tabId (required)`,
-    ClaudeGroupRemoveSchema.shape,
+    "Remove a tab from your own enforced group.",
+    ClaudeGroupRemoveSchema,
     async (params: ClaudeGroupRemoveInput) => {
       try {
         const result = await removeFromClaudeGroup(params.tabId);
@@ -609,21 +584,24 @@ ${result.message || ""}`;
   );
 
   // Claude group status tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_claude_group_status",
-    `Get status of the "Claude Active" group -- exists, groupId, tabCount, tabIds.
-
-Args: response_format (optional)`,
-    ClaudeGroupStatusSchema.shape,
+    "Get this connection's enforced tab group: exists, groupId, tabCount, tabIds. Call this first. Each connection has its own group; outside tabs are refused. Leave the user's tabs and other connections' groups alone. " + docsPointer("tabz_claude_group_status"),
+    ClaudeGroupStatusSchema,
     async (params: ClaudeGroupStatusInput) => {
       try {
         const result = await getClaudeGroupStatus();
 
         if (!result.success) {
-          return {
-            content: [{ type: "text", text: `Error: ${result.error}` }],
-            isError: true
-          };
+          const text = `Error: ${result.error}`;
+          return structuredToolResult(text, readFailureStatus(result.error, result.transportError === true), {
+            exists: false,
+            groupId: null,
+            group: null,
+            tabCount: 0,
+            tabIds: [],
+            error: result.error
+          }, true);
         }
 
         let resultText: string;
@@ -658,17 +636,23 @@ Use \`tabz_claude_group_remove\` to remove tabs.`;
           }
         }
 
-        return {
-          content: [{ type: "text", text: resultText }]
-        };
+        return structuredToolResult(resultText, result.exists ? "active" : "not_created", {
+          exists: result.exists,
+          groupId: result.groupId,
+          group: result.group ?? null,
+          tabCount: result.tabCount,
+          tabIds: result.tabIds ?? []
+        }, false);
       } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true
-        };
+        const message = error instanceof Error ? error.message : String(error);
+        return structuredToolResult(`Error: ${message}`, "transport_error", {
+          exists: false,
+          groupId: null,
+          group: null,
+          tabCount: 0,
+          tabIds: [],
+          error: message
+        }, true);
       }
     }
   );

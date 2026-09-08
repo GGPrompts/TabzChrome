@@ -199,6 +199,7 @@ function SidePanelTerminal() {
       sessionName: s.sessionName,
       workingDir: s.workingDir,
       profileCommand: s.profile?.command || s.command,  // Check both profile and API command
+      secret: s.secret,
     }))
   )
 
@@ -501,6 +502,39 @@ function SidePanelTerminal() {
       portRef.current = null
     }
   }, [])
+
+  // Background prompt notifications need focus state even when no status changes.
+  useEffect(() => {
+    let cancelled = false
+    let pageHidden = false
+    let windowId: number | undefined
+    const terminalId = isPopoutMode ? popoutTerminalId : currentSession
+    const report = () => {
+      if (windowId === undefined) return
+      sendMessage({ type: 'UPDATE_TERMINAL_VIEW', windowId, terminalId: terminalId || null,
+        visible: !cancelled && !pageHidden && document.visibilityState === 'visible', isPopout: isPopoutMode })
+    }
+    void chrome.windows.getCurrent().then(window => {
+      windowId = window.id
+      if (!cancelled) report()
+    }).catch(() => undefined)
+    document.addEventListener('visibilitychange', report)
+    const hide = () => { pageHidden = true; report() }
+    const show = () => { pageHidden = false; report() }
+    window.addEventListener('pagehide', hide)
+    window.addEventListener('pageshow', show)
+    window.addEventListener('focus', report)
+    window.addEventListener('blur', report)
+    return () => {
+      cancelled = true
+      report()
+      document.removeEventListener('visibilitychange', report)
+      window.removeEventListener('pagehide', hide)
+      window.removeEventListener('pageshow', show)
+      window.removeEventListener('focus', report)
+      window.removeEventListener('blur', report)
+    }
+  }, [currentSession, isPopoutMode, popoutTerminalId])
 
   // Auto-reconnect on visibility change (e.g., after laptop sleep/wake)
   // When sidebar becomes visible again, request terminal list to verify connection

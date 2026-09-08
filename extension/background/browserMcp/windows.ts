@@ -5,6 +5,19 @@
 
 import { sendToWebSocket } from '../websocket'
 import { broadcastToClients, popoutWindows } from '../state'
+import { assertAgentReadableTab } from './pageGuard'
+import {
+  assertTabInAgentGroup,
+  configureAgentGroup,
+  getClaudeActiveGroupId,
+  isNamedAgent,
+  releaseAgentGroupReservationInternal,
+  reserveAgentGroupBindingInternal,
+  rollbackAgentGroupBindingInternal,
+  runAgentGroupLifecycle,
+  runTabOwnershipMutation,
+  ungroupTabsInternal
+} from './tabGroups'
 
 // Window state enum (matches Chrome API)
 type WindowState = 'normal' | 'minimized' | 'maximized' | 'fullscreen'
@@ -15,12 +28,28 @@ type CreateWindowType = 'normal' | 'popup' | 'panel'
 // Full window type (for querying existing windows)
 type WindowType = 'normal' | 'popup' | 'panel' | 'app' | 'devtools'
 
+async function assertWindowOwnedByAgent(agent: string | undefined, windowId: number, exclusive = false): Promise<void> {
+  if (!isNamedAgent(agent)) return
+  const groupId = await getClaudeActiveGroupId(agent)
+  if (groupId === null) throw new Error('This browser agent has no tab group')
+  const win = await chrome.windows.get(windowId, { populate: true })
+  const tabs = win.tabs ?? []
+  const ownsAny = tabs.some(tab => tab.groupId === groupId)
+  const ownsAll = tabs.length > 0 && tabs.every(tab => tab.groupId === groupId)
+  if (!ownsAny || (exclusive && !ownsAll)) {
+    throw new Error(`Window ${windowId} is outside your browser agent group`)
+  }
+}
+
 /**
  * List all Chrome windows with their properties
  */
-export async function handleBrowserListWindows(message: { requestId: string }): Promise<void> {
+export async function handleBrowserListWindows(message: { requestId: string; agent?: string }): Promise<void> {
   try {
-    const windows = await chrome.windows.getAll({ populate: true })
+    const ownGroupId = await getClaudeActiveGroupId(message.agent)
+    const windows = (await chrome.windows.getAll({ populate: true })).filter(win =>
+      !isNamedAgent(message.agent) || (ownGroupId !== null && win.tabs?.some(tab => tab.groupId === ownGroupId))
+    )
 
     const windowList = windows.map((win) => ({
       windowId: win.id,
@@ -59,7 +88,7 @@ export async function handleBrowserListWindows(message: { requestId: string }): 
 export async function handleBrowserCreateWindow(message: {
   requestId: string
   url?: string | string[]
-  type?: CreateWindowType
+  windowType?: CreateWindowType
   state?: WindowState
   focused?: boolean
   width?: number
@@ -68,9 +97,12 @@ export async function handleBrowserCreateWindow(message: {
   top?: number
   incognito?: boolean
   tabId?: number
+  addToClaudeGroup?: boolean
+  claudeGroupTitle?: string
+  agent?: string
 }): Promise<void> {
   try {
-    const { url, type, state, focused, width, height, left, top, incognito, tabId } = message
+    const { url, windowType, state, focused, width, height, left, top, incognito, tabId, agent } = message
 
     // Build create options
     const createData: chrome.windows.CreateData = {}
@@ -87,7 +119,7 @@ export async function handleBrowserCreateWindow(message: {
       }
     }
 
-    if (type) createData.type = type
+    if (windowType) createData.type = windowType
     if (state) createData.state = state
     if (focused !== undefined) createData.focused = focused
     if (width !== undefined) createData.width = width
@@ -95,9 +127,70 @@ export async function handleBrowserCreateWindow(message: {
     if (left !== undefined) createData.left = left
     if (top !== undefined) createData.top = top
     if (incognito !== undefined) createData.incognito = incognito
-    if (tabId !== undefined) createData.tabId = tabId
+    if (tabId !== undefined) {
+      await assertTabInAgentGroup(agent, tabId)
+      await assertAgentReadableTab('tabz_create_window', tabId)
+      createData.tabId = tabId
+    }
 
-    const newWindow = await chrome.windows.create(createData)
+    const shouldGroup = message.addToClaudeGroup || isNamedAgent(agent)
+    const newWindow = await runAgentGroupLifecycle(agent, () => runTabOwnershipMutation(async () => {
+      const reservation = shouldGroup ? await reserveAgentGroupBindingInternal(agent) : null
+      const previousGroupId = reservation?.previousGroupId ?? null
+      let created: chrome.windows.Window | null | undefined
+      let groupedId: number | null = null
+      try {
+        created = await chrome.windows.create(createData)
+        if (!created) return created
+        const tabIds = (created.tabs ?? []).map(tab => tab.id).filter((id): id is number => id !== undefined)
+        if (shouldGroup && tabIds.length > 0) {
+          for (const id of tabIds) await assertAgentReadableTab('tabz_create_window', id)
+          groupedId = await chrome.tabs.group({
+            tabIds: tabIds as [number, ...number[]],
+            createProperties: created.id === undefined ? undefined : { windowId: created.id }
+          })
+          await configureAgentGroup(tabIds[0], groupedId, agent, message.claudeGroupTitle, reservation ?? undefined)
+          if (previousGroupId !== null && previousGroupId !== groupedId) {
+            const oldIds = (await chrome.tabs.query({ groupId: previousGroupId }))
+              .map(tab => tab.id).filter((id): id is number => id !== undefined)
+            await ungroupTabsInternal(oldIds)
+          }
+        }
+        return created
+      } catch (error) {
+        const createdIds = (created?.tabs ?? []).map(tab => tab.id).filter((id): id is number => id !== undefined)
+        if (groupedId !== null) {
+          const currentBinding = await getClaudeActiveGroupId(agent)
+          if (currentBinding !== null && currentBinding !== previousGroupId) {
+            await rollbackAgentGroupBindingInternal(agent, currentBinding, previousGroupId)
+          }
+          const stillOurs: number[] = []
+          for (const id of createdIds) {
+            try {
+              if ((await chrome.tabs.get(id)).groupId === groupedId) stillOurs.push(id)
+            } catch { /* closed */ }
+          }
+          await ungroupTabsInternal(stillOurs)
+          if (tabId === undefined && stillOurs.length > 0) {
+            try { await chrome.tabs.remove(stillOurs) } catch { /* already closed */ }
+          }
+        } else if (created?.id !== undefined && tabId === undefined) {
+          const removable: number[] = []
+          for (const id of createdIds) {
+            try {
+              const current = await chrome.tabs.get(id)
+              if (current.windowId === created.id && current.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE) removable.push(id)
+            } catch { /* closed */ }
+          }
+          if (removable.length > 0) {
+            try { await chrome.tabs.remove(removable) } catch { /* already closed */ }
+          }
+        }
+        throw error
+      } finally {
+        if (reservation) await releaseAgentGroupReservationInternal(reservation)
+      }
+    }))
 
     if (!newWindow) {
       sendToWebSocket({
@@ -123,8 +216,10 @@ export async function handleBrowserCreateWindow(message: {
         left: newWindow.left,
         top: newWindow.top,
         incognito: newWindow.incognito,
-        tabCount: newWindow.tabs?.length || 0
-      }
+        tabCount: newWindow.tabs?.length || 0,
+        tabIds: (newWindow.tabs ?? []).map(tab => tab.id).filter((id): id is number => id !== undefined)
+      },
+      claudeGroupId: await getClaudeActiveGroupId(agent)
     })
   } catch (err) {
     sendToWebSocket({
@@ -149,6 +244,7 @@ export async function handleBrowserUpdateWindow(message: {
   left?: number
   top?: number
   drawAttention?: boolean
+  agent?: string
 }): Promise<void> {
   try {
     const { windowId, state, focused, width, height, left, top, drawAttention } = message
@@ -172,6 +268,8 @@ export async function handleBrowserUpdateWindow(message: {
       })
       return
     }
+
+    await assertWindowOwnedByAgent(message.agent, windowId)
 
     const updatedWindow = await chrome.windows.update(windowId, updateInfo)
 
@@ -206,8 +304,10 @@ export async function handleBrowserUpdateWindow(message: {
 export async function handleBrowserCloseWindow(message: {
   requestId: string
   windowId: number
+  agent?: string
 }): Promise<void> {
   try {
+    await assertWindowOwnedByAgent(message.agent, message.windowId, true)
     await chrome.windows.remove(message.windowId)
 
     sendToWebSocket({
@@ -285,6 +385,7 @@ export async function handleBrowserTileWindows(message: {
   layout?: 'horizontal' | 'vertical' | 'grid'
   displayId?: string
   gap?: number
+  agent?: string
 }): Promise<void> {
   try {
     const { windowIds, layout = 'horizontal', displayId, gap = 0 } = message
@@ -298,6 +399,7 @@ export async function handleBrowserTileWindows(message: {
       })
       return
     }
+    for (const windowId of windowIds) await assertWindowOwnedByAgent(message.agent, windowId)
 
     // Get display info
     const displays = await chrome.system.display.getInfo()

@@ -6,6 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -18,6 +19,7 @@ import {
   type FileCoverage
 } from "../types.js";
 import { formatBytes } from "../utils.js";
+import { docsPointer } from "../descriptions.js";
 
 /**
  * Get DOM tree via Extension API
@@ -87,20 +89,18 @@ async function getCoverage(options: {
 const GetDomTreeSchema = z.object({
   tabId: z.number()
     .int()
-    .optional()
-    .describe("Chrome tab ID. Omit to use the currently active tab."),
+    .optional(),
   maxDepth: z.number()
     .int()
     .min(1)
     .max(10)
     .default(4)
-    .describe("Maximum depth to traverse (1-10, default: 4). Higher values return more detail but take longer."),
+    .describe("Levels to descend; deeper is slower."),
   selector: z.string()
     .optional()
-    .describe("CSS selector to get a specific subtree. Omit to get the full document."),
+    .describe("Subtree to return; omit for the whole document."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable tree or 'json' for structured data")
 }).strict();
 
 type GetDomTreeInput = z.infer<typeof GetDomTreeSchema>;
@@ -108,11 +108,9 @@ type GetDomTreeInput = z.infer<typeof GetDomTreeSchema>;
 const ProfilePerformanceSchema = z.object({
   tabId: z.number()
     .int()
-    .optional()
-    .describe("Chrome tab ID. Omit to use the currently active tab."),
+    .optional(),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for categorized metrics or 'json' for raw data")
 }).strict();
 
 type ProfilePerformanceInput = z.infer<typeof ProfilePerformanceSchema>;
@@ -120,14 +118,11 @@ type ProfilePerformanceInput = z.infer<typeof ProfilePerformanceSchema>;
 const GetCoverageSchema = z.object({
   tabId: z.number()
     .int()
-    .optional()
-    .describe("Chrome tab ID. Omit to use the currently active tab."),
+    .optional(),
   type: z.enum(['js', 'css', 'both'])
-    .default('both')
-    .describe("Coverage type: 'js' for JavaScript only, 'css' for CSS only, 'both' for both"),
+    .default('both'),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for summary with file list or 'json' for detailed data")
 }).strict();
 
 type GetCoverageInput = z.infer<typeof GetCoverageSchema>;
@@ -214,10 +209,12 @@ function formatCoverageFiles(files: FileCoverage[], type: string): string[] {
 export function registerDebuggerTools(server: McpServer): void {
 
   // Get DOM Tree
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_dom_tree",
-    `Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_docs for detailed docs.`,
-    GetDomTreeSchema.shape,
+    "Get a page's DOM tree through the debugger: tags, ids, classes. " +
+    "Truncates below maxDepth levels (default 4, max 10), marking cut nodes with a child count. " +
+    docsPointer("tabz_get_dom_tree"),
+    GetDomTreeSchema,
     async (params: GetDomTreeInput) => {
       try {
         const result = await getDomTree({
@@ -286,10 +283,10 @@ export function registerDebuggerTools(server: McpServer): void {
   );
 
   // Profile Performance
-  server.tool(
+  registerTabzTool(server,
     "tabz_profile_performance",
-    `Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_docs for detailed docs.`,
-    ProfilePerformanceSchema.shape,
+    "Profile a page through the debugger: timing, memory, and DOM metrics.",
+    ProfilePerformanceSchema,
     async (params: ProfilePerformanceInput) => {
       try {
         const result = await profilePerformance({
@@ -383,10 +380,10 @@ export function registerDebuggerTools(server: McpServer): void {
   );
 
   // Get Coverage
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_coverage",
-    `Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_docs for detailed docs.`,
-    GetCoverageSchema.shape,
+    "Measure JS and CSS coverage, used against total bytes per file. Rule: it RELOADS the tab, so unsaved page state is lost.",
+    GetCoverageSchema,
     async (params: GetCoverageInput) => {
       try {
         const result = await getCoverage({

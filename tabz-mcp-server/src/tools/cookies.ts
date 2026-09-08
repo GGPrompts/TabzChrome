@@ -6,10 +6,12 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL } from "../shared.js";
 import { ResponseFormat } from "../types.js";
+import { docsPointer } from "../descriptions.js";
 
 // =====================================
 // Input Schemas
@@ -18,73 +20,67 @@ import { ResponseFormat } from "../types.js";
 const GetCookieSchema = z.object({
   url: z.string()
     .url()
-    .describe("URL to get cookie for (determines domain/path matching)"),
-  name: z.string()
-    .describe("Name of the cookie to retrieve")
+    .describe("URL the cookie belongs to."),
+  name: z.string(),
+  revealValue: z.boolean()
+    .default(false)
+    .describe("Show the real value; auth-shaped names stay redacted.")
 }).strict();
 
 type GetCookieInput = z.infer<typeof GetCookieSchema>;
 
 const ListCookiesSchema = z.object({
   domain: z.string()
-    .optional()
-    .describe("Filter by domain (e.g., 'github.com')"),
+    .optional(),
   url: z.string()
     .url()
     .optional()
-    .describe("Filter by URL (includes path matching)"),
+    .describe("URL to filter by, path included."),
   name: z.string()
-    .optional()
-    .describe("Filter by cookie name"),
+    .optional(),
   secure: z.boolean()
     .optional()
-    .describe("Filter by secure flag"),
+    .describe("Keep only secure, or only insecure."),
   session: z.boolean()
     .optional()
-    .describe("Filter session cookies (no expiration)"),
+    .describe("Keep only session cookies."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' or 'json'")
 }).strict();
 
 type ListCookiesInput = z.infer<typeof ListCookiesSchema>;
 
 const SetCookieSchema = z.object({
   url: z.string()
-    .url()
-    .describe("URL to associate cookie with"),
-  name: z.string()
-    .describe("Cookie name"),
+    .url(),
+  name: z.string(),
   value: z.string()
-    .describe("Cookie value"),
+    .describe("Cookie value; never echoed back."),
   domain: z.string()
     .optional()
-    .describe("Cookie domain (defaults to URL host)"),
+    .describe("Domain; the URL host by default."),
   path: z.string()
     .optional()
-    .describe("Cookie path (defaults to '/')"),
+    .describe("Path; '/' by default."),
   secure: z.boolean()
     .optional()
-    .describe("Secure flag (HTTPS only)"),
+    .describe("HTTPS only."),
   httpOnly: z.boolean()
     .optional()
-    .describe("HttpOnly flag (not accessible to JS)"),
+    .describe("Hide it from page JavaScript."),
   sameSite: z.enum(['no_restriction', 'lax', 'strict'])
-    .optional()
-    .describe("SameSite attribute"),
+    .optional(),
   expirationDate: z.number()
     .optional()
-    .describe("Expiration as seconds since epoch (omit for session cookie)")
+    .describe("Seconds since epoch; omit for a session cookie.")
 }).strict();
 
 type SetCookieInput = z.infer<typeof SetCookieSchema>;
 
 const DeleteCookieSchema = z.object({
   url: z.string()
-    .url()
-    .describe("URL the cookie is associated with"),
+    .url(),
   name: z.string()
-    .describe("Name of the cookie to delete")
 }).strict();
 
 type DeleteCookieInput = z.infer<typeof DeleteCookieSchema>;
@@ -92,11 +88,9 @@ type DeleteCookieInput = z.infer<typeof DeleteCookieSchema>;
 const AuditCookiesSchema = z.object({
   tabId: z.number()
     .int()
-    .optional()
-    .describe("Tab ID to audit (defaults to active tab)"),
+    .optional(),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' or 'json'")
 }).strict();
 
 type AuditCookiesInput = z.infer<typeof AuditCookiesSchema>;
@@ -174,6 +168,24 @@ const KNOWN_TRACKERS = new Set([
   'quantserve.com',
   'scorecardresearch.com'
 ]);
+
+const REDACTED_VALUE = "[redacted]";
+const AUTH_COOKIE_NAME_PATTERNS = [
+  /^gcp_iap/i,
+  /^__secure-/i,
+  /^__host-/i,
+  /session/i,
+  /token/i,
+  /^sb-.*-auth-token$/i
+];
+
+export function isAuthPatternCookieName(name: string): boolean {
+  return AUTH_COOKIE_NAME_PATTERNS.some(pattern => pattern.test(name));
+}
+
+function redactCookieValues(cookies: Cookie[]): Omit<Cookie, "value">[] {
+  return cookies.map(({ value: _value, ...rest }) => rest);
+}
 
 // =====================================
 // Helper Functions
@@ -312,14 +324,11 @@ async function auditCookies(tabId?: number): Promise<CookieAuditResult> {
  */
 export function registerCookieTools(server: McpServer): void {
   // Get specific cookie
-  server.tool(
+  registerTabzTool(server,
     "tabz_cookies_get",
-    `Get a specific browser cookie by name and URL.
-
-Args: url (required), name (required)
-
-Use tabz_docs for detailed docs.`,
-    GetCookieSchema.shape,
+    "Get one cookie by name and URL. Rule: the value is redacted unless you pass revealValue, and an auth-shaped name stays redacted. " +
+    docsPointer("tabz_cookies_get"),
+    GetCookieSchema,
     async (params: GetCookieInput) => {
       try {
         const result = await getCookie(params.url, params.name);
@@ -338,9 +347,12 @@ Use tabz_docs for detailed docs.`,
         }
 
         const c = result.cookie;
+        const displayValue = !params.revealValue || isAuthPatternCookieName(c.name)
+          ? REDACTED_VALUE
+          : c.value;
         const text = `## Cookie: ${c.name}
 
-**Value:** \`${truncateValue(c.value, 50)}\`
+**Value:** \`${displayValue}\`
 **Domain:** ${c.domain}
 **Path:** ${c.path}
 **Secure:** ${c.secure ? 'Yes' : 'No'}
@@ -365,14 +377,10 @@ Use tabz_docs for detailed docs.`,
   );
 
   // List cookies
-  server.tool(
+  registerTabzTool(server,
     "tabz_cookies_list",
-    `List browser cookies with optional filtering. Provide at least domain or url for targeted results.
-
-Args: domain (optional), url (optional), name (optional), secure (optional), session (optional)
-
-Use tabz_docs for detailed docs.`,
-    ListCookiesSchema.shape,
+    "List cookies and their flags; pass domain or url to narrow it. Values come from tabz_cookies_get.",
+    ListCookiesSchema,
     async (params: ListCookiesInput) => {
       try {
         const result = await listCookies({
@@ -397,7 +405,7 @@ Use tabz_docs for detailed docs.`,
             content: [{
               type: "text",
               text: JSON.stringify({
-                cookies: cookies,
+                cookies: redactCookieValues(cookies),
                 total: cookies.length
               }, null, 2)
             }]
@@ -431,7 +439,7 @@ Use tabz_docs for detailed docs.`,
             if (c.httpOnly) flags.push('🚫 HttpOnly');
             if (c.session) flags.push('⏱️ Session');
 
-            lines.push(`- **${c.name}**: \`${truncateValue(c.value)}\``);
+            lines.push(`- **${c.name}**`);
             if (flags.length > 0) {
               lines.push(`  ${flags.join(' | ')}`);
             }
@@ -458,14 +466,11 @@ Use tabz_docs for detailed docs.`,
   );
 
   // Set cookie
-  server.tool(
+  registerTabzTool(server,
     "tabz_cookies_set",
-    `Create or update a browser cookie. Modifying cookies can break auth -- use carefully.
-
-Args: url (required), name (required), value (required), domain/path/secure/httpOnly/sameSite/expirationDate (optional)
-
-Use tabz_docs for detailed docs.`,
-    SetCookieSchema.shape,
+    "Create or update a cookie. Rule: changing one can break the user's session; the value is never echoed back. " +
+    docsPointer("tabz_cookies_set"),
+    SetCookieSchema,
     async (params: SetCookieInput) => {
       try {
         const result = await setCookie(params);
@@ -493,7 +498,7 @@ Use tabz_docs for detailed docs.`,
 **Name:** ${c.name}
 **Domain:** ${c.domain}
 **Path:** ${c.path}
-**Value:** \`${truncateValue(c.value, 30)}\`
+**Value length:** ${c.value.length} chars
 **Secure:** ${c.secure ? 'Yes' : 'No'}
 **HttpOnly:** ${c.httpOnly ? 'Yes' : 'No'}
 **SameSite:** ${c.sameSite}
@@ -513,12 +518,10 @@ Use tabz_docs for detailed docs.`,
   );
 
   // Delete cookie
-  server.tool(
+  registerTabzTool(server,
     "tabz_cookies_delete",
-    `Delete a specific browser cookie. Deleting auth cookies will log user out.
-
-Args: url (required), name (required)`,
-    DeleteCookieSchema.shape,
+    "Delete one cookie. Deleting an auth cookie signs the user out.",
+    DeleteCookieSchema,
     async (params: DeleteCookieInput) => {
       try {
         const result = await deleteCookie(params.url, params.name);
@@ -560,12 +563,10 @@ The cookie has been successfully removed.`
   );
 
   // Audit cookies
-  server.tool(
+  registerTabzTool(server,
     "tabz_cookies_audit",
-    `Audit cookies for the current page -- categorizes first/third-party, session/persistent, flags known trackers.
-
-Args: tabId (optional, defaults to active tab)`,
-    AuditCookiesSchema.shape,
+    "Audit one page's cookies: first or third party, session or persistent, trackers flagged. Values are never shown.",
+    AuditCookiesSchema,
     async (params: AuditCookiesInput) => {
       try {
         const result = await auditCookies(params.tabId);
@@ -595,7 +596,7 @@ Args: tabId (optional, defaults to active tab)`,
                 thirdParty: thirdParty.length,
                 session: sessionCookies.length,
                 persistent: persistentCookies.length,
-                cookies: cookies
+                cookies: redactCookieValues(cookies)
               }, null, 2)
             }]
           };
@@ -639,7 +640,6 @@ Args: tabId (optional, defaults to active tab)`,
             if (c.httpOnly) flags.push('🚫JS');
             if (c.session) flags.push('⏱️');
             lines.push(`- **${c.name}** ${flags.join(' ')}`);
-            lines.push(`  Value: \`${truncateValue(c.value)}\``);
           }
           lines.push('');
         }
@@ -662,7 +662,7 @@ Args: tabId (optional, defaults to active tab)`,
             const trackerLabel = isTracker ? ' ⚠️ TRACKER' : '';
             lines.push(`### ${domain}${trackerLabel}`);
             for (const c of domainCookies) {
-              lines.push(`- **${c.name}**: \`${truncateValue(c.value)}\``);
+              lines.push(`- **${c.name}**`);
             }
             lines.push('');
           }

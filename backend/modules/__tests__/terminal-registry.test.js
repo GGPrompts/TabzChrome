@@ -1,3 +1,5 @@
+import '../../tests/helpers/process-boundary-fake.js';
+
 const terminalRegistry = require('../terminal-registry');
 
 describe('Terminal Registry', () => {

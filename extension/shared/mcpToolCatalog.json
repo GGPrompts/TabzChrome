@@ -1,0 +1,487 @@
+[
+  {
+    "id": "tabz_list_tabs",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_switch_tab",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_close_tab",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_rename_tab",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_get_page_info",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_act",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_batch",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_click",
+    "category": "Legacy",
+    "locked": false
+  },
+  {
+    "id": "tabz_fill",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_request_login",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_secret_request",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_secret_status",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_fill_secret",
+    "category": "Interaction",
+    "locked": false
+  },
+  {
+    "id": "tabz_screenshot",
+    "category": "Legacy",
+    "locked": false
+  },
+  {
+    "id": "tabz_screenshot_full",
+    "category": "Legacy",
+    "locked": false
+  },
+  {
+    "id": "tabz_download_image",
+    "category": "Screenshot",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_element",
+    "category": "Inspection",
+    "locked": false
+  },
+  {
+    "id": "tabz_read_page",
+    "category": "Inspection",
+    "locked": false
+  },
+  {
+    "id": "tabz_open_url",
+    "category": "Navigation",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_console_logs",
+    "category": "Console",
+    "locked": false
+  },
+  {
+    "id": "tabz_execute_script",
+    "category": "Console",
+    "locked": false
+  },
+  {
+    "id": "tabz_enable_deep_capture",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_disable_deep_capture",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_response_body",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_enable_network_capture",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_network_requests",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_clear_network_requests",
+    "category": "Network",
+    "locked": false
+  },
+  {
+    "id": "tabz_download_file",
+    "category": "Downloads",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_downloads",
+    "category": "Downloads",
+    "locked": false
+  },
+  {
+    "id": "tabz_cancel_download",
+    "category": "Downloads",
+    "locked": false
+  },
+  {
+    "id": "tabz_save_page",
+    "category": "Downloads",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_bookmark_tree",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_search_bookmarks",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_save_bookmark",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_create_folder",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_move_bookmark",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_delete_bookmark",
+    "category": "Bookmarks",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_dom_tree",
+    "category": "Debugger",
+    "locked": false
+  },
+  {
+    "id": "tabz_profile_performance",
+    "category": "Debugger",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_coverage",
+    "category": "Debugger",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_groups",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_create_group",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_update_group",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_add_to_group",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_ungroup_tabs",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_claude_group_add",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_claude_group_remove",
+    "category": "Tab Groups",
+    "locked": false
+  },
+  {
+    "id": "tabz_claude_group_status",
+    "category": "Core",
+    "locked": true
+  },
+  {
+    "id": "tabz_list_windows",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_create_window",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_update_window",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_close_window",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_displays",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_tile_windows",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_popout_terminal",
+    "category": "Windows",
+    "locked": false
+  },
+  {
+    "id": "tabz_speak",
+    "category": "Audio",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_voices",
+    "category": "Audio",
+    "locked": false
+  },
+  {
+    "id": "tabz_play_audio",
+    "category": "Audio",
+    "locked": false
+  },
+  {
+    "id": "tabz_history_search",
+    "category": "History",
+    "locked": false
+  },
+  {
+    "id": "tabz_history_visits",
+    "category": "History",
+    "locked": false
+  },
+  {
+    "id": "tabz_history_recent",
+    "category": "History",
+    "locked": false
+  },
+  {
+    "id": "tabz_history_delete_url",
+    "category": "History",
+    "locked": false
+  },
+  {
+    "id": "tabz_history_delete_range",
+    "category": "History",
+    "locked": false
+  },
+  {
+    "id": "tabz_sessions_recently_closed",
+    "category": "Sessions",
+    "locked": false
+  },
+  {
+    "id": "tabz_sessions_restore",
+    "category": "Sessions",
+    "locked": false
+  },
+  {
+    "id": "tabz_sessions_devices",
+    "category": "Sessions",
+    "locked": false
+  },
+  {
+    "id": "tabz_cookies_get",
+    "category": "Cookies",
+    "locked": false
+  },
+  {
+    "id": "tabz_cookies_list",
+    "category": "Cookies",
+    "locked": false
+  },
+  {
+    "id": "tabz_cookies_set",
+    "category": "Cookies",
+    "locked": false
+  },
+  {
+    "id": "tabz_cookies_delete",
+    "category": "Cookies",
+    "locked": false
+  },
+  {
+    "id": "tabz_cookies_audit",
+    "category": "Cookies",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_device",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_clear",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_geolocation",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_network",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_media",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_emulate_vision",
+    "category": "Emulation",
+    "locked": false
+  },
+  {
+    "id": "tabz_notification_show",
+    "category": "Notifications",
+    "locked": false
+  },
+  {
+    "id": "tabz_notification_update",
+    "category": "Notifications",
+    "locked": false
+  },
+  {
+    "id": "tabz_notification_clear",
+    "category": "Notifications",
+    "locked": false
+  },
+  {
+    "id": "tabz_notification_list",
+    "category": "Notifications",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_profiles",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_categories",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_spawn_profile",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_profile",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_create_profile",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_update_profile",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_delete_profile",
+    "category": "Profiles",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_plugins",
+    "category": "Plugins",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_skills",
+    "category": "Plugins",
+    "locked": false
+  },
+  {
+    "id": "tabz_get_skill",
+    "category": "Plugins",
+    "locked": false
+  },
+  {
+    "id": "tabz_plugins_health",
+    "category": "Plugins",
+    "locked": false
+  },
+  {
+    "id": "tabz_toggle_plugin",
+    "category": "Plugins",
+    "locked": false
+  },
+  {
+    "id": "tabz_list_terminals",
+    "category": "Terminals",
+    "locked": false
+  },
+  {
+    "id": "tabz_send_keys",
+    "category": "Terminals",
+    "locked": false
+  },
+  {
+    "id": "tabz_capture_terminal",
+    "category": "Terminals",
+    "locked": false
+  },
+  {
+    "id": "tabz_docs",
+    "category": "Core",
+    "locked": true
+  }
+]

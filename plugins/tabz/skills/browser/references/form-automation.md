@@ -1,60 +1,31 @@
 # Form Automation
 
-## Fill Input Field
+## Read and Target the Current Document
 
-```bash
-mcp-cli info tabz/tabz_fill  # Check schema first
-mcp-cli call tabz/tabz_fill '{"selector": "#email", "value": "user@example.com", "tabId": 123456}'
+```javascript
+tabz_read_page({"tabId": 123456})
 ```
 
-Options:
-- `selector`: CSS selector for input
-- `value`: Text to enter
-- `tabId`: Target tab
+The response publishes opaque refs for actionable elements. A ref belongs to the current MCP caller, owned tab, document, and publication generation. Reread after navigation and never reuse refs after a reread or ownership change.
 
-## Click Element
+## Ordinary, Non-Sensitive Forms
 
-```bash
-mcp-cli call tabz/tabz_click '{"selector": "button[type=submit]", "tabId": 123456}'
+```javascript
+tabz_act({"action": "type", "ref": "<email ref from tabz_read_page>", "value": "user@example.com", "tabId": 123456})
+tabz_act({"action": "click", "ref": "<submit ref from tabz_read_page>", "tabId": 123456})
 ```
 
-Options:
-- `selector`: CSS selector
-- `tabId`: Target tab
+Check each result's `structuredContent.status`. Continue only after `verified`; stop on `mismatch` or `unknown`. An unknown mutation may already have changed the page, so do not replay it. Reconcile with `tabz_read_page` when the document remains readable.
 
-Visual feedback: Elements glow when interacted with.
+## Credentials and Login Pages
 
-## Get Element Details
+Never put passwords or saved credential values in `tabz_fill`, `tabz_act`, scripts, prompts, or logs. Use `tabz_request_login` for a manual handoff or the saved-login tools described in repository `docs/saved-logins.md`. Protected login documents block content reads, screenshots, and arbitrary-selector interaction. Submit with a ref published before protection when available; otherwise ask the user to submit or navigate.
 
-```bash
-mcp-cli call tabz/tabz_get_element '{"selector": ".error-message", "tabId": 123456}'
-```
+## Legacy Selector Tools
 
-Returns text, attributes, bounding box.
+`tabz_fill`, `tabz_click`, `tabz_get_element`, and `tabz_execute_script` remain available for compatible, non-sensitive workflows. Prefer `tabz_read_page` plus `tabz_act` so targeting and result status are explicit.
 
-## Execute JavaScript
-
-```bash
-mcp-cli call tabz/tabz_execute_script '{"script": "document.querySelector(\"#custom\").click()", "tabId": 123456}'
-```
-
-Run arbitrary JS in page context.
-
-## Typical Form Workflow
-
-```bash
-# 1. Fill fields
-mcp-cli call tabz/tabz_fill '{"selector": "#email", "value": "user@example.com", "tabId": 123456}'
-mcp-cli call tabz/tabz_fill '{"selector": "#password", "value": "secret", "tabId": 123456}'
-
-# 2. Submit
-mcp-cli call tabz/tabz_click '{"selector": "button[type=submit]", "tabId": 123456}'
-
-# 3. Verify result
-mcp-cli call tabz/tabz_screenshot '{"tabId": 123456}'
-```
-
-## Selector Tips
+Selector examples:
 
 - ID: `#login-button`
 - Class: `.submit-btn`

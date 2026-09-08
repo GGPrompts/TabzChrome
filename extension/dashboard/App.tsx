@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useCallback, useState, useEffect, useRef } from 'react'
 import {
   Wifi,
   WifiOff,
@@ -22,6 +22,7 @@ import {
   PanelLeftOpenIcon,
   GlobeIcon,
   SparklesIcon,
+  EyeOffIcon,
 } from '../components/icons'
 import { useWorkingDirectory } from '../hooks/useWorkingDirectory'
 import { useAccentSettings } from '../hooks/useAccentSettings'
@@ -39,6 +40,7 @@ import SettingsAppearance from './sections/SettingsAppearance'
 import FilesSection from './sections/Files'
 import GitSection from './sections/Git'
 import PagesSection from './sections/Pages'
+import SettingsLogins from './sections/SettingsLogins'
 
 // Components
 import CaptureViewer from './components/CaptureViewer'
@@ -59,13 +61,19 @@ interface CaptureData {
   }
 }
 
-type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'appearance' | 'audio' | 'notifications' | 'pages'
+type Section = 'home' | 'terminals' | 'files' | 'git' | 'api' | 'profiles' | 'mcp' | 'logins' | 'appearance' | 'audio' | 'notifications' | 'pages'
+
+const VALID_SECTIONS: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'logins', 'appearance', 'audio', 'notifications', 'pages']
 
 interface NavItem {
   id: Section
   label: string
   icon: React.ComponentType<{ className?: string; size?: number; isHovered?: boolean }>
   children?: NavItem[]
+}
+
+function LoginsIcon({ className, size }: { className?: string; size?: number; isHovered?: boolean }) {
+  return <EyeOffIcon className={className} size={size} />
 }
 
 // GithubLink component with hover state for animated icon
@@ -146,6 +154,7 @@ const navItems: NavItem[] = [
   { id: 'pages', label: 'Pages', icon: GlobeIcon },
   { id: 'api', label: 'API Playground', icon: CodeIcon },
   { id: 'mcp', label: 'MCP Settings', icon: SettingsIcon },
+  { id: 'logins', label: 'Logins', icon: LoginsIcon },
   { id: 'appearance', label: 'Appearance', icon: SparklesIcon },
   { id: 'audio', label: 'Audio', icon: VolumeIcon },
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
@@ -164,8 +173,7 @@ export default function App() {
     if (hash.startsWith('#/')) {
       const hashPath = hash.slice(2) // Remove '#/'
       const [section] = hashPath.split('?')
-      const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'appearance', 'audio', 'notifications', 'pages']
-      if (validSections.includes(section as Section)) {
+      if (VALID_SECTIONS.includes(section as Section)) {
         return section as Section
       }
     }
@@ -182,6 +190,9 @@ export default function App() {
   const [showDirDropdown, setShowDirDropdown] = useState(false)
   const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const activeSectionRef = useRef(activeSection)
+  const loginFormDirtyRef = useRef(false)
+  const acceptedHashRef = useRef(window.location.hash || `#/${activeSection}`)
 
   // Shared working directory
   const { globalWorkingDir, setGlobalWorkingDir, recentDirs, setRecentDirs, addToRecentDirs } = useWorkingDirectory()
@@ -200,7 +211,25 @@ export default function App() {
   // Persist section and sidebar state
   useEffect(() => {
     localStorage.setItem('tabz-dashboard-section', activeSection)
+    activeSectionRef.current = activeSection
   }, [activeSection])
+
+  const navigateTo = useCallback((section: Section) => {
+    if (section === activeSectionRef.current) return true
+    if (activeSectionRef.current === 'logins' && loginFormDirtyRef.current) {
+      const discard = window.confirm('Discard the unsaved login changes?')
+      if (!discard) return false
+      loginFormDirtyRef.current = false
+    }
+    activeSectionRef.current = section
+    acceptedHashRef.current = `#/${section}`
+    setActiveSection(section)
+    return true
+  }, [])
+
+  const handleLoginDirtyChange = useCallback((dirty: boolean) => {
+    loginFormDirtyRef.current = dirty
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('tabz-dashboard-sidebar-collapsed', String(sidebarCollapsed))
@@ -232,14 +261,32 @@ export default function App() {
       if (hash.startsWith('#/')) {
         const hashPath = hash.slice(2) // Remove '#/'
         const [section] = hashPath.split('?')
-        const validSections: Section[] = ['home', 'terminals', 'files', 'git', 'api', 'profiles', 'mcp', 'appearance', 'audio', 'notifications', 'pages']
-        if (validSections.includes(section as Section)) {
-          setActiveSection(section as Section)
+        if (VALID_SECTIONS.includes(section as Section)) {
+          const nextSection = section as Section
+          if (nextSection === activeSectionRef.current) {
+            if (nextSection !== 'logins') acceptedHashRef.current = window.location.hash
+            return
+          }
+          if (navigateTo(nextSection)) {
+            acceptedHashRef.current = window.location.hash
+          } else {
+            window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}${acceptedHashRef.current}`)
+          }
         }
       }
     }
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [navigateTo])
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!loginFormDirtyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
   const handleCloseCapture = () => {
@@ -322,6 +369,8 @@ export default function App() {
         return <SettingsProfiles />
       case 'mcp':
         return <SettingsMcp />
+      case 'logins':
+        return <SettingsLogins onDirtyChange={handleLoginDirtyChange} />
       case 'appearance':
         return <SettingsAppearance />
       case 'audio':
@@ -482,10 +531,10 @@ export default function App() {
                       })
                       // Navigate to first child if not already on a child
                       if (!isChildActive && item.children?.[0]) {
-                        setActiveSection(item.children[0].id)
+                        navigateTo(item.children[0].id)
                       }
                     } else {
-                      setActiveSection(item.id)
+                      navigateTo(item.id)
                     }
                   }}
                 />
@@ -499,7 +548,7 @@ export default function App() {
                         <button
                           key={child.id}
                           data-section={child.id}
-                          onClick={() => setActiveSection(child.id)}
+                          onClick={() => navigateTo(child.id)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                             isChildItemActive
                               ? 'bg-primary/20 text-primary'
@@ -552,7 +601,7 @@ export default function App() {
       <QuickOpenModal
         isOpen={quickOpenOpen}
         onClose={() => setQuickOpenOpen(false)}
-        onFileOpen={() => setActiveSection('files')}
+        onFileOpen={() => navigateTo('files')}
       />
     </div>
     </FilesProvider>

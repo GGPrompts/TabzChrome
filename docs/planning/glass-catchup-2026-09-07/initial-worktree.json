@@ -1,0 +1,162 @@
+{
+  "branch": "feat/glass-catchup",
+  "head": "ec502b143ad1db211a49c7015549a4f66d586950",
+  "strategy": "Shared integration checkout; disjoint worker scopes; original dirty files retained in place. Orchestrator owns package files, generated outputs and Beads. No additional worktrees.",
+  "files": [
+    {
+      "status": " M",
+      "path": ".claude/skills/tabz-browser/SKILL.md",
+      "sha256": "b83fd76dfdd1268be2151864114b29320e5d37c147a649b5baee6f9011b67547"
+    },
+    {
+      "status": " M",
+      "path": "CLAUDE.md",
+      "sha256": "74ac811476950fdcc6b06c4dbacedd710335f53f0f852c65efe7a699e9d43706"
+    },
+    {
+      "status": " M",
+      "path": "README.md",
+      "sha256": "ef10b15f37cafca83e6339166e58e1dc55ffdf1daea82871862ca5efa3452ce3"
+    },
+    {
+      "status": " M",
+      "path": "backend/public/templates/README.md",
+      "sha256": "749b2d4430dbd939c0cd4aa4206e60e58ce9f46f512de60ebb7021b90e278325"
+    },
+    {
+      "status": " M",
+      "path": "docs/PLUGIN.md",
+      "sha256": "47147f5508188bca5e2ceab28ac7764de42b8e8df6e62d70c86d87f09d0281fa"
+    },
+    {
+      "status": " M",
+      "path": "extension/dashboard/components/files/FileTree.tsx",
+      "sha256": "9541e95f70668c28890c7277bba67ed869f7fd19c27fff264e992baaca011090"
+    },
+    {
+      "status": " M",
+      "path": "extension/dashboard/components/git/GitRepoCard.tsx",
+      "sha256": "b52e74cbf4d52d507c8bb9aa0b79c510acdc5b9008980561edbcef918b913369"
+    },
+    {
+      "status": " M",
+      "path": "extension/dashboard/sections/SettingsMcp.tsx",
+      "sha256": "ef9dc042d606dd6a264b9f62fcfcbb33c913ae57f96559437ec8aa244c68a2c2"
+    },
+    {
+      "status": " M",
+      "path": "extension/hooks/useGitRepos.ts",
+      "sha256": "b89b7cf2392d5e997ca10bb5ae2c5719a5921aa3ed709a3c58c3a1da0cccc008"
+    },
+    {
+      "status": " M",
+      "path": "package-lock.json",
+      "sha256": "d60df0f7da4567d13fff46749b0cefe430f55c31cf3e9f528c7626ef13eaf7fd"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/agents/tabz-expert.md",
+      "sha256": "23f6539fcbcdad3cb06f7a543a2b591bb47c2337461397972dcbdafb1882c2a2"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/skills/browser/SKILL.md",
+      "sha256": "4f9460f3d056280e9e5200633280cfbc16fcac873c5db935fb0544c983482140"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/skills/browser/references/form-automation.md",
+      "sha256": "83b76e8e83d59574906355b7c59a8200c7605f63d7f955f9157c315822bd534d"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/skills/browser/references/network-debugging.md",
+      "sha256": "cc4a2f4547900adc40e24860e6ff965be381539cefcd38fba2eb64c4ba47db65"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/skills/browser/references/screenshot-workflows.md",
+      "sha256": "eb44bc1d1d04632fe667c1d7596deac13875534c9eb4719c939c0d742cac045c"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/skills/browser/references/tts-notifications.md",
+      "sha256": "bde84571c1e5321ca67d0d7ad2b69b630591dcec99bb700076921fd623d5b0dd"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/MCP_TOOLS.md",
+      "sha256": "a58bcc79d08e9860ab5760f1db8fdd329efb2469c80e3972b18224a7d25b9a25"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/WSL2_SETUP.md",
+      "sha256": "52cf31c75f3895960d47f05ae666dcad8a1e93f61942a696ab3335b7e830d578"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/dist/tools/tool-docs.d.ts.map",
+      "sha256": "6d4553617f019d0a7cd897bd63765cd94e56f1b556a6c3afe1da0838b8de30bf"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/dist/tools/tool-docs.js",
+      "sha256": "1d52b9ff047d9c60d2b13aeca6cdc1f7541aab6c0b20c5cafe0303362bae5f74"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/dist/tools/tool-docs.js.map",
+      "sha256": "b2f767ff1a3ab85ec833d0e390f4aa3cda72d94ffaf72deba48c3e52fa1aa7eb"
+    },
+    {
+      "status": " M",
+      "path": "plugins/tabz/tabz-mcp-server/src/tools/tool-docs.ts",
+      "sha256": "5cc7a459d9ecba725ea5b9b9ace523673f2896535479d24c42dff12c563f05d8"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/MCP_TOOLS.md",
+      "sha256": "a58bcc79d08e9860ab5760f1db8fdd329efb2469c80e3972b18224a7d25b9a25"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/WSL2_SETUP.md",
+      "sha256": "52cf31c75f3895960d47f05ae666dcad8a1e93f61942a696ab3335b7e830d578"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/dist/tools/tool-docs.d.ts.map",
+      "sha256": "6d4553617f019d0a7cd897bd63765cd94e56f1b556a6c3afe1da0838b8de30bf"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/dist/tools/tool-docs.js",
+      "sha256": "1d52b9ff047d9c60d2b13aeca6cdc1f7541aab6c0b20c5cafe0303362bae5f74"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/dist/tools/tool-docs.js.map",
+      "sha256": "b2f767ff1a3ab85ec833d0e390f4aa3cda72d94ffaf72deba48c3e52fa1aa7eb"
+    },
+    {
+      "status": " M",
+      "path": "tabz-mcp-server/src/tools/tool-docs.ts",
+      "sha256": "5cc7a459d9ecba725ea5b9b9ace523673f2896535479d24c42dff12c563f05d8"
+    },
+    {
+      "status": "??",
+      "path": "docs/planning/glass-catchup-2026-09-07/commits.tsv",
+      "sha256": "645d3288fb9f243a85024f5aa9186b2f94b7f14c4578afaf28ee57d531e56b38"
+    },
+    {
+      "status": "??",
+      "path": "docs/planning/glass-catchup-2026-09-07/PLAN.md",
+      "sha256": "134bfa5d1dac19301d4d4151a8ae163981dddc058f73df58d98205db2d1844d9"
+    },
+    {
+      "status": "??",
+      "path": "docs/planning/glass-catchup-2026-09-07/files.tsv",
+      "sha256": "b8a20a98b6924b9683fc381d7557b2752a83bd66248715770fc2dea7f347896b"
+    }
+  ]
+}

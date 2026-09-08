@@ -5,34 +5,33 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
 import { ResponseFormat, type ConsoleLogsResponse, type ConsoleLogEntry, type ConsoleLogLevel } from "../types.js";
+import { docsPointer } from "../descriptions.js";
 
 // Input schema for tabz_get_console_logs
 const GetConsoleLogsSchema = z.object({
   level: z.enum(["all", "log", "info", "warn", "error", "debug"])
     .default("all")
-    .describe("Filter logs by level: 'all', 'log', 'info', 'warn', 'error', or 'debug'"),
+    .describe("Level to keep; omit for the warn+error fast path."),
   limit: z.number()
     .int()
     .min(1)
     .max(1000)
-    .default(100)
-    .describe("Maximum number of log entries to return (1-1000, default: 100)"),
+    .default(100),
   since: z.number()
     .int()
     .min(0)
-    .optional()
-    .describe("Only return logs after this timestamp (milliseconds since epoch)"),
+    .optional(),
   tabId: z.number()
     .int()
     .optional()
-    .describe("Filter logs by specific browser tab ID"),
+    .describe("Chrome tab ID; must be in your group. Omit for the group."),
   response_format: z.nativeEnum(ResponseFormat)
     .default(ResponseFormat.MARKDOWN)
-    .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 
 type GetConsoleLogsInput = z.infer<typeof GetConsoleLogsSchema>;
@@ -65,10 +64,15 @@ async function getConsoleLogs(options: {
   }
 }
 
+function formatLogOrigin(entry: ConsoleLogEntry): string {
+  const origin = entry.origin ?? (entry.source === 'page' ? 'page' : 'unknown');
+  return `[${origin}]${entry.count && entry.count > 1 ? ` ×${entry.count}` : ''}`;
+}
+
 /**
  * Format console logs as markdown
  */
-function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
+export function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
   if (logs.length === 0) {
     return "# Console Logs\n\nNo console logs captured. Make sure:\n- Chrome is open with pages loaded\n- TabzChrome extension is installed and active\n- You've interacted with pages that log to console";
   }
@@ -96,7 +100,7 @@ function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
     lines.push("");
     for (const entry of byLevel.error) {
       const time = new Date(entry.timestamp).toLocaleTimeString();
-      lines.push(`- **[${time}]** ${truncateMessage(entry.message, 200)}`);
+      lines.push(`- **[${time}]** ${`${formatLogOrigin(entry)} ${truncateMessage(entry.message, 200)}`}`);
       if (entry.stack) {
         lines.push(`  \`\`\`\n  ${entry.stack.split('\n').slice(0, 3).join('\n  ')}\n  \`\`\``);
       }
@@ -111,7 +115,7 @@ function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
     lines.push("");
     for (const entry of byLevel.warn) {
       const time = new Date(entry.timestamp).toLocaleTimeString();
-      lines.push(`- **[${time}]** ${truncateMessage(entry.message, 200)}`);
+      lines.push(`- **[${time}]** ${`${formatLogOrigin(entry)} ${truncateMessage(entry.message, 200)}`}`);
       lines.push("");
     }
   }
@@ -124,7 +128,7 @@ function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
     for (const entry of infoLogs.slice(-20)) { // Show last 20
       const time = new Date(entry.timestamp).toLocaleTimeString();
       const level = entry.level === 'info' ? 'ℹ️' : '📝';
-      lines.push(`- ${level} **[${time}]** ${truncateMessage(entry.message, 150)}`);
+      lines.push(`- ${level} **[${time}]** ${`${formatLogOrigin(entry)} ${truncateMessage(entry.message, 150)}`}`);
     }
     if (infoLogs.length > 20) {
       lines.push(`\n_...and ${infoLogs.length - 20} more log entries_`);
@@ -138,7 +142,7 @@ function formatLogsAsMarkdown(logs: ConsoleLogEntry[], total: number): string {
     lines.push("");
     for (const entry of byLevel.debug.slice(-10)) {
       const time = new Date(entry.timestamp).toLocaleTimeString();
-      lines.push(`- 🔍 **[${time}]** ${truncateMessage(entry.message, 100)}`);
+      lines.push(`- 🔍 **[${time}]** ${`${formatLogOrigin(entry)} ${truncateMessage(entry.message, 100)}`}`);
     }
     lines.push("");
   }
@@ -159,21 +163,21 @@ function truncateMessage(msg: string, maxLen: number): string {
  * Register console tools with the MCP server
  */
 export function registerConsoleTools(server: McpServer, backendUrl: string): void {
-  server.tool(
+  registerTabzTool(server,
     "tabz_get_console_logs",
-    `Get browser console logs (errors, warnings, info, debug). Captured from all open tabs.
-
-Args: level (optional: all/log/info/warn/error/debug), limit (optional), since (optional), tabId (optional)`,
-    GetConsoleLogsSchema.shape,
+    "Read scoped console logs, newest first; omit level for warn+error. " +
+    docsPointer("tabz_get_console_logs"),
+    GetConsoleLogsSchema,
     async (params: GetConsoleLogsInput) => {
       try {
         const response = await getConsoleLogs({
-          level: params.level === 'all' ? undefined : params.level,
+          level: params.level,
           limit: params.limit,
           since: params.since,
           tabId: params.tabId
         });
 
+        if (response.error) throw new Error(response.error);
         let result: string;
         if (params.response_format === ResponseFormat.JSON) {
           result = JSON.stringify(response, null, 2);

@@ -122,7 +122,7 @@ function fuzzyMatch(query: string, text: string): number {
 interface QuickOpenModalProps {
   isOpen: boolean
   onClose: () => void
-  onFileOpen?: () => void  // Called when a file is opened (for navigation)
+  onFileOpen?: () => boolean | void  // Return false to refuse navigation before opening.
 }
 
 export function QuickOpenModal({ isOpen, onClose, onFileOpen }: QuickOpenModalProps) {
@@ -235,8 +235,8 @@ export function QuickOpenModal({ isOpen, onClose, onFileOpen }: QuickOpenModalPr
       case 'Enter':
         e.preventDefault()
         if (filteredFiles[selectedIndex]) {
+          if (onFileOpen?.() === false) return
           openFile(filteredFiles[selectedIndex].path, true)
-          onFileOpen?.()
           onClose()
         }
         break
@@ -249,8 +249,8 @@ export function QuickOpenModal({ isOpen, onClose, onFileOpen }: QuickOpenModalPr
 
   // Handle item click
   const handleItemClick = useCallback((file: FlatFile) => {
+    if (onFileOpen?.() === false) return
     openFile(file.path, true)
-    onFileOpen?.()
     onClose()
   }, [openFile, onClose, onFileOpen])
 

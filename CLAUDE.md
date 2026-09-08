@@ -26,7 +26,7 @@ extension/                          backend/
 │   └── useClaudeStatus.ts              └── browser.js (MCP)
 ├── background/
 │   ├── index.ts                    tabz-mcp-server/src/
-│   ├── websocket.ts                ├── index.ts (MCP server entry)
+│   ├── websocket.ts                ├── index.ts (stdio entry)
 │   ├── messageHandlers.ts          └── tools/ (MCP tool definitions)
 │   ├── browserMcp/
 │   │   ├── tabs.ts
@@ -49,7 +49,15 @@ extension/                          backend/
 - **Terminal IDs**: `ctt-{profile}-{shortId}` prefix for Chrome extension terminals (shortId is 8 hex chars)
 - **State**: Chrome storage (UI) + tmux (process persistence)
 - **Communication**: WebSocket for terminal I/O, Chrome messages for extension
-- **MCP Tools**: 85 tabz_* tools available via project-scoped `.mcp.json`
+- **Browser trust**: `backend/modules/ws-identity.js` checks exact origins and `TABZ_EXTENSION_IDS` before token access and WebSocket upgrade. Browser frames use an identified extension channel; terminal broadcasts retain their protocol. This separates browser origins, not same-user processes. See [local browser trust](docs/local-browser-trust.md).
+- **Local token file**: Backend and MCP readers resolve `tabz-auth-token` beneath the OS temporary directory; avoid hardcoding `/tmp`.
+- **Saved login boundary**: `backend/modules/credential-store.js` owns local `~/.tabzchrome` files (`TABZ_HOME` override); metadata routes return field names and readiness, while the fill relay uses values internally. Protected prompt terminals require the in-process `SECRET_SPAWN` capability and retain classification in tmux. See [saved login boundaries](docs/saved-logins.md).
+- **Credential document protection**: `extension/background/browserMcp/documentProtection.ts` serializes per-tab content-read and credential-entry admission separately from the debugger queue. Chrome document identities persist in session storage before entry; capture adapters check eligibility before storing or forwarding content. New content/export tools must use this boundary and validate their results before returning them. Same-document navigation and BFCache do not clear protection.
+- **Capture lifecycle**: screenshot transactions share a bounded scheduler and always capture the intended debugger target. Trusted Chrome document lifecycle metadata controls console/network admission. Capture rows retain their original caller ownership; group mutations invalidate refs and diagnostics before changing membership. Deep capture ends on navigation/protection/ownership changes and requires explicit re-enable. The MAIN console bridge only supplies log content; the Chrome sender supplies document identity.
+- **Prompt notifications**: background one-shot alarms poll ordinary terminal metadata and own desktop permission/question transitions. UI views report visibility for focus suppression; audio stays in its existing hooks. Protected terminal flags/session prefixes exclude status polling. Lifecycle generations discard late responses after terminal-list changes.
+- **MCP transports**: `server.ts` creates the shared tool server; `index.ts` serves stdio and `http.ts` serves isolated Streamable HTTP sessions mounted by `backend/modules/tabz-mcp-mount.js` at `/mcp` and `/mcp/:preset` on port 8129. Per-session identity, backend URL and tab state use AsyncLocalStorage. Canonical MCP source and build output are mirrored to `plugins/tabz/tabz-mcp-server`.
+- **CLI client**: `tabz-mcp-server/src/cli/index.ts` provides `tabz discover/call/run`; `src/client/index.ts` exports the reusable HTTP MCP client. Each run has a distinct caller identity, validates tool schemas before dispatch, and latches uncertain mutations. The default is `http://localhost:8129/mcp/page-agent`; no model or AI SDK is involved. See `docs/tabz-cli.md`.
+- **Compact browser tools**: `tabz_read_page` publishes document-bound refs for `tabz_act`; refs are invalidated by rereads, navigation, removal and ownership changes. The extension admits reads/actions through the credential document boundary. `tabz_batch` dispatches sequentially through the current server's enabled-tool registry and stops on the first error. It is not a workflow engine or a retry mechanism.
 
 ---
 
@@ -110,7 +118,8 @@ ps aux | grep "node server"                   # Check backend running
 
 ### Spawn API
 ```bash
-TOKEN=$(cat /tmp/tabz-auth-token)
+TABZ_TOKEN_FILE=$(node -p 'require("node:path").join(require("node:os").tmpdir(), "tabz-auth-token")')
+TOKEN=$(cat "$TABZ_TOKEN_FILE")
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
   -H "X-Auth-Token: $TOKEN" \
@@ -171,22 +180,23 @@ This project has local skills and agents in `.claude/`:
 | `.claude/skills/tabz-browser/` | Screenshots, forms, network debugging, responsive testing, TTS |
 | `.claude/skills/tabz-terminals/` | Spawn workers via TabzChrome API, worktree setup |
 | `.claude/skills/tabz-development/` | Working on TabzChrome codebase (Terminal.tsx, xterm.js) |
-| `.claude/agents/tabz-expert.md` | Browser automation specialist (85 MCP tools) |
+| `.claude/agents/tabz-expert.md` | Browser automation specialist using the configured MCP preset |
 
 ### MCP Tools (Project-Scoped)
 
-The 85 tabz_* MCP tools are only available in this project (configured in `.mcp.json`). Use `mcp-cli` to discover and call tools.
+The full catalog has 97 `tabz_*` tools; `page-agent` selects 20. This project's `.mcp.json` configures the server. Schema loading depends on the client and preset; size estimates and measured comparisons are in `docs/planning/glass-catchup-2026-09-07/tool-overhead-verification.md`.
 
 ### Spawning Workers
 
 For parallel work, spawn vanilla Claude workers on worktrees:
 
 ```bash
-# Create worktree (ggbd handles beads redirect automatically)
-ggbd worktree create feature-branch
+# Create worktree (bd discovers the shared database through Git)
+bd worktree create feature-branch
 
 # Spawn worker with BEADS_WORKING_DIR for MCP tools
-TOKEN=$(cat /tmp/tabz-auth-token)
+TABZ_TOKEN_FILE=$(node -p 'require("node:path").join(require("node:os").tmpdir(), "tabz-auth-token")')
+TOKEN=$(cat "$TABZ_TOKEN_FILE")
 PROJECT_DIR=$(pwd)
 curl -X POST http://localhost:8129/api/spawn \
   -H "Content-Type: application/json" \
@@ -196,7 +206,7 @@ curl -X POST http://localhost:8129/api/spawn \
 
 **Key:** `BEADS_WORKING_DIR` tells the beads MCP server where to find the database. Point it to the main repo, not the worktree.
 
-Workers receive plain prompts and use beads naturally (`ggbd show`, `ggbd close`, or MCP tools).
+Workers receive plain prompts and use Beads through `bd show` and the prepared issue instructions. During orchestrated waves, the orchestrator owns issue updates and closure.
 
 ### Beads Integration
 

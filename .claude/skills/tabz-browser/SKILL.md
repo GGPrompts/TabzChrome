@@ -1,6 +1,6 @@
 ---
 name: tabz-browser
-description: "Browser automation via 70 tabz MCP tools. Use when taking screenshots, filling forms, debugging network requests, testing responsive design, or using text-to-speech notifications."
+description: "Browser automation via tabz MCP tools. Use when taking screenshots, filling forms, debugging network requests, testing responsive design, or using text-to-speech notifications."
 ---
 
 # TabzChrome Browser Automation
@@ -9,14 +9,10 @@ Control Chrome via MCP tools for screenshots, interaction, debugging, and notifi
 
 ## Quick Start
 
-Use mcp-cli to discover and call tools:
+Call the tabz tools published by your configured server or preset. Clients may load schemas eagerly or through tool discovery:
 
-```bash
-# Get tool schema (REQUIRED before calling)
-mcp-cli info tabz/tabz_screenshot
-
-# Call tool
-mcp-cli call tabz/tabz_screenshot '{}'
+```
+tabz_screenshot({})
 ```
 
 ## Core Workflows
@@ -25,10 +21,10 @@ mcp-cli call tabz/tabz_screenshot '{}'
 
 ```bash
 # Get current tab info
-mcp-cli call tabz/tabz_get_page_info '{}'
+tabz_get_page_info({})
 
 # Take screenshot
-mcp-cli call tabz/tabz_screenshot '{}'
+tabz_screenshot({})
 # Returns file path - use Read tool to view
 ```
 
@@ -36,73 +32,78 @@ mcp-cli call tabz/tabz_screenshot '{}'
 
 ```bash
 # 1. Enable capture BEFORE triggering action
-mcp-cli call tabz/tabz_enable_network_capture '{}'
+tabz_enable_network_capture({})
 
 # 2. Trigger the action on page
 
 # 3. Get failed requests (status >= 400)
-mcp-cli call tabz/tabz_get_network_requests '{"statusMin": 400}'
+tabz_get_network_requests({"statusMin": 400})
 
 # 4. Check console for JS errors
-mcp-cli call tabz/tabz_get_console_logs '{"level": "error"}'
+tabz_get_console_logs({"level": "error"})
 ```
 
 ### Test Responsive Design
 
 ```bash
 # Emulate device
-mcp-cli call tabz/tabz_emulate_device '{"device": "iPhone 14"}'
+tabz_emulate_device({"device": "iPhone 14"})
 
 # Take screenshot
-mcp-cli call tabz/tabz_screenshot '{}'
+tabz_screenshot({})
 
 # Clear emulation
-mcp-cli call tabz/tabz_emulate_clear '{}'
+tabz_emulate_clear({})
 ```
 
 ### Fill and Submit Form
 
-```bash
-mcp-cli call tabz/tabz_fill '{"selector": "#email", "value": "test@example.com"}'
-mcp-cli call tabz/tabz_click '{"selector": "button[type=submit]"}'
+For compact interaction, call `tabz_read_page`, then use a returned ref with `tabz_act`. Refs belong to that tab, document and caller; never reuse them after navigation, rereading or ownership changes. Use `tabz_batch` for up to 20 already-known enabled calls in order; it stops at the first error and does not retry. Read `structuredContent` for verified, mismatch and unknown outcomes.
+
+The example below is for non-sensitive forms. For credentials use `tabz_request_login` or saved-login tools. Protected documents refuse arbitrary-selector clicks and reads; submit using a previously published ref or ask the user. Never replay an uncertain mutation.
+
+```javascript
+tabz_read_page({"tabId": 123456})
+tabz_act({"action": "type", "ref": "<email ref from page>", "value": "test@example.com", "tabId": 123456})
+tabz_act({"action": "click", "ref": "<submit ref from page>", "tabId": 123456})
 ```
 
 ### Notify User (TTS)
 
 ```bash
-mcp-cli call tabz/tabz_speak '{"text": "Task complete"}'
+tabz_speak({"text": "Task complete"})
 ```
 
 ### Performance Profiling
 
 ```bash
-mcp-cli call tabz/tabz_profile_performance '{}'
+tabz_profile_performance({})
 # Returns: DOM nodes, JS heap, event listeners, timing
 ```
 
 ### DOM Tree Inspection
 
 ```bash
-mcp-cli call tabz/tabz_get_dom_tree '{"maxDepth": 3}'
+tabz_get_dom_tree({"maxDepth": 3})
 ```
 
 ## Tool Categories
 
-| Category | Count | Key Tools |
-|----------|-------|-----------|
-| Screenshots | 2 | screenshot, screenshot_full |
-| Interaction | 4 | click, fill, get_element |
-| Network | 3 | enable_network_capture, get_network_requests |
-| DOM/Debug | 4 | get_dom_tree, get_console_logs, profile_performance |
-| Emulation | 6 | emulate_device, emulate_geolocation |
-| Audio/TTS | 3 | speak, list_voices, play_audio |
-| Tabs | 5 | list_tabs, open_url, switch_tab |
-| Cookies | 5 | cookies_get, cookies_list |
+| Category | Key Tools |
+|----------|-----------|
+| Screenshots | screenshot, screenshot_full |
+| Interaction | read_page, act, batch, click, fill |
+| Network | enable_network_capture, get_network_requests |
+| DOM/Debug | get_dom_tree, get_console_logs, profile_performance |
+| Emulation | emulate_device, emulate_geolocation |
+| Audio/TTS | speak, list_voices, play_audio |
+| Tabs | list_tabs, open_url, switch_tab |
+| Cookies | cookies_get, cookies_list |
 
 ## Important Notes
 
-- Always run `mcp-cli info tabz/<tool>` before calling
-- Use explicit `tabId` when possible - don't rely on "active" tab
+- Available schemas depend on the configured server and preset
+- Use tab IDs returned by `tabz_list_tabs` for this connection; unowned tabs are refused
 - Tab IDs are large integers (e.g., `1762561083`)
 - `tabz_screenshot` cannot capture Chrome sidebar
 

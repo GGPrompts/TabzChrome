@@ -19,6 +19,49 @@ const { createModuleLogger } = require('./logger');
 
 const log = createModuleLogger('TerminalRegistry');
 
+// Only trusted in-process callers can mark a terminal as a credential editor.
+// Symbols cannot be supplied through JSON, HTTP, or WebSocket payloads.
+const SECRET_SPAWN = Symbol('tabz.secretSpawn');
+const SECRET_TMUX_OPTION = '@tabz_secret';
+const SECRET_SESSION_PREFIX = 'ctt-secret-';
+
+function resolveSecretFlags(config) {
+  const requested = Boolean(config &&
+    (config.secret !== undefined || config.secretKeyPath !== undefined));
+  const allowed = Boolean(config && config[SECRET_SPAWN] === true);
+  if (!allowed) {
+    return { secret: false, secretKeyPath: null, stripped: requested };
+  }
+  const secret = config.secret === true;
+  return {
+    secret,
+    secretKeyPath: secret && typeof config.secretKeyPath === 'string' && config.secretKeyPath
+      ? config.secretKeyPath
+      : null,
+    stripped: false
+  };
+}
+
+function secretFlagsForRecoveredSession(sessionName, optionValue) {
+  const keyPath = typeof optionValue === 'string' ? optionValue.trim() : '';
+  const named = typeof sessionName === 'string' && sessionName.startsWith(SECRET_SESSION_PREFIX);
+  if (!keyPath && !named) return { secret: false, secretKeyPath: null };
+  return { secret: true, secretKeyPath: keyPath || null };
+}
+
+function recoveredSecretSpawnConfig(
+  sessionName,
+  readOption = name => ptyHandler.getTmuxOption(name, SECRET_TMUX_OPTION)
+) {
+  const flags = secretFlagsForRecoveredSession(sessionName, readOption(sessionName));
+  if (!flags.secret) return {};
+  return { [SECRET_SPAWN]: true, secret: true, secretKeyPath: flags.secretKeyPath };
+}
+
+function isLiveState(state) {
+  return state === 'active' || state === 'spawning' || state === 'disconnected';
+}
+
 /**
  * Generate a short random ID (8 hex chars = 4 billion combinations)
  */
@@ -137,7 +180,8 @@ class TerminalRegistry extends EventEmitter {
             terminalId,
             name: terminal.name,
             exitCode,
-            signal
+            signal,
+            secret: terminal.secret === true
           });
         }
 
@@ -157,12 +201,12 @@ class TerminalRegistry extends EventEmitter {
             // Session ended (user typed exit/Ctrl+D) - clean up
             log.debug(`Tmux session ${sessionName} ended, removing terminal`);
             this.terminals.delete(terminalId);
-            this.emit('closed', terminalId);
+            this.emit('closed', terminalId, terminal);
           }
         } else {
           // Non-tmux terminals can be safely deleted when PTY closes
           this.terminals.delete(terminalId);
-          this.emit('closed', terminalId);
+          this.emit('closed', terminalId, terminal);
         }
       }
     });
@@ -309,6 +353,13 @@ class TerminalRegistry extends EventEmitter {
     // Use default profile settings for API spawns without explicit profile/color
     const defaults = this.defaultProfileSettings || {};
 
+    const secretFlags = resolveSecretFlags(config);
+    if (secretFlags.stripped) {
+      log.warn(`Ignoring secret terminal flags on spawn of ${name}: only the credential route may set them`);
+      delete terminalConfig.secret;
+      delete terminalConfig.secretKeyPath;
+    }
+
     // Terminal state - everything in one place
     const terminal = {
       id,
@@ -333,6 +384,8 @@ class TerminalRegistry extends EventEmitter {
       commands: config.commands || [],
       toolName: config.toolName || null,
       isTUITool: config.isTUITool || false,
+      secret: secretFlags.secret,
+      secretKeyPath: secretFlags.secretKeyPath,
       // Pane tracking (populated by syncPanes)
       panes: []
     };
@@ -355,6 +408,13 @@ class TerminalRegistry extends EventEmitter {
         terminal.sessionId = ptyInfo.tmuxSession;
         terminal.sessionName = ptyInfo.tmuxSession; // Backward compatibility
         log.debug(`✅ Terminal ${name} using tmux session: ${ptyInfo.tmuxSession}`);
+        if (terminal.secret && terminal.secretKeyPath) {
+          try {
+            ptyHandler.setTmuxOption(ptyInfo.tmuxSession, SECRET_TMUX_OPTION, terminal.secretKeyPath);
+          } catch (optionError) {
+            log.warn(`Could not persist the protected-terminal marker for ${ptyInfo.tmuxSession}: ${optionError.message}`);
+          }
+        }
       } else {
         log.warn(`⚠️  Terminal ${name} NOT using tmux (ptyInfo.tmuxSession is ${ptyInfo.tmuxSession})`);
         log.debug(`⚠️  Original config had useTmux: ${config.useTmux}, sessionName: ${config.sessionName}`);
@@ -418,6 +478,7 @@ class TerminalRegistry extends EventEmitter {
         commands: t.commands,
         toolName: t.toolName,
         isTUITool: t.isTUITool,
+        secret: t.secret === true,
         // Pane tracking
         paneCount: sessionName ? (paneCounts[sessionName] || 1) : 0,
         panes: t.panes || []
@@ -432,6 +493,45 @@ class TerminalRegistry extends EventEmitter {
     return Array.from(this.terminals.values())
       .filter(t => t.state === 'active' || t.state === 'spawning')
       .length;
+  }
+
+  isSecretInRegistry(idOrSession) {
+    if (!idOrSession) return false;
+    const direct = this.terminals.get(idOrSession);
+    if (direct && direct.secret === true) return true;
+    return Array.from(this.terminals.values()).some(terminal =>
+      terminal.secret === true &&
+      (terminal.sessionName === idOrSession || terminal.sessionId === idOrSession)
+    );
+  }
+
+  isSecretTerminal(idOrSession) {
+    if (!idOrSession) return false;
+    if (this.isSecretInRegistry(idOrSession)) return true;
+    const direct = this.terminals.get(idOrSession);
+    const sessionName = direct ? (direct.sessionName || direct.sessionId || '') : idOrSession;
+    if (!sessionName) return false;
+    return secretFlagsForRecoveredSession(
+      sessionName,
+      ptyHandler.getTmuxOption(sessionName, SECRET_TMUX_OPTION)
+    ).secret;
+  }
+
+  findSecretTerminalByKeyPath(keyPath) {
+    if (!keyPath) return undefined;
+    return Array.from(this.terminals.values()).find(terminal =>
+      terminal.secret === true &&
+      terminal.secretKeyPath === keyPath &&
+      isLiveState(terminal.state)
+    );
+  }
+
+  hasLiveSecretEditor(sessionExists = name => ptyHandler.tmuxSessionExists(name)) {
+    return Array.from(this.terminals.values()).some(terminal => {
+      if (terminal.secret !== true || !isLiveState(terminal.state)) return false;
+      const sessionName = terminal.sessionName || terminal.sessionId;
+      return sessionName ? sessionExists(sessionName) : true;
+    });
   }
 
   /**
@@ -669,6 +769,7 @@ class TerminalRegistry extends EventEmitter {
       return true;
     }
 
+    if (terminal.secret === true && !force) force = true;
     log.debug(`Closing terminal ${terminal.name} (force=${force})`);
 
     try {
@@ -680,8 +781,11 @@ class TerminalRegistry extends EventEmitter {
           // FORCE CLOSE (X button): Kill the tmux session entirely
           log.debug(`Force close - killing tmux session: ${sessionName}`);
           try {
-            const { execSync } = require('child_process');
-            execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null || true`);
+            const { spawnSync } = require('child_process');
+            spawnSync('tmux', ['kill-session', '-t', `=${sessionName}`], {
+              stdio: 'ignore',
+              timeout: 5000
+            });
             log.debug(`✅ Killed tmux session: ${sessionName}`);
           } catch (error) {
             log.debug(`Tmux session ${sessionName} may not exist (already killed)`);
@@ -730,6 +834,10 @@ class TerminalRegistry extends EventEmitter {
     let changed = false;
 
     for (const terminal of this.terminals.values()) {
+      if (terminal.secret === true) {
+        terminal.panes = [];
+        continue;
+      }
       const sessionName = terminal.sessionName || terminal.sessionId;
       if (!sessionName) continue;
 
@@ -809,3 +917,9 @@ class TerminalRegistry extends EventEmitter {
 }
 
 module.exports = new TerminalRegistry();
+module.exports.SECRET_SPAWN = SECRET_SPAWN;
+module.exports.SECRET_TMUX_OPTION = SECRET_TMUX_OPTION;
+module.exports.SECRET_SESSION_PREFIX = SECRET_SESSION_PREFIX;
+module.exports.resolveSecretFlags = resolveSecretFlags;
+module.exports.secretFlagsForRecoveredSession = secretFlagsForRecoveredSession;
+module.exports.recoveredSecretSpawnConfig = recoveredSecretSpawnConfig;

@@ -5,29 +5,39 @@
  * This file initializes all background worker modules and coordinates startup.
  */
 
-import { ws, popoutWindows } from './state'
+import { ws, popoutWindows, removeTerminalView } from './state'
 import { connectWebSocket, sendDefaultProfileSettings } from './websocket'
-import { initializeAlarms, setupAlarmListener } from './alarms'
+import { initializeAlarms, setupAlarmListener, syncClaudePromptPolling } from './alarms'
 import { setupOmnibox } from './omnibox'
 import { setupMessageHandlers } from './messageHandlers'
 import { setupContextMenus, setupContextMenuListener } from './contextMenus'
 import { setupActionHandler, setupKeyboardHandler } from './keyboard'
 import { handlePopoutWindowClosed } from './browserMcp/windows'
+import { registerConsoleMainWorldScript } from './consoleMainWorldScript'
+import { setupConsoleCaptureLifecycle } from './consoleCapture'
+import { setupDocumentLifecycle } from './browserMcp/documentProtection'
+import { setupClaudePromptNotificationClickHandler } from './browserMcp/notifications'
 
 // Initialize background service worker
 console.log('Terminal Tabs background service worker starting...')
 
 // Setup event listeners
+void registerConsoleMainWorldScript()
+setupDocumentLifecycle()
+setupConsoleCaptureLifecycle()
 setupAlarmListener()
 setupOmnibox()
 setupMessageHandlers()
+setupClaudePromptNotificationClickHandler()
 setupContextMenuListener()
 setupActionHandler()
 setupKeyboardHandler()
+void syncClaudePromptPolling()
 
 // Setup menus on install/update
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Extension installed/updated')
+  void registerConsoleMainWorldScript()
   setupContextMenus()
   initializeAlarms()
 })
@@ -49,6 +59,7 @@ setTimeout(() => {
 // Listen for window close to clean up popout terminals
 // This is more reliable than beforeunload + sendBeacon in the popout window
 chrome.windows.onRemoved.addListener((windowId) => {
+  removeTerminalView(windowId)
   if (popoutWindows.has(windowId)) {
     handlePopoutWindowClosed(windowId)
   }
@@ -62,6 +73,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     console.log('[Background] Profile settings changed, resyncing to backend')
     sendDefaultProfileSettings()
   }
+  if (changes.terminalSessions) void syncClaudePromptPolling()
 })
 
 // Initialize WebSocket connection

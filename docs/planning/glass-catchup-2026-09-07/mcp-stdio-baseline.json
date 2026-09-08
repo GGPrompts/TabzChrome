@@ -1,0 +1,3273 @@
+{
+  "revision": "ec502b143ad1db211a49c7015549a4f66d586950",
+  "measurementMethod": "Spawned the already-built stdio server with BACKEND_URL pointed to an ephemeral 127.0.0.1 synthetic HTTP fixture; no Chrome, user backend, configuration, or credential store was contacted.",
+  "configuration": {
+    "backendUrl": "ephemeral loopback fixture",
+    "enabledToolIds": [
+      "tabz_list_tabs",
+      "tabz_switch_tab",
+      "tabz_rename_tab",
+      "tabz_get_page_info",
+      "tabz_click",
+      "tabz_fill",
+      "tabz_screenshot",
+      "tabz_screenshot_full",
+      "tabz_download_image",
+      "tabz_get_element",
+      "tabz_open_url",
+      "tabz_get_console_logs",
+      "tabz_execute_script",
+      "tabz_enable_network_capture",
+      "tabz_get_network_requests",
+      "tabz_clear_network_requests",
+      "tabz_download_file",
+      "tabz_get_downloads",
+      "tabz_cancel_download",
+      "tabz_save_page",
+      "tabz_get_bookmark_tree",
+      "tabz_search_bookmarks",
+      "tabz_save_bookmark",
+      "tabz_create_folder",
+      "tabz_move_bookmark",
+      "tabz_delete_bookmark",
+      "tabz_get_dom_tree",
+      "tabz_profile_performance",
+      "tabz_get_coverage",
+      "tabz_list_groups",
+      "tabz_create_group",
+      "tabz_update_group",
+      "tabz_add_to_group",
+      "tabz_ungroup_tabs",
+      "tabz_claude_group_add",
+      "tabz_claude_group_remove",
+      "tabz_claude_group_status",
+      "tabz_list_windows",
+      "tabz_create_window",
+      "tabz_update_window",
+      "tabz_close_window",
+      "tabz_get_displays",
+      "tabz_tile_windows",
+      "tabz_popout_terminal",
+      "tabz_speak",
+      "tabz_list_voices",
+      "tabz_play_audio",
+      "tabz_history_search",
+      "tabz_history_visits",
+      "tabz_history_recent",
+      "tabz_history_delete_url",
+      "tabz_history_delete_range",
+      "tabz_sessions_recently_closed",
+      "tabz_sessions_restore",
+      "tabz_sessions_devices",
+      "tabz_cookies_get",
+      "tabz_cookies_list",
+      "tabz_cookies_set",
+      "tabz_cookies_delete",
+      "tabz_cookies_audit",
+      "tabz_emulate_device",
+      "tabz_emulate_clear",
+      "tabz_emulate_geolocation",
+      "tabz_emulate_network",
+      "tabz_emulate_media",
+      "tabz_emulate_vision",
+      "tabz_notification_show",
+      "tabz_notification_update",
+      "tabz_notification_clear",
+      "tabz_notification_list",
+      "tabz_list_profiles",
+      "tabz_list_categories",
+      "tabz_spawn_profile",
+      "tabz_get_profile",
+      "tabz_create_profile",
+      "tabz_update_profile",
+      "tabz_delete_profile",
+      "tabz_list_plugins",
+      "tabz_list_skills",
+      "tabz_get_skill",
+      "tabz_plugins_health",
+      "tabz_toggle_plugin",
+      "tabz_list_terminals",
+      "tabz_send_keys",
+      "tabz_capture_terminal",
+      "tabz_docs"
+    ],
+    "enabledToolCount": 86
+  },
+  "initialize": {
+    "instructions": "",
+    "requestBytes": 170,
+    "responseBytes": 170,
+    "responseChars": 170
+  },
+  "catalog": {
+    "publishedToolNames": [
+      "tabz_add_to_group",
+      "tabz_cancel_download",
+      "tabz_capture_terminal",
+      "tabz_claude_group_add",
+      "tabz_claude_group_remove",
+      "tabz_claude_group_status",
+      "tabz_clear_network_requests",
+      "tabz_click",
+      "tabz_close_window",
+      "tabz_cookies_audit",
+      "tabz_cookies_delete",
+      "tabz_cookies_get",
+      "tabz_cookies_list",
+      "tabz_cookies_set",
+      "tabz_create_folder",
+      "tabz_create_group",
+      "tabz_create_profile",
+      "tabz_create_window",
+      "tabz_delete_bookmark",
+      "tabz_delete_profile",
+      "tabz_docs",
+      "tabz_download_file",
+      "tabz_download_image",
+      "tabz_emulate_clear",
+      "tabz_emulate_device",
+      "tabz_emulate_geolocation",
+      "tabz_emulate_media",
+      "tabz_emulate_network",
+      "tabz_emulate_vision",
+      "tabz_enable_network_capture",
+      "tabz_execute_script",
+      "tabz_fill",
+      "tabz_get_bookmark_tree",
+      "tabz_get_console_logs",
+      "tabz_get_coverage",
+      "tabz_get_displays",
+      "tabz_get_dom_tree",
+      "tabz_get_downloads",
+      "tabz_get_element",
+      "tabz_get_network_requests",
+      "tabz_get_page_info",
+      "tabz_get_profile",
+      "tabz_get_skill",
+      "tabz_history_delete_range",
+      "tabz_history_delete_url",
+      "tabz_history_recent",
+      "tabz_history_search",
+      "tabz_history_visits",
+      "tabz_list_categories",
+      "tabz_list_groups",
+      "tabz_list_plugins",
+      "tabz_list_profiles",
+      "tabz_list_skills",
+      "tabz_list_tabs",
+      "tabz_list_terminals",
+      "tabz_list_voices",
+      "tabz_list_windows",
+      "tabz_move_bookmark",
+      "tabz_notification_clear",
+      "tabz_notification_list",
+      "tabz_notification_show",
+      "tabz_notification_update",
+      "tabz_open_url",
+      "tabz_play_audio",
+      "tabz_plugins_health",
+      "tabz_popout_terminal",
+      "tabz_profile_performance",
+      "tabz_rename_tab",
+      "tabz_save_bookmark",
+      "tabz_save_page",
+      "tabz_screenshot",
+      "tabz_screenshot_full",
+      "tabz_search_bookmarks",
+      "tabz_send_keys",
+      "tabz_sessions_devices",
+      "tabz_sessions_recently_closed",
+      "tabz_sessions_restore",
+      "tabz_spawn_profile",
+      "tabz_speak",
+      "tabz_switch_tab",
+      "tabz_tile_windows",
+      "tabz_toggle_plugin",
+      "tabz_ungroup_tabs",
+      "tabz_update_group",
+      "tabz_update_profile",
+      "tabz_update_window"
+    ],
+    "toolCount": 86,
+    "schemaBytes": 66951,
+    "schemaChars": 66951,
+    "requestBytes": 58,
+    "responseBytes": 66995,
+    "responseChars": 66995
+  },
+  "syntheticResults": {
+    "pageRead": {
+      "requestBytes": 124,
+      "responseBytes": 175,
+      "responseChars": 175
+    },
+    "clickAction": {
+      "requestBytes": 123,
+      "responseBytes": 351,
+      "responseChars": 351
+    }
+  },
+  "protocolEvidence": {
+    "initializeResponse": {
+      "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "tools": {
+            "listChanged": true
+          }
+        },
+        "serverInfo": {
+          "name": "tabz-mcp-server",
+          "version": "1.0.0"
+        }
+      },
+      "jsonrpc": "2.0",
+      "id": 1
+    },
+    "toolsListResponse": {
+      "result": {
+        "tools": [
+          {
+            "name": "tabz_docs",
+            "description": "Get detailed documentation for any tabz MCP tool including parameters, constraints, examples, and error handling.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tool_name": {
+                  "type": "string",
+                  "description": "Tool name to look up, e.g. \"tabz_screenshot\""
+                }
+              },
+              "required": [
+                "tool_name"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_tabs",
+            "description": "List all open browser tabs with accurate active tab detection. Syncs Claude's target to user's focused tab.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_switch_tab",
+            "description": "Switch to a browser tab by ID, making it Claude's target for screenshots/clicks/fills. Get IDs from tabz_list_tabs. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "The Chrome tab ID to switch to. Get IDs from tabz_list_tabs (e.g., 1762556601)."
+                }
+              },
+              "required": [
+                "tabId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_rename_tab",
+            "description": "Assign a custom name to a tab (stored by URL, survives tab reordering). Empty string clears. Session-scoped. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "The Chrome tab ID to rename. Get IDs from tabz_list_tabs (e.g., 1762556601)."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The custom name to assign to this tab. Empty string clears the custom name."
+                }
+              },
+              "required": [
+                "tabId",
+                "name"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_page_info",
+            "description": "Get URL, title, tab ID of the active browser page. Use tabz_list_tabs for multi-tab views.\n\nArgs: tabId (optional), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Specific tab ID to get info for. If not specified, returns info for the active tab."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_click",
+            "description": "Click an element on the page. Waits up to 5 seconds for element to appear.\n\nArgs: selector (required CSS selector), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "CSS selector for the element to click (e.g., 'button.submit', '#login-btn', 'a[href=\"/home\"]')"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab."
+                }
+              },
+              "required": [
+                "selector"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_fill",
+            "description": "Fill an input field with text. Clears existing value first. Works with inputs, textareas, contenteditable.\n\nArgs: selector (required CSS selector), value (required text), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "CSS selector for the input field (e.g., 'input#email', 'textarea.message', 'input[name=\"username\"]')"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value to type into the input field. Clears existing content first."
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab."
+                }
+              },
+              "required": [
+                "selector",
+                "value"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_screenshot",
+            "description": "Screenshot the visible viewport. Use tabz_screenshot_full for entire scrollable page. Returns filePath for Read tool.\n\nArgs: selector (optional, for element screenshot), outputPath (optional), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "description": "CSS selector for element to screenshot. If not provided, captures the current viewport."
+                },
+                "outputPath": {
+                  "type": "string",
+                  "description": "Custom output path for the screenshot. Default: Downloads/tabz/screenshots/screenshot-{timestamp}.png"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_screenshot_full",
+            "description": "Screenshot the entire scrollable page (top to bottom). Recommended for first-time page exploration.\n\nArgs: outputPath (optional), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "outputPath": {
+                  "type": "string",
+                  "description": "Custom output path for the screenshot. Default: Downloads/tabz/screenshots/screenshot-full-{timestamp}.png"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target a specific tab by Chrome tab ID (from tabz_list_tabs). If not provided, uses the current tab."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_download_image",
+            "description": "Download an image from the page by CSS selector or direct URL. Returns filePath for Read tool.\n\nArgs: selector (optional) OR url (optional), outputPath (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "description": "CSS selector for an <img> element or element with background-image. Extracts the image URL automatically."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Direct URL of the image to download. Use this OR selector, not both."
+                },
+                "outputPath": {
+                  "type": "string",
+                  "description": "Custom output path for the image. Default: Downloads/tabz/images/captured-image-{timestamp}.png"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_element",
+            "description": "Inspect a DOM element -- returns HTML, computed styles, bounds, and attributes. Ideal for CSS debugging.\n\nArgs: selector (required), includeStyles (optional, default true), styleProperties (optional array), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "CSS selector for the element to inspect (e.g., '.card', '#header', 'button.primary')"
+                },
+                "includeStyles": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Include computed CSS styles (default: true)"
+                },
+                "styleProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Specific CSS properties to extract. If not provided, extracts common layout/typography/visual properties."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "selector"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_open_url",
+            "description": "Open a URL in the browser. Auto-adds protocol (http for localhost, https otherwise). Reuses existing tab by default. URL whitelist configurable in Dashboard settings. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "URL to open (any URL if 'Allow All URLs' is enabled in settings)"
+                },
+                "newTab": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Open in new tab (default: true) or current tab"
+                },
+                "background": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Open in background tab (default: false, opens in foreground)"
+                },
+                "reuseExisting": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "If a tab with this URL already exists, switch to it instead of opening a new one (default: true)"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_console_logs",
+            "description": "Get browser console logs (errors, warnings, info, debug). Captured from all open tabs.\n\nArgs: level (optional: all/log/info/warn/error/debug), limit (optional), since (optional), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "log",
+                    "info",
+                    "warn",
+                    "error",
+                    "debug"
+                  ],
+                  "default": "all",
+                  "description": "Filter logs by level: 'all', 'log', 'info', 'warn', 'error', or 'debug'"
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 100,
+                  "description": "Maximum number of log entries to return (1-1000, default: 100)"
+                },
+                "since": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Only return logs after this timestamp (milliseconds since epoch)"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Filter logs by specific browser tab ID"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_execute_script",
+            "description": "Execute JavaScript in a browser tab's context. Returns last expression value. Has access to document, window, localStorage, etc. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50000,
+                  "description": "JavaScript code to execute in the browser. The result of the last expression is returned."
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID. If not specified, executes in the active tab."
+                },
+                "allFrames": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Execute in all frames of the page (default: false, main frame only)"
+                }
+              },
+              "required": [
+                "code"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_enable_network_capture",
+            "description": "Enable network request monitoring. Call BEFORE browsing, then use tabz_get_network_requests to inspect.\n\nArgs: tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Specific tab ID to enable capture for. If not specified, uses current tab."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_network_requests",
+            "description": "List captured network requests. Call tabz_enable_network_capture first.\n\nArgs: urlPattern (optional), method (optional), statusMin/statusMax (optional), resourceType/limit/offset/tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "urlPattern": {
+                  "type": "string",
+                  "description": "Filter by URL pattern (regex or substring). E.g., 'api/', '\\.json$', 'graphql'"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "OPTIONS",
+                    "HEAD"
+                  ],
+                  "default": "all",
+                  "description": "Filter by HTTP method"
+                },
+                "statusMin": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 599,
+                  "description": "Minimum status code (e.g., 400 for errors only)"
+                },
+                "statusMax": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 599,
+                  "description": "Maximum status code (e.g., 299 for successful only)"
+                },
+                "resourceType": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "XHR",
+                    "Fetch",
+                    "Document",
+                    "Script",
+                    "Stylesheet",
+                    "Image",
+                    "Font",
+                    "Other"
+                  ],
+                  "default": "all",
+                  "description": "Filter by resource type"
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "default": 50,
+                  "description": "Maximum number of requests to return (1-200, default: 50)"
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Number of requests to skip for pagination"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Filter by specific browser tab ID"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_clear_network_requests",
+            "description": "Clear all captured network requests. Capture remains active after clearing.",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "properties": {}
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_download_file",
+            "description": "Download a file via Chrome's download manager. Returns both Windows and WSL paths.\n\nArgs: url (required), filename (optional), conflictAction (optional: uniquify/overwrite/prompt)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL of the file to download. Must be a valid URL."
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "Custom filename (relative to Chrome's Downloads folder). If not provided, uses URL filename."
+                },
+                "conflictAction": {
+                  "type": "string",
+                  "enum": [
+                    "uniquify",
+                    "overwrite",
+                    "prompt"
+                  ],
+                  "default": "uniquify",
+                  "description": "Action when file exists: 'uniquify' adds suffix (default), 'overwrite' replaces, 'prompt' asks user"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_downloads",
+            "description": "List recent Chrome downloads with status, size, and file paths.\n\nArgs: limit (optional, default 20), state (optional: in_progress/complete/interrupted/all)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 20,
+                  "description": "Maximum number of downloads to return (1-100, default: 20)"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "in_progress",
+                    "complete",
+                    "interrupted",
+                    "all"
+                  ],
+                  "default": "all",
+                  "description": "Filter by download state: 'in_progress', 'complete', 'interrupted', or 'all' (default)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cancel_download",
+            "description": "Cancel an in-progress download. Get IDs from tabz_get_downloads.\n\nArgs: downloadId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "downloadId": {
+                  "type": "integer",
+                  "description": "The download ID to cancel (from tabz_get_downloads)"
+                }
+              },
+              "required": [
+                "downloadId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_save_page",
+            "description": "Save current tab as MHTML file (complete page archive with CSS/images/JS). Returns both Windows and WSL paths.\n\nArgs: tabId (optional), filename (optional, no extension), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Tab ID to save. If not specified, saves the currently active tab."
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "Custom filename (without extension). Defaults to page title + timestamp. Extension will be .mhtml."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' (default) or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_bookmark_tree",
+            "description": "Browse Chrome bookmarks hierarchy. Folder IDs: \"1\"=Bookmarks Bar, \"2\"=Other Bookmarks. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "folderId": {
+                  "type": "string",
+                  "description": "Folder ID to get children of. Omit for full tree. Special IDs: '1' = Bookmarks Bar, '2' = Other Bookmarks"
+                },
+                "maxDepth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10,
+                  "default": 3,
+                  "description": "Maximum depth to traverse (1-10, default: 3). Use 1 for immediate children only."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_search_bookmarks",
+            "description": "Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Search query - matches against bookmark titles and URLs"
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 20,
+                  "description": "Maximum results to return (1-100, default: 20)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_save_bookmark",
+            "description": "Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar (\"1\"). Use parentId for other folders. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to bookmark"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Bookmark title"
+                },
+                "parentId": {
+                  "type": "string",
+                  "description": "Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks, or a folder ID from tabz_get_bookmark_tree."
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Position within the folder (0 = first). Omit to add at end."
+                }
+              },
+              "required": [
+                "url",
+                "title"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_create_folder",
+            "description": "Create a bookmark folder. Defaults to Bookmarks Bar (\"1\"). Returns folder ID for use with tabz_save_bookmark. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Folder name"
+                },
+                "parentId": {
+                  "type": "string",
+                  "description": "Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks."
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Position within parent (0 = first). Omit to add at end."
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_move_bookmark",
+            "description": "Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Bookmark or folder ID to move (from tabz_get_bookmark_tree or tabz_search_bookmarks)"
+                },
+                "parentId": {
+                  "type": "string",
+                  "description": "Destination folder ID. Use '1' for Bookmarks Bar, '2' for Other Bookmarks."
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Position in destination folder (0 = first). Omit to add at end."
+                }
+              },
+              "required": [
+                "id",
+                "parentId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_delete_bookmark",
+            "description": "Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Bookmark or folder ID to delete. WARNING: Deleting a folder removes all contents!"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_dom_tree",
+            "description": "Get DOM tree via Chrome DevTools Protocol. Shows tag names, IDs, classes. Optional CSS selector to scope. User sees debugging banner briefly. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Chrome tab ID. Omit to use the currently active tab."
+                },
+                "maxDepth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10,
+                  "default": 4,
+                  "description": "Maximum depth to traverse (1-10, default: 4). Higher values return more detail but take longer."
+                },
+                "selector": {
+                  "type": "string",
+                  "description": "CSS selector to get a specific subtree. Omit to get the full document."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable tree or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_profile_performance",
+            "description": "Profile page performance via DevTools Protocol. Returns timing, memory, and DOM metrics. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Chrome tab ID. Omit to use the currently active tab."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for categorized metrics or 'json' for raw data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_coverage",
+            "description": "Analyze JS and/or CSS code coverage. Shows used vs total bytes per file to find unused code. type: 'js', 'css', or 'both'. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Chrome tab ID. Omit to use the currently active tab."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "js",
+                    "css",
+                    "both"
+                  ],
+                  "default": "both",
+                  "description": "Coverage type: 'js' for JavaScript only, 'css' for CSS only, 'both' for both"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for summary with file list or 'json' for detailed data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_groups",
+            "description": "List all tab groups with title, color, collapsed state, and member tab IDs.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_create_group",
+            "description": "Create a tab group from specified tabs with optional title and color.\n\nArgs: tabIds (required array), title (optional), color (optional), collapsed (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "minItems": 1,
+                  "description": "Array of Chrome tab IDs to group together. Get IDs from tabz_list_tabs."
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 50,
+                  "description": "Optional title for the group (displayed in tab bar)"
+                },
+                "color": {
+                  "type": "string",
+                  "enum": [
+                    "grey",
+                    "blue",
+                    "red",
+                    "yellow",
+                    "green",
+                    "pink",
+                    "purple",
+                    "cyan"
+                  ],
+                  "description": "Optional color: grey, blue, red, yellow, green, pink, purple, or cyan"
+                },
+                "collapsed": {
+                  "type": "boolean",
+                  "description": "Whether the group should be collapsed (default: false)"
+                }
+              },
+              "required": [
+                "tabIds"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_update_group",
+            "description": "Update a tab group's title, color, or collapsed state. Get IDs from tabz_list_groups.\n\nArgs: groupId (required), title/color/collapsed (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "groupId": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The tab group ID to update. Get IDs from tabz_list_groups."
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 50,
+                  "description": "New title for the group"
+                },
+                "color": {
+                  "type": "string",
+                  "enum": [
+                    "grey",
+                    "blue",
+                    "red",
+                    "yellow",
+                    "green",
+                    "pink",
+                    "purple",
+                    "cyan"
+                  ],
+                  "description": "New color: grey, blue, red, yellow, green, pink, purple, or cyan"
+                },
+                "collapsed": {
+                  "type": "boolean",
+                  "description": "Whether the group should be collapsed"
+                }
+              },
+              "required": [
+                "groupId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_add_to_group",
+            "description": "Add tabs to an existing tab group.\n\nArgs: groupId (required), tabIds (required array)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "groupId": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The tab group ID to add tabs to. Get IDs from tabz_list_groups."
+                },
+                "tabIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "minItems": 1,
+                  "description": "Array of Chrome tab IDs to add to the group. Get IDs from tabz_list_tabs."
+                }
+              },
+              "required": [
+                "groupId",
+                "tabIds"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_ungroup_tabs",
+            "description": "Remove tabs from their groups. Empty groups are auto-deleted by Chrome.\n\nArgs: tabIds (required array)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "minItems": 1,
+                  "description": "Array of Chrome tab IDs to remove from their groups. Get IDs from tabz_list_tabs."
+                }
+              },
+              "required": [
+                "tabIds"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_claude_group_add",
+            "description": "Add a tab to the purple \"Claude Active\" group. Auto-creates group if needed.\n\nArgs: tabId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Chrome tab ID to add to the Claude Active group. Get IDs from tabz_list_tabs."
+                }
+              },
+              "required": [
+                "tabId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_claude_group_remove",
+            "description": "Remove a tab from the \"Claude Active\" group.\n\nArgs: tabId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Chrome tab ID to remove from the Claude Active group."
+                }
+              },
+              "required": [
+                "tabId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_claude_group_status",
+            "description": "Get status of the \"Claude Active\" group -- exists, groupId, tabCount, tabIds.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_windows",
+            "description": "List all Chrome windows with dimensions, state, and tab counts.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_create_window",
+            "description": "Create a new Chrome window. Use type=\"popup\" for minimal UI. Use url=\"/sidepanel/sidepanel.html\" for terminal popout.\n\nArgs: url (optional), type (optional), state/focused/width/height/left/top/incognito/tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "URL(s) to open. Use '/sidepanel/sidepanel.html' for extension page. Default: new tab page."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "normal",
+                    "popup"
+                  ],
+                  "description": "Window type: 'normal' (full browser UI) or 'popup' (minimal UI). Default: 'normal'."
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "normal",
+                    "minimized",
+                    "maximized",
+                    "fullscreen"
+                  ],
+                  "description": "Initial state: 'normal', 'minimized', 'maximized', or 'fullscreen'. Default: 'normal'."
+                },
+                "focused": {
+                  "type": "boolean",
+                  "description": "Whether window should be focused on creation. Default: true."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 10000,
+                  "description": "Window width in pixels."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 10000,
+                  "description": "Window height in pixels."
+                },
+                "left": {
+                  "type": "integer",
+                  "description": "Window left position (for multi-monitor). Use tabz_get_displays to get monitor positions."
+                },
+                "top": {
+                  "type": "integer",
+                  "description": "Window top position."
+                },
+                "incognito": {
+                  "type": "boolean",
+                  "description": "Create incognito window. Default: false."
+                },
+                "tabId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Move this tab to the new window instead of opening URLs."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_update_window",
+            "description": "Resize, move, focus, or change state of a Chrome window. Get IDs from tabz_list_windows.\n\nArgs: windowId (required), state/focused/width/height/left/top/drawAttention (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "windowId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "The window ID to update. Get IDs from tabz_list_windows."
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "normal",
+                    "minimized",
+                    "maximized",
+                    "fullscreen"
+                  ],
+                  "description": "New state: 'normal', 'minimized', 'maximized', or 'fullscreen'."
+                },
+                "focused": {
+                  "type": "boolean",
+                  "description": "Set to true to focus/bring window to front."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 10000,
+                  "description": "New width in pixels (ignored if maximized/fullscreen)."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 10000,
+                  "description": "New height in pixels (ignored if maximized/fullscreen)."
+                },
+                "left": {
+                  "type": "integer",
+                  "description": "New left position (for multi-monitor positioning)."
+                },
+                "top": {
+                  "type": "integer",
+                  "description": "New top position."
+                },
+                "drawAttention": {
+                  "type": "boolean",
+                  "description": "Flash/highlight the window to get user attention."
+                }
+              },
+              "required": [
+                "windowId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_close_window",
+            "description": "Close a Chrome window and ALL its tabs. Get IDs from tabz_list_windows.\n\nArgs: windowId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "windowId": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "The window ID to close. Get IDs from tabz_list_windows. WARNING: Closes all tabs in the window!"
+                }
+              },
+              "required": [
+                "windowId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_displays",
+            "description": "Get connected monitor/display info -- dimensions, positions, work areas. Use for multi-monitor window placement.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_tile_windows",
+            "description": "Auto-arrange windows in horizontal, vertical, or grid layout on a display.\n\nArgs: windowIds (required array), layout (optional: horizontal/vertical/grid), displayId (optional), gap (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "windowIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "minItems": 1,
+                  "maxItems": 20,
+                  "description": "Array of window IDs to tile. Get IDs from tabz_list_windows."
+                },
+                "layout": {
+                  "type": "string",
+                  "enum": [
+                    "horizontal",
+                    "vertical",
+                    "grid"
+                  ],
+                  "description": "Layout: 'horizontal' (side by side), 'vertical' (stacked), or 'grid' (auto grid). Default: 'horizontal'."
+                },
+                "displayId": {
+                  "type": "string",
+                  "description": "Target display ID from tabz_get_displays. Default: primary display."
+                },
+                "gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Gap between windows in pixels. Default: 0."
+                }
+              },
+              "required": [
+                "windowIds"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_popout_terminal",
+            "description": "Pop terminal sidebar into a standalone popup window. Shares extension instance -- no conflicts.\n\nArgs: terminalId (optional), width/height/left/top (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "terminalId": {
+                  "type": "string",
+                  "description": "Terminal ID to focus in the new window. If omitted, shows all terminals."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 200,
+                  "maximum": 5000,
+                  "description": "Window width in pixels. Default: 500."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 200,
+                  "maximum": 5000,
+                  "description": "Window height in pixels. Default: 700."
+                },
+                "left": {
+                  "type": "integer",
+                  "description": "Window left position."
+                },
+                "top": {
+                  "type": "integer",
+                  "description": "Window top position."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_speak",
+            "description": "Speak text aloud via neural TTS. User's configured voice/rate/pitch apply unless overridden.\n\nArgs: text (required, max 3000 chars), voice/rate/pitch (optional overrides), priority (optional: high/low)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 3000,
+                  "description": "The text to speak aloud. Markdown formatting will be stripped automatically. Maximum 3000 characters."
+                },
+                "voice": {
+                  "type": "string",
+                  "enum": [
+                    "en-US-AndrewMultilingualNeural",
+                    "en-US-EmmaMultilingualNeural",
+                    "en-US-BrianMultilingualNeural",
+                    "en-US-AriaNeural",
+                    "en-US-GuyNeural",
+                    "en-US-JennyNeural",
+                    "en-US-ChristopherNeural",
+                    "en-US-AvaNeural",
+                    "en-GB-SoniaNeural",
+                    "en-GB-RyanNeural",
+                    "en-AU-NatashaNeural",
+                    "en-AU-WilliamMultilingualNeural"
+                  ],
+                  "description": "Voice to use. If not specified, uses the user's configured voice from settings. Options: en-US-AndrewMultilingualNeural (default), en-US-EmmaMultilingualNeural, en-US-AriaNeural, en-GB-SoniaNeural, etc."
+                },
+                "rate": {
+                  "type": "string",
+                  "pattern": "^[+-]?\\d{1,3}%$",
+                  "description": "Speech rate as percentage. Format: '+30%' (faster), '-20%' (slower), '+0%' (normal). If not specified, uses user's configured rate."
+                },
+                "pitch": {
+                  "type": "string",
+                  "pattern": "^[+-]?\\d{1,3}Hz$",
+                  "description": "Voice pitch in Hz. Format: '+50Hz' (higher), '-100Hz' (lower), '+0Hz' (normal). If not specified, uses user's configured pitch."
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "high"
+                  ],
+                  "default": "low",
+                  "description": "Audio priority. 'high' interrupts current audio (use for important announcements). 'low' is skipped if high-priority audio is playing (use for status updates)."
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_voices",
+            "description": "List available TTS voices for use with tabz_speak.",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "properties": {}
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_play_audio",
+            "description": "Play an audio file (MP3/WAV/OGG) through the browser.\n\nArgs: url (required), volume (optional 0.0-1.0), priority (optional: high/low)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "URL of the audio file to play. Can be a local URL (e.g., http://localhost:8129/sounds/ding.mp3) or remote URL."
+                },
+                "volume": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Playback volume from 0.0 to 1.0. If not specified, uses user's configured volume."
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "high"
+                  ],
+                  "default": "low",
+                  "description": "Audio priority. 'high' interrupts current audio, 'low' may be skipped if high-priority audio is playing."
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_history_search",
+            "description": "Search browsing history by keyword. Searches URLs and page titles.\n\nArgs: query (required, \"\" for all), startTime/endTime (optional ms since epoch), maxResults (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Search text to match against URLs and page titles. Use empty string to match all history."
+                },
+                "startTime": {
+                  "type": "number",
+                  "description": "Start of time range (milliseconds since epoch). Default: 24 hours ago."
+                },
+                "endTime": {
+                  "type": "number",
+                  "description": "End of time range (milliseconds since epoch). Default: now."
+                },
+                "maxResults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 100,
+                  "description": "Maximum results to return (1-1000). Default: 100."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_history_visits",
+            "description": "Get detailed visit history for a specific URL -- timestamps and navigation transitions.\n\nArgs: url (required, exact URL), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "The exact URL to get visit details for"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_history_recent",
+            "description": "Get most recently visited pages sorted by visit time.\n\nArgs: maxResults (optional, default 50), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "maxResults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 50,
+                  "description": "Maximum results to return (1-1000). Default: 50."
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_history_delete_url",
+            "description": "Permanently delete a URL and all its visits from browsing history. Cannot be undone.\n\nArgs: url (required, exact URL)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "The exact URL to delete from history"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_history_delete_range",
+            "description": "Delete all browsing history within a time range. Cannot be undone.\n\nArgs: startTime (required, ms since epoch), endTime (required, ms since epoch)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "startTime": {
+                  "type": "number",
+                  "description": "Start of time range to delete (milliseconds since epoch)"
+                },
+                "endTime": {
+                  "type": "number",
+                  "description": "End of time range to delete (milliseconds since epoch)"
+                }
+              },
+              "required": [
+                "startTime",
+                "endTime"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_sessions_recently_closed",
+            "description": "List recently closed tabs and windows (up to 25). Returns sessionIds for use with tabz_sessions_restore. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "maxResults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 25,
+                  "default": 25,
+                  "description": "Maximum sessions to return (Chrome limits to 25)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_sessions_restore",
+            "description": "Restore a recently closed tab or window. Omit sessionId to restore the most recent. Get IDs from tabz_sessions_recently_closed. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "sessionId": {
+                  "type": "string",
+                  "description": "Session ID from tabz_sessions_recently_closed. If omitted, restores the most recently closed session."
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_sessions_devices",
+            "description": "List tabs open on other synced Chrome devices. Requires Chrome Sync enabled. Open found tabs with tabz_open_url. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "maxResults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10,
+                  "default": 10,
+                  "description": "Maximum devices to return"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cookies_get",
+            "description": "Get a specific browser cookie by name and URL.\n\nArgs: url (required), name (required)\n\nUse tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to get cookie for (determines domain/path matching)"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name of the cookie to retrieve"
+                }
+              },
+              "required": [
+                "url",
+                "name"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cookies_list",
+            "description": "List browser cookies with optional filtering. Provide at least domain or url for targeted results.\n\nArgs: domain (optional), url (optional), name (optional), secure (optional), session (optional)\n\nUse tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "domain": {
+                  "type": "string",
+                  "description": "Filter by domain (e.g., 'github.com')"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Filter by URL (includes path matching)"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Filter by cookie name"
+                },
+                "secure": {
+                  "type": "boolean",
+                  "description": "Filter by secure flag"
+                },
+                "session": {
+                  "type": "boolean",
+                  "description": "Filter session cookies (no expiration)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cookies_set",
+            "description": "Create or update a browser cookie. Modifying cookies can break auth -- use carefully.\n\nArgs: url (required), name (required), value (required), domain/path/secure/httpOnly/sameSite/expirationDate (optional)\n\nUse tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to associate cookie with"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Cookie name"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Cookie value"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "Cookie domain (defaults to URL host)"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Cookie path (defaults to '/')"
+                },
+                "secure": {
+                  "type": "boolean",
+                  "description": "Secure flag (HTTPS only)"
+                },
+                "httpOnly": {
+                  "type": "boolean",
+                  "description": "HttpOnly flag (not accessible to JS)"
+                },
+                "sameSite": {
+                  "type": "string",
+                  "enum": [
+                    "no_restriction",
+                    "lax",
+                    "strict"
+                  ],
+                  "description": "SameSite attribute"
+                },
+                "expirationDate": {
+                  "type": "number",
+                  "description": "Expiration as seconds since epoch (omit for session cookie)"
+                }
+              },
+              "required": [
+                "url",
+                "name",
+                "value"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cookies_delete",
+            "description": "Delete a specific browser cookie. Deleting auth cookies will log user out.\n\nArgs: url (required), name (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL the cookie is associated with"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name of the cookie to delete"
+                }
+              },
+              "required": [
+                "url",
+                "name"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_cookies_audit",
+            "description": "Audit cookies for the current page -- categorizes first/third-party, session/persistent, flags known trackers.\n\nArgs: tabId (optional, defaults to active tab)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Tab ID to audit (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_device",
+            "description": "Emulate mobile/tablet viewport via CDP. Use tabz_emulate_clear to reset. Presets: iPhone_14, iPhone_14_Pro_Max, iPhone_SE, Pixel_7, Pixel_7_Pro, iPad, iPad_Pro, Galaxy_S23, Galaxy_Fold.\n\nArgs: device (preset name or 'custom'), width/height (if custom), deviceScaleFactor, mobile, tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "string",
+                  "enum": [
+                    "custom",
+                    "iPhone_14",
+                    "iPhone_14_Pro_Max",
+                    "iPhone_SE",
+                    "Pixel_7",
+                    "Pixel_7_Pro",
+                    "iPad",
+                    "iPad_Pro",
+                    "Galaxy_S23",
+                    "Galaxy_Fold"
+                  ],
+                  "description": "Device preset to emulate. Options: iPhone_14, iPhone_14_Pro_Max, iPhone_SE, Pixel_7, Pixel_7_Pro, iPad, iPad_Pro, Galaxy_S23, Galaxy_Fold. Use 'custom' for manual dimensions."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4096,
+                  "description": "Viewport width in pixels (required if device='custom')"
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4096,
+                  "description": "Viewport height in pixels (required if device='custom')"
+                },
+                "deviceScaleFactor": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 4,
+                  "default": 1,
+                  "description": "Device pixel ratio (2-3 for retina/mobile displays)"
+                },
+                "mobile": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable mobile mode (touch events, mobile user agent)"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_clear",
+            "description": "Clear all emulation overrides and detach debugger. Resets viewport, geolocation, network, media, vision.\n\nArgs: tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_geolocation",
+            "description": "Spoof browser geolocation coordinates via CDP. Set clear=true to reset.\n\nArgs: latitude, longitude (required unless clear=true), accuracy (optional), clear (optional), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "latitude": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90,
+                  "description": "Latitude in degrees (-90 to 90)"
+                },
+                "longitude": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180,
+                  "description": "Longitude in degrees (-180 to 180)"
+                },
+                "accuracy": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 100,
+                  "description": "Accuracy in meters"
+                },
+                "clear": {
+                  "type": "boolean",
+                  "description": "Set to true to clear geolocation override"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_network",
+            "description": "Throttle network speed via CDP. Presets: offline, slow_3g, fast_3g, 4g, wifi, no_throttle.\n\nArgs: preset (optional), or custom offline/downloadThroughput/uploadThroughput/latency, tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "preset": {
+                  "type": "string",
+                  "enum": [
+                    "offline",
+                    "slow_3g",
+                    "fast_3g",
+                    "4g",
+                    "wifi",
+                    "no_throttle"
+                  ],
+                  "description": "Network preset: offline, slow_3g, fast_3g, 4g, wifi, no_throttle"
+                },
+                "offline": {
+                  "type": "boolean",
+                  "description": "Simulate offline mode (for custom conditions)"
+                },
+                "downloadThroughput": {
+                  "type": "number",
+                  "description": "Download speed in bytes/sec, -1 for disabled (for custom conditions)"
+                },
+                "uploadThroughput": {
+                  "type": "number",
+                  "description": "Upload speed in bytes/sec, -1 for disabled (for custom conditions)"
+                },
+                "latency": {
+                  "type": "number",
+                  "description": "Network latency in milliseconds (for custom conditions)"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_media",
+            "description": "Emulate CSS media type and features (color-scheme, reduced-motion, forced-colors, print mode).\n\nArgs: media (optional), colorScheme (optional), reducedMotion (optional), forcedColors (optional), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "media": {
+                  "type": "string",
+                  "enum": [
+                    "screen",
+                    "print",
+                    ""
+                  ],
+                  "description": "CSS media type: 'screen', 'print', or '' to reset"
+                },
+                "colorScheme": {
+                  "type": "string",
+                  "enum": [
+                    "light",
+                    "dark",
+                    "no-preference"
+                  ],
+                  "description": "Emulate prefers-color-scheme media feature"
+                },
+                "reducedMotion": {
+                  "type": "string",
+                  "enum": [
+                    "reduce",
+                    "no-preference"
+                  ],
+                  "description": "Emulate prefers-reduced-motion media feature"
+                },
+                "forcedColors": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "none"
+                  ],
+                  "description": "Emulate forced-colors media feature (high contrast mode)"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_emulate_vision",
+            "description": "Simulate vision deficiency for accessibility testing. Types: none, blurredVision, reducedContrast, achromatopsia, deuteranopia, protanopia, tritanopia.\n\nArgs: type (required), tabId (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "blurredVision",
+                    "reducedContrast",
+                    "achromatopsia",
+                    "deuteranopia",
+                    "protanopia",
+                    "tritanopia"
+                  ],
+                  "description": "Vision deficiency type: none, blurredVision, reducedContrast, achromatopsia, deuteranopia, protanopia, tritanopia"
+                },
+                "tabId": {
+                  "type": "integer",
+                  "description": "Target tab ID (defaults to active tab)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' or 'json'"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_notification_show",
+            "description": "Show a Chrome desktop notification. Types: basic, image, list, progress. Returns notificationId for updates.\n\nArgs: title (required), message (required), type/iconUrl/progress/buttons/priority/notificationId/requireInteraction (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Notification title"
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Notification body text"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "basic",
+                    "image",
+                    "list",
+                    "progress"
+                  ],
+                  "default": "basic",
+                  "description": "Notification template type: 'basic' (default), 'image', 'list', or 'progress'"
+                },
+                "iconUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to notification icon (48x48 recommended). Uses extension icon if omitted."
+                },
+                "imageUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Image URL for 'image' type notifications"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "description": "Item title"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "Item message"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "List items for 'list' type notifications"
+                },
+                "progress": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Progress percentage (0-100) for 'progress' type"
+                },
+                "buttons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "maxLength": 32,
+                        "description": "Button title (max 32 chars)"
+                      },
+                      "iconUrl": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "URL to button icon"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 2,
+                  "description": "Action buttons (max 2). Note: button clicks are not yet handled."
+                },
+                "priority": {
+                  "type": "integer",
+                  "minimum": -2,
+                  "maximum": 2,
+                  "default": 0,
+                  "description": "Priority: -2 (lowest) to 2 (highest). Default 0."
+                },
+                "notificationId": {
+                  "type": "string",
+                  "description": "Custom ID for this notification. Auto-generated if omitted. Use for updates."
+                },
+                "requireInteraction": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Keep notification visible until user dismisses it"
+                }
+              },
+              "required": [
+                "title",
+                "message"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_notification_update",
+            "description": "Update an existing notification (title, message, progress, or type).\n\nArgs: notificationId (required), title/message/progress/type (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "notificationId": {
+                  "type": "string",
+                  "description": "ID of notification to update"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "New title"
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "description": "New message"
+                },
+                "progress": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "New progress percentage (0-100)"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "basic",
+                    "image",
+                    "list",
+                    "progress"
+                  ],
+                  "description": "Change notification type (e.g., progress -> basic when complete)"
+                }
+              },
+              "required": [
+                "notificationId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_notification_clear",
+            "description": "Dismiss a notification by ID.\n\nArgs: notificationId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "notificationId": {
+                  "type": "string",
+                  "description": "ID of notification to dismiss"
+                }
+              },
+              "required": [
+                "notificationId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_notification_list",
+            "description": "List all active (undismissed) notifications.",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "properties": {}
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_profiles",
+            "description": "List terminal profiles (theme, command, working dir). Use to discover profiles before spawning.\n\nArgs: category (optional filter), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "description": "Optional: Filter profiles by category name (e.g., 'AI Assistants', 'Checkpoints')"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_categories",
+            "description": "List all profile categories. Use to discover categories before filtering with tabz_list_profiles.\n\nArgs: response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_spawn_profile",
+            "description": "Spawn a terminal using a saved profile. Use tabz_list_profiles to discover available profiles.\n\nArgs: profileId (required), workingDir (optional override), name (optional), env (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "profileId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Required: Profile ID or name to spawn (use tabz_list_profiles to discover available profiles)"
+                },
+                "workingDir": {
+                  "type": "string",
+                  "description": "Optional: Override the profile's default working directory"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Optional: Custom name for this terminal instance"
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Optional: Additional environment variables to set"
+                }
+              },
+              "required": [
+                "profileId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_profile",
+            "description": "Get all settings for a specific terminal profile (theme, command, working dir, etc.).\n\nArgs: profileId (required), response_format (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "profileId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Profile ID or name to retrieve"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "required": [
+                "profileId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_create_profile",
+            "description": "Create a new terminal profile for reuse when spawning terminals.\n\nArgs: name (required), command/workingDir/category/themeName/fontSize/fontFamily (optional)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50,
+                  "description": "Required: Display name for the profile"
+                },
+                "command": {
+                  "type": "string",
+                  "description": "Optional: Command to run on terminal start (e.g., 'claude', 'npm start')"
+                },
+                "workingDir": {
+                  "type": "string",
+                  "description": "Optional: Default working directory for this profile"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Optional: Category to group this profile (e.g., 'AI Assistants', 'Dev Tools')"
+                },
+                "themeName": {
+                  "type": "string",
+                  "description": "Optional: Color theme name (e.g., 'matrix', 'dracula', 'amber')"
+                },
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 8,
+                  "maximum": 32,
+                  "description": "Optional: Font size in pixels (8-32)"
+                },
+                "fontFamily": {
+                  "type": "string",
+                  "description": "Optional: Font family (e.g., 'JetBrains Mono', 'Fira Code')"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_update_profile",
+            "description": "Update an existing terminal profile. Only specified fields are changed.\n\nArgs: profileId (required), updates (object with name/command/workingDir/category/themeName/fontSize/fontFamily)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "profileId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Required: Profile ID to update"
+                },
+                "updates": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 50
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "workingDir": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "themeName": {
+                      "type": "string"
+                    },
+                    "fontSize": {
+                      "type": "integer",
+                      "minimum": 8,
+                      "maximum": 32
+                    },
+                    "fontFamily": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Fields to update"
+                }
+              },
+              "required": [
+                "profileId",
+                "updates"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_delete_profile",
+            "description": "Permanently delete a terminal profile. Running terminals are unaffected.\n\nArgs: profileId (required)",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "profileId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Required: Profile ID to delete"
+                }
+              },
+              "required": [
+                "profileId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_plugins",
+            "description": "List installed Claude Code plugins grouped by marketplace with enabled/disabled state. Filter by marketplace or enabled status. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "marketplace": {
+                  "type": "string",
+                  "description": "Filter by marketplace name (e.g., 'my-plugins', 'anthropic')"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Filter by enabled status: true for enabled only, false for disabled only"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_skills",
+            "description": "List available skills from enabled plugins. Filter by plugin name or search by keyword. Use tabz_get_skill to read full SKILL.md content.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plugin": {
+                  "type": "string",
+                  "description": "Filter by plugin name (e.g., 'conductor', 'beads')"
+                },
+                "search": {
+                  "type": "string",
+                  "description": "Search skills by name or description (case-insensitive)"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_get_skill",
+            "description": "Get full details and content of a specific skill.\n\nReads the SKILL.md file for a skill, providing complete context\nincluding instructions, examples, and configuration.\n\nArgs:\n  - skillId (required): Skill ID in format \"/pluginName:skillName\"\n                        (e.g., \"/conductor:brainstorm\", \"/tabz-browser:screenshot\")\n\nReturns:\n  {\n    \"skill\": {\n      \"id\": \"/conductor:brainstorm\",\n      \"name\": \"Brainstorm\",\n      \"desc\": \"...\",\n      \"pluginName\": \"conductor\"\n    },\n    \"content\": \"---\\nname: Brainstorm\\n...full SKILL.md content...\"\n  }\n\nExamples:\n  - Get skill: skillId=\"/conductor:brainstorm\"\n  - Without leading slash: skillId=\"conductor:brainstorm\"\n\nUse tabz_list_skills first to find available skill IDs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "skillId": {
+                  "type": "string",
+                  "description": "The skill ID in format '/pluginName:skillName' (e.g., '/conductor:brainstorm')"
+                }
+              },
+              "required": [
+                "skillId"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_plugins_health",
+            "description": "Check plugin health: outdated versions, cache size, marketplace reachability. Run /restart after updating plugins.",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "properties": {}
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_toggle_plugin",
+            "description": "Enable or disable a plugin. pluginId format: \"name@marketplace\". Run /restart after toggling to apply. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "pluginId": {
+                  "type": "string",
+                  "description": "The plugin ID in format 'pluginName@marketplace' (e.g., 'conductor@my-plugins')"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Set to true to enable the plugin, false to disable"
+                }
+              },
+              "required": [
+                "pluginId",
+                "enabled"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_list_terminals",
+            "description": "List running terminals in TabzChrome. Filter by state: 'active', 'disconnected', or 'all'. Returns IDs for tabz_send_keys and tabz_capture_terminal. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "disconnected",
+                    "all"
+                  ],
+                  "default": "all",
+                  "description": "Filter by terminal state: 'active', 'disconnected', or 'all' (default)"
+                },
+                "response_format": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "json"
+                  ],
+                  "default": "markdown",
+                  "description": "Output format: 'markdown' for human-readable or 'json' for structured data"
+                }
+              },
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_send_keys",
+            "description": "Send text/keys to a terminal via tmux. Default 600ms delay before Enter suits Claude terminals; increase for long prompts. Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "terminal": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Terminal name or ID to send keys to (use tabz_list_terminals to find terminals)"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Text to send to the terminal"
+                },
+                "execute": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to press Enter after sending text (default: true). Set to false to just paste text."
+                },
+                "delay": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "default": 600,
+                  "description": "Delay in milliseconds before pressing Enter (default: 600ms). Helps Claude terminals process long prompts."
+                }
+              },
+              "required": [
+                "terminal",
+                "text"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          },
+          {
+            "name": "tabz_capture_terminal",
+            "description": "Capture recent output from a terminal's scrollback buffer. Returns last N lines (default 50, max 1000). Use tabz_docs for detailed docs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "terminal": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Terminal name or ID to capture output from"
+                },
+                "lines": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 50,
+                  "description": "Number of lines to capture (default: 50, max: 1000)"
+                }
+              },
+              "required": [
+                "terminal"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            }
+          }
+        ]
+      },
+      "jsonrpc": "2.0",
+      "id": 2
+    },
+    "syntheticToolCalls": {
+      "pageRead": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "method": "tools/call",
+          "params": {
+            "name": "tabz_get_page_info",
+            "arguments": {
+              "response_format": "json"
+            }
+          }
+        },
+        "response": {
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "{\n  \"url\": \"https://example.test/orders\",\n  \"title\": \"Synthetic orders\",\n  \"tabId\": 41\n}"
+              }
+            ]
+          },
+          "jsonrpc": "2.0",
+          "id": 3
+        }
+      },
+      "clickAction": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": 4,
+          "method": "tools/call",
+          "params": {
+            "name": "tabz_click",
+            "arguments": {
+              "selector": "#submit",
+              "tabId": 41
+            }
+          }
+        },
+        "response": {
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "## Click Successful\n\nClicked element: `#submit`\n\nThe click action was performed. Use these tools to verify the result:\n- `tabz_get_page_info` - Check if page navigated\n- `tabz_execute_script` - Check DOM changes\n- `tabz_screenshot` - Capture current state"
+              }
+            ],
+            "isError": false
+          },
+          "jsonrpc": "2.0",
+          "id": 4
+        }
+      }
+    }
+  },
+  "backendRequests": {
+    "configuration": 1,
+    "workflowRead": 1,
+    "workflowAction": 1,
+    "workflowTotal": 2,
+    "unexpected": 0
+  },
+  "stdioRoundTrips": 4
+}

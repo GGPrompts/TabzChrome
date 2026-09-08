@@ -4,7 +4,9 @@
  * Tools for capturing screenshots and downloading images from browser pages
  */
 
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import {
@@ -15,6 +17,7 @@ import {
   type CaptureImageResult
 } from "../shared.js";
 import type { ScriptResult } from "../types.js";
+import { docsPointer, OUTPUT_PATH_DESC } from "../descriptions.js";
 
 // Input schema for tabz_screenshot (viewport only)
 const ScreenshotViewportSchema = z.object({
@@ -49,14 +52,14 @@ type ScreenshotFullInput = z.infer<typeof ScreenshotFullSchema>;
 const DownloadImageSchema = z.object({
   selector: z.string()
     .optional()
-    .describe("CSS selector for an <img> element or element with background-image. Extracts the image URL automatically."),
+    .describe("An <img> or background-image element."),
   url: z.string()
     .url()
     .optional()
-    .describe("Direct URL of the image to download. Use this OR selector, not both."),
+    .describe("Image URL, instead of selector."),
   outputPath: z.string()
     .optional()
-    .describe("Custom output path for the image. Default: Downloads/tabz/images/captured-image-{timestamp}.png")
+    .describe(OUTPUT_PATH_DESC)
 }).strict();
 
 type DownloadImageInput = z.infer<typeof DownloadImageSchema>;
@@ -64,7 +67,10 @@ type DownloadImageInput = z.infer<typeof DownloadImageSchema>;
 /**
  * Take a screenshot via Chrome Extension API
  */
-async function takeScreenshot(options: {
+export async function takeScreenshot(options: {
+  ref?: string;
+  inlineOnly?: boolean;
+  clip?: { x0: number; y0: number; x1: number; y1: number };
   selector?: string;
   fullPage?: boolean;
   outputPath?: string;
@@ -77,14 +83,53 @@ async function takeScreenshot(options: {
       {
         tabId: options.tabId,
         selector: options.selector,
+        ref: options.ref,
+        inlineOnly: options.inlineOnly,
+        clip: options.clip,
+        fullPage: options.fullPage,
         outputPath: options.outputPath
       },
       { timeout: options.fullPage ? 65000 : 35000 }
     );
     return response.data;
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    return { success: false, transportError: true, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+/** Keep delivery evidence explicit: inline-only needs an image; saved captures need a path. */
+export function screenshotToolResult(result: ScreenshotResult, options: { inlineOnly?: boolean; action?: string; tabId?: number } = {}): CallToolResult {
+  const validTab = options.tabId === undefined || result.tabId === options.tabId;
+  const hasImage = result.success === true && validTab &&
+    typeof result.imageData === "string" && result.imageData.length > 0 && result.imageData.length <= 8_000_000 &&
+    /^[A-Za-z0-9+/]*={0,2}$/.test(result.imageData) &&
+    ["image/png", "image/jpeg", "image/webp"].includes(result.mimeType ?? "");
+  const path = typeof result.filePath === "string" && result.filePath.length > 0 ? result.filePath : null;
+  const complete = result.success === true && validTab && (options.inlineOnly ? hasImage : path !== null);
+  const error = result.error || (!validTab ? "Screenshot came from a different tab" : options.inlineOnly ? "Inline image data was not returned" : "The saved screenshot path was not returned");
+  const text = complete
+    ? `## Screenshot Captured\n\n${path ? `**File saved to:** ${path}\n\n` : ""}${result.width && result.height ? `${result.width} × ${result.height}px. ` : ""}${hasImage ? `Image included inline as ${result.mimeType}.` : "Use the saved file to view the capture."}`
+    : `## Screenshot Failed\n\n**Error:** ${error}`;
+  const content: CallToolResult["content"] = [{ type: "text", text }];
+  if (complete && hasImage) content.push({ type: "image", data: result.imageData!, mimeType: result.mimeType! });
+  return {
+    content,
+    structuredContent: {
+      status: complete ? "completed" : result.transportError ? "transport_error" : "failed",
+      success: complete,
+      ...(options.action ? { action: options.action } : {}),
+      tabId: result.tabId ?? null,
+      path: complete ? path : null,
+      mimeType: complete ? result.mimeType ?? null : null,
+      width: complete ? result.width ?? null : null,
+      height: complete ? result.height ?? null : null,
+      bytes: complete ? result.bytes ?? null : null,
+      inline: complete && hasImage,
+      text,
+      ...(!complete ? { error } : {})
+    },
+    isError: !complete
+  };
 }
 
 /**
@@ -239,7 +284,14 @@ async function downloadImage(options: {
   if (captureResult.success && captureResult.filePath) {
     return {
       success: true,
-      filePath: captureResult.filePath
+      filePath: captureResult.filePath,
+      tabId: captureResult.tabId,
+      imageData: captureResult.imageData,
+      mimeType: captureResult.mimeType,
+      width: captureResult.width,
+      height: captureResult.height,
+      bytes: captureResult.bytes,
+      imageReencoded: captureResult.imageReencoded
     };
   }
 
@@ -255,12 +307,10 @@ async function downloadImage(options: {
  */
 export function registerScreenshotTools(server: McpServer): void {
   // Screenshot viewport tool - captures what's currently visible
-  server.tool(
+  registerTabzTool(server,
     "tabz_screenshot",
-    `Screenshot the visible viewport. Use tabz_screenshot_full for entire scrollable page. Returns filePath for Read tool.
-
-Args: selector (optional, for element screenshot), outputPath (optional), tabId (optional)`,
-    ScreenshotViewportSchema.shape,
+    "LEGACY: prefer tabz_act action \"screenshot\". Capture the viewport or one element. " + docsPointer("tabz_screenshot"),
+    ScreenshotViewportSchema,
     async (params: ScreenshotViewportInput) => {
       try {
         const result = await takeScreenshot({
@@ -270,31 +320,7 @@ Args: selector (optional, for element screenshot), outputPath (optional), tabId 
           tabId: params.tabId
         });
 
-        let resultText: string;
-        if (result.success && result.filePath) {
-          resultText = `## Screenshot Captured
-
-**File saved to:** ${result.filePath}
-
-Use the Read tool to view the screenshot:
-\`\`\`
-Read file: ${result.filePath}
-\`\`\``;
-        } else {
-          resultText = `## Screenshot Failed
-
-**Error:** ${result.error}
-
-Troubleshooting:
-- Ensure TabzChrome extension is installed and backend is running at localhost:8129
-- Check that a webpage (not chrome://) is open
-- Verify the selector matches an element on the page`;
-        }
-
-        return {
-          content: [{ type: "text", text: resultText }],
-          isError: !result.success
-        };
+        return screenshotToolResult(result, { tabId: params.tabId });
       } catch (error) {
         return {
           content: [{
@@ -308,12 +334,10 @@ Troubleshooting:
   );
 
   // Screenshot full page tool - captures entire scrollable page
-  server.tool(
+  registerTabzTool(server,
     "tabz_screenshot_full",
-    `Screenshot the entire scrollable page (top to bottom). Recommended for first-time page exploration.
-
-Args: outputPath (optional), tabId (optional)`,
-    ScreenshotFullSchema.shape,
+    "LEGACY: prefer tabz_act action \"screenshot\" with fullPage. Capture the full page. " + docsPointer("tabz_screenshot_full"),
+    ScreenshotFullSchema,
     async (params: ScreenshotFullInput) => {
       try {
         const result = await takeScreenshot({
@@ -322,30 +346,7 @@ Args: outputPath (optional), tabId (optional)`,
           tabId: params.tabId
         });
 
-        let resultText: string;
-        if (result.success && result.filePath) {
-          resultText = `## Full Page Screenshot Captured
-
-**File saved to:** ${result.filePath}
-
-Use the Read tool to view the screenshot:
-\`\`\`
-Read file: ${result.filePath}
-\`\`\``;
-        } else {
-          resultText = `## Full Page Screenshot Failed
-
-**Error:** ${result.error}
-
-Troubleshooting:
-- Ensure TabzChrome extension is installed and backend is running at localhost:8129
-- Check that a webpage (not chrome://) is open`;
-        }
-
-        return {
-          content: [{ type: "text", text: resultText }],
-          isError: !result.success
-        };
+        return screenshotToolResult(result, { tabId: params.tabId });
       } catch (error) {
         return {
           content: [{
@@ -359,12 +360,10 @@ Troubleshooting:
   );
 
   // Download image tool
-  server.tool(
+  registerTabzTool(server,
     "tabz_download_image",
-    `Download an image from the page by CSS selector or direct URL. Returns filePath for Read tool.
-
-Args: selector (optional) OR url (optional), outputPath (optional)`,
-    DownloadImageSchema.shape,
+    "Download one image from the page, by CSS selector or direct URL.",
+    DownloadImageSchema,
     async (params: DownloadImageInput) => {
       try {
         const result = await downloadImage({
@@ -394,10 +393,10 @@ Troubleshooting:
 - Verify the image URL is accessible`;
         }
 
-        return {
-          content: [{ type: "text", text: resultText }],
-          isError: !result.success
-        };
+        const output = screenshotToolResult(result);
+        output.content[0] = { type: "text", text: resultText };
+        output.structuredContent = { ...output.structuredContent, text: resultText };
+        return output;
       } catch (error) {
         return {
           content: [{

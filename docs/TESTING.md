@@ -34,11 +34,9 @@ cd TabzChrome
 npm install
 cd backend && npm install && cd ..
 
-# Build extension
-npm run build
-
-# Copy to Windows for Chrome to load
-rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/TabzChrome/dist-extension/
+# Build extension/MCP and safely sync the Windows load folder
+# Verify the destination Chrome loads; TABZ_WIN_PATH overrides that exact folder.
+bash scripts/rebuild.sh
 ```
 
 **Load in Chrome (Windows):**
@@ -53,7 +51,8 @@ rsync -av --delete dist-extension/ /mnt/c/Users/$USER/Desktop/TabzChrome/dist-ex
 
 **WSL-Specific Notes:**
 - Use `localhost` not `127.0.0.1` when accessing backend from Chrome
-- The `TABZ_WIN_PATH` env var can override the Windows destination path
+- `TABZ_WIN_PATH` overrides the exact extension load directory, including `dist-extension`
+- `bash scripts/rebuild.sh --local-only` builds without Windows sync; it does not update the Windows copy Chrome loads
 - Font check is skipped in WSL (Chrome uses Windows fonts)
 
 ---

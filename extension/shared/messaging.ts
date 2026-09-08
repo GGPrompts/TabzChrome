@@ -63,7 +63,8 @@ export type MessageType =
   | 'UNTRACK_POPOUT_WINDOW'
   | 'GET_POPOUT_WINDOWS'
   | 'POPOUT_WINDOWS_RESPONSE'
-  | 'REGISTER_POPOUT_WINDOW';
+  | 'REGISTER_POPOUT_WINDOW'
+  | 'UPDATE_TERMINAL_VIEW';
 
 export interface BaseMessage {
   type: MessageType;
@@ -231,13 +232,22 @@ export interface TmuxSessionSendMessage extends BaseMessage {
 // Browser MCP - Console log entry
 export type ConsoleLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
+export type ConsoleLogOrigin = 'page' | 'unknown' | `extension:${string}`
+
 export interface ConsoleLogEntry {
+  source?: 'page' | 'extension'
+  origin?: ConsoleLogOrigin
   level: ConsoleLogLevel;
   message: string;
   timestamp: number;
   url: string;
   tabId: number;
+  /** Chrome-provided document identity at capture time, never supplied by page data. */
+  documentId?: string;
   stack?: string;
+  /** Ownership at capture time. Unowned rows are not exposed to named agents. */
+  groupId?: number | null;
+  agent?: string | null;
 }
 
 export interface ConsoleLogMessage extends BaseMessage {
@@ -373,6 +383,14 @@ export interface RegisterPopoutWindowMessage extends BaseMessage {
   terminalId: string;
 }
 
+export interface UpdateTerminalViewMessage extends BaseMessage {
+  type: 'UPDATE_TERMINAL_VIEW';
+  terminalId: string | null;
+  visible: boolean;
+  windowId: number;
+  isPopout: boolean;
+}
+
 export type ExtensionMessage =
   | InitialStateMessage
   | OpenSessionMessage
@@ -425,7 +443,8 @@ export type ExtensionMessage =
   | UntrackPopoutWindowMessage
   | GetPopoutWindowsMessage
   | PopoutWindowsResponseMessage
-  | RegisterPopoutWindowMessage;
+  | RegisterPopoutWindowMessage
+  | UpdateTerminalViewMessage;
 
 // Helper function to send messages
 export function sendMessage(message: ExtensionMessage): Promise<any> {

@@ -4,6 +4,17 @@
   "description": "Tabz MCP server for browser control and page interaction via TabzChrome extension",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./*": "./*"
+  },
+  "bin": {
+    "tabz": "./dist/cli/index.js"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",

@@ -4,6 +4,7 @@
  */
 
 import { sendToWebSocket } from '../websocket'
+import { resolveAgentTab } from './tabGroups'
 
 /**
  * Get a specific cookie by URL and name
@@ -183,17 +184,10 @@ export async function handleBrowserCookiesDelete(message: {
 export async function handleBrowserCookiesAudit(message: {
   requestId: string
   tabId?: number
+  agent?: string
 }): Promise<void> {
   try {
-    // Get the target tab
-    let tab: chrome.tabs.Tab | undefined
-
-    if (message.tabId) {
-      tab = await chrome.tabs.get(message.tabId)
-    } else {
-      const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-      tab = activeTab
-    }
+    const tab = await resolveAgentTab(message.agent, message.tabId)
 
     if (!tab || !tab.url) {
       sendToWebSocket({

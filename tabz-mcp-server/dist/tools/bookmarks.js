@@ -3,6 +3,7 @@
  *
  * Tools for managing Chrome bookmarks - save, search, organize, and navigate bookmarks
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
@@ -97,74 +98,65 @@ const OTHER_BOOKMARKS_ID = "2";
 const GetBookmarkTreeSchema = z.object({
     folderId: z.string()
         .optional()
-        .describe("Folder ID to get children of. Omit for full tree. Special IDs: '1' = Bookmarks Bar, '2' = Other Bookmarks"),
+        .describe("Folder to list; omit for the whole tree."),
     maxDepth: z.number()
         .int()
         .min(1)
         .max(10)
         .default(3)
-        .describe("Maximum depth to traverse (1-10, default: 3). Use 1 for immediate children only."),
+        .describe("Levels to descend."),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 const SearchBookmarksSchema = z.object({
     query: z.string()
-        .min(1)
-        .describe("Search query - matches against bookmark titles and URLs"),
+        .min(1),
     limit: z.number()
         .int()
         .min(1)
         .max(100)
-        .default(20)
-        .describe("Maximum results to return (1-100, default: 20)"),
+        .default(20),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 const SaveBookmarkSchema = z.object({
     url: z.string()
-        .url()
-        .describe("URL to bookmark"),
+        .url(),
     title: z.string()
-        .min(1)
-        .describe("Bookmark title"),
+        .min(1),
     parentId: z.string()
         .optional()
-        .describe("Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks, or a folder ID from tabz_get_bookmark_tree."),
+        .describe("Parent folder; '1' = Bookmarks Bar, '2' = Other."),
     index: z.number()
         .int()
         .min(0)
         .optional()
-        .describe("Position within the folder (0 = first). Omit to add at end.")
+        .describe("Position, 0 first; omit to append.")
 }).strict();
 const CreateFolderSchema = z.object({
     title: z.string()
-        .min(1)
-        .describe("Folder name"),
+        .min(1),
     parentId: z.string()
         .optional()
-        .describe("Parent folder ID. Default: '1' (Bookmarks Bar). Use '2' for Other Bookmarks."),
+        .describe("Parent folder; '1' = Bookmarks Bar, '2' = Other."),
     index: z.number()
         .int()
         .min(0)
         .optional()
-        .describe("Position within parent (0 = first). Omit to add at end.")
+        .describe("Position, 0 first; omit to append.")
 }).strict();
 const MoveBookmarkSchema = z.object({
-    id: z.string()
-        .describe("Bookmark or folder ID to move (from tabz_get_bookmark_tree or tabz_search_bookmarks)"),
-    parentId: z.string()
-        .describe("Destination folder ID. Use '1' for Bookmarks Bar, '2' for Other Bookmarks."),
+    id: z.string(),
+    parentId: z.string(),
     index: z.number()
         .int()
         .min(0)
         .optional()
-        .describe("Position in destination folder (0 = first). Omit to add at end.")
+        .describe("Position, 0 first; omit to append.")
 }).strict();
 const DeleteBookmarkSchema = z.object({
     id: z.string()
-        .describe("Bookmark or folder ID to delete. WARNING: Deleting a folder removes all contents!")
+        .describe("Bookmark or folder to delete.")
 }).strict();
 // =====================================
 // Formatting Helpers
@@ -223,7 +215,7 @@ function formatSearchResults(bookmarks) {
  */
 export function registerBookmarkTools(server) {
     // Get bookmark tree
-    server.tool("tabz_get_bookmark_tree", `Browse Chrome bookmarks hierarchy. Folder IDs: "1"=Bookmarks Bar, "2"=Other Bookmarks. Use tabz_docs for detailed docs.`, GetBookmarkTreeSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_get_bookmark_tree", "Browse the Chrome bookmarks tree.", GetBookmarkTreeSchema, async (params) => {
         try {
             const result = await getBookmarkTree({
                 folderId: params.folderId,
@@ -276,7 +268,7 @@ export function registerBookmarkTools(server) {
         }
     });
     // Search bookmarks
-    server.tool("tabz_search_bookmarks", `Search bookmarks by title or URL. Returns matching bookmarks with IDs for use with move/delete tools. Use tabz_docs for detailed docs.`, SearchBookmarksSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_search_bookmarks", "Search bookmarks by title or URL, answering IDs the move and delete tools take.", SearchBookmarksSchema, async (params) => {
         try {
             const result = await searchBookmarks({
                 query: params.query,
@@ -325,7 +317,7 @@ export function registerBookmarkTools(server) {
         }
     });
     // Save bookmark
-    server.tool("tabz_save_bookmark", `Save a URL as a Chrome bookmark. Defaults to Bookmarks Bar ("1"). Use parentId for other folders. Use tabz_docs for detailed docs.`, SaveBookmarkSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_save_bookmark", "Save a URL as a Chrome bookmark.", SaveBookmarkSchema, async (params) => {
         try {
             const result = await createBookmark({
                 url: params.url,
@@ -370,7 +362,7 @@ Use this ID with \`tabz_move_bookmark\` or \`tabz_delete_bookmark\` if needed.`
         }
     });
     // Create folder
-    server.tool("tabz_create_folder", `Create a bookmark folder. Defaults to Bookmarks Bar ("1"). Returns folder ID for use with tabz_save_bookmark. Use tabz_docs for detailed docs.`, CreateFolderSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_create_folder", "Create a bookmark folder, answering its ID for tabz_save_bookmark.", CreateFolderSchema, async (params) => {
         try {
             const result = await createBookmarkFolder({
                 title: params.title,
@@ -413,7 +405,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
         }
     });
     // Move bookmark
-    server.tool("tabz_move_bookmark", `Move a bookmark or folder to a different location. Requires id and destination parentId. Use tabz_docs for detailed docs.`, MoveBookmarkSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_move_bookmark", "Move a bookmark or folder into another folder.", MoveBookmarkSchema, async (params) => {
         try {
             const result = await moveBookmark({
                 id: params.id,
@@ -453,7 +445,7 @@ Use this ID as \`parentId\` in \`tabz_save_bookmark\` to add bookmarks to this f
         }
     });
     // Delete bookmark
-    server.tool("tabz_delete_bookmark", `Delete a bookmark or folder permanently. WARNING: deleting a folder removes all contents. Use tabz_docs for detailed docs.`, DeleteBookmarkSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_delete_bookmark", "Delete a bookmark or folder permanently; a folder takes its contents.", DeleteBookmarkSchema, async (params) => {
         try {
             const result = await deleteBookmark(params.id);
             if (!result.success) {

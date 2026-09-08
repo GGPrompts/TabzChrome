@@ -3,6 +3,7 @@ import { Send, Copy, Check, Clock, ChevronDown, ChevronRight, Plus, Trash2, Key 
 import { CodeIcon, type AnimatedIconHandle } from '../../components/icons'
 
 const API_BASE = 'http://localhost:8129'
+const TOKEN_READ_COMMAND = 'node -p \'require("fs").readFileSync(require("path").join(require("os").tmpdir(), "tabz-auth-token"), "utf8")\''
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -387,7 +388,7 @@ export default function ApiPlayground() {
   }
 
   const copyCommand = async () => {
-    await navigator.clipboard.writeText('cat /tmp/tabz-auth-token')
+    await navigator.clipboard.writeText(TOKEN_READ_COMMAND)
     setCommandCopied(true)
     setTimeout(() => setCommandCopied(false), 2000)
   }
@@ -581,7 +582,7 @@ export default function ApiPlayground() {
             {showAuth && (
               <div className="p-4 space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Auth token required for spawn API. Stored at <code className="text-cyan-400">/tmp/tabz-auth-token</code>
+                  The spawn API requires an auth token. Copy it here, or use the read command in a local terminal.
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -602,7 +603,7 @@ export default function ApiPlayground() {
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Example usage</summary>
                   <pre className="mt-2 p-2 rounded bg-muted/50 font-mono text-cyan-400 overflow-x-auto">
-{`TOKEN=$(cat /tmp/tabz-auth-token)
+{`TOKEN=$(${TOKEN_READ_COMMAND})
 curl -X POST localhost:8129/api/spawn \\
   -H "X-Auth-Token: $TOKEN" \\
   -d '{"name": "Test"}'`}

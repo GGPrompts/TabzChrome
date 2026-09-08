@@ -59,9 +59,12 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
         setGlobalWorkingDir(localDir)
         setRecentDirs(localRecent)
 
-        // Mark as loaded in next microtask to ensure state has propagated
+        // Mark as loaded in the next microtask so the loaded values propagate
+        // before consumers can write. End initial-load suppression at the same
+        // boundary: once isLoaded is visible, user changes must sync to the API.
         queueMicrotask(() => {
           if (isMountedRef.current) {
+            isInitialLoadRef.current = false
             setIsLoaded(true)
           }
         })
@@ -75,10 +78,6 @@ export function useWorkingDirectory(): UseWorkingDirectoryReturn {
         }).catch(() => { /* ignore API errors */ })
       }
 
-      // Allow syncing after initial load
-      setTimeout(() => {
-        isInitialLoadRef.current = false
-      }, 500)
     })
 
     return () => {

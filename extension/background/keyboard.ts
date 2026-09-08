@@ -8,22 +8,13 @@ import {
   setPendingPasteCommand, setPendingQueueCommand
 } from './state'
 import { tryOpenSidebar, spawnQuickTerminal } from './utils'
+import { configureSidePanelActionToggle } from '../shared/sidePanel'
 
 /**
- * Setup extension icon click handler
+ * Let Chrome toggle the side panel when the extension icon is clicked.
  */
 export function setupActionHandler(): void {
-  chrome.action.onClicked.addListener(async (tab) => {
-    console.log('Extension icon clicked')
-
-    if (tab.windowId) {
-      try {
-        await chrome.sidePanel.open({ windowId: tab.windowId })
-      } catch {
-        // Silently ignore - may fail if sidebar already open
-      }
-    }
-  })
+  void configureSidePanelActionToggle()
 }
 
 /**
@@ -33,8 +24,7 @@ export function setupKeyboardHandler(): void {
   chrome.commands.onCommand.addListener(async (command) => {
     console.log('Keyboard command:', command)
 
-    // Note: _execute_action command automatically triggers chrome.action.onClicked
-    // which opens the sidebar - no handler needed here for it
+    // _execute_action uses the Chrome-managed action behavior configured above.
 
     // Handle spawn-quick-terminal - spawns a new popout terminal
     if (command === 'spawn-quick-terminal') {

@@ -3,19 +3,19 @@
  *
  * Tool for getting current page URL, title, and metadata
  */
+import { registerTabzTool } from "../register.js";
 import { z } from "zod";
 import axios from "axios";
 import { BACKEND_URL, handleApiError } from "../shared.js";
 import { ResponseFormat } from "../types.js";
+import { readFailureStatus, structuredToolResult } from "./result-contract.js";
 // Input schema for tabz_get_page_info
 const GetPageInfoSchema = z.object({
     tabId: z.number()
         .int()
-        .optional()
-        .describe("Specific tab ID to get info for. If not specified, returns info for the active tab."),
+        .optional(),
     response_format: z.nativeEnum(ResponseFormat)
         .default(ResponseFormat.MARKDOWN)
-        .describe("Output format: 'markdown' for human-readable or 'json' for structured data")
 }).strict();
 /**
  * Get current page info from the browser via Extension API
@@ -36,11 +36,20 @@ async function getPageInfo(tabId) {
  * Register page tools with the MCP server
  */
 export function registerPageTools(server, backendUrl) {
-    server.tool("tabz_get_page_info", `Get URL, title, tab ID of the active browser page. Use tabz_list_tabs for multi-tab views.
-
-Args: tabId (optional), response_format (optional)`, GetPageInfoSchema.shape, async (params) => {
+    registerTabzTool(server, "tabz_get_page_info", "Get the URL, title, and tab ID of one page; tabz_list_tabs covers your group.", GetPageInfoSchema, async (params) => {
         try {
             const pageInfo = await getPageInfo(params.tabId);
+            if (pageInfo.error || !Number.isInteger(pageInfo.tabId) || pageInfo.tabId <= 0) {
+                const error = pageInfo.error ?? "The browser returned an invalid tab ID";
+                const text = `Error: ${error}`;
+                return structuredToolResult(text, readFailureStatus(error), {
+                    found: false,
+                    tabId: Number.isInteger(pageInfo.tabId) && pageInfo.tabId > 0 ? pageInfo.tabId : null,
+                    url: pageInfo.url || null,
+                    title: pageInfo.title || null,
+                    error
+                }, true);
+            }
             let result;
             if (params.response_format === ResponseFormat.JSON) {
                 result = JSON.stringify(pageInfo, null, 2);
@@ -56,18 +65,23 @@ Args: tabId (optional), response_format (optional)`, GetPageInfoSchema.shape, as
 
 ${pageInfo.favIconUrl ? `**Favicon:** ${pageInfo.favIconUrl}` : ""}`;
             }
-            return {
-                content: [{ type: "text", text: result }]
-            };
+            return structuredToolResult(result, "found", {
+                found: true,
+                tabId: pageInfo.tabId,
+                url: pageInfo.url,
+                title: pageInfo.title,
+                favIconUrl: pageInfo.favIconUrl ?? null
+            }, false);
         }
         catch (error) {
-            return {
-                content: [{
-                        type: "text",
-                        text: `Error: ${error instanceof Error ? error.message : String(error)}`
-                    }],
-                isError: true
-            };
+            const message = error instanceof Error ? error.message : String(error);
+            return structuredToolResult(`Error: ${message}`, readFailureStatus(message), {
+                found: false,
+                tabId: params.tabId ?? null,
+                url: null,
+                title: null,
+                error: message
+            }, true);
         }
     });
 }
