@@ -318,6 +318,13 @@ if [[ -n "$CLAUDE_SESSION_ID" ]]; then
             CONTEXT_WINDOW_SIZE=$(jq -r '.context_window.context_window_size // "null"' "$CONTEXT_FILE" 2>/dev/null || echo "null")
             TOTAL_INPUT_TOKENS=$(jq -r '.context_window.total_input_tokens // "null"' "$CONTEXT_FILE" 2>/dev/null || echo "null")
             TOTAL_OUTPUT_TOKENS=$(jq -r '.context_window.total_output_tokens // "null"' "$CONTEXT_FILE" 2>/dev/null || echo "null")
+            # A torn read (statusline rewriting the file mid-read) makes jq print
+            # a value and then fail, so the `|| echo "null"` fallback appends a
+            # second line ("7\nnull") that --argjson rejects. Keep bare numbers only.
+            [[ "$CONTEXT_PERCENT"     =~ ^[0-9]+(\.[0-9]+)?$ ]] || CONTEXT_PERCENT="null"
+            [[ "$CONTEXT_WINDOW_SIZE" =~ ^[0-9]+$ ]] || CONTEXT_WINDOW_SIZE="null"
+            [[ "$TOTAL_INPUT_TOKENS"  =~ ^[0-9]+$ ]] || TOTAL_INPUT_TOKENS="null"
+            [[ "$TOTAL_OUTPUT_TOKENS" =~ ^[0-9]+$ ]] || TOTAL_OUTPUT_TOKENS="null"
             # Normalize any empty captures to the literal JSON null so
             # --argjson never sees "".
             [[ -z "$CONTEXT_PERCENT"      ]] && CONTEXT_PERCENT="null"
